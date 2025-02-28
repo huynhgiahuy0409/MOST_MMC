@@ -1,4 +1,4 @@
-# **MOST_MMC Project**  
+**MOST_MMC Project**  
 ![image](https://github.com/user-attachments/assets/6b9c394e-e302-4236-b3e5-3ca0577caea8)  
 
 ## **Introduction**  
@@ -22,5 +22,5 @@ The project is divided into the following main modules:
 
 ## **Technologies Used**  
 - **Frontend:** Sencha framework (Ext JS)  
-- **Backend:** Spring MVC (Java)  
-- **Database:** MSSQL + ORACLE  
+- **Backend:** Spring + Spring Security + MyBatis (Java)    
+- **Database:** MSSQL + ORACLE
