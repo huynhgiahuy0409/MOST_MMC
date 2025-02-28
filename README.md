@@ -1,25 +1,26 @@
 # **MOST_MMC Project**  
+![image](https://github.com/user-attachments/assets/6b9c394e-e302-4236-b3e5-3ca0577caea8)  
 
-## **Giới thiệu**  
-Dự án **MOST_MMC** được phát triển nhằm hỗ trợ quản lý và vận hành các cảng thuộc **MMC Corporation** – một tập đoàn tiện ích và hạ tầng lớn tại Malaysia với ba lĩnh vực chính:  
-- **Năng lượng & Tiện ích (Energy & Utilities)**  
-- **Cảng & Logistics (Ports & Logistics)**  
-- **Kỹ thuật (Engineering)**  
+## **Introduction**  
+The **MOST_MMC** project is developed to support the management and operation of ports under **MMC Corporation** – a major utility and infrastructure conglomerate in Malaysia with three main divisions:  
+- **Energy & Utilities**  
+- **Ports & Logistics**  
+- **Engineering**  
 
-## **Mục tiêu dự án**  
-- Tối ưu hóa quy trình quản lý hàng hóa và vận tải tại các cảng thuộc MMC.  
-- Nâng cao hiệu suất làm việc và giảm thiểu sai sót trong quy trình vận hành.  
-- Cung cấp nền tảng tích hợp giúp các phòng ban liên kết và trao đổi thông tin hiệu quả.  
+## **Project Objectives**  
+- Optimize the management of goods and transportation processes at MMC ports.  
+- Improve operational efficiency and minimize errors in the workflow.  
+- Provide an integrated platform that enhances communication and collaboration among departments.  
 
-## **Cấu trúc dự án**  
-Dự án được chia thành các module chính sau:  
-- **MOST_MMC_BaseBizComponent:** Thành phần cốt lõi chứa các nghiệp vụ chung của hệ thống.  
-- **MOST_MMC_Client & MOST_MMC_HHT_Client:** Giao diện người dùng và tablet.  
-- **MOST_MMC_JPB_BizComponent & MOST_MMC_JPB_Web:** Module quản lý hàng hóa tại cảng JPB.  
-- **MOST_MMC_PPSB_BizComponent & MOST_MMC_PPSB_Web:** Module quản lý cảng PPSB.  
-- **MOST_MMC_VMT_BizComponent & MOST_MMC_VMT_Web:** Module quản lý cảng VMT.  
+## **Project Structure**  
+The project is divided into the following main modules:  
+- **MOST_MMC_BaseBizComponent:** Core component containing common business logic of the system.  
+- **MOST_MMC_Client & MOST_MMC_HHT_Client:** User interface and tablet application.  
+- **MOST_MMC_JPB_BizComponent & MOST_MMC_JPB_Web:** Module for managing goods at JPB port.  
+- **MOST_MMC_PPSB_BizComponent & MOST_MMC_PPSB_Web:** Module for managing PPSB port.  
+- **MOST_MMC_VMT_BizComponent & MOST_MMC_VMT_Web:** Module for managing VMT port.  
 
-## **Công nghệ sử dụng**  
+## **Technologies Used**  
 - **Frontend:** Sencha framework (Ext JS)  
-- **Backend:** Spring MVC (Java).  
-- **Database:** MSSQL + ORACLE.  
+- **Backend:** Spring MVC (Java)  
+- **Database:** MSSQL + ORACLE  
