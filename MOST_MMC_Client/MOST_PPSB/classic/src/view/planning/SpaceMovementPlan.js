@@ -1,0 +1,362 @@
+Ext.define('MOST.view.planning.SpaceMovementPlan', {
+	extend: 'Ext.panel.Panel',
+	alias: 'widget.app-spacemovementplan',
+	requires: [
+		'MOST.view.planning.SpaceMovementPlanModel',
+		'MOST.view.planning.SpaceMovementPlanController',
+	    'Ext.grid.plugin.Exporter',
+	    'Ext.grid.plugin.Clipboard',
+		'Ext.grid.filters.Filters',
+		'Ext.grid.selection.SpreadsheetModel'
+	],
+	
+	detailViewAlias: 'app-spacemovementplandetail',
+
+	controller: 'spacemovementplan',
+	
+	viewModel: {
+		type: 'spacemovementplan'
+	},
+	
+	listeners:{
+		afterrender: 'onLoad'
+	},
+	/**
+	 * =========================================================================================================================
+	 * CONSTANT START
+	 */
+	 MAIN_GRID_REF_NAME: 'refSpaceMovementPlanGrid',
+	 MAIN_STORE_NAME: 'spaceMovementPlan',
+	/**
+	 * CONSTANT END
+	 * =========================================================================================================================
+	 */
+	layout : {type  : 'vbox', align : 'stretch'},
+
+	initComponent: function() {
+		var me = this;
+		
+		Ext.apply(me, {
+			items: [{
+				xtype: 'tsb-datagrid',
+				reference: me.MAIN_GRID_REF_NAME,
+				flex : 1,
+				//stateful : true,
+				stateId : 'stateSpaceMovementPlanGrid',
+				plugins: [
+					'gridexporter',
+					'gridfilters',
+					'clipboard'
+	    		],
+	    		bind: {
+	    			store: '{' + me.MAIN_STORE_NAME + '}'
+	    		},
+	    		selModel: {
+	    			type: 'checkboxmodel',  
+		            checkOnly: false,
+		            showHeaderCheckbox: true
+				},
+				listeners: {
+					celldblclick: 'onDblClick',
+					pagingSearch: 'onSearch'
+				}, 
+				columns: {
+	            	defaults: {
+	            		style : 'text-align:center',
+	            		align : 'center'
+	            	},
+	            	items:GridUtil.getGridColumns('SpaceMovementPlan')
+				}
+		    }],
+		    
+			dockedItems: [{
+				xtype: 'container',
+				style: { "background-color":"white" },
+				layout: {
+					type: 'hbox',
+				},
+				defaults: {
+					margin: '1 1 1 1'
+				},
+				items: [{
+					xtype: 'tbfill'
+				},
+				{
+					xtype: 'button',
+					reference:'refBtnRetrieve',
+					text: ViewUtil.getLabel('search'),
+					iconCls: 'x-fa fa-search', 
+					cls: 'search-button', 
+					listeners: {
+						click: 'onSearchBtn'
+					}
+				},
+				{
+					xtype: 'button',
+					itemId: 'btnAdd',
+					reference:'refBtnCreate',
+					text: ViewUtil.getLabel('add'),
+					iconCls: 'x-fa fa-plus',
+					listeners: {
+						click: 'onAdd'
+					}
+				},
+				{
+					xtype: 'button',
+					itemId: 'btnDelete',
+					reference:'refBtnDelete',
+					text: ViewUtil.getLabel('remove'),
+					ui: 'delete-button',
+					iconCls: 'x-fa fa-minus',
+					listeners: {
+						click: 'onRemove'
+					}
+				},
+				{
+					xtype: 'button',
+					itemId: 'exportToExcelButton',
+					text: ViewUtil.getLabel('exportToExcel'),
+					iconCls: 'excel-button-image', 
+					cls: 'excel-button', 
+					listeners: {
+						click: {
+							fn: 'onExportExcel',
+							args:['refSpaceMovementPlanGrid']
+						}
+					}
+				},
+				{
+					xtype: 'button',
+					itemId: 'exportToPdfButton',
+					text: ViewUtil.getLabel('exportToPdf'),
+					iconCls: 'x-fa fa-file-pdf-o',
+					cls: 'excel-button'
+            	},
+            	{
+					xtype: 'button',
+					cls: 'column-setting-button',
+					iconCls: 'x-fa fa-columns',
+					text: ViewUtil.getLabel('column'),
+					listeners: {
+						click: 'onColumnSettingPopup',
+						args: [me.MAIN_GRID_REF_NAME]
+					}
+            	}]
+			},
+			{
+				xtype: 'toolbar',
+				enableOverflow: true,
+				padding : '0 0 0 0',
+				defaults: {
+					labelAlign: 'right',
+				},
+				   items: [
+					   {
+						   xtype: 'searchfieldset',
+						   title: ViewUtil.getLabel('search'),
+						   autoScroll: true,
+						   collapsible: true,
+						   layout: {
+							   type: 'vbox',
+							   align: 'stretch'
+						   },
+						   padding: '0 10 10 10',
+						   margin: '0 5 5 0',
+						   flex: 1,
+						   items: [
+								{
+									xtype: 'container',
+									layout: {
+										type: 'hbox',
+										align: 'stretch'
+									},
+									flex: 1,
+									defaults: {
+										labelAlign: 'right',
+									},
+									items: [
+										{
+											xtype: 'container',
+											flex: 1,
+											layout: {
+												type: 'hbox',
+												align: 'stretch'
+											},
+											defaults: {
+												labelAlign: 'right',
+											},
+											items: [
+												{
+													xtype: 'shipcallnofield',
+													reference: 'ctlScn',
+													emptyText: ViewUtil.getLabel('shipCallNo'),
+													fieldLabel: ViewUtil.getLabel('shipCallNo'),
+													labelWidth: 80,
+													flex: 1,
+													bind: {
+														value: '{theSearch.scn}',
+													},
+												},
+												{
+													xtype: 'checkboxfield',
+													boxLabel: ViewUtil.getLabel('nonVessel'),
+													flex: 0.23,
+													margin: '0 0 0 5',
+													value: 'false',
+													reference: 'ctlNonVessel', 
+													bind: {
+														value: '{theSearch.nonVesselYN}',
+													}
+												},
+												{
+													reference: 'ctlSpaceMovementPlanType',
+													xtype: 'combo',
+													labelWidth: 80,
+													flex: 1,
+													fieldLabel: ViewUtil.getLabel('spaceMovementRequestReqTpNm'),
+													queryMode: 'local',
+													bind: {
+														store: '{spaceMovementPlanForReqTypeCombo}',
+														value: '{theSearch.reqTpCd}'
+													},
+													emptyText: 'All',
+													displayField: 'scdNm',
+													valueField: 'scd',
+													editable: false,
+													forceSelection: true
+												},
+												{
+													reference: 'ctlSpaceMovementPlanStatus',
+													xtype: 'combo',
+													flex: 1,
+													margin: '0 0 0 5',
+													labelWidth: 80, 
+													fieldLabel: ViewUtil.getLabel('spaceMovementRequestStatNm'),
+													queryMode: 'local',
+													bind: {
+														store: '{spaceMovementPlanForStatusCombo}',
+														value: '{theSearch.statCd}'
+													},
+													emptyText: 'All',
+													displayField: 'scdNm',
+													valueField: 'scd',
+													editable: false,
+													forceSelection: true
+												},
+												{
+													xtype: 'textfield',
+													reference: 'ctlLotNoField',
+													fieldLabel: ViewUtil.getLabel('lotNo'),
+													labelWidth: 80,
+													flex: 1,
+													editable: true,
+													bind: {
+														value: '{theSearch.lotNo}'
+													},
+													listeners: {
+														change: 'onUpperCase'
+													}
+												}
+											]
+										}
+									]
+								},
+							{
+								xtype: 'container',
+								flex: 1,
+								layout: {
+									type: 'hbox',
+									align: 'stretch'
+								},
+								width: '100%',
+								defaults: {
+									labelAlign: 'right',
+									margin: '5 0 0 0'
+								},
+								items: [
+									{
+										xtype: 'container',
+										flex: 1,
+										layout: {
+											type: 'hbox',
+											align: 'stretch'
+										},
+										defaults: {
+											labelAlign: 'right',
+										},
+										items: [
+											{
+												xtype: 'vesselcalllistfield',
+												reference: 'ctlSpaceMovementPlanVesselCallId',
+												fieldLabel: ViewUtil.getLabel('vslcallid'),
+												emptyText: ViewUtil.getLabel('vslcallid'),
+												labelWidth: 80,
+												margin: '0 5 0 0',
+												flex: 1,
+												editable: true,
+												bind: {
+													value: '{theSearch.vslCallId}'
+												}
+											},
+											{
+												xtype: 'label',
+												text: ViewUtil.getLabel('spaceMovementRequestReqDt') + ":",
+												style: 'text-align: right; margin-top: 5px;',
+												width: 80
+											},
+											{
+												xtype: 'datefield',
+												reference: 'ctlSpaceMovementPlanFromDt',
+												flex: 0.5,
+												margin: '0 5 0 5',
+												format: MOST.config.Locale.getShortDate()
+											},
+											{
+												xtype: 'datefield',
+												reference: 'ctlSpaceMovementPlanToDt',
+												flex: 0.5,
+												format: MOST.config.Locale.getShortDate()
+											},
+											{
+												xtype: 'combobox',
+												reference: 'ctlPlanLocation',
+												fieldLabel: ViewUtil.getLabel('spaceMovementPlanLocation'),
+												labelWidth: 80,
+												flex: 1,
+												bind: {
+													store: '{warehouseViewCombo}',
+													value: '{theSearch.reqPos}'
+												},
+												emptyText: 'All',
+												displayField: 'scdNm',
+												valueField: 'scd',
+												listeners: {
+													select: 'onPlanLocComboLoad'
+												}
+											}, 
+											{
+												xtype: 'combobox',
+												reference: 'ctlPlanBayRow',
+												fieldLabel: 'Plan Bay Row',
+												labelWidth: 80,
+												flex: 1,
+												bind: {
+													store: '{planLocationCombo}',
+													value: '{theSearch.planLocId}'
+												},
+												emptyText: 'All',
+												displayField: 'planLocId',
+												valueField: 'planLocId',
+											},
+										]
+									},
+								]
+							}]
+					   }]
+			}]		
+		});
+		
+		me.callParent();
+	}
+});
+

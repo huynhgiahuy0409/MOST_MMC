@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+	PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="generalCode">
+ 
+	<!-- SystemCodeList -->
+	<resultMap 	id="codeMasterSystmeCodeList" type="CodeMasterItem">
+		<result property = "lcd"				column = "L_CD"/>
+		<result property = "lcdNm"				column = "L_CD_NM"/>
+		<result property = "lcdDesc"			column = "L_CD_DESC"/>
+		<result property = "useYn"				column = "USE_YN"/>
+		<result property = "updatedDate"		column = "updatedDate"/>
+		<result property = "updatedBy"			column = "UPD_USER_ID"/>
+		<result property = "currentDate"		column = "CURRENTDATE"/>
+	</resultMap>
+	
+	<resultMap 	id="codeMasterSystmeCodeCombo" type="generalCodeItem">
+		<result property = "lcd"				column = "L_CD"/>
+		<result property = "lcdNm"				column = "L_CD_NM"/>
+		<result property = "useYn"				column = "USE_YN"/>
+	</resultMap>
+	
+	<!-- CodeList -->
+ 	<resultMap 	id="codeMasterCodeList" type="generalCodeItem">
+		<result property = "lcd"				column = "L_CD"/>
+		<result property = "lcdNm"				column = "L_CD_NM"/>
+		<result property = "mcd"				column = "M_CD"/>
+		<result property = "mcdNm"				column = "M_CD_NM"/>
+		<result property = "mcdDesc"			column = "M_CD_DESC"/>
+		<result property = "useYn"				column = "USE_YN"/>
+		<result property = "updatedTime"		column = "UDP_DT"/>
+		<result property = "updatedBy"			column = "UPD_USER_ID"/>
+	</resultMap>
+	
+	<!-- CodeCombo -->
+	<resultMap 	id="codeMasterCodeCombo" type="CodeMasterItem">
+		<result property = "mcd"				column = "M_CD"/>
+		<result property = "mcdNm"				column = "M_CD_NM"/>
+		<result property = "useYn"				column = "USE_YN"/>
+		<result property = "updatedTime"		column = "UPD_DT"/>
+		<result property = "updatedBy"			column = "UPD_USER_ID"/>
+	</resultMap>
+	
+	<select id="selectCodeItem"  parameterType="generalCodeParm" resultMap="codeMasterCodeList">
+		SELECT /*generalCode.selectCodeItem*/
+			ROW_NUMBER() OVER( ORDER BY B.L_CD DESC) AS no,			
+	 		B.L_CD,
+			B.M_CD,
+			B.M_CD_NM,
+			B.M_CD_DESC,
+			B.USE_YN
+		FROM 
+			TMT_CD_MSTL A 
+		JOIN 
+			TMT_CD_MSTM B
+	 	ON 
+	 		A.L_CD 		= B.L_CD
+		WHERE 
+			B.L_CD = A.L_CD
+			<if test="lcd !null and lcd != ''">
+				AND A.L_CD 					= #{lcd}
+			</if>
+			
+			<if test="mcd !null and mcd != ''">
+				AND B.M_CD 					= #{mcd}
+			</if>
+	</select>
+	
+	<select id="selectCodeInUse"  parameterType="generalCodeParm" resultMap="codeMasterSystmeCodeList">
+	    SELECT  /*generalCode.selectCodeInUse*/
+	    	* 
+		FROM 
+			TMT_CD_MSTD D, TMT_CD_MSTM M
+		WHERE 
+			D.M_CD 						= M.M_CD 
+			AND M.M_CD 					= #{mcd} 
+			AND D.L_CD 					= #{lcd}
+	</select>
+	
+	<select id="selectCode"  parameterType="generalCodeParm" resultMap="codeMasterCodeCombo">
+		SELECT  /*generalCode.selectCode*/
+			M_CD,
+			M_CD_NM,
+			UPD_DT,
+			USE_YN
+		FROM 
+			TMT_CD_MSTM
+		WHERE 
+			USE_YN						= 'Y' 
+			<if test="lcd != '' and lcd != null">  
+				AND L_CD 				= #{lcd}
+			</if>
+	</select>
+	
+	<sql id="getCodesList">
+	    SELECT /*generalCode.getCodesList*/
+			ROW_NUMBER() OVER( ORDER BY B.L_CD DESC) 	AS no,
+	 		B.L_CD,
+	 		A.L_CD_NM,
+			B.M_CD,
+			B.M_CD_NM,
+			B.M_CD_DESC,
+			B.USE_YN,
+			FORMAT(B.UPDATE_TIME, 'dd/MM/yyyy HH:mm') 	AS UDP_DT
+		FROM  
+			TMT_CD_MSTL A 
+		JOIN 
+			TMT_CD_MSTM B ON A.L_CD 					= B.L_CD
+		<where>
+		    B.L_CD 										= A.L_CD
+			and A.USE_YN 								= 'Y'
+		    <if test="lcd != '' and lcd != null">  
+				AND A.L_CD 								= #{lcd}
+			</if>
+			 <if test="mcd != null and mcd != ''">  
+			 	AND B.M_CD like #{mcd} + '%'
+			</if>
+			<if test="mcdNm != null and mcdNm != ''">  
+			 	AND B.M_CD_NM like #{mcdNm} + '%'
+			</if>
+		</where>
+	</sql>
+	
+	<select id="selectCodesList"  parameterType="generalCodeParm" resultMap="codeMasterCodeList">
+		<if test="pageNo != 0"> 
+            SELECT  /*generalCode.selectCodesList*/
+             	* 
+			FROM 
+				(SELECT 
+					inner_querry.*, ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num 
+				FROM ( 
+		</if>
+				<include refid="getCodesList"/>
+		<if test="pageNo != 0"> 
+				)inner_querry 
+			)inner_querry 
+			WHERE 
+				inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<select id="selectCodesListCount" parameterType="generalCodeParm" resultType="java.lang.String" >
+        SELECT /*generalCode.selectCodesListCount*/
+			COUNT(*)
+        FROM 
+			(<include refid="getCodesList"/>) AS getCodesList
+	</select> 
+	
+	<insert id="insertGeneralCodeItem"  parameterType="generalCodeItem">
+		INSERT /*generalCode.insertGeneralCodeItem*/
+		INTO TMT_CD_MSTM (
+			L_CD,
+			M_CD,
+			M_CD_NM,
+			M_CD_DESC,
+			STAFF_CD,
+			UPDATE_TIME,
+			USE_YN
+		) VALUES (
+			#{lcd},
+			UPPER(#{mcd}),
+			UPPER(#{mcdNm}),
+			#{mcdDesc},
+			#{userId},
+			GETDATE(),
+			#{useYn}
+		)
+	</insert> 
+	
+	<update id="updateGeneralCodeItem"  parameterType="generalCodeItem">
+		UPDATE /*generalCode.updateGeneralCodeItem*/
+		TMT_CD_MSTM SET
+			<if test="mcdNm != null">
+				M_CD_NM 				= UPPER(#{mcdNm}),
+			</if>
+			<if test="mcdDesc != null">
+				M_CD_DESC 				= #{mcdDesc},
+			</if>
+			<if test="useYn != null">
+				USE_YN 					= #{useYn},
+			</if>
+			STAFF_CD 					= #{userId},
+			UPDATE_TIME 				= GETDATE()
+		WHERE 
+			L_CD 						= #{lcd}
+			AND M_CD 					= #{mcd}
+	</update>
+	
+	<delete id="deleteGeneralCodeItem"  parameterType="generalCodeItem">
+		DELETE /*generalCode.deleteGeneralCodeItem*/
+		FROM 
+			TMT_CD_MSTM
+		WHERE 
+			L_CD 					= #{lcd}
+			AND	M_CD 				= #{mcd}
+	</delete>
+	
+</mapper>

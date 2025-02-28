@@ -1,0 +1,802 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="whCheckExport">
+
+	<select id="selectCargoWarehouseCheckExportItems" parameterType="whCheckExportParm" resultType="whCheckExportItem">
+		WITH IN_AMOUNT AS
+		(SELECT	
+			L1.VSL_CALL_ID,
+			G1.SHIPG_NOTE_NO,
+			SUM (L1.CG_WGT) 	AS WGT,
+			SUM (L1.CG_VOL) 	AS MSRMT,
+			SUM (L1.PKG_QTY) 	AS PKG_QTY
+		FROM
+			TMT_INV_LOC L1
+		INNER JOIN 
+			TMT_GR G1
+		ON 
+			L1.CG_NO 			= G1.GR_NO 
+			AND L1.VSL_CALL_ID 	= G1.VSL_CALL_ID
+		INNER JOIN
+			TMT_JOB JB 
+		ON
+			L1.VSL_CALL_ID 	= JB.VSL_CALL_ID 
+			AND L1.CG_NO 	= JB.CG_NO 
+			AND L1.JOB_NO 	= JB.JOB_NO 
+                     
+		WHERE	
+			L1.CG_WGT 		>= 0
+			AND L1.CG_VOL 	>= 0
+			AND L1.PKG_QTY 	>= 0
+			AND JB.JOB_PURP_CD = 'GW'
+<!--          		AND JB.RHDL_MODE IS NULL OR COLUMN ='' -->
+			AND L1.VSL_CALL_ID 		= #{vslCallId}
+			AND G1.SHIPG_NOTE_NO 	= #{shipgNoteNo}
+			AND G1.GR_NO NOT LIKE 'RTS' + '%'
+		GROUP BY
+			L1.VSL_CALL_ID,G1.SHIPG_NOTE_NO)
+		
+		,OUT_AMOUNT AS
+		( SELECT 
+			 J1.VSL_CALL_ID,
+			 GS.SHIPG_NOTE_NO,
+			 SUM (J1.CG_WGT) 	AS WGT,
+			 SUM (J1.CG_VOL) 	AS MSRMT,
+			 SUM (J1.PKG_QTY) 	AS PKG_QTY
+	    FROM
+			TMT_JOB J1
+		INNER JOIN TMT_GR GS 
+		ON 
+			J1.VSL_CALL_ID 		= GS.VSL_CALL_ID 
+			AND J1.CG_NO 		= GS.GR_NO
+	    WHERE 	
+			J1.JOB_PURP_CD 			= CASE WHEN GS.GR_NO LIKE 'RTS' + '%' THEN 'WG' ELSE 'WA' END
+			AND J1.VSL_CALL_ID 		= #{vslCallId}
+			AND GS.SHIPG_NOTE_NO 	= #{shipgNoteNo} 
+		GROUP BY 
+			J1.VSL_CALL_ID, GS.SHIPG_NOTE_NO )
+		      
+		,BAL_AMT AS
+		(SELECT
+			SUM(IL.CG_WGT)  		AS BALMT,	
+			SUM(IL.CG_VOL)  		AS BALM3,
+			SUM(IL.PKG_QTY) 		AS BALQTY,
+			COUNT(1)        		AS LOCCOUNT,
+			IL.VSL_CALL_ID,
+			G1.SHIPG_NOTE_NO
+		FROM 	
+			TMT_INV_LOC IL
+		INNER JOIN 
+			TMT_GR G1 
+		ON 
+			IL.CG_NO 				= G1.GR_NO
+			AND IL.VSL_CALL_ID 		= G1.VSL_CALL_ID
+		WHERE 	
+			IL.VSL_CALL_ID 			= #{vslCallId}
+			AND G1.SHIPG_NOTE_NO 	= #{shipgNoteNo}
+		GROUP BY
+		      IL.VSL_CALL_ID,
+		      G1.SHIPG_NOTE_NO
+		)
+		      
+		,CUSTOMS_RELEASE AS
+		(
+			SELECT TOP(1)
+				CASE
+				  WHEN CUS.DOC_NO IS NULL OR CUS.DOC_NO ='' THEN 'HOLD'
+				  ELSE 'RELEASE'
+				END 					AS status
+            FROM     
+				TMT_SHIPG_NOTE SN
+			LEFT OUTER JOIN 
+				TMT_CUSTOMS_RELEASE CUS
+			ON  
+				CUS.VSL_CALL_ID 		= SN.VSL_CALL_ID
+				AND CUS.DOC_NO 			= SN.MF_DOC_ID
+            WHERE   
+				SN.VSL_CALL_ID 			= #{vslCallId}
+				AND SN.SHIPG_NOTE_NO 	= #{shipgNoteNo}
+				AND ISNULL(CUS.BONDED_WH_YN, 'N') = 'N'
+		),
+		
+		CHANGE_VSL_AMOUNT
+    	 AS (SELECT 
+				SUM (CG_WGT) 	AS WGT,
+				SUM (CG_VOL) 	AS VOL,
+				SUM (PKG_QTY) 	AS QTY,
+				ORG_REF_NO,
+				VSL_CALL_ID
+			FROM 
+				TMT_RHDL_CG
+            WHERE
+				VSL_CALL_ID 	= #{vslCallId}
+				AND ORG_REF_NO 	= #{shipgNoteNo}
+				AND RHDL_MODE 	= 'C'
+         GROUP BY 
+			ORG_REF_NO, VSL_CALL_ID)
+		        
+		SELECT TOP(1) 	/*whCheckExport.selectCargoWarehouseCheckExportItems*/	
+			A.VSL_CALL_ID 									AS VSLCALLID,
+			A.VSL_CD 										AS VSLCD,
+			A.CALL_YEAR 									AS CALLYEAR,
+			A.CALL_SEQ 										AS CALLSEQ,
+			P.VSL_NM 										AS VSLNM,
+			A.MF_DOC_ID 									AS MFDOCID,
+			G.SHIPG_NOTE_NO 								AS SHIPGNOTENO,
+			A.PKG_TP_CD 									AS PKGTPCD,
+			G.GR_NO 										AS CGNO,
+			G.GR_NO 										AS GRNO,
+			A.CATG_CD 										AS CATGCD,
+			C.STAT_CD 										AS STAT,
+			A.CG_TP_CD 										AS CGTPCD,
+			DBO.F_CM_CODE_NM('MT','CGTP', A.CG_TP_CD) 		AS CGTPNM,
+			G.TSPT_TP_CD 									AS TSPTTPCD,
+			DBO.F_CM_CODE_NM('MT','TSPTTP',G.TSPT_TP_CD) 	AS TSPTTPNM,
+			A.DELV_TP_CD 									AS DELVTPCD,
+			A.DELV_TP_CD 									AS OPDELVTPCD,
+			DBO.F_CM_CODE_NM('MT','DELVTP',A.DELV_TP_CD) 	AS DELVTPNM,
+			CUS.status										AS CUSTMODE,
+			ISNULL(BAL.LOCCOUNT,0) 							AS LOCCOUNT,
+			FORMAT(C.HDL_IN_END_DT, 'dd/MM/yyyy HH:mm:ss') 	AS HDLINENDDT,
+			ISNULL(A.PKG_QTY,0) 							AS SNQTY,
+			ISNULL(A.CG_WGT,0) 								AS SNMT,
+			ISNULL(A.CG_VOL,0) 								AS SNM3,
+			ISNULL(G.PKG_QTY,0) 							AS DOCQTY,
+			ISNULL(G.CG_WGT,0) 								AS DOCMT,
+			ISNULL(G.CG_VOL,0) 								AS DOCM3,	
+			ISNULL(W1.WGT, 0) 								AS WHSUMMT,
+			ISNULL(W1.MSRMT, 0) 							AS WHSUMM3,
+			ISNULL(W1.PKG_QTY, 0) 							AS WHSUMQTY,
+			ISNULL(W1.WGT, 0) - ISNULL(W2.WGT, 0) 
+				- ISNULL(CHGVSL.WGT, 0) 					AS WHBALMT,
+			ISNULL(W1.MSRMT, 0) - ISNULL(W2.MSRMT, 0) 
+				- ISNULL(CHGVSL.VOL, 0) 					AS WHBALM3,
+			ISNULL(W1.PKG_QTY, 0) - ISNULL(W2.PKG_QTY, 0) 
+				- ISNULL(CHGVSL.QTY, 0) 					AS WHBALQTY,
+			A.EACH_WGT 										AS EACHMT,
+			A.EACH_VOL 										AS EACHM3,
+			A.CMDT_GRP_CD 									AS CMDTGRPCD,
+			ISNULL(A.WGT_CHK, 'Y') 							AS WEIGHTCHECKYN,
+			ISNULL(C.REPKG_TP_CD, A.PKG_TP_CD) 				AS REPKGTPCD,
+			A.PROJECT_CARGO                                 AS projectCargo
+			<if test="shftDt != null and shftDt != ''">
+				, DBO.F_GET_SHIFT_CD(CONVERT(DATETIME,#{shftDt},103), 'CD')	 			AS SHFTID
+				, DBO.F_GET_SHIFT_CD(CONVERT(DATETIME,#{shftDt},103), 'NM') 			AS SHFTID
+			</if>
+		FROM 	
+			TMT_SHIPG_NOTE A
+		INNER JOIN 
+			TMT_GR G 
+		ON 
+			A.VSL_CALL_ID 			= G.VSL_CALL_ID 
+			AND A.SHIPG_NOTE_NO 	= G.SHIPG_NOTE_NO
+		INNER JOIN 
+			TMT_CG_MST C 
+		ON
+			G.VSL_CALL_ID 			= C.VSL_CALL_ID 
+			AND G.GR_NO 			= C.CG_NO <!-- MISSING DATA IN THIS TABLE COLUMN: C.CG_NO-->
+		LEFT OUTER JOIN
+			TMT_VSL_SCH S 
+		ON A.VSL_CALL_ID 			= S.VSL_CALL_ID
+		LEFT OUTER JOIN
+			TMT_VSL_PART P 
+		ON 
+			S.VSL_CD 				= P.VSL_CD
+		LEFT OUTER JOIN
+			IN_AMOUNT W1 
+		ON 
+			A.VSL_CALL_ID 			= W1.VSL_CALL_ID 
+			AND A.SHIPG_NOTE_NO 	= W1.SHIPG_NOTE_NO
+		LEFT OUTER JOIN
+			OUT_AMOUNT W2 
+		ON 
+			A.VSL_CALL_ID 			= W2.VSL_CALL_ID 
+			AND A.SHIPG_NOTE_NO 	= W2.SHIPG_NOTE_NO
+		LEFT OUTER JOIN
+			BAL_AMT BAL 
+		ON 	
+			A.VSL_CALL_ID 			= BAL.VSL_CALL_ID 
+			AND A.SHIPG_NOTE_NO 	= BAL.SHIPG_NOTE_NO
+		LEFT OUTER JOIN
+			CUSTOMS_RELEASE CUS 
+		ON
+			1=1
+		LEFT OUTER JOIN
+			CHANGE_VSL_AMOUNT CHGVSL 
+		ON 
+			CHGVSL.VSL_CALL_ID 		= A.VSL_CALL_ID 
+			AND CHGVSL.ORG_REF_NO 	= A.SHIPG_NOTE_NO
+		WHERE	
+			A.VSL_CALL_ID 			= #{vslCallId}
+			AND A.SHIPG_NOTE_NO 	= #{shipgNoteNo}
+			AND G.GR_NO 			= #{grNo}
+	</select>
+	
+	<select id="checkAmoutLocation"  parameterType="cargoLoadingParm" resultType="cargoLoadingItem">
+		SELECT /*whCheckExport.checkAmoutLocation*/
+			COUNT(*)  AS LOCCOUNT
+		FROM(
+	          SELECT  
+				SUM(LC.CG_WGT) SUMWGT, SUM(LC.PKG_QTY) PKGQTY, SUM(LC.CG_VOL) SUMMSRMT, LC.LOC_ID
+	          FROM
+				TMT_INV_LOC LC, TMT_JOB J
+			  WHERE
+					LC.JOB_NO 			= J.JOB_NO 
+					AND LC.VSL_CALL_ID 	= J.VSL_CALL_ID
+					AND LC.CG_NO 		= J.CG_NO
+					AND LC.WH_TP_CD 	= 'G'
+					AND J.DELV_TP_CD  	= 'I'
+					AND J.VSL_CALL_ID   =  #{vslCallId}
+					AND J.CG_NO IN (SELECT 
+										GR_NO
+									FROM 
+										TMT_GR
+									WHERE 
+										SHIPG_NOTE_NO 	= #{shipgNoteNo}
+										AND VSL_CALL_ID = #{vslCallId})
+				  AND ((J.SP_CA_CO_CD IS NULL OR J.SP_CA_CO_CD ='') OR J.SP_CA_CO_CD ='N')
+				  AND (J.RHDL_MODE IS NULL OR J.RHDL_MODE ='' OR J.RHDL_MODE = 'N')
+			GROUP BY 
+				LC.LOC_ID) A
+			WHERE 
+				A.SUMWGT <![CDATA[ > ]]> 0 			AND A.SUMWGT <![CDATA[ >= ]]> #{loadMt}
+				AND A.PKGQTY <![CDATA[ >= ]]> 0 	AND A.PKGQTY <![CDATA[ >= ]]> #{loadQty}
+				AND A.SUMMSRMT <![CDATA[ >= ]]> 0 	AND A.SUMMSRMT <![CDATA[ >= ]]> #{loadM3}
+	</select>
+	
+	
+	<select id="selectWHExportForROROItems" parameterType="whCheckExportParm" resultType="whCheckExportItem">
+		WITH 
+			IN_AMOUNT AS (
+				SELECT 
+					JB.VSL_CALL_ID,
+					G1.SHIPG_NOTE_NO,
+					SUM (JB.CG_WGT) 							AS WGT,
+					SUM (JB.CG_VOL) 							AS MSRMT,
+					SUM (JB.PKG_QTY) 							AS PKG_QTY,
+					STRING_AGG(JB.CHAS_NO, ',') 
+						WITHIN GROUP (ORDER BY JB.CHAS_NO)		AS CHAS_NO
+				FROM
+					TMT_GR 										G1
+				INNER JOIN
+					TMT_JOB 									JB
+				ON
+					G1.VSL_CALL_ID 								= JB.VSL_CALL_ID
+					AND G1.GR_NO 								= JB.CG_NO 
+				WHERE
+					1=1
+					AND JB.JOB_PURP_CD 							= 'GW'
+					AND JB.VSL_CALL_ID 							= #{vslCallId}
+					AND G1.SHIPG_NOTE_NO 						= #{shipgNoteNo}
+				GROUP BY 
+					JB.VSL_CALL_ID,
+					G1.SHIPG_NOTE_NO
+			),
+		
+			OUT_AMOUNT AS ( 
+				SELECT 
+					 J1.VSL_CALL_ID,
+					 GS.SHIPG_NOTE_NO,
+					 SUM (J1.CG_WGT) 							AS WGT,
+					 SUM (J1.CG_VOL) 							AS MSRMT,
+					 SUM (J1.PKG_QTY) 							AS PKG_QTY,
+					 STRING_AGG(J1.CHAS_NO,',') 
+						WITHIN GROUP (ORDER BY J1.CHAS_NO) 		AS CHAS_NO
+			    FROM 	
+					TMT_JOB 									J1
+				INNER JOIN 
+					TMT_GR										GS 
+				ON
+					J1.VSL_CALL_ID 								= GS.VSL_CALL_ID 
+					AND J1.CG_NO 								= GS.GR_NO
+			    WHERE 	
+					J1.JOB_PURP_CD 								= 'WA'
+					AND J1.VSL_CALL_ID 							= #{vslCallId}
+					AND GS.SHIPG_NOTE_NO 						= #{shipgNoteNo} 
+				GROUP BY 
+					J1.VSL_CALL_ID,
+					GS.SHIPG_NOTE_NO 
+			),
+		      
+			BAL_AMT AS (
+				SELECT
+					SUM(IL.CG_WGT)  							AS BALMT,
+					SUM(IL.CG_VOL)  							AS BALM3,
+					SUM(IL.PKG_QTY) 							AS BALQTY,
+					COUNT(1)        							AS LOCCOUNT,
+					IL.VSL_CALL_ID,
+					G1.SHIPG_NOTE_NO
+				FROM 	
+					TMT_INV_LOC IL
+				INNER JOIN 
+					TMT_GR G1 
+				ON 
+					IL.CG_NO 									= G1.GR_NO 
+					AND IL.VSL_CALL_ID 							= G1.VSL_CALL_ID
+				WHERE 	
+					IL.VSL_CALL_ID 								= #{vslCallId}
+					AND G1.SHIPG_NOTE_NO 						= #{shipgNoteNo}
+				GROUP BY
+				      IL.VSL_CALL_ID,
+				      G1.SHIPG_NOTE_NO
+			),
+		      
+			CUSTOMS_RELEASE AS (
+				SELECT TOP(1)
+					CASE
+				  		WHEN CUS.DOC_NO IS NULL OR CUS.DOC_NO ='' 
+					  		THEN 'HOLD'
+				  		ELSE 'RELEASE'
+					END 										AS status
+	            FROM     
+					TMT_SHIPG_NOTE 								SN
+				LEFT OUTER JOIN 
+					TMT_CUSTOMS_RELEASE 						CUS
+				ON
+					CUS.VSL_CALL_ID 							= SN.VSL_CALL_ID
+					AND CUS.DOC_NO 								= SN.MF_DOC_ID
+	            WHERE   
+					SN.VSL_CALL_ID 								= #{vslCallId}
+					AND SN.SHIPG_NOTE_NO 						= #{shipgNoteNo}
+					AND ISNULL(CUS.BONDED_WH_YN, 'N') = 'N'
+			)
+			        
+		SELECT TOP(1)	/*whCheckExport.selectWHExportForROROItems*/
+			A.VSL_CALL_ID 										AS VSLCALLID,
+			(
+				SELECT
+					STRING_AGG(VALUE, ',')
+				FROM (
+					SELECT 
+						TRIM(VALUE) 	AS VALUE
+					FROM 
+						STRING_SPLIT( (SELECT CHAS_NO  FROM IN_AMOUNT ), ',') 
+					EXCEPT 
+					SELECT 
+						TRIM(VALUE) 	AS VALUE
+					FROM 
+						STRING_SPLIT( (SELECT CHAS_NO  FROM OUT_AMOUNT ), ',') 
+				) TEMP
+			)													AS UNITNO, 
+			A.VSL_CD 											AS VSLCD,
+			A.CALL_YEAR 										AS CALLYEAR,
+			A.CALL_SEQ											AS CALLSEQ,
+			P.VSL_NM 											AS VSLNM,
+			A.MF_DOC_ID 										AS MFDOCID,
+			G.SHIPG_NOTE_NO 									AS SHIPGNOTENO,
+			A.PKG_TP_CD 										AS PKGTPCD,
+			G.GR_NO 											AS CGNO,
+			G.GR_NO 											AS GRNO,
+			A.CATG_CD 											AS CATGCD,
+			C.STAT_CD 											AS STAT,
+			A.CG_TP_CD 											AS CGTPCD,
+			DBO.F_CM_CODE_NM('MT','CGTP', A.CG_TP_CD)			AS CGTPNM,
+			G.TSPT_TP_CD 										AS TSPTTPCD,
+			DBO.F_CM_CODE_NM('MT','TSPTTP',G.TSPT_TP_CD) 		AS TSPTTPNM,
+			A.DELV_TP_CD 										AS DELVTPCD,
+			A.DELV_TP_CD 										AS OPDELVTPCD,
+			DBO.F_CM_CODE_NM('MT','DELVTP',A.DELV_TP_CD) 		AS DELVTPNM,
+			CUS.status    										AS CUSTMODE,
+			ISNULL(BAL.LOCCOUNT,0) 								AS LOCCOUNT,
+			ISNULL(A.PKG_QTY,0) 								AS SNQTY,
+			ISNULL(A.CG_WGT,0) 									AS SNMT,
+			ISNULL(A.CG_VOL,0)									AS SNM3,
+			ISNULL(G.PKG_QTY,0) 								AS DOCQTY,
+			ISNULL(G.CG_WGT,0) 									AS DOCMT,
+			ISNULL(G.CG_VOL,0) 									AS DOCM3,
+			ISNULL(W1.WGT, 0) 									AS WHSUMMT,
+			ISNULL(W1.MSRMT, 0) 								AS WHSUMM3,
+			ISNULL(W1.PKG_QTY, 0) 								AS WHSUMQTY,
+			ISNULL(W1.WGT, 0) - ISNULL(W2.WGT, 0) 				AS WHBALMT,
+			ISNULL(W1.MSRMT, 0) - ISNULL(W2.MSRMT, 0) 			AS WHBALM3,
+			ISNULL(W1.PKG_QTY, 0) - ISNULL(W2.PKG_QTY, 0) 		AS WHBALQTY,
+			ISNULL(W1.WGT, 0) - ISNULL(W2.WGT, 0) 				AS balMt,
+			ISNULL(W1.MSRMT, 0) - ISNULL(W2.MSRMT, 0) 			AS balM3,
+			ISNULL(W1.PKG_QTY, 0) - ISNULL(W2.PKG_QTY, 0) 		AS balQty,
+			A.EACH_WGT 											AS EACHMT,
+			A.EACH_VOL 											AS EACHM3,
+			A.CMDT_GRP_CD 										AS CMDTGRPCD,
+			ISNULL(A.WGT_CHK, 'Y')		 						AS WEIGHTCHECKYN,
+			A.PKG_TP_CD 										AS REPKGTPCD
+		FROM 	
+			TMT_SHIPG_NOTE 										A
+		INNER JOIN 
+			TMT_GR 												G 
+		ON 
+			A.VSL_CALL_ID 										= G.VSL_CALL_ID 
+			AND A.SHIPG_NOTE_NO 								= G.SHIPG_NOTE_NO
+		INNER JOIN 
+			TMT_RORO_MST 										C 
+		ON 
+			G.VSL_CALL_ID 										= C.VSL_CALL_ID 
+			AND A.SHIPG_NOTE_NO 								= C.CG_NO AND C.GR_NO = G.GR_NO
+		LEFT OUTER JOIN 
+			TMT_VSL_SCH 										S 
+		ON 
+			A.VSL_CALL_ID 										= S.VSL_CALL_ID
+		LEFT OUTER JOIN 
+			TMT_VSL_PART										P 
+		ON 
+			S.VSL_CD 											= P.VSL_CD
+		LEFT OUTER JOIN 
+			IN_AMOUNT	 										W1 
+		ON 
+			A.VSL_CALL_ID 										= W1.VSL_CALL_ID 
+			AND A.SHIPG_NOTE_NO 								= W1.SHIPG_NOTE_NO
+		LEFT OUTER JOIN 
+			OUT_AMOUNT 											W2 
+		ON 
+			A.VSL_CALL_ID 										= W2.VSL_CALL_ID 
+			AND A.SHIPG_NOTE_NO 								= W2.SHIPG_NOTE_NO
+		LEFT OUTER JOIN 
+			BAL_AMT BAL 
+		ON
+			A.VSL_CALL_ID 										= BAL.VSL_CALL_ID 
+			AND A.SHIPG_NOTE_NO 								= BAL.SHIPG_NOTE_NO
+		LEFT OUTER JOIN 
+			CUSTOMS_RELEASE 									CUS 
+		ON
+			1=1 
+		WHERE	
+			A.VSL_CALL_ID 										= #{vslCallId}
+			AND A.SHIPG_NOTE_NO 								= #{shipgNoteNo}
+			<if test="grNo != null and grNo != ''">
+				AND G.GR_NO										= #{grNo}
+			</if>
+			AND C.STAT_CD										= 'ST'
+	</select>
+	
+	<select id="selectIsROROMst"   parameterType="cargoMasterParm" resultType="java.lang.String">
+		SELECT	TOP(1)  /*whCheckExport.selectIsROROMst*/
+			'1' 
+		FROM 
+			TMT_RORO_MST
+		WHERE
+			CG_NO 			= #{cgNo} 
+			AND	VSL_CALL_ID = #{vslCallId}
+	</select>
+	<!-- 
+	############################### CUD ####################################
+	-->
+	<insert id="insertCargoInvLocationItems"  parameterType="cargoLoadingItem">
+		<selectKey order="BEFORE" resultType="String" keyProperty="jobNo" >
+			SELECT  
+				J.JOB_NO 										AS jobNo 
+		 	FROM 
+				TMT_JOB J 
+		 	WHERE		
+		 		J.VSL_CALL_ID 									= #{vslCallId}
+				AND J.JOB_GROUP 								= #{jobGroup}
+				AND J.JOB_CO_CD 								= #{jobCoCd}
+				AND ISNULL(J.SP_CA_CO_CD,' ') 					= ISNULL(#{spCaCoCd}, ' ')
+				AND ISNULL(J.RHDL_MODE,' ')						= ISNULL(#{rhdlMode}, ' ')
+				AND CAST(J.PKG_QTY AS NUMERIC(10,0))			= CAST(#{loadQty} AS NUMERIC(10,0))
+				AND CAST(J.CG_VOL AS NUMERIC(15,3)) 			= CAST(#{loadM3}  AS NUMERIC(15,3))
+				AND CAST(J.CG_WGT AS NUMERIC(15,3)) 			= CAST(#{loadMt}  AS NUMERIC(15,3))
+				AND TRIM(J.TO_LOC_ID) 							= TRIM(#{locArea})
+				AND ISNULL(J.RHDL_NO,' ') 						= ISNULL(#{rhdlNo}, ' ')
+		</selectKey>
+		
+		INSERT /*whCheckExport.insertCargoInvLocationItems*/
+		INTO TMT_INV_LOC(	
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			MF_DOC_ID,
+			JOB_NO,
+			CG_NO,
+			LOC_ID,
+			PKG_QTY,
+			CG_VOL,
+			CG_WGT,
+			VSL_CALL_ID,
+			WH_TP_CD,
+			UPDATE_TIME,
+			STAFF_CD,
+			VERSION,
+			SEQ,
+			WH_LOC_ID,
+			WH_LOC_TP
+		) VALUES (
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{mfDocId},
+			#{jobNo},
+			#{cgNo},
+			#{locId},
+			CAST('-' + CAST(#{locQty} 	AS VARCHAR) AS NUMERIC(10,0)),
+			CAST('-' + CAST(#{locMsrmt} AS VARCHAR) AS NUMERIC(15,3)),
+			CAST('-' + CAST(#{locWgt} 	AS VARCHAR) AS NUMERIC(15,3)),
+			#{vslCallId},
+			#{whTpCd},
+			SYSDATETIME(),
+			#{userId},
+			#{newVersion},
+			(SELECT 
+				ISNULL(MAX(SEQ), 0) + 1 
+			FROM
+				TMT_INV_LOC
+			WHERE
+				VSL_CALL_ID 			= #{vslCallId} 
+				AND CG_NO				= #{cgNo}
+				AND JOB_NO				= #{jobNo}
+				<!-- Mantis: 0166806 
+				AND LOC_ID				= #{locId}
+				-->
+			),
+			SUBSTRING(#{locId}, 1 ,CHARINDEX('-', #{locId}) - 1),
+			#{whLocTpCd}
+		)
+	</insert>
+
+
+	<insert id="insertJobItems" parameterType="whCheckExportItem">
+		<selectKey order="BEFORE" resultType="cargoDischargingItem" keyProperty="jobNo" >
+			SELECT 
+				'J' + FORMAT(GETDATE(), 'yyMMdd') + RIGHT('000000000' + ISNULL(CONCAT(MAX(CAST(RIGHT(JOB_NO, 9) AS INT)) + 1, ''), '000000000'), 9) AS jobNo
+			FROM  
+				TMT_JOB
+		</selectKey>
+		INSERT INTO /*whCheckExport.insertJobItems*/
+		TMT_JOB(
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			MF_DOC_ID,
+			JOB_NO,
+			JOB_TP_CD,
+			WORK_ST_DT,
+			WORK_END_DT,
+			SHFT_ID,
+			PKG_TP_CD,
+			PKG_QTY,
+			CG_VOL,
+			CG_WGT,
+			CNTR_QTY,
+			EQ_NO,
+			TO_LOC_ID,
+			STAT_CD,
+			CG_NO,
+			VSL_CALL_ID,
+			JOB_PURP_CD,
+			DELV_TP_CD,
+			FNL_OPE_YN,
+			FNL_DELV_YN,
+			HATCH_NO,
+			HATCH_DRT,
+			GANG_NO,
+			OPE_CLASS_CD,
+			DMG_YN,
+			RHDL_MODE,
+			SHU_YN,
+			SHFT_DT,
+			JOB_GROUP,
+			LD_DMG_QTY,
+			LD_DMG_MT,
+			LD_DMG_M3,
+			REPKG_QTY,	
+			REPKG_WGT,	
+			REPKG_MSRMT,	
+			REPKG_TP_CD,
+			REPKG_TYPE_CD,
+			PKG_NO,
+			UPDATE_TIME,
+			STAFF_CD,
+			VERSION,
+			TSPT_TP_CD,
+			JOB_CO_CD,
+			SP_CA_CO_CD,
+			RHDL_NO,
+			JOB_ROOT,
+			RC_CO_CD,
+			RHDL_GROUP_NO,
+			RMK,
+			LORRY_NO,
+			DRIVER_ID,
+			WB_TRANSACTION_NO,
+			CHAS_NO,
+			FORKLIFT_NO,
+			PRIME_NO
+		) VALUES (
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{mfDocId},
+			#{jobNo},
+			#{jobTpCd},
+			#{startDt},	 
+			#{endDt}, 
+			#{shftId},
+			#{pkgTpCd},
+			#{loadQty},
+			#{loadM3},
+			#{loadMt},
+			#{cntrQty},
+			#{eqNo},
+			#{toLocId},
+			#{stat},
+			#{cgNo},
+			#{vslCallId},
+			#{jobPurpCd},
+			#{opDelvTpCd},
+			CASE #{fnlOpeYn} 
+				WHEN 'true' THEN 'Y'
+				WHEN 'Y' THEN 'Y'
+				ELSE 'N'
+			END,
+			#{fnlDelvYn},
+			#{hatchNo},
+			#{hatchDrt},
+			#{gangNo},
+			#{catgCd},
+			CASE 
+				WHEN #{dmgYn}  IS NULL THEN 'N'
+				WHEN #{dmgYn} = 'true' THEN 'Y'
+				WHEN #{dmgYn} = 'false' THEN 'N'
+				WHEN #{dmgYn} = 'Y' THEN 'Y'
+				WHEN #{dmgYn} = 'N' THEN 'N'
+				ELSE 'N'
+			END,
+			#{rhdlMode},
+			CASE 
+				WHEN #{shuYn}  IS NULL THEN 'N'
+				WHEN #{shuYn}  = 'true' THEN 'Y'
+				WHEN #{shuYn}  = 'false' THEN 'N'
+				WHEN #{shuYn}  = 'Y' THEN 'Y'
+				WHEN #{shuYn}  = 'N' THEN 'N'
+				ELSE 'N'
+			END,
+			CONVERT(DATE,#{shftDt}, 112), 
+			#{jobGroup},
+			CAST(ISNULL(#{loadDmgQty},0) AS NUMERIC(10,0)),
+			CAST(ISNULL(#{loadDmgMt},0) AS NUMERIC(15,3)),
+			CAST(ISNULL(#{loadDmgM3},0) AS NUMERIC(15,3)),
+			CAST(ISNULL(#{repkgQty},0) AS NUMERIC(10,0)),
+			CAST(ISNULL(#{repkgWgt},0) AS NUMERIC(15,3)),
+			CAST(ISNULL(#{repkgMsrmt},0) AS NUMERIC(15,3)),	
+			#{rePkgTpCd},
+			#{rePkgTpCd},
+			#{pkgNo},
+			SYSDATETIME(),
+			#{userId},
+			#{newVersion},
+			#{tsptTpCd},
+			#{jobCoCd},
+			#{spCaCoCd},
+			#{rhdlNo},
+			CASE #{jobPurpCd}
+				WHEN 'AW' THEN (SELECT 
+									J.JOB_NO AS jobNo 
+								FROM 
+									TMT_JOB J
+								WHERE 
+									J.VSL_CALL_ID 	= #{vslCallId}
+									AND J.CG_NO 	= #{cgNo}
+									AND J.JOB_GROUP = #{jobGroup}
+									AND J.JOB_CO_CD = #{jobCoCd}
+									AND J.JOB_TP_CD = 'LD'
+									AND ISNULL(J.SP_CA_CO_CD,' ') = ISNULL(#{spCaCoCd},' ')
+									AND J.RHDL_MODE = #{rhdlMode})
+				ELSE NULL
+			END,
+				
+			#{rcCoCd},
+			#{rhdlGroupNo},
+			#{rmk},
+			#{lorryNo},
+			#{driverId},
+			#{wbTransactionNo},
+			#{unitNo},
+			#{forkliftNo},
+			#{primeNo}
+		)
+	</insert>
+
+	<update id="updateCargoMasterStatus" parameterType="whCheckExportItem">
+		<![CDATA[
+		EXECUTE PRC_CG_MST_UPDATE_STAT #{vslCallId}, #{cgNo}, #{jobNo}, #{catgCd}, #{userId}, #{newVersion}
+		]]>
+	</update>
+
+	<update id="updateCargoMasterInfo" parameterType="whCheckExportItem">
+		<![CDATA[
+		EXECUTE PRC_CG_MST_UPDATE_AMT #{vslCallId}, #{cgNo}, #{jobNo}, #{catgCd}, #{userId}, #{newVersion}
+		]]>
+	</update>
+	
+	<update id="updateCgWarehouseCheckStateItems"  parameterType="whCheckExportItem">
+		UPDATE /*whCheckExport.updateCgWarehouseCheckStateItems*/
+			TMT_CG_MST
+		SET 
+			STAT_CD = #{stat}
+			<if test='fnlOpeYn == "Y"'>
+				,LOAD_END_DT = #{endDt}
+			</if>
+			<if test='fnlOpeYn == "true"'>
+				,LOAD_END_DT = #{endDt}
+			</if>
+			<if test="cgTpCd != null and cgTpCd != ''">
+				,CG_TP_CD = #{cgTpCd}
+			</if>
+			,BILL_WGT 		= CAST(ISNULL(BILL_WGT,0) AS NUMERIC(15,3))  + CAST(ISNULL(#{loadMt},0) AS NUMERIC(15,3))
+			,BILL_MSRMT 	= CAST(ISNULL(BILL_MSRMT,0) AS NUMERIC(15,3))+ CAST(ISNULL(#{loadM3},0) AS NUMERIC(15,3))
+			,BILL_PKG_QTY 	= CAST(ISNULL(BILL_PKG_QTY,0) AS NUMERIC(10,0))+ CAST(ISNULL(#{loadQty},0) AS NUMERIC(10,0))
+			,UPDATE_TIME	= SYSDATETIME()
+			,STAFF_CD 		= #{userId}
+			,VERSION 		= #{newVersion}
+			,REPKG_TP_CD 	= #{rePkgTpCd}
+		WHERE 
+			CG_NO			= #{cgNo} 
+			AND VSL_CALL_ID = #{vslCallId}
+	</update>
+	
+	<update id="updateCgWarehouseCheckofRORO"  parameterType="whCheckExportItem">
+		UPDATE  /*whCheckExport.updateCgWarehouseCheckofRORO*/
+			TMT_RORO_MST
+		SET     
+			STAFF_CD 		=  #{userId}
+			,UPDATE_TIME 	= SYSDATETIME()
+			,DELV_TP_CD 	= #{delvTpCd}
+			,STAT_CD 		= #{stat}
+			,LOADING_DTM 	= CONVERT(DATETIME, #{endDtStr},103)
+			,OUT_DTM 		= CONVERT(DATETIME, #{endDtStr},103)
+		WHERE   
+			VSL_CALL_ID = #{vslCallId}
+			AND CG_NO 	= #{shipgNoteNo}
+			AND CHASSIS_NO IN ${unitNo}
+	</update>
+	
+	<insert id="insertPackageJobItems" parameterType="packageJobItem">
+		/*whCheckExport.insertPackageJobItems*/
+		INSERT INTO 
+		TMT_PKG_JOB ( 
+			VSL_CALL_ID
+			,VSL_CD
+			,CALL_SEQ
+			,CALL_YEAR
+			,MF_DOC_ID
+			,REF_NO
+			,PKG_NO
+			,JOB_NO
+			,JOB_PURP_CD
+			,JOB_TP_CD
+			,OPE_CLASS_CD
+			,PKG_TP_CD
+			,STAFF_CD
+			,UPDATE_TIME
+			,VERSION
+		)
+		VALUES (
+			#{vslCallId}
+			,#{vslCd}
+			,#{callSeq}
+			,#{callYear}
+			,#{mfDocId}
+			,#{refNo}
+			,#{pkgNo}
+			,#{jobNo}
+			,#{jobPurpCd}
+			,#{jobTpCd}
+			,#{opeClassCd}
+			,#{pkgTpCd}
+			,#{userId}
+			,SYSDATETIME()
+			,#{newVersion}
+		)
+	</insert>
+	
+	<select id="selectUnitNoOfGR"  parameterType="whCheckExportParm" resultType="roroYardPlanItem">
+		SELECT /*whCheckExport.selectUnitNoOfGR*/
+			CHASSIS_NO											AS UNITNO
+		FROM 
+			TMT_RORO_MST
+		WHERE
+			GR_NO 												= #{grNo} 
+			AND	VSL_CALL_ID 									= #{vslCallId}
+	</select>
+	
+</mapper>

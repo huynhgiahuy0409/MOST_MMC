@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="hangingScale">
+	
+	<!--  ################ Query Statement Define ######################################### -->
+	<select id="selectHangingScaleItems"  parameterType="hangingScaleParm" resultType="hangingScaleItem">
+		
+		SELECT  /*hangingScale.selectHangingScaleItems*/
+				TRANSACTION_ID		AS transactionNo,
+		        VSL_CALL_ID			AS vslCallId,
+		        MF_DOC_ID			AS mfDocId,
+		        BL_NO				AS blNo,
+		        SDO_NO				AS sdoNo,
+		        SHIPG_NOTE_NO		AS shipgNoteNo,
+		        GR_NO				AS grNo,
+		        SUM(PKG_QTY) OVER (PARTITION BY VSL_CALL_ID, MF_DOC_ID, BL_NO, SDO_NO, SHIPG_NOTE_NO, GR_NO) 	AS pkgQty,
+		        SUM(CG_WGT) OVER (PARTITION BY VSL_CALL_ID, MF_DOC_ID, BL_NO, SDO_NO, SHIPG_NOTE_NO, GR_NO) 	AS cgWgt,
+		        SUM(CG_VOL) OVER (PARTITION BY VSL_CALL_ID, MF_DOC_ID, BL_NO, SDO_NO, SHIPG_NOTE_NO, GR_NO) 	AS cgVol
+		         
+		FROM    TMT_HANGING_SCALE
+		WHERE   VSL_CALL_ID = #{vslCallId}
+				AND NVL(FETCH_YN, 'N') = 'N'
+				<if test="mfDocId != null and mfDocId != ''">
+		  			AND MF_DOC_ID = #{mfDocId}
+				</if>
+				<if test="blNo != null and blNo != ''">
+		  			AND BL_NO = #{blNo}
+				</if>
+				<if test="sdoNo != null and sdoNo != ''">
+		  			AND SDO_NO = #{sdoNo}
+				</if>
+				<if test="shipgNoteNo != null and shipgNoteNo != ''">
+		  			AND SHIPG_NOTE_NO = #{shipgNoteNo}
+				</if>
+				<if test="grNo != null and grNo != ''">
+		  			AND GR_NO = #{grNo}
+				</if>
+		        
+	</select>
+	
+	<update id="updateHangingScaleItems" parameterType="hangingScaleItem">
+		UPDATE	TMT_HANGING_SCALE
+		SET 	FETCH_YN = 'Y',
+				JOB_NO = #{jobNo},
+				JOB_TP_CD = #{jobTpCd},
+				JOB_PURP_CD = #{jobPurpCd},
+				UPDATE_TIME = SYSDATE
+				,STAFF_CD = #{userId}
+				,VERSION = #{newVersion}
+		WHERE	TRANSACTION_ID = #{transactionNo} 
+		  		AND VSL_CALL_ID = #{vslCallId}
+
+	</update>
+	
+</mapper>

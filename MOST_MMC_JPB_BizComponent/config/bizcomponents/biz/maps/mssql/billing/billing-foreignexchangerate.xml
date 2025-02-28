@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="foreignExchangeRate">
+   	<select id="selectCurrencyMasterCount" parameterType="foreignExchangeRateParm" resultType="java.lang.String">
+	 	SELECT /*foreignexchangerate.selectCurrencyMasterCount*/
+			COUNT(*)
+        FROM 
+			(<include refid="getCurrencyMaster"/>) 				AS TEMPTABLE
+	</select>
+	
+	<select id="selectCurrencyMaster" parameterType="foreignExchangeRateParm" resultType="foreignExchangeRateItem">
+		<if test="pageNo != 0"> 
+             SELECT /*foreignexchangerate.selectCurrencyMaster*/
+             	*
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY CRCY_CD) 		AS ROW_NUM,
+					innerTable.*
+				FROM (   
+		</if>
+				<include refid="getCurrencyMaster"/>					
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable 
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	CAST((CASE WHEN #{pageNo}  = '0' THEN '1' ELSE #{pageNo} END) AS INT) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+	</select> 
+	
+	<sql id="getCurrencyMaster">
+		SELECT  /*foreignexchangerate.getCurrencyMaster*/
+			A.CRCY_CD 											AS CURRENCY,
+			'N'													AS DIVCD, /* Not use*/
+			FORMAT(
+				ISNULL(
+					DATEADD(DAY, 1, B.EXPIREDATE), 
+					SYSDATETIME()
+				),
+				'dd/MM/yyyy'
+			)													AS APPLYDATE,
+			FORMAT(
+				ISNULL(
+					DATEADD(DAY, 8, B.EXPIREDATE), 
+					DATEADD(DAY, 7, SYSDATETIME())
+				),
+				'dd/MM/yyyy')			AS EXPIREDATE,
+			''													AS DESCR,
+			''													AS RATE,
+			''													AS USERID,
+			'' 													AS VERSION,
+			SYSDATETIME()										AS UPDATETIME
+		FROM 
+			TMT_B_CURRENCY_MST 									AS A,
+			(SELECT 
+				MAX(CONVERT(DATE, C.END_YMD,112))				AS EXPIREDATE 
+			FROM 
+				TMT_B_CURRENCY C) 								AS B
+		WHERE 
+			1 = 1
+	</sql>
+	
+	<select id="selectCurrencyCount" parameterType="foreignExchangeRateParm" resultType="java.lang.String">
+	 	SELECT /*foreignexchangerate.selectCurrencyCount*/
+			COUNT(*)
+		FROM 
+			(<include refid="getCurrency"/>) 					AS TEMPTABLE
+	</select>
+	
+	<select id="selectCurrency" parameterType="foreignExchangeRateParm" resultType="foreignExchangeRateItem">
+		<if test="pageNo != 0"> 
+            SELECT /*foreignexchangerate.selectCurrency*/
+             	*
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY CURRENCY) 		AS ROW_NUM,
+					innerTable.*
+				FROM ( 
+		</if>
+				<include refid="getCurrency"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable 
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT)) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<sql id="getCurrency">
+		SELECT /*foreignexchangerate.getCurrency*/
+			A.CRCY_CD 											AS CURRENCY,
+			A.IM_EX_DIV											AS DIVCD,
+			FORMAT(CONVERT(DATE, A.ST_YMD, 112),'dd/MM/yyyy')	AS APPLYDATE,
+			FORMAT(CONVERT(DATE, A.END_YMD, 112), 'dd/MM/yyyy')	AS EXPIREDATE,
+			A.DESCR												AS DESCR,			
+			ISNULL(A.EXCHG_VAL,0)								AS RATE,
+			A.STAFF_CD											AS USERID,
+			A.VERSION 											AS VERSION,
+			A.UPDATE_TIME										AS UPDATETIME
+		FROM 
+			TMT_B_CURRENCY 										A 
+		WHERE 
+			A.ST_YMD 											= FORMAT(CONVERT(DATE, #{applyDate}, 103),'yyyyMMdd')
+			AND A.END_YMD 										= FORMAT(CONVERT(DATE, #{expireDate}, 103),'yyyyMMdd')
+	</sql>
+	
+	<select id="selectDupliateData"    parameterType="foreignExchangeRateParm" resultType="foreignExchangeRateItem">
+		SELECT /*foreignexchangerate.selectDupliateData*/
+			*
+		FROM 
+			TMT_B_CURRENCY 										A 
+		WHERE 
+			A.ST_YMD 											= FORMAT(CONVERT(DATE, #{applyDate}, 103),'yyyyMMdd')
+	</select>
+	
+	<select id="selectCurrencyIndex" parameterType="foreignExchangeRateParm" resultType="foreignExchangeRateItem">
+	 	SELECT 	/*foreignexchangerate.selectCurrencyIndex*/
+	 		MAIN.APPLYDATE 														AS APPLYDATE,
+	 		MAIN.EXPIREDATE														AS EXPIREDATE,
+	 		MAIN.INDEXDT														AS INDEXDT
+	 	FROM 
+		 	(SELECT 
+				FORMAT(CONVERT(DATE, A.ST_YMD, 112), 'dd/MM/yyyy')				AS APPLYDATE,
+				FORMAT(CONVERT(DATE, A.END_YMD, 112), 'dd/MM/yyyy')				AS EXPIREDATE,
+				FORMAT(CONVERT(DATE, A.ST_YMD, 112), 'dd/MM/yyyy') + '~' + 
+				FORMAT(CONVERT(DATE, A.END_YMD, 112), 'dd/MM/yyyy')	  	  		AS INDEXDT
+			FROM 
+				TMT_B_CURRENCY 													A
+			GROUP BY 
+				FORMAT(CONVERT(DATE, A.ST_YMD, 112), 'dd/MM/yyyy') , 
+				FORMAT(CONVERT(DATE, A.END_YMD, 112), 'dd/MM/yyyy')
+			) 																	AS MAIN
+		ORDER BY 
+			APPLYDATE ASC
+	</select>
+	
+	<select id="hasOverlapCurrencyIndex" parameterType="foreignExchangeRateParm" resultType="foreignExchangeRateItem">
+		SELECT /*foreignexchangerate.hasOverlapCurrencyIndex*/
+			FORMAT(CONVERT(DATE, A.ST_YMD, 112), 103)			AS APPLYDATE,
+			FORMAT(CONVERT(DATE, A.END_YMD, 112), 103)			AS EXPIREDATE,
+			FORMAT(CONVERT(DATE, A.ST_YMD, 112), 103) + '~' + 
+				FORMAT(CONVERT(DATE, A.END_YMD, 112), 103)	  	AS INDEXDT
+		FROM 
+			TMT_B_CURRENCY A
+		WHERE 
+			(	CONVERT(DATE, A.ST_YMD,112)
+			 		BETWEEN CONVERT(DATE, #{applyDate}, 103) 
+			 			AND CONVERT(DATE, #{expireDate}, 103)
+				OR (
+					CONVERT(DATE, A.END_YMD,112) 			
+						BETWEEN CONVERT(DATE, #{applyDate}, 103) 
+							AND CONVERT(DATE, #{expireDate}, 103)
+				)
+				OR (
+					CONVERT(DATE, #{applyDate}, 103) 		
+						BETWEEN CONVERT(DATE, A.ST_YMD,112) 
+							AND CONVERT(DATE, A.END_YMD,112)
+				)
+				OR (
+					CONVERT(DATE, #{expireDate}, 103) 		
+						BETWEEN CONVERT(DATE, A.ST_YMD,112) 
+							AND CONVERT(DATE, A.END_YMD,112)
+				)
+			)
+			<if test="applyCode != null and applyCode != ''">
+	  			AND	NOT (A.ST_YMD								= FORMAT(CONVERT(DATE, #{applyCode}, 103),'yyyyMMdd')  )
+			</if>
+		GROUP BY 
+			FORMAT(CONVERT(DATE, A.ST_YMD, 112), 'dd/MM/yyyy'), 
+			FORMAT(CONVERT(DATE, A.END_YMD, 112), 'dd/MM/yyyy')
+	</select>
+	
+	<select id="selectCombo" parameterType="foreignExchangeRateParm" resultType="foreignExchangeRateItem">
+		SELECT /*foreignexchangerate.selectCombo*/
+	        CRCY_CD         									AS currency,
+	   		MAX(EXCHG_VAL) 
+	   			KEEP (DENSE_RANK FIRST ORDER BY ST_YMD DESC) 	AS rate                  
+	    FROM 
+			TMT_B_CURRENCY
+	   	WHERE	
+			1 = 1
+   		<if test="col1 != null and col1 != ''">
+     		AND CONVERT(DATE, #{col1}, 103) 			
+     				BETWEEN CONVERT(DATE, ST_YMD, 112) 
+     					AND CONVERT(DATE, END_YMD, 112)
+   		</if>
+   		<if test="col1 == null or col1 == ''">
+     		AND (
+     			SELECT 
+     				MAX(CONVERT(DATE, ST_YMD, 112)) 
+     			FROM 
+     				TMT_B_CURRENCY
+     		) 
+     			BETWEEN CONVERT(DATE, ST_YMD, 112) 
+     				AND CONVERT(DATE, END_YMD, 112)
+   		</if>
+		GROUP BY 
+	   		CRCY_CD
+	</select>
+	
+	<select id="selectData" parameterType="foreignExchangeRateParm" resultType="foreignExchangeRateItem">
+		SELECT /*foreignExchangeRate.selectData*/
+             CRCY_CD 											AS currency,
+             EXCHG_VAL 											AS rate
+        FROM 
+			TMT_B_CURRENCY
+        WHERE 
+			CONVERT(DATE, #{col1}, 103) 
+				BETWEEN CONVERT(DATE, ST_YMD, 112) 
+					AND CONVERT(DATE, END_YMD, 112)
+			AND CRCY_CD 										= 'RM'
+		ORDER BY 
+			CRCY_CD DESC
+	</select>
+	
+	<insert id="insertItems" parameterType="foreignExchangeRateItem">
+		INSERT /*foreignexchangerate.insertItems*/
+		INTO TMT_B_CURRENCY(
+			CRCY_CD,
+			IM_EX_DIV,
+			ST_YMD,
+			END_YMD,
+			DESCR,
+			EXCHG_VAL,
+			UPDATE_TIME,
+			STAFF_CD,
+			VERSION
+		) VALUES (
+			#{currency},
+			'N',
+			CONVERT(VARCHAR, CONVERT(DATE, #{applyNewDate}, 103), 112),
+			CONVERT(VARCHAR, CONVERT(DATE, #{expireNewDate}, 103), 112),
+			#{descr},
+			<if test="rate!='' and rate!=null">
+				TRY_CONVERT(NUMERIC(11, 5),  #{rate}),
+			</if>
+			<if test="rate=='' or rate==null">
+				0,
+			</if>
+			SYSDATETIME(),
+			<if test="userId!='' and userId!=null">
+				#{userId},
+			</if>
+			<if test="userId=='' or userId==null">
+				'SYSTEM',
+			</if>
+			#{newVersion}
+		)
+	</insert>
+	
+	<update id="updateItems" parameterType="foreignExchangeRateItem">
+		UPDATE /*foreignexchangerate.updateItems*/
+			TMT_B_CURRENCY 
+		SET
+			UPDATE_TIME 										= SYSDATETIME()
+			<if test="rate!='' and rate!=null">
+  				, EXCHG_VAL 									= TRY_CONVERT(NUMERIC(11, 5),  #{rate})
+   			</if>
+			<if test="rate=='' or rate==null">
+  				, EXCHG_VAL 									= 0
+   			</if>
+				, DESCR 										= #{descr}
+			<if test="userId!='' and userId!=null">
+  				, STAFF_CD 										= #{userId} 
+   			</if>
+			<if test="userId=='' or userId==null">
+  				, STAFF_CD 										= 'SYSTEM'
+   			</if>
+		WHERE 
+			CRCY_CD 											= #{currency} 
+			AND ST_YMD 											= CONVERT(VARCHAR, CONVERT(DATE, #{applyDate}, 103), 112)
+	</update>
+	
+	<delete id="deleteItems" parameterType="foreignExchangeRateItem">
+		DELETE /*foreignexchangerate.deleteItems*/
+		FROM 
+			TMT_B_CURRENCY 
+		WHERE 
+			ST_YMD 												= CONVERT(VARCHAR, CONVERT(DATE, #{applyDate}, 103), 112)  
+			AND END_YMD 										= CONVERT(VARCHAR, CONVERT(DATE, #{expireDate},103), 112)	
+	</delete>
+</mapper>

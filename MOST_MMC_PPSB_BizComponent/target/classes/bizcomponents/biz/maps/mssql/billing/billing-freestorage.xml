@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="freeStorageDays">
+
+	<select id="selectFreeStorageCount" parameterType="freeStorageDaysParm" resultType="java.lang.String">
+		SELECT /*freeStorageDays.selectFreeStorageCount*/
+			COUNT(*)
+		FROM
+			(<include refid="getFreeStorage"/>) 				AS getFreeStorage
+	</select>
+
+	<select id="selectFreeStorage"  parameterType="freeStorageDaysParm" resultType="freeStorageDaysItem">
+		<if test="pageNo != 0">
+			SELECT /*freeStorageDays.selectFreeStorage*/
+				*
+			FROM (
+				SELECT
+					inner_querry.*,
+					ROW_NUMBER() OVER(ORDER BY ptnrCd, opeClassCd, cgTpCd, cmdtCd) row_num
+				FROM (
+		</if>
+			<include refid="getFreeStorage"/>
+		<if test="pageNo != 0">
+					) inner_querry
+				) inner_querry
+			WHERE
+				inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+
+	<sql id="getFreeStorage">
+		SELECT /*freeStorageDays.getFreeStorage*/
+			PTNR_CD 											AS ptnrCd,
+			OPE_CLASS_CD 										AS opeClassCd,
+			CG_TP_CD 											AS cgTpCd,
+			CMDT_CD 											AS cmdtCd,
+			DBO.F_GET_CMDT_DESC(CMDT_CD) 						AS cmdtCdNm,
+			CONVERT(DATE, APLY_YMD, 103) 						AS aplyYmd,
+			CONVERT(DATE, EXPR_YMD, 103) 						AS exprYmd,
+			FREE_DD 											AS freeDd,
+			RMK 												AS rmk,
+			INCLD_SUN_YN 										AS incldSunYn,
+			UPDATE_TIME 										AS updateTime,
+			STAFF_CD 											AS userId,
+			VERSION 											AS version
+		FROM
+			TMT_B_FREE_DAY
+		WHERE
+			1 = 1
+		<if test="ptnrCd != null and ptnrCd != ''">
+			AND	PTNR_CD 										= #{ptnrCd}
+		</if>
+		<if test="aplyYmd != null and aplyYmd != ''">
+			AND CONVERT(DATE, APLY_YMD, 103) 					<![CDATA[>=]]> CONVERT(DATE, #{aplyYmd}, 103)
+		</if>
+		<if test="exprYmd != null and exprYmd != ''">
+			AND CONVERT(DATE, #{exprYmd}, 103) 					<![CDATA[>=]]> CONVERT(DATE, EXPR_YMD, 103)
+		</if>			
+	</sql>
+
+	<insert id="insertItems" parameterType="freeStorageDaysItem">
+		INSERT /*freeStorageDays.updateItems*/
+		INTO TMT_B_FREE_DAY (
+			PTNR_CD,
+			OPE_CLASS_CD,
+			CG_TP_CD,
+			CMDT_CD,
+			APLY_YMD,
+			EXPR_YMD,
+			FREE_DD,
+			RMK,
+			INCLD_SUN_YN,
+			UPDATE_TIME,
+			STAFF_CD,
+			VERSION
+		) VALUES (
+			CASE #{ptnrCd}
+				WHEN 'All' THEN '*'
+				ELSE #{ptnrCd}
+			END,
+			#{opeClassCd},
+			#{cgTpCd},
+			#{cmdtCd},
+			FORMAT(#{aplyYmd},'dd/MM/yyyy'),
+			FORMAT(#{exprYmd},'dd/MM/yyyy'),
+			#{freeDd},
+			#{rmk},
+			#{incldSunYn},
+			SYSDATETIME(),
+			#{userId},
+			#{newVersion}
+		)
+	</insert>
+
+	<update id="updateItems" parameterType="freeStorageDaysItem">
+		UPDATE /*freeStorageDays.updateItems*/
+			TMT_B_FREE_DAY
+		SET
+			EXPR_YMD 											= FORMAT(#{exprYmd},'dd/MM/yyyy'),
+			FREE_DD 											= #{freeDd},
+			RMK 												= #{rmk},
+			INCLD_SUN_YN 										= #{incldSunYn},
+			UPDATE_TIME 										= SYSDATETIME(),
+			STAFF_CD 											= #{userId},
+			VERSION	 											= #{newVersion}
+		WHERE
+		    1 = 1
+		<if test="ptnrCd != null and ptnrCd != ''">
+			AND PTNR_CD 										= #{ptnrCd}
+		</if>
+		<if test="opeClassCd != null and opeClassCd != ''">
+			AND	OPE_CLASS_CD 									= #{opeClassCd}
+		</if>
+		<if test="cgTpCd != null and cgTpCd != ''">
+			AND	CG_TP_CD 										= #{cgTpCd}
+		</if>
+		<if test="cmdtCd != null and cmdtCd != ''">
+			AND	CMDT_CD 										= #{cmdtCd}
+		</if>
+		<if test="version != null and version != ''">
+			AND	VERSION		 									= #{version}
+		</if>
+	</update>
+
+	<delete id="deleteItems" parameterType="freeStorageDaysItem">
+		DELETE /*freeStorageDays.deleteItems*/
+		FROM
+			TMT_B_FREE_DAY
+		WHERE
+			1 = 1
+		<if test="ptnrCd != null and ptnrCd != ''">
+			AND	PTNR_CD 										= #{ptnrCd}
+		</if>
+		<if test="opeClassCd != null and opeClassCd != ''">
+			AND	OPE_CLASS_CD 									= #{opeClassCd}
+		</if>
+		<if test="cgTpCd != null and cgTpCd != ''">
+			AND	CG_TP_CD 										= #{cgTpCd}
+		</if>
+		<if test="cmdtCd != null and cmdtCd != ''">
+			AND	CMDT_CD 										= #{cmdtCd}
+		</if>
+	</delete>
+</mapper>

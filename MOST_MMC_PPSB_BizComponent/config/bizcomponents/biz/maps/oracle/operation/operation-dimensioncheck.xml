@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dimensionCheck">
+	 <select id="selectDimensionCheck" parameterType="dimensionCheckParm" resultType="dimensionCheckItem">
+		SELECT	/* dimensionCheck.selectDimensionCheck */
+				WIDTH actWidth,
+				LENGTH actLength,
+				HEIGHT actHeight,
+				CHK_DT checkTime,
+				RMK dimensionRemark,
+				VSL_CD vslCd,
+				CALL_YEAR callYear,
+				CALL_SEQ callSeq,
+				VSL_CALL_ID vslCallId,
+				JOB_NO jobNo
+		FROM TMT_DIMENSION_CHECK
+		WHERE   1 = 1
+				<if test="jobNo != null and jobNo != ''">
+					AND JOB_NO = #{jobNo}
+				</if>
+	</select>
+
+	<insert id="insertDimensionCheck" parameterType="dimensionCheckItem">
+		<selectKey order="BEFORE" resultType="dimensionCheckItem" keyProperty="vslCd,callYear,callSeq" >
+			SELECT 
+					VSL_CD 		AS vslCd,
+					CALL_YEAR	AS callYear,
+					CALL_SEQ 	AS callSeq
+			 FROM 	TMT_VSL_SCH
+			 WHERE 	VSL_CALL_ID = #{vslCallId} AND ROWNUM=1
+		</selectKey>
+		
+		INSERT INTO TMT_DIMENSION_CHECK (
+		      VSL_CD,
+  		      CALL_SEQ,
+			  CALL_YEAR,
+			  VSL_CALL_ID,
+			  CG_NO,
+			  IX_CD,
+			  CATG_CD,
+			  JOB_NO,
+			  WIDTH,
+			  HEIGHT,
+			  LENGTH,
+			  CHK_DT,
+			  RMK,
+			  CRT_DT,
+			  CRT_BY,
+			  UPDATE_TIME,
+			  STAFF_CD
+		) VALUES (
+		    #{vslCd}
+		   ,#{callSeq}
+		   ,#{callYear}
+		   ,#{vslCallId}
+		   ,#{cgNo}
+		   ,#{ixCd}
+		   ,#{catgCd}
+		   ,#{jobNo}
+		   ,#{actWidth}
+		   ,#{actHeight}
+		   ,#{actLength}
+		   ,SYSDATE
+		   ,#{dimensionRemark}
+		   ,SYSDATE
+		   ,#{userId}
+		   ,SYSDATE
+		   ,#{userId}
+		)
+	</insert>
+	
+	<delete id="deleteDimensionCheck" parameterType="dimensionCheckItem">
+		DELETE FROM TMT_DIMENSION_CHECK
+		WHERE JOB_NO = #{jobNo}
+	</delete>
+	
+	<select id="selectJobNoDimensionCheck"   parameterType="dimensionCheckParm"  resultType="dimensionCheckItem">
+		SELECT 
+                ('J' || TO_CHAR(SYSDATE, 'YYMMDD') 
+                     || (SELECT NVL(TRIM(To_CHAR(SUBSTR(MAX(JOB_NO) ,-9,9), '000000000')),'000000000') 
+                      FROM  TMT_JOB)) AS jobNo
+             FROM DUAL
+	 </select>
+	 
+	 <select id="selectBlSnNo"   parameterType="dimensionCheckParm"  resultType="dimensionCheckItem">
+		SELECT /* dimensionCheck.selectBlSnNo */
+               vslCallId,
+               blSnNo,
+               cd,
+               cdNm,
+		       docLength,
+		       docWidth,
+		       docHeight
+       FROM (
+                select BL.VSL_CALL_ID as vslCallId, 
+                       BL.BL_NO as blSnNo,
+                       BL.BL_NO as cd,
+                       BL.BL_NO as cdNm,
+					   BL.HEIGHT AS docHeight,
+					   BL.WIDTH AS docWidth,
+					   BL.LENGTH AS docLength
+                from tmt_bl BL 
+                where BL.vsl_call_id = #{vslCallId} and BL.BL_NO LIKE #{cgNo} || '%'
+                UNION
+                select SN.VSL_CALL_ID as vslCallId,
+                       SN.SHIPG_NOTE_NO as blSnNo,
+                       SN.SHIPG_NOTE_NO as cd,
+                       SN.SHIPG_NOTE_NO as cdNm,
+		               SN.HEIGHT AS docHeight,
+		               SN.WIDTH AS docWidth,
+		               SN.LENGTH AS docLength
+                from tmt_shipg_note SN
+                where SN.vsl_call_id = #{vslCallId} and SN.SHIPG_NOTE_NO LIKE #{cgNo} || '%'
+            )
+	 </select>
+	 
+	 <select id="selectDoGrNo"   parameterType="dimensionCheckParm"  resultType="dimensionCheckItem">
+		SELECT /* dimensionCheck.selectDoGrNo */
+               vslCallId,
+               doGrNo,
+               doGrCd,
+               doGrNm               
+       FROM (
+                select DO.VSL_CALL_ID as vslCallId, 
+                       DO.DO_NO as doGrNo,
+                       DO.DO_NO as doGrCd,
+                       DO.DO_NO as doGrNm
+                from tmt_do DO 
+                where DO.vsl_call_id = #{vslCallId}
+                      and DO.BL_NO = #{blNo}
+                UNION
+                select GR.VSL_CALL_ID as vslCallId,
+                       GR.GR_NO as doGrNo,
+                       GR.GR_NO as doGrCd,
+                       GR.GR_NO as doGrNm
+                from tmt_gr GR
+                where GR.vsl_call_id = #{vslCallId}
+                      and GR.SHIPG_NOTE_NO = #{blNo}
+            )
+	 </select>
+	 
+</mapper>

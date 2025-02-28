@@ -1,0 +1,56 @@
+Ext.define('MOST.model.common.ColumnSetting', {
+	extend : 'MOST.model.foundation.dataitem.DataItem',
+	fields: [
+		{
+			name:'code',
+			type:'string'
+		},
+		{
+			name:'menu',
+			type:'string'
+		},
+		{
+			name:'seq',
+			type:'int'
+		},
+		{
+			name:'fixedColumn',
+			type:'int'
+		},
+		{
+			name:'systemCheck',
+			type:'string'
+		},
+		{
+			name:'no',
+			type:'string'
+		},
+		{
+			name:'defaultCheck',
+			type:'string'
+		},
+		{
+			name:'header',
+			type:'string'
+		},
+		{
+			name:'sortCols',
+			type:'string'
+		},
+		{
+			name:'sortCheck',
+			type:'string'
+		},
+		{
+			name:'pageCol',
+			type:'string'
+				
+		},{
+			name:'gridReference',
+			type:'string'
+		},{
+			name:'gridName',
+			type:'string'
+		}
+	]
+});

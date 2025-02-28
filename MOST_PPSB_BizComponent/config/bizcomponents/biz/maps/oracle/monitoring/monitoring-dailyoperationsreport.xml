@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+<mapper namespace="dailyOperationsReport">
+
+<select id="selectDailyOperationsReport" parameterType="dailyOperationsReportParm" resultType="dailyOperationsReportItem">
+WITH
+VSL_INFO AS (
+	    SELECT 
+		        V.VSL_CALL_ID AS VSLCALLID,
+		        V.VSL_CD,
+		        PART.VSL_NM AS VSLNM,
+		        V.ARRV_SA_ID AS shaCd,
+		        B.ENG_SNM AS shaNm,
+		        B.ADDR as addr,
+		        DECODE(V.INB_VOY || ' / ' || V.OUTB_VOY, ' / ', '',V.INB_VOY || ' / ' || V.OUTB_VOY) AS VOYAGE,
+		        V.BERTH_LOC AS berthNm,
+		        TO_CHAR (V.ETB, 'DD/MM/YYYY HH24:MI') AS ETB,
+		        TO_CHAR (V.ETU, 'DD/MM/YYYY HH24:MI') AS ETU,
+		        TO_CHAR (V.ATW, 'DD/MM/YYYY HH24:MI') AS ATW,
+		        TO_CHAR (V.ATC, 'DD/MM/YYYY HH24:MI') AS ATC,
+		        TO_CHAR (V.ATU, 'DD/MM/YYYY HH24:MI') AS ATU,
+		        TO_CHAR (V.ATB, 'DD/MM/YYYY HH24:MI') AS ATB,
+		        DECODE(V.ARRV_FWD_DRF || ' / ' || V.ARRV_AFTER_DRF, ' / ', '', V.ARRV_FWD_DRF || ' / ' || V.ARRV_AFTER_DRF) AS arrivalDraft,
+		        DECODE(V.DEPT_FWD_DRF || ' / ' || V.DEPT_AFTER_DRF,' / ', '',  V.DEPT_FWD_DRF || ' / ' || V.DEPT_AFTER_DRF) AS departurelDraft,  
+		        TO_CHAR (ROUND(NVL(((V.ATC - V.ATW) * 24 ),0),2), '99999990.00') AS operatingTime ,
+		        TO_CHAR (ROUND(NVL(((V.ATU - V.ATB) * 24 ),0),2), '99999990.00') AS portStayTime 
+	    FROM TMT_VSL_SCH V
+	    INNER JOIN TMT_VSL_PART PART ON PART.VSL_CD = V.VSL_CD
+	    LEFT JOIN  TMT_AGENCY_INFO B ON V.ARRV_SA_ID = B.AGENCY_CODE
+	    WHERE 1=1 
+		<if test="vslCallId != null and vslCallId != ''">
+		AND V.VSL_CALL_ID = #{vslCallId}
+		</if>
+		<!-- <if test="fromDate != null and fromDate != ''">
+    		<if test="toDate != null and toDate != ''">
+			AND TO_DATE(TO_CHAR (V.ATW, 'DD/MM/YYYY HH24:MI'), 'DD/MM/YYYY HH24:MI')
+			BETWEEN TO_DATE( #{fromDate} , 'DD/MM/YYYY HH24:MI ') AND TO_DATE(#{toDate} , 'DD/MM/YYYY HH24:MI ')
+    		</if>
+   		</if> -->
+)
+,DS_JOB AS (  
+		SELECT
+				JO.VSL_CALL_ID, 
+				JO.CG_NO,
+				NVL(SUM(JO.CG_WGT), 0)  AS MT,
+				NVL (SUM(JO.CG_VOL), 0)  AS M3,
+				NVL(SUM(JO.PKG_QTY), 0) AS QTY
+		FROM 	TMT_JOB JO 
+		WHERE 	JO.JOB_PURP_CD IN ('VG',  'VB',  'AB',  'AW')
+		AND 	JO.JOB_TP_CD = 'DS'
+		<if test="vslCallId != null and vslCallId != ''">
+		AND JO.VSL_CALL_ID = #{vslCallId}
+		</if>  
+  		GROUP BY JO.VSL_CALL_ID ,  JO.CG_NO
+)
+,DS_JOB_BY_TIME AS (  
+	    SELECT
+				JO.VSL_CALL_ID, 
+		        JO.CG_NO,
+		        NVL(SUM(JO.CG_WGT), 0)  AS MT,
+		        NVL (SUM(JO.CG_VOL), 0)  AS M3,
+		        NVL(SUM(JO.PKG_QTY), 0) AS QTY
+	    FROM	TMT_JOB JO
+	    INNER JOIN TMT_VSL_SCH SCH ON SCH.VSL_CALL_ID = JO.VSL_CALL_ID
+	    WHERE JO.JOB_PURP_CD IN ('VG',  'VB',  'AB',  'AW')
+		AND JO.JOB_TP_CD = 'DS'
+		<if test="vslCallId != null and vslCallId != ''">
+       	AND JO.VSL_CALL_ID =  #{vslCallId}
+		</if>
+		<if test="fromDate != null and fromDate != ''">
+			<if test="toDate != null and toDate != ''">
+			AND JO.WORK_ST_DT BETWEEN TO_DATE(#{fromDate}, 'DD/MM/YYYY HH24:MI')  AND TO_DATE(#{toDate}, 'DD/MM/YYYY HH24:MI')
+			AND JO.WORK_END_DT BETWEEN TO_DATE(#{fromDate}, 'DD/MM/YYYY HH24:MI') AND TO_DATE(#{toDate}, 'DD/MM/YYYY HH24:MI')
+			</if>
+		</if>
+		GROUP BY JO.VSL_CALL_ID ,  JO.CG_NO
+)
+,MF_BL AS (
+		SELECT 	BL.VSL_CALL_ID,
+				BL.VSL_CD, 
+				BL.BL_NO,
+				BL.MF_DOC_ID,
+				(SELECT ENG_SNM FROM TMT_PTNR WHERE BL.CNSNE = PTNR_CODE AND ROWNUM=1) AS cnsneNm,
+				SUM (BL.CG_WGT) AS CG_WGT,
+				SUM (BL.CG_VOL) AS CG_VOL,
+				SUM (BL.PKG_QTY) AS PKG_QTY
+		FROM TMT_BL BL  
+		WHERE BL.CG_TP_CD NOT IN ('RCV') AND BL.STAT_CD = 'AP' 
+		<if test="vslCallId != null and vslCallId != ''">
+        AND BL.VSL_CALL_ID =  #{vslCallId}
+		</if>
+		GROUP BY BL.VSL_CALL_ID, BL.VSL_CD, BL.BL_NO, BL.MF_DOC_ID , BL.CNSNE
+)
+,MF_SN AS (
+	    SELECT  SN.VSL_CALL_ID,
+	    		SN.VSL_CD, 
+		        SN.MF_DOC_ID,
+		        SN.SHIPG_NOTE_NO,
+		        (SELECT ENG_SNM FROM TMT_PTNR WHERE SN.SHPR = PTNR_CODE AND ROWNUM=1) AS shprNm,
+		        SUM (SN.CG_WGT) AS CG_WGT,
+		        SUM (SN.CG_VOL) AS CG_VOL,
+		        SUM (SN.PKG_QTY) AS PKG_QTY
+	    FROM TMT_SHIPG_NOTE SN   
+	    WHERE SN.CG_TP_CD NOT IN ('RCV') AND SN.STAT_CD = 'AP'
+		<if test="vslCallId != null and vslCallId != ''">
+	        AND SN.VSL_CALL_ID =  #{vslCallId}
+		</if> 
+	    GROUP BY SN.VSL_CALL_ID,SN.VSL_CD, SN.MF_DOC_ID, SN.SHIPG_NOTE_NO, SN.SHPR
+)
+,LD_JOB_BY_TIME AS (
+		SELECT	VSL_CALL_ID,
+				SHIPG_NOTE_NO, 
+				SUM(MT) AS MT,
+				SUM(M3) AS M3,
+				SUM(QTY) AS QTY
+		FROM (
+			    SELECT	JO.VSL_CALL_ID,
+			    		G.SHIPG_NOTE_NO,
+						JO.CG_NO,
+						NVL(SUM(JO.CG_WGT), 0)  AS MT,
+						NVL(SUM(JO.CG_VOL), 0)  AS M3,
+						NVL(SUM(JO.PKG_QTY), 0) AS QTY
+			    FROM TMT_JOB JO
+			    LEFT JOIN TMT_GR G ON G.VSL_CALL_ID = JO.VSL_CALL_ID AND G.GR_NO = JO.CG_NO 
+			    WHERE JO.JOB_PURP_CD IN ('WA', 'AV','GV', 'BV', 'GW') 
+			    	AND JO.JOB_TP_CD = 'LD'
+				<if test="vslCallId != null and vslCallId != ''">
+			        AND JO.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="fromDate != null and fromDate != ''">
+					<if test="toDate != null and toDate != ''">
+					AND JO.WORK_ST_DT BETWEEN TO_DATE(#{fromDate}, 'DD/MM/YYYY HH24:MI')  AND TO_DATE(#{toDate}, 'DD/MM/YYYY HH24:MI')
+					AND JO.WORK_END_DT BETWEEN TO_DATE(#{fromDate}, 'DD/MM/YYYY HH24:MI') AND TO_DATE(#{toDate}, 'DD/MM/YYYY HH24:MI')
+					</if>
+				</if>
+			    GROUP BY JO.VSL_CALL_ID, G.SHIPG_NOTE_NO, JO.CG_NO
+		)
+		GROUP BY VSL_CALL_ID, SHIPG_NOTE_NO
+)
+,LD_JOB AS (
+		SELECT 	VSL_CALL_ID,
+				SHIPG_NOTE_NO, 
+				SUM( MT) AS MT,
+				SUM(  M3) AS M3,
+				SUM(  QTY) AS QTY
+		FROM (
+			    SELECT 	JO.VSL_CALL_ID,
+			    		G.SHIPG_NOTE_NO,
+				    	JO.CG_NO,
+				        NVL(SUM(JO.CG_WGT), 0)  AS MT,
+				        NVL(SUM(JO.CG_VOL), 0)  AS M3,
+				        NVL(SUM(JO.PKG_QTY), 0) AS QTY
+			    FROM TMT_JOB JO
+			    LEFT JOIN TMT_GR G ON G.VSL_CALL_ID = JO.VSL_CALL_ID AND G.GR_NO = JO.CG_NO 
+			    WHERE JO.JOB_PURP_CD IN ('WA', 'AV','GV', 'BV', 'GW') 
+					AND JO.JOB_TP_CD = 'LD'
+					<if test="vslCallId != null and vslCallId != ''">
+					AND JO.VSL_CALL_ID = #{vslCallId}
+					</if>
+			    GROUP BY JO.VSL_CALL_ID, G.SHIPG_NOTE_NO ,JO.CG_NO
+		)
+		GROUP BY VSL_CALL_ID, SHIPG_NOTE_NO
+)
+SELECT  VSL.VSLCALLID,
+		VSL.VSL_CD,
+		VSL.VSLNM,
+		VSL.shaCd,
+		VSL.shaNm,
+		VSL.addr,
+		VSL.VOYAGE,
+		VSL.berthNm,
+		VSL.ETB,
+		VSL.ETU,
+		VSL.ATW,
+		VSL.ATC,
+		VSL.ATU,
+		VSL.ATB,
+		VSL.departurelDraft,
+		VSL.operatingTime,
+		VSL.portStayTime,
+	    DSJO.MT AS totalOprWgt,  
+	    DSBT.MT AS dailyOprWgt,
+	    MF.BL_NO AS blNo,
+        '' AS shipgNoteNo,
+	    MF.CG_WGT - DSJO.MT AS balanceWgt,
+	    MF.CG_WGT AS docWgt, 
+	    MF.PKG_QTY,
+	    MF.cnsneNm AS cnsneNm,
+	    '' AS shprNm,
+	    MF.MF_DOC_ID AS MFDOCID
+FROM VSL_INFO VSL 
+	INNER JOIN MF_BL MF ON MF.VSL_CALL_ID = VSL.VSLCALLID AND MF.VSL_CD = VSL.VSL_CD
+	INNER JOIN DS_JOB DSJO ON DSJO.VSL_CALL_ID = MF.VSL_CALL_ID AND DSJO.CG_NO = MF.BL_NO
+	LEFT JOIN DS_JOB_BY_TIME DSBT ON DSBT.VSL_CALL_ID = DSJO.VSL_CALL_ID AND DSBT.CG_NO = DSJO.CG_NO
+UNION ALL
+SELECT 	VSL.VSLCALLID,
+        VSL.VSL_CD,
+        VSL.VSLNM,
+        VSL.shaCd,
+        VSL.shaNm,
+        VSL.addr,
+        VSL.VOYAGE,
+        VSL.berthNm,
+        VSL.ETB,
+        VSL.ETU,
+        VSL.ATW,
+        VSL.ATC,
+        VSL.ATU,
+        VSL.ATB,
+        VSL.departurelDraft,
+        VSL.operatingTime,
+        VSL.portStayTime,
+        NVL(LDJO.MT, 0) AS totalOprWgt,
+        NVL(LDBT.MT, 0) AS dailyOprWgt,
+        '' AS blNo,
+        MF.SHIPG_NOTE_NO AS shipgNoteNo,
+        NVL(MF.CG_WGT, 0) - NVL(LDJO.MT, 0) AS balanceWgt,
+        NVL(MF.CG_WGT, 0) AS docWgt, 
+        NVL(MF.PKG_QTY, 0) AS PKG_QTY,
+        '' AS cnsneNm,
+        MF.shprNm,
+        MF.MF_DOC_ID AS MFDOCID
+FROM VSL_INFO VSL
+	INNER JOIN MF_SN MF ON MF.VSL_CALL_ID = VSL.VSLCALLID AND MF.VSL_CD = VSL.VSL_CD 
+	LEFT JOIN LD_JOB LDJO ON LDJO.VSL_CALL_ID = MF.VSL_CALL_ID AND LDJO.SHIPG_NOTE_NO = MF.SHIPG_NOTE_NO
+	LEFT JOIN LD_JOB_BY_TIME LDBT ON LDBT.VSL_CALL_ID = MF.VSL_CALL_ID AND LDBT.SHIPG_NOTE_NO = MF.SHIPG_NOTE_NO
+</select>
+
+<select id="selectVesselOperationsDelayReport" parameterType="dailyOperationsReportParm" resultType="dailyOperationsReportItem">
+WITH
+DAILY_OPE AS
+(
+	SELECT /* dailyOperationsReport.selectVesselOperationsDelayReport */
+	        A.VSL_CALL_ID AS VSLCALLID,
+	        (
+	            CASE WHEN A.ST_DT <![CDATA[<]]> TO_DATE(#{fromDate}, 'DD/MM/YYYY HH24:MI')
+					THEN TO_CHAR(TO_DATE(#{fromDate}, 'DD/MM/YYYY HH24:MI'), 'DD/MM/YYYY HH24:MI')
+	            ELSE 
+            		TO_CHAR (A.ST_DT, 'DD/MM/YYYY HH24:MI')
+	            END
+	        ) AS startDate,
+	        (
+	            CASE WHEN A.END_DT <![CDATA[>]]> TO_DATE(#{toDate}, 'DD/MM/YYYY HH24:MI')
+					THEN TO_CHAR(TO_DATE(#{toDate}, 'DD/MM/YYYY HH24:MI'), 'DD/MM/YYYY HH24:MI')
+	            ELSE
+	            	TO_CHAR (A.END_DT, 'DD/MM/YYYY HH24:MI')
+	            END 
+	        ) AS endDate,
+	        TO_CHAR ( ROUND ( NVL ( F_INTERVAL_OF_HOUR ('NR', END_DT, ST_DT), 0) * 100) / 100,'99999990.00')  AS totalHrs,
+	        A.RMK AS vslOpeRmk,
+	        A.RSN_CD AS rsnCd,
+	        ( SELECT DESCR FROM TMT_DLY_CD WHERE DLY_CD = A.RSN_CD ) AS rsnCdNm,
+	        TO_CHAR (A.INPT_DT, 'DD/MM/YYYY') AS INPTDT,
+	        NVL (A.SHFT_ID, '') AS SHFTID,
+	        NVL ( (SELECT SHFT_NM AS SHFTNM FROM TMT_SHFT WHERE SHFT_METH_CD = 'Standard' AND VLD_YN = 'Y' AND SHFT_ID = A.SHFT_ID) , ' ') AS SHFTNM,
+	        VERIFY_STATUS AS VERIFYSTATUS,
+	        VERIFY_BY AS VERIFYBY,
+	        TO_CHAR (VERIFY_DATE, 'DD/MM/YYYY HH24:MI') AS VERIFYDATE,
+	        A.OPE_COMP AS CONTRACTOR
+	FROM TMT_DLY_BRK A
+		LEFT JOIN TMT_DLY_CD CD ON CD.DLY_CD = A.RSN_CD
+	WHERE 1=1
+		AND A.ACPT_YN IN ('Y')
+		<!-- AND CD.DLY_CATG_CD = 'V' AND CD.CHAG_YN = 'Y' -->
+		AND A.VSL_CALL_ID = #{vslCallId}
+	ORDER BY A.ST_DT ASC
+)
+SELECT
+		DPE.VSLCALLID,    
+		DPE.startDate,
+		DPE.endDate,
+		TO_CHAR (
+			ROUND ( NVL ( F_INTERVAL_OF_HOUR ('NR',  TO_DATE(DPE.endDate, 'DD/MM/YYYY HH24:MI'), TO_DATE(DPE.startDate, 'DD/MM/YYYY HH24:MI')), 0) * 100) / 100
+		,'99999990.00')  AS totalHrs,
+		DPE.vslOpeRmk,
+		DPE.rsnCd,
+		DPE.rsnCdNm,
+		DPE.INPTDT,
+		DPE.SHFTID,
+		DPE.SHFTNM,
+		DPE.VERIFYSTATUS,
+		DPE.VERIFYBY,
+		DPE.VERIFYDATE,
+		DPE.CONTRACTOR
+FROM DAILY_OPE DPE
+WHERE 1=1
+	AND TO_DATE(DPE.endDate, 'DD/MM/YYYY HH24:MI')	<![CDATA[>=]]> TO_DATE(DPE.startDate, 'DD/MM/YYYY HH24:MI')
+	AND TO_DATE(DPE.startDate, 'DD/MM/YYYY HH24:MI')
+		BETWEEN TO_DATE(#{fromDate}, 'DD/MM/YYYY HH24:MI') AND TO_DATE(#{toDate}, 'DD/MM/YYYY HH24:MI')
+	AND TO_DATE(DPE.endDate, 'DD/MM/YYYY HH24:MI')
+		BETWEEN TO_DATE(#{fromDate}, 'DD/MM/YYYY HH24:MI') AND TO_DATE(#{toDate}, 'DD/MM/YYYY HH24:MI')
+ORDER BY DPE.startDate ASC
+
+</select>
+
+
+
+</mapper>

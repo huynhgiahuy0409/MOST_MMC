@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="authorityGroup">
+	
+	<select id="selectAuthorityGroup"   parameterType="authorityGroupParm"  resultType="authorityGroupItem">
+		<if test="pageNo != 0"> 
+        	SELECT /*authorityGroup.selectAuthorityGroup*/
+            	* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getAuthorityGroup"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	
+	<select id="selectAuthorityGroupCount" parameterType="authorityGroupParm" resultType="java.lang.String" >
+        SELECT COUNT(*)
+        	FROM (<include refid="getAuthorityGroup"/>)
+	</select>
+    
+    <sql id="getAuthorityGroup">
+    	SELECT 	
+    		AUTH_GRP AS authGrp, 
+    		AUTH_GRP_NM AS authGrpNm, 
+    		GRP_TYPE AS grpTp,  
+            (SELECT AUTH_GRP_NM FROM TMT_AUTH_GROUP WHERE  AUTH_GRP = B.GRP_TYPE) AS grpTpNm, 
+			USAGE AS usage, 
+			DEPT_CD AS deptCd, 
+			PTNR_CD AS ptnrCd, 
+			SYSTEM_CLSF AS systemClsf,  
+            PTNR_TYPE AS ptnrTp, 
+            GRANT_CHK AS grantYn, 
+            GRP_LEVEL AS grpLevel,
+			STAFF_CD AS updUserId, 
+			TO_CHAR(UPDATE_TIME,'DD-MM-YYYY') AS updDt,  
+            F_CM_007(PTNR_CD, PTNR_TYPE) AS ptnrNm
+		FROM TMT_AUTH_GROUP B 
+        WHERE  GT_FLAG = 'G'
+        	<if test="authGrp != null and authGrp != ''">
+        		AND UPPER(AUTH_GRP) LIKE '%' || #{authGrp} || '%'
+        	</if>
+        	<if test="authGrpNm != null and authGrpNm != ''">
+        		AND AUTH_GRP_NM LIKE '%' || #{authGrpNm} || '%'
+        	</if>
+        	<if test="grpTp != null and grpTp != ''">
+        		AND UPPER(GRP_TYPE) LIKE '%' || #{grpTp} || '%'
+        	</if>
+        	<if test="authPtnrCode != null and authPtnrCode != ''">
+        		AND UPPER(PTNR_CD) LIKE '%' || #{authPtnrCode} || '%'
+        	</if>
+        	<if test="deptCd != null and deptCd != ''">
+        		AND UPPER(DEPT_CD) LIKE '%' || #{deptCd} || '%'
+        	</if>
+        	<if test="grantYn != null and grantYn != ''">
+        		AND UPPER(GRANT_CHK) LIKE '%' || #{grantYn} || '%'
+        	</if>
+        ORDER BY AUTH_GRP_NM ASC
+    </sql>
+    
+   	<select id="selectAuthorityGroupPopup" parameterType="authorityGroupParm" resultType="authorityGroupItem">
+		SELECT /*authorityGroup.selectAuthorityGroupPopup*/
+			AUTH_GRP AS authGrp, 
+			AUTH_GRP_NM AS authGrpNm
+		FROM TMT_AUTH_GROUP
+		WHERE GRP_TYPE LIKE '%'
+			<if test="authGrp != null and authGrp != ''">
+				AND AUTH_GRP LIKE #{authGrp} || '%'
+			</if>
+			<if test="authGrpNm != null and authGrpNm != ''">
+				AND UPPER(AUTH_GRP_NM) LIKE UPPER(#{authGrpNm} || '%')
+			</if>
+		ORDER BY AUTH_GRP
+	</select>
+	
+	<select id="selectDepartmentPopup" parameterType="authorityGroupParm" resultType="authorityGroupItem">
+		SELECT /*authorityGroup.selectDepartmentPopup*/
+			DEPT_CD AS deptCd, 
+			DEPT_NM AS deptNm  
+		FROM TMT_DEPARTMENT 
+		<where>
+			<if test="deptCd != null and deptCd != ''">
+				DEPT_CD LIKE #{deptCd}
+			</if>
+		</where>
+	</select>
+	
+	<select id="selectPartnerType" resultType="codeMasterItem">
+		SELECT /*authorityGroup.selectPartnerType*/
+			S_CD 	AS scd, 
+			S_CD_NM AS scdNm  
+        FROM TMT_CD_MSTD 
+        WHERE  L_CD = 'CM'
+        AND    M_CD = 'PTNRTP'
+        AND    S_CD_USE = 'Y' 
+        ORDER BY S_CD
+	</select>
+	
+	<insert id="insertAuthGrp" parameterType="authorityGroupItem">
+		INSERT /*authorityGroup.insertAuthGrp*/
+		INTO TMT_AUTH_GROUP (
+			AUTH_GRP, 
+			AUTH_GRP_NM, 
+			DEPT_CD, 
+			GRANT_CHK, 
+			GRP_LEVEL, 
+			GRP_TYPE, 
+			GT_FLAG, 
+			UPDATE_TIME, 
+			STAFF_CD, 
+			PTNR_CD, 
+			PTNR_TYPE, 
+			SYSTEM_CLSF, 
+			USAGE 
+		) VALUES (
+			(SELECT 'GCD'||TRIM((LPAD(NVL(TO_NUMBER(SUBSTR(MAX(AUTH_GRP),4,7)),0)+1,3,'0'))) FROM TMT_AUTH_GROUP),
+			#{authGrpNm},
+			#{deptCd},
+			#{grantYn},
+			#{grpLevel},
+			#{grpTp},
+			'G',
+			SYSDATE,
+			#{userId},
+			#{ptnrCd},
+			#{ptnrTp},
+			#{systemClsf},
+			#{usage}
+		)
+	</insert>
+	
+	<insert id="insertAccessAuth" parameterType="authorityGroupItem">
+		INSERT /*authorityGroup.insertAccessAuth*/
+		INTO TMT_ACCESS_AUTH (
+			AUTH_GRP,
+			PGM_ID,
+			USER_ID,
+			CINQUIRY,
+			CCLEAR,
+			CCREATE,
+			CSAVE,
+			CDELETE,
+			CDOWNLOAD,
+			CPREVIEW,
+			CPRINT,
+			CHISTORY,
+			USE_YN,
+			STAFF_CD,
+			UPDATE_TIME
+		) VALUES (
+			(SELECT 'GCD'||TRIM((LPAD(NVL(TO_NUMBER(SUBSTR(MAX(AUTH_GRP),4,7)),0),3,'0')))
+			FROM TMT_AUTH_GROUP),
+			#{pgmId},
+			'GROUP',
+			#{cinquiry},
+			#{cclear},
+			#{ccreate},
+			#{csave},
+			#{cdelete},
+			#{cdownload},
+			#{cpreview},
+			#{cprint},
+			#{chistory},
+			#{cuseYn},
+			#{userId},
+			SYSDATE
+		)
+	</insert>
+	
+	<update id="updateAuthGrp" parameterType="authorityGroupItem">
+		UPDATE /*authorityGroup.updateAuthGrp*/
+		TMT_AUTH_GROUP SET 
+			USAGE = #{usage},
+			AUTH_GRP_NM = #{authGrpNm},
+			GRANT_CHK = #{grantYn},
+			GRP_LEVEL = #{grpLevel},
+			UPDATE_TIME = SYSDATE,
+			STAFF_CD = #{userId}
+		WHERE AUTH_GRP = #{authGrp}
+	</update>
+	
+	<delete id="deleteAuthGrp" parameterType="authorityGroupItem">
+		DELETE /*authorityGroup.deleteAuthGrp*/
+		FROM TMT_AUTH_GROUP
+		WHERE AUTH_GRP = #{authGrp}
+	</delete>
+	
+	<delete id="deleteAuthAccessGrp" parameterType="authorityGroupItem">
+		DELETE /*authorityGroup.deleteAuthAccessGrp*/
+		FROM TMT_ACCESS_AUTH
+		WHERE AUTH_GRP = #{authGrp}
+	</delete>
+	
+	<select id="selectUserListByGroup" parameterType="authorityGroupParm" resultType="userInfoDataItem">
+		<if test="pageNo != 0"> 
+        	SELECT /*authorityGroup.selectUserListByGroup*/
+            	* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getUserListByGroup"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	
+	<select id="selectUserListByGroupCount" parameterType="authorityGroupParm" resultType="java.lang.String" >
+        SELECT COUNT(*)
+        	FROM (<include refid="getUserListByGroup"/>)
+	</select>
+	
+	<sql id="getUserListByGroup">
+		SELECT
+			A.USER_ID AS userId, 
+			A.ENG_NM AS userNm, 
+			A.USER_LEVEL AS userLevel, 
+			A.TMNL_CODE AS tmnlCd, 
+			TO_CHAR(B.UPDATE_TIME ,'DD-MM-YYYY') AS updDt
+        FROM TMT_USER_INFO A, TMT_USER_AUTH B
+        WHERE A.USER_ID = B.USER_ID
+        <if test="authGrp != null and authGrp !=''">
+           	AND B.AUTH_GRP = #{authGrp}
+        </if>
+	</sql>
+	
+	<select id="selectAccessAuth" parameterType="authorityGroupParm" resultType="authorityGroupItem">
+    	<if test="pageNo != 0"> 
+        	SELECT /*authorityGroup.selectAccessAuth*/
+        		* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getAccessAuth"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+    </select>
+    
+    <select id="selectAccessAuthCount" parameterType="authorityGroupParm" resultType="java.lang.String" >
+        SELECT COUNT(*)
+        	FROM (<include refid="getAccessAuth"/>)
+	</select>
+	
+	<sql id="getAccessAuth">
+    	<if test="authGrp != null and authGrp != ''">
+    	SELECT 
+    	H.* FROM (
+			SELECT ROW_NUMBER() OVER(PARTITION BY G.PGMID ORDER BY G.CINQUIRY DESC) AS RNUM, G.*
+			FROM (
+		    	SELECT	A.GROUP_CHK grpCheck, 
+		    			A.AUTH_GRP authGrp, 
+			    		A.PGM_ID pgmId,
+			    		B.PGM_NM pgmNm,
+						#{authUserId} authUserId,
+						DECODE(DECODE(B.USE_YN, 'N', 'N', DECODE(A.USE_YN, NULL, B.USE_YN, A.USE_YN)),'N', 'false', 'Y' , 'true') cuseYn,
+						DECODE(DECODE(B.CINQUIRY, 'N', 'N', DECODE(A.CINQUIRY, NULL, B.CINQUIRY, A.CINQUIRY)),'N', 'false', 'Y' , 'true') cinquiry,
+			            DECODE(DECODE(B.CCLEAR, 'N', 'N', DECODE(A.CCLEAR, NULL, B.CCLEAR, A.CCLEAR)),'N', 'false', 'Y' , 'true') cclear,
+			            DECODE(DECODE(B.CCREATE, 'N', 'N', DECODE(A.CCREATE, NULL, B.CCREATE, A.CCREATE)),'N', 'false', 'Y' , 'true') ccreate,
+			            DECODE(DECODE(B.CSAVE, 'N', 'N', DECODE(A.CSAVE, NULL, B.CSAVE, A.CSAVE)),'N', 'false', 'Y' , 'true') csave,
+			            DECODE(DECODE(B.CDELETE, 'N', 'N', DECODE(A.CDELETE, NULL, B.CDELETE, A.CDELETE)),'N', 'false', 'Y' , 'true') cdelete,
+			            DECODE(DECODE(B.CDOWNLOAD, 'N', 'N', DECODE(A.CDOWNLOAD, NULL, B.CDOWNLOAD, A.CDOWNLOAD)),'N', 'false', 'Y' , 'true') cdownload,
+			            DECODE(DECODE(B.CPREVIEW, 'N', 'N', DECODE(A.CPREVIEW, NULL, B.CPREVIEW, A.CPREVIEW)),'N', 'false', 'Y' , 'true') cpreview,
+			            DECODE(DECODE(B.CPRINT, 'N', 'N', DECODE(A.CPRINT, NULL, B.CPRINT, A.CPRINT)),'N', 'false', 'Y' , 'true') cprint,
+			            DECODE(DECODE(B.CHISTORY, 'N', 'N', DECODE(A.CHISTORY, NULL, B.CHISTORY, A.CHISTORY)),'N', 'false', 'Y' , 'true') chistory,
+			            DECODE(B.USE_YN, 'N', 'N', 'Y') puseYn,
+			            DECODE(B.CINQUIRY, 'N', 'N', 'Y') pinquiry,     
+			            DECODE(B.CCLEAR, 'N',  'N', 'Y') pclear,                
+			            DECODE(B.CCREATE, 'N',  'N', 'Y') pcreate,          
+			            DECODE(B.CSAVE, 'N',  'N', 'Y') psave,                     
+			            DECODE(B.CDELETE, 'N',  'N', 'Y') pdelete,          
+			            DECODE(B.CDOWNLOAD, 'N',  'N', 'Y') pdownload, 
+			            DECODE(B.CPREVIEW, 'N',  'N', 'Y') ppreview,      
+			            DECODE(B.CPRINT, 'N',  'N', 'Y') pprint,                 
+			            DECODE(B.CHISTORY, 'N',  'N', 'Y') phistory,  
+			            A.STAFF_CD staffCd 
+				FROM 	TMT_ACCESS_AUTH A
+						INNER JOIN TMT_PROGRAM_INFO B ON B.PGM_ID = A.PGM_ID
+						INNER JOIN TMT_MENU_LIST C ON B.PGM_ID = C.PGM_ID
+
+				WHERE 	A.USER_ID = 'GROUP'
+						AND UPPER(A.AUTH_GRP) = #{authGrp}
+						<choose>
+							<when test="searchType == 'HHT'">
+								AND C.PGM_PATH LIKE '%HHT'
+							</when>
+							<otherwise>
+								<if test="lClsf != null and lClsf != ''">
+						  			AND C.L_CLSF = #{lClsf}
+						  			AND C.PGM_PATH IS NULL
+								</if>
+							</otherwise>
+						</choose>
+				
+				UNION ALL
+				SELECT 
+					    '' grpCheck,
+					    #{authGrp} authGrp,
+					    D.PGM_ID pgmId, 
+					    D.PGM_NM pgmNm, 
+					    #{authUserId} authUserId,
+					    'false' cuseYn,
+					    'false' CINQUIRY,
+					    'false' cclear,
+					    'false' Ccreate,
+					    'false' Csave,
+					    'false' Cdelete,
+					    'false' Cdownload,
+					    'false' Cpreview,
+					    'false' Cprint,
+					    'false' Chistory,
+					    DECODE(D.USE_YN, 'N', 'N', 'Y') puseYn,
+					    DECODE(D.CINQUIRY, 'N', 'N', 'Y') pinquiry,
+					    DECODE(D.CCLEAR, 'N', 'N', 'Y') pclear,
+					    DECODE(D.CCREATE, 'N', 'N', 'Y') pcreate,
+					    DECODE(D.CSAVE, 'N', 'N', 'Y') psave,
+					    DECODE(D.CDELETE, 'N', 'N', 'Y') pdelete,
+					    DECODE(D.CDOWNLOAD, 'N', 'N', 'Y') pdownload,
+					    DECODE(D.CPREVIEW, 'N', 'N', 'Y') ppreview,
+					    DECODE(D.CPRINT, 'N', 'N', 'Y') pprint,
+					    DECODE(D.CHISTORY, 'N', 'N', 'Y') phistory,
+				    	D.STAFF_CD staffCd
+				FROM	TMT_PROGRAM_INFO D, TMT_MENU_LIST E
+				WHERE 	D.PGM_ID = E.PGM_ID
+						<choose>
+							<when test="searchType == 'HHT'">
+								AND E.PGM_PATH LIKE '%HHT'
+							</when>
+							<otherwise>
+								<if test="lClsf != null and lClsf != ''">
+									AND E.L_CLSF = #{lClsf}
+						  			AND E.PGM_PATH IS NULL
+								</if>
+							</otherwise>
+						</choose>
+				) G) H 
+			WHERE RNUM =1
+		</if>
+		<if test="authGrp == null or authGrp == ''">
+			SELECT 
+			    A.PGM_ID pgmId, 
+			    A.PGM_NM pgmNm,
+			    A.USE_YN useYn,
+			    'false' cinquiry,
+			    'false' cclear,
+			    'false' Ccreate,
+			    'false' Csave,
+			    'false' Cdelete,
+			    'false' Cdownload,
+			    'false' Cpreview,
+			    'false' Cprint,
+			    'false' Chistory,
+			    #{authUserId} authUserId,
+			    DECODE(A.CINQUIRY, 'N', 'N', 'Y') pinquiry,
+			    DECODE(A.CCLEAR, 'N', 'N', 'Y') pclear,
+			    DECODE(A.CCREATE, 'N', 'N', 'Y') pcreate,
+			    DECODE(A.CSAVE, 'N', 'N', 'Y') psave,
+			    DECODE(A.CDELETE, 'N', 'N', 'Y') pdelete,
+			    DECODE(A.CDOWNLOAD, 'N', 'N', 'Y') pdownload,
+			    DECODE(A.CPREVIEW, 'N', 'N', 'Y') ppreview,
+			    DECODE(A.CPRINT, 'N', 'N', 'Y') pprint,
+			    DECODE(A.CHISTORY, 'N', 'N', 'Y') phistory
+			FROM TMT_PROGRAM_INFO A, TMT_MENU_LIST B
+			WHERE A.PGM_ID = B.PGM_ID
+			<if test="lClsf != null and lClsf != ''">
+				AND B.L_CLSF = #{lClsf}
+			</if>
+			ORDER BY A.PGM_ID
+		</if>
+    </sql>
+    
+    <update id="updateAccessAuth" parameterType="accessAuthItem">
+    	MERGE INTO TMT_ACCESS_AUTH /*authorityGroup.updateAccessAuth*/
+    	USING DUAL ON (PGM_ID = #{pgmId} AND AUTH_GRP = #{authGrp})
+    	WHEN MATCHED THEN
+    		UPDATE SET 
+    			USE_YN=#{cuseYn}, 
+    			CINQUIRY=#{cinquiry}, 
+    			CSAVE=#{csave}, 
+    			CDELETE=#{cdelete}, 
+    			CPRINT=#{cprint}, 
+    			CPREVIEW=#{cpreview}, 
+				CCLEAR=#{cclear}, 
+				CCREATE=#{ccreate}, 
+				CDOWNLOAD=#{cdownload}, 
+				CHISTORY=#{chistory}, 
+				UPDATE_TIME=SYSDATE
+		WHEN NOT MATCHED THEN
+			INSERT (
+				AUTH_GRP,
+				PGM_ID,
+				USER_ID,
+				CINQUIRY,
+				CCLEAR,
+				CCREATE,
+				CSAVE,
+				CDELETE,
+				CDOWNLOAD,
+				CPREVIEW,
+				CPRINT,
+				CHISTORY,
+				USE_YN,
+				STAFF_CD,
+				UPDATE_TIME
+			) VALUES (
+				#{authGrp},
+				#{pgmId},
+				'GROUP',
+				#{cinquiry},
+				#{cclear},
+				#{ccreate},
+				#{csave},
+				#{cdelete},
+				#{cdownload},
+				#{cpreview},
+				#{cprint},
+				#{chistory},
+				#{cuseYn},
+				#{staffCd},
+				SYSDATE
+			)
+	</update>
+</mapper>

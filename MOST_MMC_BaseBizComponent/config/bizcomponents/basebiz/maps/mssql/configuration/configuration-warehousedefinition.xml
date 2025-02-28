@@ -1,0 +1,1755 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="warehouseDefinition">
+	
+	<select id="selectChkDataAtCellBayRow"  parameterType="warehouseDefinitionParm" resultType="warehouseDefinitionItem">
+		SELECT DISTINCT /* warehouseDefinition.selectChkDataAtCellBayRow */
+			WH_ID 												AS WHID 
+		FROM 
+			TMT_LOC_DEF
+		WHERE 
+			LOC_DIV_CD 											IN ('CEL','BAY','ROW')
+			AND WH_ID 											= #{whId}
+	</select>
+	
+	<select id="selectWhConfiguration"  parameterType="warehouseDefinitionParm" resultType="warehouseDefinitionItem">
+		WITH 
+			STORAGED_INFO AS (
+		 		SELECT 
+		 			WH_ID, SUM (WGT) 							AS WGT, 
+					SUM (M3) 									AS M3, 
+					SUM (PKG_QTY) 								AS PKG_QTY
+				FROM (
+					SELECT
+						WH_LOC_ID 								AS WH_ID, 
+						SUM (CG_WGT) 							AS WGT, 
+						SUM (CG_VOL) 							AS M3, 
+						SUM (PKG_QTY) 							AS PKG_QTY
+					FROM 
+						TMT_INV_LOC
+					GROUP BY 
+						WH_LOC_ID
+					UNION ALL
+					SELECT 
+						WH_ID, 
+						SUM (ISNULL(CG_WGT, DOC_WGT)) 			AS WGT, 
+						SUM (CBM) 								AS M3, 
+						COUNT (1) 								AS PKG_QTY
+					FROM 
+						TMT_RORO_MST
+					WHERE 
+						WH_ID 			IS NOT NULL
+						AND IN_DTM 		IS NOT NULL
+						AND OUT_DTM 	IS NULL
+					GROUP BY 
+						WH_ID
+				) 												AS TMT_RORO_MST_TEMP
+	         	GROUP BY 
+					WH_ID
+			),
+		
+			PLAN_INFO AS (
+	            SELECT 
+	            	WH_ID, 
+					SUM (WGT) 									AS WGT, 
+					SUM (M3) 									AS M3, 
+					SUM (PKG_QTY) 								AS PKG_QTY
+				FROM (
+					SELECT 
+						REQ_POS 								AS WH_ID, 
+						SUM (REQ_QTY) 							AS WGT, 
+						SUM (REQ_MSRMT) 						AS M3, 
+						SUM (REQ_QTY) 							AS PKG_QTY
+					FROM 
+						TMT_SPC_REQ
+					GROUP BY 
+						REQ_POS
+					UNION ALL
+					SELECT 
+						WH_ID, 
+						SUM (ISNULL(CG_WGT, DOC_WGT)) 			AS WGT, 
+						SUM (CBM) 								AS M3, 
+						COUNT (1) 								AS PKG_QTY
+					FROM 
+						TMT_RORO_MST
+					WHERE 
+						WH_ID 			IS NOT NULL
+						AND IN_DTM 		IS NOT NULL
+						AND OUT_DTM 	IS NULL
+					GROUP BY 
+						WH_ID
+				) 												AS TMT_RORO_MST_TEMP
+				GROUP BY 
+					WH_ID
+			)
+		
+		SELECT /* warehouseDefinition.selectWhConfiguration */
+			A.LOC_ID											AS LOCID,
+			A.LOC_NM											AS LOCNM,
+			A.LOC_DIV_CD										AS LOCDIVCD,
+			CASE
+				WHEN A.LOC_DIV_CD = 'ARE' THEN 'Area'
+				WHEN A.LOC_DIV_CD = 'WHO' THEN 'Warehouse'
+				WHEN A.LOC_DIV_CD = 'BAY' THEN 'Bay'
+				WHEN A.LOC_DIV_CD = 'ROW' THEN 'Row'
+				WHEN A.LOC_DIV_CD = 'CEL' THEN 'Cell'
+				WHEN A.LOC_DIV_CD = 'TIE' THEN 'Tier'
+				WHEN A.LOC_DIV_CD = 'BIT' THEN 'Bit Bollad'
+				WHEN A.LOC_DIV_CD = 'WHF' THEN 'Wharf'
+				ELSE 'WHO'
+			END 												AS LOCDIVNM,
+			A.LEFT_X											AS LEFTX,
+			A.TOP_Y												AS TOPY,
+			A.LEN												AS LEN,
+			A.WTH												AS WTH,
+			CASE
+				WHEN A.TOT_DIMS IS NULL THEN A.LEN * A.WTH
+				ELSE A.TOT_DIMS
+			END 												AS TOTDIMS,
+			A.BAY_QTY											AS BAYQTY,
+			A.ROWW_QTY											AS ROWWQTY,
+			A.BAY_LEN											AS BAYLEN,
+			A.ROWW_LEN											AS ROWWLEN,
+			A.AREA_P_BLK										AS AREAPBLK,
+			A.FB_CAPA											AS FBCAPA,
+			A.LOC_TP_CD											AS LOCTPCD,
+			A.RCNT_RENT_NO										AS RCNTRENTNO,
+			A.WH_ID												AS WHID,
+			A.LCK_YN											AS LCKYN,
+			A.RENT_YN											AS RENTYN,
+			A.LOC_USE_YN										AS LOCUSEYN,
+			A.VLD_YN											AS VLDYN,
+			A.USE_CD											AS USECD,
+			A.ED_YN												AS EDYN,
+			A.NON_ED_YN											AS NONEDYN,
+			A.DG_YN												AS DGYN,
+			A.FORE_COLR											AS FORECOLR,
+			A.BK_COLR											AS BKCOLR,
+			A.AREA_ID											AS AREAID,
+			A.BAY_ID											AS BAYID,
+			A.ROW_ID											AS ROWWID,
+			A.TIER_ID											AS TIERID,
+			A.TIER_IDX											AS TIERIDX,
+			A.ROWW_IDX											AS ROWWIDX,
+			A.BAY_IDX											AS BAYIDX,
+			RMK													AS RMK,  
+         	CASE
+            	WHEN (dbo.F_GET_STORED_CARGO(A.LOC_ID)) > 0 
+            		THEN 'Y'
+            	ELSE 'N'
+         	END 												AS ISEXISTEDCARGO,             
+			(SELECT 
+				RENT_TP_CD 
+			FROM 
+				TMT_RENT 
+			WHERE 
+				CONTT_NO = RCNT_RENT_NO) 						AS RENTTPCD,
+			(SELECT
+				CASE
+					WHEN TNNT = 'SHT' THEN 'Short term'
+					WHEN TNNT = 'LOT' THEN 'Long term'
+					WHEN TNNT = 'LME' THEN 'LME'
+					ELSE 'Short term'
+				END 
+			FROM 
+				TMT_RENT 
+			WHERE 
+				CONTT_NO = RCNT_RENT_NO) 						AS TNNT,
+			CASE
+				WHEN A.FB_CAPA = 0 OR A.FB_CAPA IS NULL 
+					THEN 0
+				ELSE ROUND(B.WGT / A.FB_CAPA, 4) * 100
+			END													AS occPercentage,
+			CASE
+				WHEN A.FB_CAPA = 0 OR A.FB_CAPA IS NULL 
+					THEN 0
+				ELSE ROUND(B.WGT / A.FB_CAPA, 4) * 100
+			END													AS planPercentage 
+		FROM 
+			TMT_LOC_DEF 										A 
+		LEFT OUTER JOIN 
+			STORAGED_INFO B 
+				ON A.LOC_ID 									= B.WH_ID
+        LEFT OUTER JOIN 
+			PLAN_INFO P 
+				ON A.LOC_ID 									= P.WH_ID
+		WHERE 
+			A.LOC_ID 											IS NOT NULL
+		<if test="locId != null and locId != ''">
+   			AND A.LOC_ID 										LIKE #{locId}
+		</if>
+		<if test="whId != null and whId != ''">
+   			AND	A.WH_ID 										= #{whId}
+		</if>
+		<if test="locNm != null and locNm != ''">
+   			AND	A.LOC_NM 										= #{locNm}
+		</if>
+		<if test="locDivCd != null and locDivCd != ''">
+   			AND	A.LOC_DIV_CD 									IN ( #{locDivCd} )
+		</if>
+		<if test="locTpCd != null and locTpCd != ''">
+   			AND	A.LOC_TP_CD 									= #{locTpCd}
+		</if>
+		<if test="areaId != null and areaId != ''">
+   			AND	A.AREA_ID 										= #{areaId}
+		</if>
+		<if test="locUseYn != null and locUseYn != ''">
+   			AND	A.LOC_USE_YN 									= #{locUseYn}
+		</if>
+		<if test="locDivCd != null and locDivCd != ''">
+			<if test="locDivCd == 'WHO'">
+				ORDER BY A.LOC_ID
+			</if>		
+			<if test="locDivCd == 'ARE'">
+				ORDER BY A.LOC_ID
+			</if>
+			<if test="locDivCd == 'BAY'">
+				ORDER BY A.BAY_IDX
+			</if>
+			<if test="locDivCd == 'ROW'">
+				ORDER BY A.ROWW_IDX
+			</if>
+			<if test="locDivCd == 'CEL'">
+				ORDER BY A.ROWW_IDX, A.BAY_IDX
+			</if>
+		</if>
+	</select>
+	
+	<select id="selectSulphurConfigurationList" parameterType="warehouseDefinitionParm" resultType="warehouseDefinitionItem">
+		SELECT /* warehouseDefinition.selectSulphurConfigurationList */
+			LOC_ID                                              AS LOCID,
+			LOC_NM                                              AS LOCNM,
+			FB_CAPA                                             AS FBCAPA,
+			USE_SCTS                                            AS USESCTS
+		FROM 
+			TMT_LOC_DEF
+		WHERE
+			LOC_ID IS NOT NULL
+			<if test="locId != null and locId != ''">
+				AND LOC_ID = #{locId}
+			</if>
+	</select>
+	
+	<select id="updateSulphurItems" parameterType="warehouseDefinitionParm" resultType="warehouseDefinitionItem">
+		UPDATE /* warehouseDefinition.updateSulphurItems */
+			TMT_LOC_DEF
+		SET
+			USE_SCTS = #{useScts},
+			FB_CAPA = #{fbCapa}
+		WHERE
+			LOC_ID = #{locId}
+	</select>
+	
+	<select id="selectWarehouseDefinitionList"  parameterType="warehouseDefinitionParm" resultType="warehouseDefinitionItem">
+		SELECT /* warehouseDefinition.selectWarehouseDefinitionList */
+			LOC_ID												AS LOCID,
+			LOC_NM												AS LOCNM,
+			LOC_DIV_CD											AS LOCDIVCD,
+			CASE
+				WHEN LOC_DIV_CD = 'ARE' THEN 'Area'
+				WHEN LOC_DIV_CD = 'WHO' THEN 'Warehouse'
+				WHEN LOC_DIV_CD = 'BAY' THEN 'Bay'
+				WHEN LOC_DIV_CD = 'ROW' THEN 'Row'
+				WHEN LOC_DIV_CD = 'CEL' THEN 'Cell'
+				WHEN LOC_DIV_CD = 'BIT' THEN 'Bit Bollad'
+				WHEN LOC_DIV_CD = 'WHF' THEN 'Wharf'
+				ELSE 'Warehouse'
+			END													AS LOCDIVNM,
+			LEFT_X												AS LEFTX,
+			TOP_Y												AS TOPY,
+			LEN													AS LEN,
+			WTH													AS WTH,
+			CASE
+				WHEN CAST(TOT_DIMS AS VARCHAR) IS NULL 
+					THEN LEN*WTH
+				ELSE TOT_DIMS
+			END 												AS TOTDIMS,
+			BAY_QTY												AS BAYQTY,
+			ROWW_QTY											AS ROWWQTY,
+			BAY_LEN												AS BAYLEN,
+			ROWW_LEN											AS ROWWLEN,
+			AREA_P_BLK											AS AREAPBLK,
+			FB_CAPA												AS FBCAPA,
+			CAR_CAPA											AS CPCAPA,
+			LOC_TP_CD											AS LOCTPCD,
+			(SELECT DISTINCT
+				W.S_CD_NM 
+			FROM 
+				TMT_CD_MSTD W 
+			WHERE   
+				A.LOC_TP_CD = W.S_CD 
+				AND W.M_CD = 'WHTP')  							AS LOCTPNM,
+			RCNT_RENT_NO										AS RCNTRENTNO,
+			WH_ID												AS WHID,
+			LCK_YN												AS LCKYN,
+			RENT_YN												AS RENTYN,
+			LOC_USE_YN											AS LOCUSEYN,
+			VLD_YN												AS VLDYN,
+			USE_CD												AS USECD,
+			ED_YN												AS EDYN,
+			NON_ED_YN											AS NONEDYN,
+			DG_YN												AS DGYN,
+			FORE_COLR											AS FORECOLR,
+			BK_COLR												AS BKCOLR,
+			AREA_ID												AS AREAID,
+			BAY_ID												AS BAYID,
+			ROW_ID												AS ROWWID,
+			TIER_ID												AS TIERID,
+			TIER_IDX											AS TIERIDX,
+			ROWW_IDX											AS ROWWIDX,
+			BAY_IDX												AS BAYIDX,
+			RMK													AS RMK,
+			<if test="tmnlCd != null and tmnlCd != ''">
+			B.S_CD_NM 											AS TMNLCD,
+			</if>
+         	CASE 
+            	WHEN (dbo.F_GET_STORED_CARGO(A.LOC_ID)) > 0 
+            		THEN 'Y' 
+				ELSE 'N'
+         	END 												AS ISEXISTEDCARGO,
+			(SELECT
+				RENT_TP_CD 
+			FROM 
+				TMT_RENT 
+			WHERE 
+				CONTT_NO = RCNT_RENT_NO) 						AS RENTTPCD,
+			(SELECT
+				CASE
+					WHEN TNNT = 'SHT' THEN 'Short term'
+					WHEN TNNT = 'LOT' THEN 'Long term'
+					WHEN TNNT = 'LME' THEN 'LME'
+					ELSE 'Short term'
+				END
+			FROM 
+				TMT_RENT 
+			WHERE 
+				CONTT_NO = RCNT_RENT_NO) 						AS TNNT,
+			(SELECT TOP (1)
+				REF_NO
+			FROM
+				TMT_RENT_DTL
+			WHERE
+				CD_VAL = A.LOC_ID)								AS REFNO,
+			(CASE
+    			WHEN
+					dbo.F_B_INTERVAL_OF_DATE('',
+    					FORMAT(
+    						CONVERT(DATE, 
+    							(SELECT TOP (1)
+									TO_YMD
+								FROM
+									TMT_RENT
+								WHERE
+									REF_NO = (
+										SELECT TOP (1)
+											TMT_RENT_DTL.REF_NO
+                						FROM
+											TMT_RENT_DTL
+                						WHERE
+											CD_VAL = A.LOC_ID
+									)
+								)
+							), 'yyyyMMdd'
+    					),
+    					SYSDATETIME()
+    				) = 0
+					THEN ''
+				ELSE 'Expired'
+			END)												AS rentalExpiredCheck
+		FROM 
+			TMT_LOC_DEF 										A                          
+			<if test="tmnlCd != null and tmnlCd != ''">
+			JOIN TMT_CD_MSTD B
+			ON A.TERMINAL_LOC = B.S_CD
+			</if>
+		WHERE 
+			LOC_ID 												IS NOT NULL
+		<if test="locId != null and locId != ''">
+   			AND LOC_ID 											LIKE #{locId}
+		</if>
+		<if test="whId != null and whId != ''">
+   			AND WH_ID 											= #{whId}
+		</if>
+		<if test="locNm != null and locNm != ''">
+   			AND LOC_NM 											= #{locNm}
+		</if>
+		<if test="locDivCd != null and locDivCd != ''">
+   			AND LOC_DIV_CD 										IN ( #{locDivCd} )
+		</if>
+		<if test="locTpCd != null and locTpCd != ''">
+   			AND LOC_TP_CD 										= #{locTpCd}
+		</if>
+		<if test="areaId != null and areaId != ''">
+   			AND AREA_ID 										= #{areaId}
+		</if>
+		<if test="locUseYn != null and locUseYn != ''">
+   			AND LOC_USE_YN 										= #{locUseYn}
+		</if>
+		<if test="locDivCd != null and locDivCd != ''">
+			<if test="locDivCd == 'WHO'">
+				ORDER BY LOC_ID
+			</if>		
+			<if test="locDivCd == 'ARE'">
+				ORDER BY LOC_ID
+			</if>
+			<if test="locDivCd == 'BAY'">
+				ORDER BY BAY_IDX
+			</if>
+			<if test="locDivCd == 'ROW'">
+				ORDER BY ROWW_IDX
+			</if>
+			<if test="locDivCd == 'CEL'">
+				ORDER BY ROWW_IDX, BAY_IDX
+			</if>
+		</if>
+	</select>
+
+	<select id="selectChkDupliLocId"  parameterType="warehouseDefinitionParm" resultType="warehouseDefinitionItem">
+		SELECT /* warehouseDefinition.selectChkDupliLocId */
+			COUNT(LOC_ID) AS CNT
+		FROM 
+			TMT_LOC_DEF
+		WHERE 
+			LOC_ID 												= #{locId}
+	</select>
+	
+	<select id="selectWHViewReport"  parameterType="warehouseDefinitionParm" resultType="warehouseDefinitionItem">
+		SELECT DISTINCT /* warehouseDefinition.selectWHViewReport */
+			A.loc_id 											AS LOCID,
+			A.ROW_ID     										AS ROWWID,
+			A.BAY_ID     										AS BAYID, 
+			C.CG_NO     										AS AREAID,
+			CG.VSL_CALL_ID										AS VSLCALLID
+        FROM 
+			TMT_LOC_DEF 										A, 
+		LEFT OUTER JOIN
+        	(SELECT
+        		LC.VSL_CALL_ID 				AS VSL_CALL_ID ,
+            	LC.LOC_ID      				AS LOC_ID ,
+                LC.WH_LOC_ID   				AS WH_LOC_ID,
+                LC.CG_NO       				AS CG_NO ,
+                LC.WH_TP_CD      			AS WH_TP_CD,
+                MIN(JB.RHDL_MODE)   		AS RHDL_MODE,
+                MAX(JB.SP_CA_CO_CD)			AS SP_CA_CO_CD,
+                MAX(JB.WORK_END_DT) 		AS WRKDT,
+                SUM(LC.PKG_QTY) 			AS PKG_QTY,
+            FROM 
+			 	TMT_INV_LOC 				LC
+			LEFT OUTER JOIN 
+				TMT_JOB JB ON LC.JOB_NO 	= JB.JOB_NO
+            GROUP BY 
+			 	LC.VSL_CALL_ID, 
+				LC.WH_LOC_ID, 
+				LC.LOC_ID , 
+				LC.CG_NO,
+				LC.WH_TP_CD       	
+			) 								C 	
+				ON A.LOC_ID = C.LOC_ID,
+			TMT_CG_MST						CG
+        WHERE 
+			A.LOC_DIV_CD 										= 'CEL'
+        	AND A.LOC_ID 										LIKE #{locId} + '-%'
+        <![CDATA[
+        	AND (C.PKG_QTY <> 0 OR C.MSRMT <> 0 OR C.WGT<> 0)
+        	AND C.WGT 											>= 0
+        ]]>
+        	AND C.VSL_CALL_ID 									= CG.VSL_CALL_ID
+        	AND C.CG_NO 										= CG.CG_NO 
+        ORDER BY 
+			A.ROW_ID, 
+			CONVERT(INT, A.BAY_ID)
+	</select>
+	
+	<select id="selectCargoDetailReport"  parameterType="warehouseDefinitionParm" resultType="warehouseDefinitionItem">
+		SELECT /* warehouseDefinition.selectCargoDetailReport */
+			BB.LOC_ID ,
+            AA.LOCID											AS LOCID,
+        	AA.CUSTOMER 										AS CUSTOMER,
+          	AA.OCCUPIEDBAYS 									AS OCCUPIEDBAYS,	
+			BB.LOC_NM											AS LOCNM,
+			BB.LOC_DIV_CD										AS LOCDIVCD,
+			CASE
+				WHEN BB.TOT_DIMS IS NULL 
+					THEN BB.LEN*BB.WTH
+				ELSE BB.TOT_DIMS
+			END 												AS TOTDIMS,
+			BB.BAY_QTY											AS BAYQTY,
+			BB.ROWW_QTY											AS ROWWQTY,		
+			BB.AREA_P_BLK										AS AREAPBLK,
+			BB.FB_CAPA											AS FBCAPA,		
+			BB.WH_ID											AS WHID,
+			BB.LCK_YN											AS LCKYN,
+			BB.RENT_YN											AS RENTYN,
+			BB.LOC_USE_YN										AS LOCUSEYN,			
+			BB.USE_CD											AS USECD,
+			BB.ED_YN											AS EDYN,
+			BB.NON_ED_YN										AS NONEDYN,
+			BB.DG_YN											AS DGYN,
+			CC.TOTOCCUPIEDBAYS 									AS TOTOCCUPIEDBAYS 		
+		FROM 
+			(SELECT     
+				A.Loc_Id     			AS LOCID,
+       			E.Customer     			AS CUSTOMER,
+       			COUNT(E.LOC)     		AS OCCUPIEDBAYS
+			FROM TMT_LOC_DEF 			A,
+            	(SELECT DISTINCT 
+            		D.LOC, 
+            		D.CUSTOMER 
+            	FROM 
+           			(SELECT 
+           				C.LOC_ID    	AS Loc,
+           				C.CG_NO     	AS Cargo,  
+                    	(CASE 
+                    		WHEN (B.SHPR IS NOT NULL) 
+                    			THEN B.SHPR
+                        	ELSE 
+								CASE 
+									WHEN (B.CNSNE IS NOT NULL) 
+										THEN B.CNSNE
+                        			ELSE 'Empty' 
+                        		END 	
+                    	END) 									AS Customer
+                	FROM 
+						TMT_CG_MST B, 
+						TMT_INV_LOC C
+                	WHERE 
+						C.CG_NO 			= B.CG_NO
+                    	AND C.VSL_CALL_ID 	= B.VSL_CALL_ID
+                	GROUP BY 
+                		C.LOC_ID, 
+                		C.VSL_CALL_ID, 
+                		C.CG_NO, 
+                		B.SHPR, 
+                		B.CNSNE
+                	HAVING 
+                		<!-- SUM(C.WGT) > 0 OR  --> SUM(C.PKG_QTY) > 0 	<!-- Invalid column name 'WGT' in mssql database -->
+                	) D
+            	) E
+			WHERE 
+				1 = 1
+            	AND A.Loc_Div_Cd 								= 'WHO'           
+            	AND E.loc 										LIKE (A.loc_id + '-%')
+			GROUP BY 
+				A.LOC_ID, 
+				E.CUSTOMER
+			) AA, 
+			
+			TMT_LOC_DEF 										BB,
+			
+			(SELECT 
+				A.LOC_ID 				AS LOCID,
+				COUNT (E.LOC) 			AS totOccupiedBays
+            FROM 
+				TMT_LOC_DEF 			A,
+	            (SELECT DISTINCT 
+	            	D.LOC
+				FROM 
+					(SELECT 
+						C.LOC_ID 		AS loc,
+	                    C.CG_NO 		AS cargo,
+	                    (CASE
+	                        WHEN (B.SHPR IS NOT NULL) THEN B.SHPR
+	                        ELSE 
+								CASE WHEN (B.CNSNE IS NOT NULL) THEN B.CNSNE
+	                                 ELSE 'Empty'
+	                        	END
+	                    END) 			AS customer
+	                    FROM 
+							TMT_CG_MST 	B, 
+							TMT_INV_LOC C
+	                    WHERE 
+							C.CG_NO 	= B.CG_NO
+	                    	AND C.VSL_CALL_ID = B.VSL_CALL_ID
+	                    GROUP BY 
+	                    	C.LOC_ID,
+	                        C.VSL_CALL_ID,
+	                        C.CG_NO,
+	                        B.SHPR,
+	                        B.CNSNE
+	                    HAVING 
+	                    	<!-- SUM (C.WGT) > 0 OR --> SUM (C.PKG_QTY) > 0 <!-- Invalid column name 'WGT' in mssql database -->
+	                    ) 				D
+					) 					E
+	    		WHERE 
+					1 = 1
+	      			AND A.LOC_DIV_CD = 'WHO'
+	      			AND E.LOC LIKE (A.LOC_ID + '-%')
+	 			GROUP 
+					BY A.LOC_ID
+			) CC
+    	WHERE 
+			BB.LOC_ID 											= AA.LOCID
+    		AND BB.LOC_DIV_CD 									='WHO'
+    		AND BB.LOC_ID 										= CC.LOCID
+    	ORDER BY 
+    		AA.LOCID,
+    		AA.CUSTOMER
+	</select>
+		
+	<select id="selectChkBayRow"  parameterType="warehouseDefinitionParm" resultType="warehouseDefinitionItem">
+		SELECT /* warehouseDefinition.selectChkBayRow */
+			COUNT(LOC_ID) 										AS BAYQTY, 
+			0 													AS ROWWQTY
+		FROM 
+			TMT_LOC_DEF
+		WHERE 
+			WH_ID 												= #{whId}
+			AND LOC_DIV_CD										='BAY'
+		UNION ALL
+		SELECT 
+			0 													AS BAYQTY, 
+			COUNT(LOC_ID) 										AS ROWWQTY
+		FROM 
+			TMT_LOC_DEF
+		WHERE 
+			WH_ID 												= #{whId}
+			AND LOC_DIV_CD 										='ROW'
+	</select>
+	
+	<select id="selectBerthWarfLoc"  parameterType="warehouseDefinitionParm" resultType="warehouseDefinitionItem">
+		SELECT /* warehouseDefinition.selectBerthWarfLoc */
+			BERTH_CD AS LOCID 
+		FROM 
+			TMT_BERTH_LOC 
+		WHERE 
+			LOC_CD = #{areaId}
+	</select>
+
+	<select id="selectInvLocCargos"  parameterType="warehouseDefinitionParm" resultType="warehouseDefinitionItem">
+        <if test="cgTpCd != null and  cgTpCd != '' and cgTpCd != 'RCV'.toString()">
+	        WITH 
+	        	LOCATION_INFO AS
+		        	(SELECT 
+						LC.SHIP_CALL_NO 															AS SHIP_CALL_NO,
+						LC.VSL_CALL_ID 																AS VSL_CALL_ID,
+		                LC.LOC_ID 																	AS LOC_ID,
+		                LC.WH_LOC_ID 																AS WH_LOC_ID,
+		                LC.REF_NO 																	AS REF_NO,
+		                LC.CG_NO 																	AS CG_NO,
+		                LC.WH_TP_CD 																AS WH_TP_CD,
+		                MIN (JB.RHDL_MODE) 															AS RHDL_MODE,
+		                MAX (JB.SP_CA_CO_CD) 														AS SP_CA_CO_CD,
+		                MAX (JB.WORK_END_DT) 														AS WRKDT,
+		                SUM (LC.PKG_QTY) 															AS PKG_QTY,
+		                SUM (LC.CG_WGT) 															AS WGT,
+		                SUM (LC.CG_VOL) 															AS VOL
+					FROM 
+						TMT_INV_LOC 																LC 
+					LEFT OUTER JOIN 
+						TMT_JOB JB 
+							ON LC.JOB_NO 															= JB.JOB_NO 
+							AND LC.VSL_CALL_ID 														= JB.VSL_CALL_ID
+		            <if test="jobNoStr != null and jobNoStr != ''">
+						WHERE 
+							LC.JOB_NO 																IN (${jobNoStr})
+		           	</if>
+		          	GROUP BY 
+		          		LC.SHIP_CALL_NO,
+						LC.VSL_CALL_ID,
+		                LC.WH_LOC_ID,
+		                LC.LOC_ID,
+		                LC.REF_NO,
+		                LC.CG_NO,
+		                LC.WH_TP_CD
+		            HAVING NOT (SUM (LC.PKG_QTY) = 0 AND SUM (LC.CG_WGT) = 0 AND SUM (LC.CG_VOL) = 0)
+				)
+	        
+	        SELECT /* warehouseDefinition.selectInvLocCargos */
+	        		LOC.SHIP_CALL_NO 																AS SCN,
+	        		LOC.VSL_CALL_ID 																AS VSLCALLID,
+					LOC.WH_LOC_ID             														AS WHLOCID,
+					(SELECT 
+						TOP(1) A.LOC_TP_CD
+					FROM 
+						TMT_LOC_DEF A
+					WHERE 
+						A.LOC_ID = LOC.WH_LOC_ID
+						AND A.LOC_DIV_CD = 'WHO')													AS LOCTPCD,
+					LOC.LOC_ID            															AS LOCID,
+					CG.OPE_CLASS_CD     															AS OPECLASSCD,
+					CG.SHIPG_AGNT        															AS SHIPGAGNT,
+					CG.FWR_AGNT            															AS FWRAGNT,
+					CG.CG_TP_CD         															AS CGTPCD,
+					CG.CG_TP_CD            															AS AVAILABLESPACE,
+					CG.SHIPG_NOTE_NO 																AS SHIPGNOTENO,
+					CG.BL_NO 																		AS BLNO,
+					LOC.REF_NO                														AS REFNO,
+					LOC.CG_NO                														AS CGNO,
+					LOC.PKG_QTY            															AS PKGQTY,
+					LOC.WGT                     													AS WGT,
+					LOC.VOL                     													AS MSRMT,
+					CG.DMG_YN            															AS DGYN,
+					LOC.RHDL_MODE        															AS RHDLMODE,
+					LOC.WH_TP_CD        															AS WHTPCD,
+					LOC.SP_CA_CO_CD        															AS SPCACOCD,
+					LOC.WRKDT            															AS STOREDDT,
+					dbo.F_CM_CODE_NM('MT', 'CGCOCD', LOC.WH_TP_CD) 									AS WHTPCDNM,
+					dbo.F_CM_CODE_NM('MT', 'CATGTP',CG.OPE_CLASS_CD) 								AS OPECLASSNM,
+					dbo.F_CM_CODE_NM('MT', 'SPCACOCD', LOC.SP_CA_CO_CD) 							AS SPCACOCDNM,
+					CASE 
+						WHEN ISNULL(CG.SHPR_NM, '') + '/' + ISNULL(CG.CNSNE_NM, '') = '/' THEN ''
+						ELSE ISNULL(CG.SHPR_NM, '') + '/' + ISNULL(CG.CNSNE_NM, '')
+					END 																			AS CNGSHP,
+					CASE
+						WHEN SUBSTRING(LOC.LOC_ID,0,4) = 'CS6C' THEN SUBSTRING(LOC.LOC_ID,0,6)
+						ELSE LOC.WH_LOC_ID
+					END 																			AS WHLOCID2, 
+					(SELECT 
+						CASE
+							WHEN COUNT(*) = 0 THEN CG.CG_NO
+							ELSE MAX(SHIPG_NOTE_NO)
+						END
+					FROM 
+						TMT_GR 
+					WHERE 
+						GR_NO = CG.CG_NO
+					) AS BLSN,
+					VP.VSL_NM 																		AS VSLNAME,
+	         		VP.VSL_TP 																		AS VSLTP,	            
+	         		dbo.F_CM_CODE_NM('MT', 'PKGTP', ISNULL(CG.REPKG_TP_CD, CG.PKG_TP_CD)) 			AS PKGTPNM,
+	         		CASE 
+						WHEN CG.SHIPG_NOTE_NO IS NOT NULL THEN SN.LOT_NO 
+						ELSE BL.LOT_NO 
+					END AS LOTNO
+			FROM 
+				LOCATION_INFO LOC
+	        INNER JOIN 
+				TMT_CG_MST CG 
+					ON LOC.VSL_CALL_ID 																= CG.VSL_CALL_ID 
+					AND LOC.CG_NO 																	= CG.CG_NO
+	        LEFT OUTER JOIN 
+				TMT_BL BL 
+					ON CG.VSL_CALL_ID 																= BL.VSL_CALL_ID 
+					AND CG.BL_NO 																	= BL.BL_NO
+	        LEFT OUTER JOIN 
+				TMT_SHIPG_NOTE SN 
+					ON CG.VSL_CALL_ID 																= SN.VSL_CALL_ID 
+					AND CG.SHIPG_NOTE_NO 															= SN.SHIPG_NOTE_NO
+			LEFT OUTER JOIN 
+				TMT_VSL_SCH VS 
+					ON CG.VSL_CALL_ID 																= VS.VSL_CALL_ID
+	        LEFT OUTER JOIN 
+				TMT_VSL_PART VP 
+					ON VS.VSL_CD 																	= VP.VSL_CD
+			WHERE
+				1 = 1
+			 <if test="cgTpCd eq 'LQD'.toString()">
+			    <![CDATA[
+			    	AND LOC.VOL >= 0
+				    AND (LOC.PKG_QTY <> 0  OR LOC.VOL<> 0)
+			    ]]>
+		    </if>
+		    <if test="cgTpCd != 'LQD'.toString() and cgTpCd != 'LQN'.toString() and cgTpCd != 'LQE'.toString()">
+			    <![CDATA[
+			    	AND LOC.WGT 																	>= 0
+				    AND (LOC.PKG_QTY 																<> 0  OR LOC.WGT<> 0)
+			    ]]>
+		    </if>
+		    <if test="whId != null and whId != ''">
+	      		AND LOC.LOC_ID 																		LIKE #{whId} + '%'
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+	      		AND CG.CG_NO in (SELECT 
+									GR.GR_NO 
+								FROM 
+									TMT_GR 					GR, 
+									TMT_SHIPG_NOTE 			SN 
+	      						WHERE 
+									GR.VSL_CALL_ID 			= SN.VSL_CALL_ID 
+	      							AND GR.SHIPG_NOTE_NO 	= SN.SHIPG_NOTE_NO 
+	      							AND SN.SHIPG_NOTE_NO 	= #{shipgNoteNo})
+			</if>
+		    <if test="vslCallId != null and vslCallId != ''">
+	      		AND LOC.VSL_CALL_ID 																= #{vslCallId}
+			</if>
+		    <if test="whTpCd != null and whTpCd != ''">
+	      		AND LOC.WH_TP_CD 																	IN ('${whTpCd}')
+			</if>
+		    <if test="cgNo != null and cgNo != ''">
+	      		AND CG.CG_NO 																		= #{cgNo}
+			</if>
+		    <if test="spCaCoCd != null and spCaCoCd != ''">
+	      		AND LOC.SP_CA_CO_CD 																= #{spCaCoCd}			
+			</if>
+		    <if test="blSn != null and blSn != ''">
+	      		AND (CG.SHIPG_NOTE_NO = #{blSn} OR CG.BL_NO = #{blSn})
+			</if>
+			ORDER BY 
+				LOC.LOC_ID
+		</if>
+		<if test="cgTpCd == null or cgTpCd == ''">
+	        WITH 
+	        	LOCATION_INFO AS (
+					SELECT
+						LC.SHIP_CALL_NO 															AS SHIP_CALL_NO,
+						LC.VSL_CALL_ID 																AS VSL_CALL_ID,
+						LC.LOC_ID  																	AS LOC_ID,
+						LC.WH_LOC_ID  																AS WH_LOC_ID,
+						LC.REF_NO  																	AS REF_NO,
+						LC.CG_NO  																	AS CG_NO,
+						LC.WH_TP_CD  																AS WH_TP_CD,
+						MIN (JB.RHDL_MODE)  														AS RHDL_MODE,
+						MAX (JB.SP_CA_CO_CD) 														AS SP_CA_CO_CD,
+						MAX (JB.WORK_END_DT) 														AS WRKDT,
+						SUM (LC.PKG_QTY) 															AS PKG_QTY,
+						SUM (LC.CG_WGT) 															AS WGT,
+						SUM (LC.CG_VOL) 															AS VOL
+					FROM 
+						TMT_INV_LOC 																LC 
+					LEFT OUTER JOIN 
+						TMT_JOB JB 
+							ON LC.JOB_NO 															= JB.JOB_NO 
+							AND LC.VSL_CALL_ID 														= JB.VSL_CALL_ID
+						<if test="jobNoStr != null and jobNoStr != ''">
+							WHERE 
+								LC.JOB_NO 															IN (${jobNoStr})
+						</if>
+					GROUP BY
+						LC.SHIP_CALL_NO,
+						LC.VSL_CALL_ID,
+						LC.WH_LOC_ID,
+						LC.LOC_ID,
+						LC.REF_NO,
+						LC.CG_NO,
+						LC.WH_TP_CD
+					HAVING NOT (SUM (LC.PKG_QTY) = 0 AND SUM (LC.CG_WGT) = 0 AND SUM (LC.CG_VOL) = 0)
+				)
+	        
+	        SELECT 	 /* warehouseDefinition.selectInvLocCargos */
+	        	LOC.SHIP_CALL_NO 																	AS SCN,
+	        	LOC.VSL_CALL_ID 																	AS VSLCALLID,
+				LOC.WH_LOC_ID             															AS WHLOCID,
+				(SELECT 
+					TOP(1) A.LOC_TP_CD 
+				FROM 
+					TMT_LOC_DEF A 
+				WHERE 
+					A.LOC_ID 			= LOC.WH_LOC_ID 
+					AND A.LOC_DIV_CD 	= 'WHO') 													AS LOCTPCD,
+				LOC.LOC_ID            																AS LOCID,
+				CG.OPE_CLASS_CD     																AS OPECLASSCD,
+				CG.SHIPG_AGNT        																AS SHIPGAGNT,
+				CG.FWR_AGNT            																AS FWRAGNT,
+				CG.CG_TP_CD         																AS CGTPCD,
+				CG.CG_TP_CD            																AS AVAILABLESPACE,
+				CG.SHIPG_NOTE_NO 																	AS SHIPGNOTENO,
+				CG.BL_NO 																			AS BLNO,
+				LOC.REF_NO                															AS REFNO,
+				LOC.CG_NO                															AS CGNO,
+				LOC.PKG_QTY            																AS PKGQTY,
+				LOC.WGT                     														AS WGT,
+				LOC.VOL                     														AS MSRMT,
+				CG.DMG_YN            																AS DGYN,
+				LOC.RHDL_MODE        																AS RHDLMODE,
+				LOC.WH_TP_CD        																AS WHTPCD,
+				LOC.SP_CA_CO_CD        																AS SPCACOCD,
+				LOC.WRKDT            																AS STOREDDT,
+				dbo.F_CM_CODE_NM('MT', 'CGCOCD', LOC.WH_TP_CD) 										AS WHTPCDNM,
+				dbo.F_CM_CODE_NM('MT', 'CATGTP',CG.OPE_CLASS_CD) 									AS OPECLASSNM,
+				dbo.F_CM_CODE_NM('MT', 'SPCACOCD', LOC.SP_CA_CO_CD) 								AS SPCACOCDNM,
+				CASE
+					WHEN CG.SHPR_NM + '/' + CG.CNSNE_NM = '/' THEN ''
+					ELSE CG.SHPR_NM + '/' + CG.CNSNE_NM
+				END 																				AS CNGSHP,
+				CASE
+					WHEN SUBSTRING(LOC.LOC_ID,0,4) = 'CS6C' THEN SUBSTRING(LOC.LOC_ID,0,6)
+					ELSE LOC.WH_LOC_ID
+				END 																				AS WHLOCID2,
+				(SELECT 
+					CASE
+						WHEN COUNT(*) = 0 THEN CG.CG_NO
+						ELSE MAX(SHIPG_NOTE_NO)
+					END
+				FROM 
+					TMT_GR 
+				WHERE 
+					GR_NO = CG.CG_NO) 																AS BLSN,
+				VP.VSL_NM 																			AS VSLNAME,
+	         	VP.VSL_TP 																			AS VSLTP,
+	            ISNULL(CG.REPKG_TP_CD, CG.PKG_TP_CD) 												AS PKGTPCD,
+	         	dbo.F_CM_CODE_NM('MT', 'PKGTP', ISNULL(CG.REPKG_TP_CD, CG.PKG_TP_CD)) 				AS PKGTPNM,
+	         	CASE 
+					WHEN CG.SHIPG_NOTE_NO IS NOT NULL THEN SN.LOT_NO 
+					ELSE BL.LOT_NO 
+				END 																				AS LOTNO
+				FROM 
+					LOCATION_INFO LOC
+	         	INNER JOIN 
+					TMT_CG_MST CG 
+						ON LOC.VSL_CALL_ID 															= CG.VSL_CALL_ID 
+						AND LOC.CG_NO 																= CG.CG_NO
+	         	LEFT OUTER JOIN 
+					TMT_BL BL 
+						ON CG.VSL_CALL_ID 															= BL.VSL_CALL_ID 
+						AND CG.BL_NO 																= BL.BL_NO
+	         	LEFT OUTER JOIN 
+					TMT_SHIPG_NOTE SN 
+						ON CG.VSL_CALL_ID 															= SN.VSL_CALL_ID 
+						AND CG.SHIPG_NOTE_NO 														= SN.SHIPG_NOTE_NO
+				LEFT OUTER JOIN 
+					TMT_VSL_SCH VS 
+						ON CG.VSL_CALL_ID 															= VS.VSL_CALL_ID
+	         	LEFT OUTER JOIN 
+					TMT_VSL_PART VP 
+						ON VS.VSL_CD 																= VP.VSL_CD
+			WHERE 
+				1=1
+			<if test="rehandleCheck == null or  rehandleCheck == ''">
+			    <![CDATA[
+			    	AND CASE 
+			    			WHEN CG.CG_TP_CD IN ('LQD') THEN LOC.VOL 
+			    			ELSE LOC.WGT 
+	         			END >= 0
+				    AND CASE
+	                	WHEN CG.CG_TP_CD NOT IN ('LQD')
+			                THEN
+			                   	CASE
+			                      	WHEN LOC.PKG_QTY <> 0 THEN 1
+			                      	ELSE 
+			                      		CASE 
+			                      			WHEN LOC.WGT <> 0 THEN 1 
+			                      			ELSE 0 
+			                			END
+	                  			 END
+	               			ELSE 1
+	             	END = 1
+			    ]]>
+		    </if>
+		    <if test="whId != null and whId != ''">
+	      		AND LOC.LOC_ID 																		LIKE #{whId} + '%'
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+	      		AND CG.CG_NO IN (SELECT 
+									GR.GR_NO 
+								FROM 
+									TMT_GR GR, TMT_SHIPG_NOTE SN 
+	      						WHERE 
+									GR.VSL_CALL_ID 			= SN.VSL_CALL_ID 
+	      							AND GR.SHIPG_NOTE_NO 	= SN.SHIPG_NOTE_NO 
+	      							AND SN.SHIPG_NOTE_NO 	= #{shipgNoteNo})
+			</if>
+		    <if test="vslCallId != null and vslCallId != ''">
+	      		AND LOC.VSL_CALL_ID 										      					= #{vslCallId}
+			</if>
+		    <if test="whTpCd != null and whTpCd != ''">
+	      		AND LOC.WH_TP_CD 									      							IN ('${whTpCd}')
+			</if>
+		    <if test="cgNo != null and cgNo != ''">
+	      		AND CG.CG_NO 									      								= #{cgNo}
+			</if>
+		    <if test="spCaCoCd != null and spCaCoCd != ''">
+	      		AND LOC.SP_CA_CO_CD 									      						= #{spCaCoCd}			
+			</if>
+		    <if test="blSn != null and blSn != ''">
+	      		AND (CG.SHIPG_NOTE_NO 									      						= #{blSn} OR CG.BL_NO = #{blSn})
+			</if>
+			ORDER BY 
+				LOC.LOC_ID
+		</if>
+		<if test="cgTpCd != null and  cgTpCd != '' and cgTpCd eq 'RCV'.toString()">
+			WITH 
+				LOCATION_INFO AS (
+			    	SELECT 
+						VSL_CALL_ID 																AS VSL_CALL_ID,
+			            SUBSTRING(TO_LOC_ID, 1, CHARINDEX('(', TO_LOC_ID) - 1) 						AS LOC_ID,
+			            TO_LOC_ID,
+			            SUBSTRING(TO_LOC_ID, 1, CHARINDEX('(', TO_LOC_ID) - 1) 						AS WH_LOC_ID,
+			            CG_NO 																		AS CG_NO,
+			            MAX (SP_CA_CO_CD) 															AS SP_CA_CO_CD,
+			            MAX (WORK_END_DT) 															AS WRKDT,
+			            SUM (PKG_QTY) 																AS PKG_QTY,
+			            SUM (CG_WGT) 																AS WGT,
+			            SUM (CG_VOL) 																AS VOL
+			        FROM 
+						TMT_JOB 
+			        WHERE 
+						1=1
+			            AND JOB_PURP_CD IN ('AW', 'GW')
+			            AND VSL_CALL_ID =  #{vslCallId}
+			            <if test="grNo != null and  grNo != '' ">
+	                    	AND CG_NO=  #{grNo}
+	                    </if>
+			        GROUP BY 
+						VSL_CALL_ID,
+			            TO_LOC_ID,
+			            CG_NO
+				),
+
+	       		HANDLING_OUT_INFO AS (
+					SELECT 
+						VSL_CALL_ID                    			                   			        AS VSL_CALL_ID,
+			            SUBSTRING(TO_LOC_ID, 1, CHARINDEX('(', TO_LOC_ID) - 1)                    	AS LOC_ID,
+			            SUBSTRING(TO_LOC_ID, 1, CHARINDEX('(', TO_LOC_ID) - 1)                    	AS WH_LOC_ID,
+			            CG_NO                    			                   			            AS CG_NO,
+			            MAX (SP_CA_CO_CD)        			                   			            AS SP_CA_CO_CD,
+			            MAX (WORK_END_DT)        			                   			            AS WRKDT,
+			            SUM (PKG_QTY)        			                   			              	AS PKG_QTY,
+			            SUM (CG_WGT)        			                   			              	AS WGT,
+			            SUM (CG_VOL)        			                   			              	AS VOL
+			        FROM 
+						TMT_JOB 
+			        WHERE 
+						1 = 1
+			            AND JOB_PURP_CD 			                   			          			IN ('WG')
+			            AND VSL_CALL_ID 			                   			          			= #{vslCallId}
+			            <if test="grNo != null and  grNo != '' ">
+	                    	AND CG_NO			                   			          				= #{grNo}
+	                    </if>
+			         GROUP BY 
+					 	VSL_CALL_ID,
+			            TO_LOC_ID,
+			            CG_NO
+				)
+
+		  	SELECT DISTINCT /* warehouseDefinition.selectInvLocCargos */
+		        LOC.VSL_CALL_ID 		                   			              					AS VSLCALLID,
+		        LOC.WH_LOC_ID 		                   			              						AS WHLOCID,
+		        (SELECT 
+					TOP(1) A.LOC_TP_CD
+		        FROM 
+					TMT_LOC_DEF A
+		        WHERE     
+					A.LOC_ID 			= LOC.WH_LOC_ID
+		            AND A.LOC_DIV_CD 	= 'WHO')													AS LOCTPCD,
+		        <!-- (SELECT 
+					TOP(1) A.LOC_ID
+		        FROM 
+					TMT_LOC_DEF A
+		        WHERE  
+					A.WH_ID 			= LOC.WH_LOC_ID
+		            AND A.LOC_DIV_CD 	= 'CEL') 													AS LOCID, -->
+		        REPLACE(SUBSTRING(LOC.TO_LOC_ID, 1, CHARINDEX(',', LOC.TO_LOC_ID) - 1), '(', '-')   AS LOCID,
+		        <if test="catgCd != null and  catgCd != '' and catgCd eq 'I'.toString()">
+					CG.CG_NO 																		AS BLNO,
+		         	BL.OP_CLASS_CD 																	AS OPECLASSCD,
+		         	dbo.F_CM_CODE_NM('MT', 'CATGTP', BL.OP_CLASS_CD) 								AS OPECLASSNM,
+         			BL.PKG_TP_CD 																	AS PKGTPCD,
+         			dbo.F_CM_CODE_NM('MT', 'PKGTP', BL.PKG_TP_CD) 									AS PKGTPNM,
+         			BL.LOT_NO,
+		        </if>
+		        <if test="catgCd != null and  catgCd != '' and catgCd eq 'E'.toString()">
+					CG.CG_NO 																		AS SHIPGNOTENO,
+		         	SN.CATG_CD 																		AS OPECLASSCD,
+		         	dbo.F_CM_CODE_NM('MT', 'CATGTP', SN.CATG_CD) 									AS OPECLASSNM,
+         			SN.PKG_TP_CD 																	AS PKGTPCD,
+         			dbo.F_CM_CODE_NM('MT', 'PKGTP', SN.PKG_TP_CD) 									AS PKGTPNM,
+         			SN.LOT_NO,
+		        </if>
+		        <if test="catgCd != null and  catgCd != '' and catgCd eq 'T'.toString()">
+					CG.CG_NO 																		AS SHIPGNOTENO,
+		         	SN.CATG_CD 																		AS OPECLASSCD,
+		         	dbo.F_CM_CODE_NM('MT', 'CATGTP', SN.CATG_CD) 									AS OPECLASSNM,
+         			SN.PKG_TP_CD 																	AS PKGTPCD,
+         			dbo.F_CM_CODE_NM('MT', 'PKGTP', SN.PKG_TP_CD) 									AS PKGTPNM,
+         			SN.LOT_NO,
+		        </if>
+		        CG.CG_TP_CD  											 							AS CGTPCD,
+		        CG.CG_TP_CD 																		AS AVAILABLESPACE,
+		        LOC.CG_NO 																			AS CGNO,
+		        ISNULL(LOC.PKG_QTY,0) 	- ISNULL(HO.PKG_QTY,0) 										AS PKGQTY,
+		        ISNULL(LOC.WGT,0) 		- ISNULL(HO.WGT,0) 											AS WGT,
+		        ISNULL(LOC.VOL,0)		- ISNULL(HO.VOL,0) 											AS MSRMT,
+		        LOC.SP_CA_CO_CD 																	AS SPCACOCD,
+		        LOC.WRKDT 																			AS STOREDDT,
+         		dbo.F_CM_CODE_NM('MT', 'SPCACOCD', LOC.SP_CA_CO_CD) 								AS SPCACOCDNM,
+				CASE
+					WHEN SUBSTRING(LOC.LOC_ID, 0, 4) = 'CS6C' THEN SUBSTRING(LOC.LOC_ID, 0, 6)
+					ELSE LOC.WH_LOC_ID
+				END 																				AS WHLOCID2,
+		        (SELECT 
+					CASE
+						WHEN COUNT (*) = 0 THEN CG.CG_NO
+						ELSE MAX(SHIPG_NOTE_NO)
+					END
+		        FROM 
+					TMT_GR
+		        WHERE 
+					GR_NO = CG.CG_NO) 																AS BLSN,
+		        VP.VSL_NM 																			AS VSLNAME,
+		        VP.VSL_TP 																			AS VSLTP
+		    FROM 
+				LOCATION_INFO LOC
+			INNER JOIN 
+				TMT_RORO_MST CG ON LOC.VSL_CALL_ID = CG.VSL_CALL_ID 
+			        <if test="catgCd != null and  catgCd != '' and catgCd eq 'I'.toString()">
+			        	AND LOC.CG_NO = CG.CG_NO
+			       </if>
+			        <if test="catgCd != null and  catgCd != '' and catgCd eq 'E'.toString()">
+			        	AND LOC.CG_NO = CG.GR_NO
+			       </if>
+			LEFT OUTER JOIN 
+				TMT_BL BL 
+					ON CG.VSL_CALL_ID 			                   			          				= BL.VSL_CALL_ID 
+					AND CG.CG_NO 			                   			          					= BL.BL_NO
+			LEFT OUTER JOIN 
+				TMT_SHIPG_NOTE SN 
+					ON CG.VSL_CALL_ID 			                   			          				= SN.VSL_CALL_ID
+					AND CG.CG_NO 			                   			          					= SN.SHIPG_NOTE_NO
+			LEFT OUTER JOIN 
+				TMT_VSL_SCH VS 
+					ON CG.VSL_CALL_ID 			                   			          				= VS.VSL_CALL_ID
+			LEFT OUTER JOIN 
+				TMT_VSL_PART VP 
+					ON VS.VSL_CD 			                   			          					= VP.VSL_CD
+         	LEFT OUTER JOIN 
+				HANDLING_OUT_INFO HO 
+					ON LOC.VSL_CALL_ID 			                   			          				= HO.VSL_CALL_ID 
+					AND LOC.CG_NO 			                   			          					= HO.CG_NO
+			WHERE     
+				<![CDATA[ LOC.WGT >= 0  AND (LOC.PKG_QTY <> 0  OR LOC.WGT<> 0) ]]>
+			    <if test="whId != null and whId != ''">
+		      		AND LOC.LOC_ID 			                   			          					LIKE #{whId} + '%'
+				</if>
+			    <if test="vslCallId != null and vslCallId != ''">
+		      		AND LOC.VSL_CALL_ID 			                   			          			= #{vslCallId}
+				</if>
+			    <if test="cgNo != null and cgNo != ''">
+		      		AND LOC.CG_NO 			                   			          					= #{cgNo}
+				</if>
+			    <if test="spCaCoCd != null and spCaCoCd != ''">
+		      		AND LOC.SP_CA_CO_CD 			                   			          			= #{spCaCoCd}			
+				</if>
+			ORDER BY 
+				LOCID
+		</if>
+	</select>
+
+	<select id="selectUnusedLocId"  parameterType="warehouseDefinitionParm" resultType="warehouseDefinitionItem">
+		SELECT /* warehouseDefinition.selectUnusedLocId */
+			DTL.ITEM_DIV_CD										AS LOCID,
+			DTL.CD_VAL											AS LOCNM
+		FROM 
+			TMT_RENT_DTL 										DTL, 
+			TMT_LOC_DEF 										DEF
+		WHERE 
+			DTL.ITEM_DIV_CD										= DEF.LOC_ID
+			AND DTL.ITEM_DIV_CD 								= #{locId}
+			AND DTL.UNIT_DIV_CD									= 'UN'
+	</select>
+	
+	<select id="selectSelectedWhArea"  parameterType="warehouseDefinitionParm" resultType="warehouseDefinitionItem">
+		SELECT /* warehouseDefinition.selectSelectedWhArea */
+		   	LOC_ID												AS LOCID,
+			LOC_NM												AS LOCNM,
+			LOC_DIV_CD											AS LOCDIVCD, 
+			LOC_TP_CD											AS LOCTPCD,
+			CASE
+				WHEN TOT_DIMS IS NULL THEN LEN*WTH
+				ELSE TOT_DIMS
+			END 												AS TOTDIMS,
+			AREA_P_BLK 											AS AREAPBLK,
+			WH_ID												AS WHID
+		FROM 
+			TMT_LOC_DEF
+		WHERE 
+			LOC_DIV_CD											='CEL'
+			AND WH_ID											= #{whId}
+		<![CDATA[
+			AND BAY_IDX 										>= (SELECT BAY_IDX 	FROM TMT_LOC_DEF WHERE LOC_ID = #{stLocId})
+			AND BAY_IDX 										<= (SELECT BAY_IDX 	FROM TMT_LOC_DEF WHERE LOC_ID = #{endLocId})
+			AND ROWW_IDX 										>= (SELECT ROWW_IDX FROM TMT_LOC_DEF WHERE LOC_ID = #{stLocId})
+			AND ROWW_IDX 										<= (SELECT ROWW_IDX FROM TMT_LOC_DEF WHERE LOC_ID = #{endLocId})
+		]]>
+		ORDER BY 
+			BAY_IDX, 
+			ROWW_IDX DESC
+	</select>
+	
+	<select id="selectRentalList"  parameterType="warehouseDefinitionParm" resultType="warehouseDefinitionItem">
+		SELECT /* warehouseDefinition.selectRentalList */
+		   	DTL.CONTT_NO										AS CONTTNO, 
+			LOC_ID												AS LOCID,
+			LOC_NM												AS LOCNM,
+			LOC_DIV_CD											AS LOCDIVCD,
+			LEFT_X												AS LEFTX,
+			TOP_Y												AS TOPY,
+			LEN													AS LEN,
+			WTH													AS WTH,
+			TOT_DIMS											AS TOTDIMS,
+			BAY_QTY												AS BAYQTY,
+			ROWW_QTY											AS ROWWQTY,
+			BAY_LEN												AS BAYLEN,
+			ROWW_LEN											AS ROWWLEN,
+			AREA_P_BLK											AS AREAPBLK,
+			FB_CAPA												AS FBCAPA,
+			LOC_TP_CD											AS LOCTPCD,
+			RCNT_RENT_NO										AS RCNTRENTNO,
+			WH_ID												AS WHID,
+			LCK_YN												AS LCKYN,
+			RENT_YN												AS RENTYN,
+			LOC_USE_YN											AS LOCUSEYN,
+			TAB.VLD_YN											AS VLDYN,
+			USE_CD												AS USECD,
+			ED_YN												AS EDYN,
+			NON_ED_YN											AS NONEDYN,
+			DG_YN												AS DGYN,
+			FORE_COLR											AS FORECOLR,
+			BK_COLR												AS BKCOLR,
+			AREA_ID												AS AREAID,
+			BAY_ID												AS BAYID,
+			ROW_ID												AS ROWWID,
+			TIER_ID												AS TIERID,
+			TIER_IDX											AS TIERIDX,
+			ROWW_IDX											AS ROWWIDX,
+			BAY_IDX												AS BAYIDX
+		FROM 
+			TMT_LOC_DEF 										TAB, 
+			TMT_RENT_DTL 										DTL, 
+			TMT_RENT 											RENT 
+		WHERE 
+			TAB.LOC_ID						 					= DTL.CD_VAL
+			AND TAB.LOC_DIV_CD									= 'CEL'
+			AND DTL.ITEM_DIV_CD									= 'LO'
+			AND DTL.CONTT_NO 									= RENT.CONTT_NO
+			AND CONVERT(DATE, RENT.TO_YMD, 112) 				>= SYSDATETIME()
+			AND TAB.WH_ID										= #{whId}
+			AND DTL.CD_VAL 										LIKE #{whId} + '%'
+	</select>
+	
+	<select id="selectSpcPlanList"  parameterType="warehouseDefinitionParm" resultType="warehouseDefinitionItem">
+		SELECT /* warehouseDefinition.selectSpcPlanList */
+			SPLAN.LOC_ID					 					AS LOCID,
+            TAB.WH_ID    					 					AS WHLOCID,
+			TAB.LOC_NM									 		AS LOCNM,
+			TAB.LOC_DIV_CD										 AS LOCDIVCD,
+			TAB.LEFT_X								 			AS LEFTX,
+			TAB.TOP_Y								 			AS TOPY,
+			TAB.LEN						 						AS LEN,
+			TAB.WTH						 						AS WTH,
+			TAB.TOT_DIMS				 						AS TOTDIMS,
+			TAB.BAY_QTY					 						AS BAYQTY,
+			TAB.ROWW_QTY				 						AS ROWWQTY,
+			TAB.BAY_LEN					 						AS BAYLEN,
+			TAB.ROWW_LEN				 						AS ROWWLEN,
+			TAB.AREA_P_BLK				 						AS AREAPBLK,
+			TAB.FB_CAPA					 						AS FBCAPA,
+			TAB.LOC_TP_CD				 						AS LOCTPCD,
+			TAB.RCNT_RENT_NO			 						AS RCNTRENTNO,
+			TAB.WH_ID					 						AS WHID,
+			TAB.LCK_YN					 						AS LCKYN,
+			TAB.RENT_YN					 						AS RENTYN,
+			TAB.LOC_USE_YN				 						AS LOCUSEYN,
+			TAB.VLD_YN					 						AS VLDYN,
+			TAB.USE_CD					 						AS USECD,
+			TAB.ED_YN					 						AS EDYN,
+			TAB.NON_ED_YN				 						AS NONEDYN,
+			TAB.DG_YN						 					AS DGYN,
+			TAB.FORE_COLR					 					AS FORECOLR,
+			TAB.BK_COLR					 						AS BKCOLR,
+			TAB.AREA_ID					 						AS AREAID,
+			TAB.BAY_ID					 						AS BAYID,
+			TAB.ROW_ID					 						AS ROWWID,
+			TAB.TIER_ID					 						AS TIERID,
+			TAB.TIER_IDX				 						AS TIERIDX,
+			TAB.ROWW_IDX				 						AS ROWWIDX,
+			TAB.BAY_IDX					 						AS BAYIDX,
+			SREQ.REQ_DT					 						AS REQDT ,
+			SREQ.REQR					 						AS REQR
+		FROM 
+			TMT_LOC_DEF 										TAB,
+			TMT_SPC_PLAN 										SPLAN, 
+			TMT_SPC_REQ 										SREQ
+		WHERE 
+			TAB.LOC_ID 			 								= SPLAN.LOC_ID
+			AND SREQ.VSL_CALL_ID 			 					= SPLAN.VSL_CALL_ID
+	<!--	AND SREQ.SEQ 			 							= SPLAN.REQ_SEQ			Invalid column name 'REQ_SEQ' in mssql database -->
+			AND TAB.LOC_DIV_CD			 						= 'CEL'
+		<if test="vslCallId != null and vslCallId != ''">			
+  			AND SREQ.VSL_CALL_ID 								= #{vslCallId}
+		</if>
+		<if test="blSn != null and blSn != ''">			
+  			AND (SREQ.BL_NO 									= #{blSn} OR SREQ.SHIPG_NOTE_NO = #{blSn})
+		</if>
+		<if test="grNo != null and grNo != ''">			
+  			AND (SREQ.GR_NO 									= #{grNo} OR SREQ.GR_NO IS NULL)
+		</if>
+		<if test="whId != null and whId != ''">			
+			AND TAB.WH_ID 										= #{whId}
+			AND SPLAN.LOC_ID 									LIKE #{whId} + '%'
+		</if>
+		<if test="reqTpCd != null and reqTpCd != ''">			
+  			AND SREQ.REQ_TP_CD 									= #{reqTpCd}
+		</if>
+		ORDER BY 
+			SPLAN.LOC_ID
+	</select>
+	
+	<select id="selectWhCargoInfos"  parameterType="warehouseDefinitionParm" resultType="warehouseDefinitionItem">
+		SELECT /* warehouseDefinition.selectWhCargoInfos */
+			#{locRange}						 					AS LOCRANGE,
+			TAB3.LOC_ID						 					AS LOCID,
+			TAB3.LOC_NM						 					AS LOCNM,
+			TAB3.LOC_DIV_CD					 					AS LOCDIVCD,
+			TAB3.LEFT_X						 					AS LEFTX,
+			TAB3.TOP_Y						 					AS TOPY,
+			TAB3.LEN					 						AS LEN,
+			TAB3.WTH					 						AS WTH,
+			TAB3.TOT_DIMS				 						AS TOTDIMS,
+			TAB3.BAY_QTY				 						AS BAYQTY,
+			TAB3.ROWW_QTY				 						AS ROWWQTY,
+			TAB3.BAY_LEN				 						AS BAYLEN,
+			TAB3.ROWW_LEN				 						AS ROWWLEN,
+			TAB3.AREA_P_BLK				 						AS AREAPBLK,
+			TAB3.FB_CAPA				 						AS FBCAPA,
+			TAB3.LOC_TP_CD				 						AS LOCTPCD,
+			TAB3.RCNT_RENT_NO				 					AS RCNTRENTNO,
+			TAB3.WH_ID					 						AS WHID,
+			TAB3.LCK_YN					 						AS LCKYN,
+			TAB3.RENT_YN				 						AS RENTYN,
+			TAB3.LOC_USE_YN					 					AS LOCUSEYN,
+			TAB3.VLD_YN						 					AS VLDYN,
+			TAB3.USE_CD						 					AS USECD,
+			TAB3.ED_YN						 					AS EDYN,
+			TAB3.NON_ED_YN					 					AS NONEDYN,
+			TAB3.DG_YN						 					AS DGYN,
+			TAB3.FORE_COLR					 					AS FORECOLR,
+			TAB3.BK_COLR					 					AS BKCOLR,
+			TAB3.AREA_ID					 					AS AREAID,
+			TAB3.BAY_ID						 					AS BAYID,
+			TAB3.ROW_ID						 					AS ROWWID,
+			TAB3.TIER_ID					 					AS TIERID,
+			TAB3.TIER_IDX					 					AS TIERIDX,
+			TAB3.ROWW_IDX					 					AS ROWWIDX,
+			TAB3.BAY_IDX					 					AS BAYIDX
+		FROM 
+			(SELECT 
+				WH_ID, LOC_ID, ROWW_IDX, BAY_IDX 
+			FROM 
+				TMT_LOC_DEF 
+			WHERE 
+				WH_ID		= SUBSTRING(#{locRange}, 0, CHARINDEX('-', #{locRange}) - 1)
+				AND LOC_ID	= SUBSTRING(#{locRange}, 0, CHARINDEX('-', #{locRange})) + 
+									SUBSTRING(
+											SUBSTRING(#{locRange}, CHARINDEX('-', #{locRange}) + 1, LEN(#{locRange})), 
+											0,
+											CHARINDEX('-', SUBSTRING(#{locRange}, 0, CHARINDEX('-', #{locRange}) + 1)) - 1 
+									)
+			) 													TAB1, 
+			(SELECT 
+				WH_ID, LOC_ID, ROWW_IDX, BAY_IDX 
+			FROM 
+				TMT_LOC_DEF 
+			WHERE 
+				WH_ID		= SUBSTRING(#{locRange}, 0, CHARINDEX('-', #{locRange}) - 1)
+			  	AND LOC_ID	= SUBSTRING(#{locRange}, 0, CHARINDEX('-', #{locRange})) +
+									SUBSTRING(
+										SUBSTRING(#{locRange}, CHARINDEX('-', #{locRange}) + 1, LEN(#{locRange})), 
+										CHARINDEX(SUBSTRING(#{locRange}, CHARINDEX('-', #{locRange}) + 1, LEN(#{locRange})),'-') + 1,
+										LEN(SUBSTRING(#{locRange},CHARINDEX('-', #{locRange}) + 1, LEN(#{locRange})))
+									)
+			) 													TAB2,
+			TMT_LOC_DEF 										TAB3
+		WHERE 
+			TAB1.WH_ID 											= TAB2.WH_ID
+			AND TAB1.WH_ID 										= TAB3.WH_ID
+			AND TAB3.LOC_DIV_CD									= 'CEL'
+			AND ((TAB3.BAY_IDX BETWEEN TAB1.BAY_IDX AND TAB2.BAY_IDX) OR (TAB3.BAY_IDX BETWEEN TAB2.BAY_IDX AND TAB1.BAY_IDX))
+			AND ((TAB3.ROWW_IDX BETWEEN TAB1.ROWW_IDX AND TAB2.ROWW_IDX) OR (TAB3.ROWW_IDX BETWEEN TAB2.ROWW_IDX AND TAB1.ROWW_IDX))
+	</select>
+	
+	<select id="selectOverlap"  parameterType="warehouseDefinitionParm" resultType="warehouseDefinitionItem">
+		SELECT /* warehouseDefinition.selectOverlap */
+			COUNT(LOC_ID) 										AS CNT
+		FROM 
+			TMT_LOC_DEF
+		WHERE 
+			1 = 1
+			AND LOC_DIV_CD 										= #{locDivCd}
+			AND NOT (LOC_ID 									= #{locId})
+			AND (<![CDATA[
+				((CONVERT(INT, #{leftWh}) > LEFT_X AND CONVERT(INT, #{leftWh}) < (LEFT_X + WTH))
+					AND (
+							CONVERT(INT, #{topWh}) < TOP_Y AND CONVERT(INT, #{topWh})> (TOP_Y + LEN) 
+							OR (
+								(CONVERT(INT, #{topWh}) + CONVERT(INT, #{lenghtWh})) > TOP_Y 
+								AND (CONVERT(INT, #{topWh}) + CONVERT(INT, #{lenghtWh})) < (TOP_Y + LEN) 
+								)
+						)
+					)
+			
+					OR (
+					(LEFT_X > CONVERT(INT, #{leftWh}) AND LEFT_X < (CONVERT(INT, #{leftWh}) + CONVERT(INT, #{widthWh})))
+						AND (
+							TOP_Y < CONVERT(INT, #{topWh}) AND TOP_Y> (CONVERT(INT, #{topWh}) + CONVERT(INT, #{lenghtWh})) 
+							OR (
+								(TOP_Y + LEN) > CONVERT(INT, #{topWh})
+								AND (TOP_Y + LEN) < (CONVERT(INT, #{topWh}) + CONVERT(INT, #{lenghtWh})) 
+								)
+						)
+					)
+				)]]>
+	</select>
+
+	<update id="updateUnusedInitiate"  parameterType="warehouseDefinitionItem">
+		UPDATE /* warehouseDefinition.updateUnusedInitiate */
+			TMT_LOC_DEF
+		SET 
+			LOC_USE_YN 											= 'Y'
+		WHERE 
+			WH_ID 												= #{whId}
+			AND LOC_DIV_CD 										= 'CEL'
+	</update>
+
+	<update id="updateUnusedCells"  parameterType="warehouseDefinitionItem">
+		UPDATE /* warehouseDefinition.updateUnusedCells */
+			TMT_LOC_DEF 
+		SET
+			LOC_USE_YN 											= #{locUseYn}
+		WHERE 
+			WH_ID 												= #{whId}
+			AND	LOC_ID 											= #{locId}
+			AND  LOC_DIV_CD 									= 'CEL'
+	</update>
+	
+	<insert id="insertwarehouseDefinitionItems"  parameterType="warehouseDefinitionItem">
+		INSERT /* warehouseDefinition.insertwarehouseDefinitionItems */
+		INTO TMT_LOC_DEF(
+			LOC_ID,
+			LOC_NM,
+			LOC_DIV_CD,
+			<if test="leftX != null and leftX != ''">			
+				LEFT_X,
+			</if>
+			<if test="topY != null and topY != ''">
+				TOP_Y,
+			</if>
+			<if test="len != null and len != ''">			
+				LEN,
+			</if>
+			<if test="wth != null and wth != ''">
+				WTH,
+			</if>
+			<if test="totDims != null and totDims != ''">			
+				TOT_DIMS,
+			</if>
+			<if test="bayQty != null and bayQty != ''">			
+				BAY_QTY,
+			</if>
+			<if test="rowwQty != null and rowwQty != ''">			
+				ROWW_QTY,
+			</if>
+			<if test="bayLen != null and bayLen != ''">			
+				BAY_LEN,
+			</if>
+			<if test="rowwLen != null and rowwLen != ''">			
+				ROWW_LEN,
+			</if>
+			<if test="areaPBlk != null and areaPBlk != ''">
+				AREA_P_BLK,
+			</if>
+			<if test="fbCapa != null and fbCapa != ''">
+				FB_CAPA,
+			</if>
+			<if test="cpCapa != null and cpCapa != ''">
+				CAR_CAPA,
+			</if>
+			LOC_TP_CD,
+			<if test="rcntRentNo != null and rcntRentNo != ''">	
+				RCNT_RENT_NO,
+			</if> 
+			<if test="lckYn != null and lckYn != ''">		
+				LCK_YN,
+			</if> 
+			<if test="rentYn != null and rentYn != ''">		
+				RENT_YN,
+			</if> 
+			<if test="locUseYn != null and locUseYn != ''">
+				LOC_USE_YN,
+			</if> 
+			<if test="vldYn != null and vldYn != ''">
+				VLD_YN,
+			</if> 
+			<if test="useCd != null and useCd != ''">
+				USE_CD,
+			</if> 
+			<if test="edYn != null and edYn != ''">
+				ED_YN,
+			</if> 
+			<if test="nonEdYn != null and nonEdYn != ''">
+				NON_ED_YN,
+			</if> 
+			<if test="dgYn != null and dgYn != ''">
+				DG_YN,
+			</if> 
+			<if test="foreColr != null and foreColr != ''">
+				FORE_COLR,
+			</if>	
+			<if test="bkColr != null and bkColr != ''">	
+				BK_COLR,
+			</if> 
+			<if test="areaId != null and areaId != ''">	
+				AREA_ID,
+			</if> 
+			<if test="whId != null and whId != ''">
+				WH_ID,
+			</if> 
+			<if test="bayId != null and bayId != ''">
+				BAY_ID,
+			</if> 
+			<if test="rowwId != null and rowwId != ''">	
+				ROW_ID,
+			</if>
+			<if test="tierId != null and tierId != ''">
+				TIER_ID,
+			</if>
+			<if test="tierIdx != null and tierIdx != ''">
+				TIER_IDX,
+			</if>
+			<if test="rowwIdx != null and rowwIdx != ''">
+				ROWW_IDX,
+			</if>
+			<if test="bayIdx != null and bayIdx != ''">
+				BAY_IDX,
+			</if>
+			<if test="rmk != null and rmk != ''">
+				RMK,
+			</if>
+			<if test="skht != null and skht != ''">
+				SKHT,
+			</if>
+			UPDATE_TIME,
+			STAFF_CD,
+			<if test="tmnlCd != null and tmnlCd != ''">
+				TERMINAL_LOC,
+			</if>
+			VERSION
+		) VALUES (
+			#{locId},
+			#{locNm}, 
+			#{locDivCd},
+			<if test="leftX != null and leftX != ''">		
+				CONVERT(NUMERIC(15, 3), #{leftX}),
+			</if>
+			<if test="topY != null and topY != ''">		
+				CONVERT(NUMERIC(15, 3), #{topY}) , 
+			</if>
+			<if test="len != null and len != ''">				
+				CONVERT(NUMERIC(15, 3), #{len}),
+			</if>
+			<if test="wth != null and wth != ''">				 
+				CONVERT(NUMERIC(15, 3), #{wth}),
+			</if>
+			<if test="totDims != null and totDims != ''">				
+				CONVERT(NUMERIC(10, 0), #{totDims}) ,
+			</if>
+			<if test="bayQty != null and bayQty != ''">				
+				CONVERT(NUMERIC(3, 0), #{bayQty}) , 
+			</if>
+			<if test="rowwQty != null and rowwQty != ''">				
+				CONVERT(NUMERIC(3, 0), #{rowwQty}) ,
+			</if>
+			<if test="bayLen != null and bayLen != ''">	
+				CONVERT(NUMERIC(3, 0), #{bayLen}) ,
+			</if>
+			<if test="rowwLen != null and rowwLen != ''">	
+				CONVERT(NUMERIC(15, 3), #{rowwLen}) ,
+			</if>
+			<if test="areaPBlk != null and areaPBlk != ''">	
+				CONVERT(NUMERIC(10, 0), #{areaPBlk}) ,
+			</if>
+			<if test="fbCapa != null and fbCapa != ''">	
+				CONVERT(NUMERIC(15, 3), #{fbCapa}) , 
+			</if>
+			<if test="cpCapa != null and cpCapa != ''">	
+				CONVERT(NUMERIC(10, 0), #{cpCapa}) , 
+			</if>
+			#{locTpCd}, 
+			<if test="rcntRentNo != null and rcntRentNo != ''">
+				#{rcntRentNo},
+			</if> 
+			<if test="lckYn != null and lckYn != ''">	
+				#{lckYn},
+			</if> 
+			<if test="rentYn != null and rentYn != ''">	
+				#{rentYn},
+			</if> 
+			<if test="locUseYn != null and locUseYn != ''">
+				#{locUseYn},
+			</if> 
+			<if test="vldYn != null and vldYn != ''">	
+				#{vldYn},
+			</if> 
+			<if test="useCd != null and useCd != ''">	
+				#{useCd},
+			</if> 
+			<if test="edYn != null 	and edYn != ''">	
+				#{edYn},
+			</if> 
+			<if test="nonEdYn != null and nonEdYn != ''">	
+				#{nonEdYn},
+			</if> 
+			<if test="dgYn != null and dgYn != ''">		
+				#{dgYn},
+			</if> 
+			<if test="foreColr != null and foreColr != ''">
+				#{foreColr},
+			</if>	
+			<if test="bkColr != null and bkColr != ''">	
+				#{bkColr},
+			</if> 
+			<if test="areaId != null and areaId != ''">	
+				#{areaId},
+			</if> 
+			<if test="whId != null and whId != ''">	
+				#{whId},
+			</if> 
+			<if test="bayId != null and bayId != ''">	
+				#{bayId},
+			</if> 
+			<if test="rowwId != null and rowwId != ''">	
+				#{rowwId},
+			</if> 
+			<if test="tierId != null and tierId != ''">	
+				#{tierId},
+			</if> 
+			<if test="tierIdx != null and tierIdx != ''">	
+				CONVERT(NUMERIC(4, 0), #{tierIdx}) ,
+			</if>
+			<if test="rowwIdx != null and rowwIdx != ''">	
+				CONVERT(NUMERIC(4, 0), #{rowwIdx}) , 
+			</if>
+			<if test="bayIdx != null and bayIdx != ''">	
+				CONVERT(NUMERIC(4, 0), #{bayIdx}), 
+			</if>
+			<if test="rmk != null and rmk != ''">
+				#{rmk}, 
+			</if>
+			<if test="skht != null and skht != ''">
+				CONVERT(NUMERIC(15, 3), #{skht}),
+			</if>
+			SYSDATETIME(),
+			#{userId},
+			<if test="tmnlCd != null and tmnlCd != ''">
+				#{tmnlCd},
+			</if>
+			#{newVersion}
+		)
+	</insert>
+
+	<update id="updatewarehouseDefinitionItems"  parameterType="warehouseDefinitionItem">
+		UPDATE /* warehouseDefinition.updatewarehouseDefinitionItems */
+			TMT_LOC_DEF 
+		SET
+			LOC_ID 												= #{locId},
+		    LOC_NM 												= #{locNm},
+		    LOC_DIV_CD 											= #{locDivCd},
+	        <if test="leftX != null and leftX != ''">		
+				LEFT_X 											= CONVERT(NUMERIC(15, 3), #{leftX}),
+			</if>
+			<if test="topY != null and topY != ''">		
+				TOP_Y 											= CONVERT(NUMERIC(15, 3), #{topY}) , 
+			</if>
+			<if test="len != null and len != ''">				
+				LEN 											= CONVERT(NUMERIC(15, 3), #{len}),
+			</if>
+			<if test="wth != null and wth != ''">				 
+				WTH 											= CONVERT(NUMERIC(15, 3), #{wth}),
+			</if>
+			<if test="totDims != null and totDims != ''">				
+				TOT_DIMS 										= CONVERT(NUMERIC(10, 0), #{totDims}) ,
+			</if>
+			<if test="bayQty != null and bayQty != ''">				
+				BAY_QTY 										= CONVERT(NUMERIC(3, 0), #{bayQty}) , 
+			</if>
+			<if test="rowwQty != null and rowwQty != ''">				
+				ROWW_QTY 										= CONVERT(NUMERIC(3, 0), #{rowwQty}) ,
+			</if>
+			<if test="bayLen != null and bayLen != ''">	
+				BAY_LEN 										= CONVERT(NUMERIC(3, 0), #{bayLen}) ,
+			</if>
+			<if test="rowwLen != null and rowwLen != ''">	
+				ROWW_LEN 										= CONVERT(NUMERIC(15, 3), #{rowwLen}) ,
+			</if>
+			<if test="areaPBlk != null and areaPBlk != ''">	
+				AREA_P_BLK 										= CONVERT(NUMERIC(10, 0), #{areaPBlk}) ,
+			</if>
+			<if test="fbCapa != null and fbCapa != ''">	
+				FB_CAPA 										= CONVERT(NUMERIC(15, 3), #{fbCapa}) , 
+			</if>
+			<if test="cpCapa != null and cpCapa != ''">	
+				CAR_CAPA 										= CONVERT(NUMERIC(10, 0), #{cpCapa}) , 
+			</if>	       
+	       		LOC_TP_CD 										= #{locTpCd},
+	        <if test="rcntRentNo != null and rcntRentNo != ''">	
+				RCNT_RENT_NO 									= #{rcntRentNo},
+			</if>
+			 <if test="lckYn != null and lckYn != ''">	
+				LCK_YN 											= #{lckYn},
+			</if>
+	        <if test="rentYn != null and rentYn != ''">	
+				RENT_YN 										= #{rentYn},
+			</if>
+			<if test="locUseYn != null and locUseYn != ''">	
+				LOC_USE_YN 										= #{locUseYn},
+			</if>
+	        <if test=" vldYn != null and vldYn != ''">	
+				 VLD_YN 										= #{vldYn},
+			</if>
+			<if test=" useCd != null and useCd != ''">	
+				USE_CD 											= #{useCd},
+			</if>
+			<if test=" edYn != null and edYn != ''">	
+				ED_YN 											= #{edYn},
+			</if>
+			<if test=" nonEdYn != null and nonEdYn != ''">	
+				NON_ED_YN 										= #{nonEdYn},
+			</if>
+			<if test="dgYn != null and dgYn != ''">	
+				DG_YN 											= #{dgYn},
+			</if>
+			<if test="foreColr != null and foreColr != ''">	
+				FORE_COLR 										= #{foreColr},
+			</if>
+			<if test="bkColr != null and bkColr != ''">	
+				BK_COLR 										= #{bkColr},
+			</if>
+			<if test="areaId != null and areaId != ''">	
+				AREA_ID 										= #{areaId},
+			</if>
+			<if test="bayId != null and bayId != ''">	
+				BAY_ID 											= #{bayId},
+			</if>
+			<if test="rowwId != null and rowwId != ''">	
+				 ROW_ID 										= #{rowwId},
+			</if>
+			<if test="tierId != null and tierId != ''">	
+				TIER_ID 										= #{tierId},
+			</if>
+	        <if test="tierIdx != null and tierIdx != ''">	
+				TIER_IDX 										= CONVERT(NUMERIC(4, 0), #{tierIdx}) ,
+			</if>
+			<if test="rowwIdx != null and rowwIdx != ''">	
+				ROWW_IDX 										= CONVERT(NUMERIC(4, 0), #{rowwIdx}) , 
+			</if>
+			<if test="bayIdx != null and bayIdx != ''">	
+				BAY_IDX 										= CONVERT(NUMERIC(4, 0), #{bayIdx}), 
+			</if>		        
+	        RMK 												= #{rmk},
+			UPDATE_TIME 										= SYSDATETIME(),
+			STAFF_CD 											= #{userId},
+	        VERSION 											= #{version}
+		WHERE 
+			LOC_ID 												= #{locId}
+	</update>
+
+	<delete id="deletewarehouseDefinitionItems"  parameterType="warehouseDefinitionItem">
+		DELETE /* warehouseDefinition.deletewarehouseDefinitionItems */
+		FROM 
+			TMT_LOC_DEF 
+		WHERE 
+			LOC_ID 												= #{locId}
+	</delete>   
+    
+	<delete id="deleteWhRowBayCellItems"  parameterType="warehouseDefinitionItem">
+		DELETE /* warehouseDefinition.deleteWhRowBayCellItems */
+		FROM 
+			TMT_LOC_DEF
+		WHERE
+			LOC_DIV_CD 											IN ('CEL','BAY','ROW')
+			AND WH_ID 											= #{locId}
+	</delete>   
+	
+</mapper>

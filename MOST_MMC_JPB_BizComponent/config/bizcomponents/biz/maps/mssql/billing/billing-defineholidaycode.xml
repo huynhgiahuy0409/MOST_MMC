@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="defineHolidayCode">
+
+	<select id="selectDefineHolidayCodeCount" parameterType="DefineHolidayCodeParm" resultType="java.lang.String">
+		SELECT /*defineHolidayCode.selectDefineHolidayCodeCount*/
+	 		COUNT(*)
+        FROM
+        	(<include refid="getDefineHolidayCode"/>)
+	</select>
+
+   	<select id="selectDefineHolidayCodeList"  parameterType="DefineHolidayCodeParm" resultType="DefineHolidayCodeItem">
+  		<if test="pageNo != 0"> 
+        	SELECT /*defineHolidayCode.selectDefineHolidayCodeList*/
+            	*
+            FROM (
+            	SELECT
+					inner_query.*,
+					ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num
+            	FROM (
+		</if>
+			<include refid="getDefineHolidayCode"/>
+		<if test="pageNo != 0">
+                ) inner_query
+            ) inner_query
+			WHERE
+				inner_query.row_num <![CDATA[>]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT) - 1) * CAST(#{sizePerPage} AS INT)
+		  		AND inner_query.row_num <![CDATA[<=]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT)) * CAST(#{sizePerPage} AS INT)
+		</if>
+    </select>
+
+    <sql id="getDefineHolidayCode">
+    	SELECT /*defineHolidayCode.getDefineHolidayCode*/
+  			CAST(A.HLDAY_DD AS INT)  							AS strHlDayYmd,
+			CAST(A.HLDAY_MON AS INT)   							AS strHlMonthYmd,
+  			FORMAT(CAST(A.HLDAY_DD AS INT), '00')
+  			    + '/' +
+  			TRIM(FORMAT(CAST(A.HLDAY_MON AS INT), '00')) 		AS strFormatHlDayYmd,
+  		    A.HLDAY_CD    										AS strHlDayCd,
+			ISNULL(A.DESCR, ' ')       							AS strDescr,
+  		    A.STAFF_CD											AS userId,
+  		    A.VERSION											AS version,
+  		    A.UPDATE_TIME										AS updateTimeField
+  		FROM
+  			TMT_ANNUAL_HLDAY A
+  		WHERE
+  			1 = 1
+		<if test="strHlDayYmd != null and strHlDayYmd != ''">
+  			AND A.HLDAY_DD 										= RIGHT('0' + CONVERT(NVARCHAR, #{strHlDayYmd}), 2)
+		</if>	
+		<if test="strHlMonthYmd != null and strHlMonthYmd != ''">
+  			AND A.HLDAY_MON 									= RIGHT('0'+ CONVERT(NVARCHAR, #{strHlMonthYmd}), 2)
+		</if>
+ 		<if test="strHlDayCd != null and strHlDayCd != ''">
+  			OR A.HLDAY_CD 										= UPPER(#{strHlDayCd})
+		</if>
+		ORDER BY
+			FORMAT(CAST(A.HLDAY_MON AS INT), '00'),
+			FORMAT(CAST(A.HLDAY_DD AS INT), '00'),
+			A.HLDAY_CD,
+			ISNULL(A.DESCR, ' ')
+    </sql>
+    
+    <select id="isExistedDefineHolidayCode"  parameterType="DefineHolidayCodeParm" resultType="DefineHolidayCodeItem">
+  		SELECT /*defineHolidayCode.isExistedDefineHolidayCode*/
+  		    A.HLDAY_CD					AS strHlDayCd
+  		FROM
+  			TMT_ANNUAL_HLDAY A
+  		WHERE NOT (
+  			1 = 1
+			<if test="strHlDayYmd != null and strHlDayYmd != ''">
+   			AND	NOT (
+   			    A.HLDAY_DD 				= RIGHT('0' + CONVERT(NVARCHAR, #{strHlDayYmd}), 2)
+   			    AND A.HLDAY_MON 		= RIGHT('0' + CONVERT(NVARCHAR, #{strHlMonthYmd}), 2)
+   			    )
+				<!-- NOT (A.HLDAY_DD = #{strHlDayYmd}  AND A.HLDAY_MON = #{strHlMonthYmd} ) -->
+			</if>	
+			<if test="strHlDayCd != null and strHlDayCd != ''">
+   			AND	NOT (
+   			    A.HLDAY_CD 				= UPPER(#{strHlDayCd})
+   			)
+			</if>  
+		)
+    </select> 
+    
+    <insert id="insertItems"  parameterType="DefineHolidayCodeItem">
+	    INSERT /*defineHolidayCode.isExistedDefineHolidayCode*/
+	    INTO
+	    	TMT_ANNUAL_HLDAY (
+	    		HLDAY_CD ,
+		  		HLDAY_MON,
+		  		HLDAY_DD,
+		  		DESCR,
+		  		HLDAY_TP_CD,
+		  		CMPST_YN,
+		  		UPDATE_TIME,
+		  		STAFF_CD,
+		  		VERSION
+			) VALUES (
+				UPPER(#{strHlDayCd}),
+				RIGHT('0' + CONVERT(NVARCHAR, #{strHlMonthYmd}), 2),
+				RIGHT('0' + CONVERT(NVARCHAR, #{strHlDayYmd}), 2),
+				#{strDescr},
+				'D',
+				'N',
+				SYSDATETIME(),
+				#{userId},
+				#{newVersion}
+		)
+    </insert>
+    <update id="updateItems"  parameterType="DefineHolidayCodeItem">
+		UPDATE /*defineHolidayCode.updateItems*/
+			TMT_ANNUAL_HLDAY
+		SET 	
+			DESCR 						= #{strDescr},
+			UPDATE_TIME 				= SYSDATETIME(),
+			STAFF_CD 					= #{userId},
+			VERSION 					= #{newVersion},
+			HLDAY_DD 					= RIGHT('0' + CONVERT(NVARCHAR, #{strHlDayYmd}), 2),
+			HLDAY_MON 					= RIGHT('0' + CONVERT(NVARCHAR, #{strHlMonthYmd}), 2)
+		WHERE
+		    HLDAY_CD 					= #{strHlDayCd}
+		<if test="version != null and version != ''">
+	  		AND VERSION 				= #{version}
+		</if>
+    </update>
+    <delete id="deleteItems"  parameterType="DefineHolidayCodeItem">
+		DELETE /*defineHolidayCode.deleteItems*/
+		FROM 
+		    TMT_ANNUAL_HLDAY
+		WHERE
+		    HLDAY_CD 					= #{strHlDayCd}
+		<if test="version != null and version != ''">
+  			AND	VERSION 				= #{version}
+		</if>
+    </delete>   
+</mapper>

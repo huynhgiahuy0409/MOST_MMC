@@ -1,0 +1,557 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="standardTariffRate">
+	
+	<!--  ################ Result Map Define ######################################### -->
+
+	<!--  ################ Query Statement Define ######################################### -->
+	<select id="selectStandardTariffRateCount"  parameterType="StandardTariffRateParm" resultType="java.lang.String">
+		SELECT /*standardTariffRate.selectStandardTariffRateCount*/
+			COUNT(*)
+		FROM (<include refid="getStandardTariffRate"/>) AS getStandardTariffRate
+	</select>
+	
+	<select id="selectStandardTariffRate"  parameterType="StandardTariffRateParm" resultType="StandardTariffRateItem">
+		<if test="pageNo != 0"> 
+			SELECT 	/*standardTariffRate.selectStandardTariffRate*/
+				* 
+			FROM 
+				(SELECT
+					inner_querry.*, 
+					ROW_NUMBER() OVER(ORDER BY trfTpCd asc, subTrfCd ASC) row_num 
+				FROM ( 
+		</if>
+				<include refid="getStandardTariffRate"/>
+		<if test="pageNo != 0"> 
+				)inner_querry 
+			)inner_querry 
+			WHERE 
+				inner_querry.row_num 		<![CDATA[>]]> 	(CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) 	* CAST(#{sizePerPage} AS INT)
+				AND inner_querry.row_num 	<![CDATA[<=]]> 	(CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<sql id="getStandardTariffRate">
+		SELECT 	/*standardTariffRate.getStandardTariffRate*/
+			A.TRF_CD 											AS trfCd,
+			A.SUB_TRF_CD 										AS subTrfCd,
+			A.DESCR 											AS descr,
+			A.TRF_TP_CD										 	AS trfTpCd,
+			(SELECT TOP(1)
+				S_CD_NM 
+			FROM
+				TMT_CD_MSTD 
+			WHERE
+				L_CD 					= 'MT' 
+				AND M_CD 				= 'TRFTP' 
+				AND S_CD 				= A.TRF_TP_CD 
+			) 													AS trfTpNm,
+			A.BILL_TP_CD 										AS billTpCd,
+			A.COST_CENT_CD 										AS costCntCd,
+			A.IV_UNIT1 											AS ivUnit1,
+			A.IV_UNIT2 											AS ivUnit2,
+			A.IV_UNIT3 											AS ivUnit3,
+			A.PAYER 											AS pyrTpCd,	
+			A.SSR_TP_CD 										AS ssrTpCd,
+			minVal1,
+			minVal2,
+			minVal3,
+			bVersion 											AS version,
+			userId,		
+			updateTimeField,
+			ptnrCd,
+			aplyYmd,
+			exprYmd,
+			trfRegNo,
+			prcTpCd,
+			unitPrc,
+			pkgNm,
+			rmk,
+			minRate,
+			maxRate,
+			CASE 
+				WHEN trfRegNo IS NOT NULL THEN 'R'
+				ELSE 'I'
+			END 												AS crud,
+			A.TAX_TYPE 											AS gstTpCd,
+			(SELECT 
+				S_CD_NM 
+			FROM 
+				TMT_CD_MSTD
+			WHERE 
+				M_CD 					= 'VATCD' 
+				AND S_CD 				= A.TAX_TYPE
+			) 													AS gstTpCdNm,
+			A.TAX_VALUE 										AS gstRate
+		FROM
+			TMT_B_TRF_CD 										A 
+		LEFT OUTER JOIN 
+			(SELECT
+				B.TRF_CD 										AS bTrfCd,
+				B.SUB_TRF_CD 									AS bSubTrfCd,
+				CASE 
+					WHEN B.MIN_VAL1 IS NOT NULL THEN
+						CASE 
+							WHEN CHARINDEX('.', CONVERT(VARCHAR, B.MIN_VAL1)) = 1 
+								THEN '0' + CONVERT(VARCHAR, B.MIN_VAL1)
+							ELSE CONVERT(VARCHAR, B.MIN_VAL1)
+						END
+					ELSE B.MIN_VAL1
+				END 											AS minVal1,
+				CASE 
+					WHEN b.MIN_VAL2 IS NOT NULL THEN
+						CASE 
+							WHEN CHARINDEX('.', CONVERT(VARCHAR, B.MIN_VAL2)) = 1 THEN '0' + CONVERT(VARCHAR, B.MIN_VAL2)
+							ELSE CONVERT(VARCHAR, B.MIN_VAL2)
+						END
+					ELSE b.MIN_VAL2
+				END 											AS minVal2,
+				CASE 
+					WHEN B.MIN_VAL3 IS NOT NULL THEN
+						CASE 
+							WHEN CHARINDEX('.', CONVERT(VARCHAR, B.MIN_VAL3)) = 1 
+								THEN '0' + CONVERT(VARCHAR, B.MIN_VAL3)
+							ELSE CONVERT(VARCHAR, B.MIN_VAL3)
+						END
+					ELSE b.MIN_VAL3
+				END 											AS minVal3,
+
+				B.VERSION 										AS bVersion,
+				B.STAFF_CD 										AS userId,
+				B.UPDATE_TIME 									AS updateTimeField,  	
+				B.PTNR_CD 										AS ptnrCd,
+				FORMAT(
+					CONVERT(DATE, B.APLY_YMD,112),
+					'dd/MM/yyyy'
+				) 												AS aplyYmd,
+				CASE 
+					WHEN B.EXPR_YMD IS NOT NULL THEN
+						FORMAT(
+							CONVERT(DATE, B.EXPR_YMD, 112), 
+							'dd/MM/yyyy'
+						)
+					ELSE
+						B.EXPR_YMD
+				END 											AS exprYmd,
+
+				B.TRF_REG_NO 									AS trfRegNo,
+				B.PRC_TP_CD 									AS prcTpCd,
+				CASE CHARINDEX('.', CONVERT(VARCHAR,B.UNIT_PRC))
+					WHEN 1 THEN '0' + CONVERT(VARCHAR,B.UNIT_PRC)
+					ELSE CONVERT(VARCHAR,b.UNIT_PRC)
+				END 											AS unitPrc,
+				B.PKG_NM 										AS pkgNm,
+				B.RMK 											AS rmk,
+				B.MIN_RATE 										AS minRate,
+				B.MAX_RATE 										AS maxRate
+			FROM 
+				TMT_B_TRF 										B 
+			WHERE
+				B.PRC_TP_CD										= 'S'
+			<if test="aplyYmd != null and aplyYmd != ''">
+				AND CONVERT(DATE, b.APLY_YMD, 112) = CONVERT(DATE, #{aplyYmd}, 103)
+				<!-- AND CONVERT(DATE, b.EXPR_YMD, 112) = CONVERT(DATE, #{exprYmd}, 103)  --> <!--missing data for exprYmd  -->
+			</if>
+			) 													SUB
+				ON  A.TRF_CD 									= SUB.bTrfCd 
+				AND A.SUB_TRF_CD 								= SUB.bSubTrfCd
+		WHERE  	
+			A.VLD_YN = 'Y' 
+			<if test="trfTp != null and trfTp != ''">
+				AND	A.TRF_TP_CD 								= #{trfTp}
+			</if>
+	</sql>
+	
+	<select id="selectBlankStandardTariffRateListCount"  parameterType="StandardTariffRateParm" resultType="java.lang.String">
+		SELECT /*standardTariffRate.selectBlankStandardTariffRateListCount*/
+			COUNT(*)
+		FROM 
+			(<include refid="getBlankStandardTariffRateList"/>) AS getBlankStandardTariffRateList
+	</select>
+	
+	<select id="selectBlankStandardTariffRateList"  parameterType="StandardTariffRateParm" resultType="StandardTariffRateItem">
+		<if test="pageNo != 0"> 
+			SELECT /*standardTariffRate.selectBlankStandardTariffRateList*/
+				*
+			FROM 
+				(SELECT 
+					inner_querry.*, ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num 
+				FROM ( 
+		</if>
+				<include refid="getBlankStandardTariffRateList"/>
+		<if test="pageNo != 0"> 
+				)inner_querry 
+			)inner_querry 
+			WHERE 
+				inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<sql id="getBlankStandardTariffRateList">
+		SELECT 	/*standardTariffRate.getBlankStandardTariffRateList*/
+			'R' 			AS crud,
+			T.TRF_CD 		AS trfCd,
+			T.SUB_TRF_CD 	AS subTrfCd,
+			T.DESCR 		AS descr,
+			'*' 			AS ptnrCd,
+			T.TRF_TP_CD 	AS trfTpCd,
+			(SELECT TOP(1)
+				S_CD_NM 
+			FROM
+				TMT_CD_MSTD
+			WHERE
+				L_CD 		= 'MT' 
+				AND M_CD 	= 'TRFTP' 
+				AND S_CD 	= T.TRF_TP_CD) AS trfTpNm,
+			T.BILL_TP_CD	AS billTpCd,
+			T.SSR_TP_CD 	AS ssrTpCd,
+			T.COST_CENT_CD 	AS costCntCd,
+			T.PAYER 		AS pyrTpCd,
+			T.IV_UNIT1 		AS ivUnit1,
+			T.IV_UNIT2 		AS ivUnit2,
+			T.IV_UNIT3 		AS ivUnit3,
+			T.VERSION 		AS version,
+			T.STAFF_CD 		AS userId,
+			T.UPDATE_TIME 	AS updateTimeField
+		FROM   	
+			TMT_B_TRF_CD T
+		WHERE
+			T.VLD_YN = 'Y' <!--AND SYTM_ID = 'MT'-->
+	</sql>
+	
+	<select id="selectBlankConditionList" parameterType="StandardTariffRateParm" resultType="TariffConditionItem">
+		SELECT /*standardTariffRate.selectBlankConditionList*/
+		   a.SEQ 			AS seq,
+		   a.TRF_CD 		AS trfCd,
+		   a.SUB_TRF_CD 	AS subTrfCd,
+		   a.PRPT_CD 		AS prptCd,
+		   a.OPR_IDT_CD 	AS oprIdtCd,
+		   a.CHR_VAL 		AS chrVal,
+			CASE 
+				WHEN a.NO_VAL IS NOT NULL THEN
+					CASE 
+						WHEN CHARINDEX('.', CONVERT(VARCHAR, a.NO_VAL)) = 1 THEN '0' + CONVERT(VARCHAR, a.NO_VAL)
+						ELSE CONVERT(VARCHAR, a.NO_VAL)
+					END
+				ELSE
+					a.NO_VAL
+			END 			AS noVal,
+
+		   a.DT_VAL AS dtVal,
+			CASE 
+				WHEN a.TIER_VAL1 IS NOT NULL THEN
+					CASE 
+						WHEN CHARINDEX('.', CONVERT(VARCHAR, a.TIER_VAL1)) = 1 THEN '0' + CONVERT(VARCHAR, a.TIER_VAL1)
+						ELSE CONVERT(VARCHAR, a.TIER_VAL1)
+					END
+				ELSE
+					a.TIER_VAL1
+			END 			AS tierVal1,
+
+			CASE 
+				WHEN a.TIER_VAL2 IS NOT NULL THEN
+					CASE 
+						WHEN CHARINDEX('.', CONVERT(VARCHAR, a.TIER_VAL2)) = 1 THEN '0' + CONVERT(VARCHAR, a.TIER_VAL2)
+						ELSE CONVERT(VARCHAR, a.TIER_VAL2)
+					END
+				ELSE
+					a.TIER_VAL2
+			END 			AS tierVal2,
+
+		   a.BND_VAL1 		AS bndVal1,
+		   a.BND_VAL2 		AS bndVal2,
+		   a.STAFF_CD 		AS userId,
+		   a.UPDATE_TIME 	AS updateTimeField,
+		   a.VERSION 		AS version,
+		   <!--a.SYTM_ID AS sytmId,-->
+		   b.PRPT_NM 		AS prptNm,
+		   b.DATA_TP_CD 	AS dataTpCd,
+		   b.DATA_LEN 		AS dataLen
+		FROM 
+			TMT_B_TRF_COND a 
+		LEFT OUTER JOIN 
+			TMT_B_TRF_COND_PRPT b
+		ON 
+			a.TRF_CD 			= b.TRF_CD 
+			AND a.SUB_TRF_CD 	= b.SUB_TRF_CD
+			AND a.PRPT_CD 		= b.PRPT_CD
+		LEFT OUTER JOIN 
+			TMT_B_TRF_CD c
+		ON 
+			a.TRF_CD 			= c.TRF_CD 
+			AND a.SUB_TRF_CD 	= c.SUB_TRF_CD
+		WHERE
+			b.PRC_TP_CD 		= 'S' 
+			AND c.VLD_YN 		= 'Y' <!--AND c.SYTM_ID = 'MT'-->
+	</select>
+	
+	<select id="selectTariffCodeConditionList" parameterType="StandardTariffRateParm" resultType="TariffConditionItem">
+		SELECT DISTINCT /*standardTariffRate.selectTariffCodeConditionList*/
+		   'R' 			AS crud,
+		   a.SEQ 		AS seq,
+		   a.TRF_CD 	AS trfCd,
+		   a.SUB_TRF_CD AS subTrfCd,
+		   a.PRPT_CD 	AS prptCd,
+		   a.OPR_IDT_CD AS oprIdtCd,
+		   a.CHR_VAL 	AS chrVal,
+			CASE 
+				WHEN a.NO_VAL IS NOT NULL THEN
+					CASE 
+						WHEN CHARINDEX('.', CONVERT(VARCHAR, a.NO_VAL)) = 1 THEN '0' + CONVERT(VARCHAR, a.NO_VAL)
+						ELSE CONVERT(VARCHAR, a.NO_VAL)
+					END
+				ELSE a.NO_VAL
+			END 		AS noVal,
+		   a.DT_VAL AS dtVal,
+		   CASE 
+				WHEN a.TIER_VAL1 IS NOT NULL THEN
+					CASE 
+						WHEN CHARINDEX('.', CONVERT(VARCHAR, a.TIER_VAL1)) = 1 THEN '0' + CONVERT(VARCHAR, a.TIER_VAL1)
+						ELSE CONVERT(VARCHAR, a.TIER_VAL1)
+					END
+				ELSE a.TIER_VAL1
+			END 		AS tierVal1,
+
+			CASE 
+				WHEN a.TIER_VAL2 IS NOT NULL THEN
+					CASE 
+						WHEN CHARINDEX('.', CONVERT(VARCHAR, a.TIER_VAL2)) = 1 THEN '0' + CONVERT(VARCHAR, a.TIER_VAL2)
+						ELSE CONVERT(VARCHAR, a.TIER_VAL2)
+					END
+				ELSE a.TIER_VAL2
+			END 			AS tierVal2,
+		   a.BND_VAL1 		AS bndVal1,
+		   a.BND_VAL2 		AS bndVal2,
+		   a.STAFF_CD 		AS userId,
+		   a.UPDATE_TIME 	AS updateTimeField,
+		   a.VERSION 		AS version,
+		   <!--a.SYTM_ID AS sytmId,-->
+		   b.PRPT_NM 		AS prptNm,
+		   b.DATA_TP_CD 	AS dataTpCd,
+		   b.DATA_LEN 		AS dataLen
+		FROM 
+			TMT_B_TRF_COND a 
+		LEFT OUTER JOIN
+			TMT_B_TRF_COND_PRPT b
+		ON 
+			a.TRF_CD 			= b.TRF_CD
+			AND a.SUB_TRF_CD 	= b.SUB_TRF_CD
+			AND a.PRPT_CD 		= b.PRPT_CD
+		LEFT OUTER JOIN
+			TMT_B_TRF e
+		ON 
+			a.TRF_CD 			= e.TRF_CD 
+			AND a.SUB_TRF_CD 	= e.SUB_TRF_CD
+		WHERE 
+			b.PRC_TP_CD 		= 'S' 
+			AND e.TRF_REG_NO IN (
+				SELECT 
+					c.TRF_REG_NO
+				FROM 
+					TMT_B_TRF c
+				LEFT OUTER JOIN
+					TMT_B_TRF_CD d 
+				ON
+					c.TRF_CD 			= d.TRF_CD 
+					AND c.SUB_TRF_CD 	= d.SUB_TRF_CD
+				WHERE
+					c.PRC_TP_CD 		= 'S' 
+					AND d.VLD_YN 		= 'Y'
+				<if test="aplyYmd != null and aplyYmd != ''">
+					AND CONVERT(DATE, c.APLY_YMD, 112) = CONVERT(DATE, #{aplyYmd}, 103)
+				</if>
+			)
+	</select>
+	
+	<select id="selectApplyDateList" parameterType="StandardTariffRateParm" resultType="StandardTariffRateItem">
+		 SELECT /*standardTariffRate.selectApplyDateList*/
+			FORMAT(CONVERT(DATE, aplyYmd, 112),'dd/MM/yyyy') + ' ~ ' 
+				+ FORMAT(CONVERT(DATE, exprYmd, 112),'dd/MM/yyyy') 	AS exprYmd,
+			FORMAT(CONVERT(DATE, aplyYmd, 112),'dd/MM/yyyy') 		AS aplyYmd
+		FROM 
+			(SELECT DISTINCT	
+				APLY_YMD                                            AS aplyYmd, 
+				EXPR_YMD                                            AS exprYmd
+			FROM 
+				TMT_B_TRF                                           B,
+				TMT_B_TRF_CD                                        A 
+			WHERE
+				A.TRF_CD 			                                = B.TRF_CD 
+				AND A.SUB_TRF_CD 	                                = B.SUB_TRF_CD
+				AND B.PRC_TP_CD 	                                = 'S' 
+				AND A.VLD_YN 		                                = 'Y' 
+			<if test="aplyYmd != null and aplyYmd != ''">
+				AND (
+						CONVERT( DATE,#{aplyYmd}, 103) 
+						BETWEEN CONVERT(DATE, B.APLY_YMD, 112) AND CONVERT(DATE, B.EXPR_YMD, 112)
+						<if test="exprYmd != null and exprYmd != ''">
+							OR CONVERT( DATE,#{exprYmd},103) 
+								BETWEEN CONVERT(DATE, B.APLY_YMD, 112) AND CONVERT(DATE,B.EXPR_YMD, 112)
+							OR CONVERT(DATE, B.APLY_YMD, 112) 
+								BETWEEN CONVERT(DATE, #{aplyYmd}, 103) AND CONVERT(DATE, #{exprYmd}, 103)
+							OR CONVERT( DATE, B.EXPR_YMD, 112)
+								BETWEEN CONVERT(DATE, #{aplyYmd}, 103) AND CONVERT(DATE ,#{exprYmd}, 103)
+						</if>
+				)
+			</if>
+			) AS ymd_apply
+		ORDER BY 
+			aplyYmd DESC 
+	</select>
+	
+	
+	
+	<select id="isOverlappedWithFinitePeriod" parameterType="StandardTariffRateParm" resultType="StandardTariffRateItem">
+		SELECT TOP(1)  /*standardTariffRate.isOverlappedWithFinitePeriod*/
+			count(1) AS COUNT 
+		FROM
+			TMT_B_TRF
+		WHERE 
+			PRC_TP_CD 		= 'S' 
+			AND EXPR_YMD is not null
+		<if test="trfCd != null and trfCd != ''">
+			AND TRF_CD 		= #{trfCd}
+		</if>
+		<if test="subTrfCd != null and subTrfCd != ''">
+			AND SUB_TRF_CD 	= #{subTrfCd}
+		</if>
+		<if test="aplyYmd != null and aplyYmd != ''">
+			AND (
+				<if test="exprYmd != null and exprYmd != ''">
+				CONVERT(DATE, APLY_YMD,112) BETWEEN CONVERT(DATE, #{aplyYmd},103)
+					AND CONVERT(DATE, #{exprYmd},103)
+				OR (CONVERT(DATE, EXPR_YMD,112) BETWEEN 
+										CONVERT(DATE, #{aplyYmd},103) AND CONVERT(DATE, #{exprYmd},103))
+				OR (CONVERT(DATE, #{aplyYmd},103) BETWEEN CONVERT(DATE, APLY_YMD,112)
+														AND CONVERT(DATE, EXPR_YMD,112))
+				OR(CONVERT(DATE, #{exprYmd},103) BETWEEN CONVERT(DATE, APLY_YMD,112)
+														AND CONVERT(DATE, EXPR_YMD,112))
+				</if>
+				<if test="exprYmd == null or exprYmd == ''">
+					CONVERT(DATE, EXPR_YMD,112) <![CDATA[>]]> CONVERT(DATE, #{aplyYmd},103)
+				</if>
+			)
+		</if>
+	</select>
+	
+	<select id="isOverlappedWithInfinitePeriod" parameterType="StandardTariffRateParm" resultType="StandardTariffRateItem">
+		SELECT TOP(1) /*standardTariffRate.isOverlappedWithInfinitePeriod*/
+			count(1) AS COUNT
+		FROM 
+			TMT_B_TRF
+		WHERE
+			PRC_TP_CD 		= 'S' 
+			AND EXPR_YMD is null
+		<if test="trfCd != null and trfCd != ''">
+			AND TRF_CD 		= #{trfCd}
+		</if>
+		<if test="subTrfCd != null and subTrfCd != ''">
+			AND SUB_TRF_CD 	= #{subTrfCd}
+		</if>
+		<if test="aplyYmd != null and aplyYmd != ''">
+			<if test="exprYmd != null and exprYmd != ''">
+   				AND CONVERT(DATE, APLY_YMD,112) <![CDATA[<]]> CONVERT(DATE, #{exprYmd},103)
+			</if>
+		</if>
+	</select>
+	
+	<insert id="insertStandardTariffRate" parameterType="StandardTariffRateItem">
+		INSERT /*standardTariffRate.insertStandardTariffRate*/
+		INTO TMT_B_TRF(
+			TRF_REG_NO,
+			SUB_TRF_CD,
+			TRF_CD,
+			PTNR_CD,
+			APLY_YMD,
+			EXPR_YMD,
+			PKG_TRF_NO,
+			PRC_TP_CD,
+			UNIT_PRC,
+			VERSION,
+			STAFF_CD,
+			UPDATE_TIME,
+            <!--SYTM_ID,-->
+			MIN_VAL1,
+			MIN_VAL2,
+			MIN_VAL3,
+			MIN_RATE,
+			MAX_RATE
+		) VALUES (
+			#{trfRegNo},
+			<if test="subTrfCd != null and subTrfCd != ''">
+				#{subTrfCd},
+			</if>
+			<if test="subTrfCd == null and subTrfCd == ''">
+				'NIL',
+			</if>
+			#{trfCd},
+			'*',
+			<!-- FORMAT(CONVERT(DATE, #{aplyYmd},103),'yyyyMMdd'),
+			FORMAT(CONVERT(DATE, #{exprYmd},103),'yyyyMMdd'), -->
+			FORMAT(ISNULL(TRY_CONVERT(DATE, #{aplyYmd}, 103), GETDATE()), 'yyyyMMdd'),
+			FORMAT(ISNULL(TRY_CONVERT(DATE, #{exprYmd}, 103), GETDATE()), 'yyyyMMdd'),
+			'*',
+			'S',
+			#{unitPrc},
+			#{newVersion},
+			#{userId},
+			SYSDATETIME() ,
+            <!--'MT',-->
+			TRY_CONVERT(NUMERIC(15,3), #{minVal1}),
+			TRY_CONVERT(NUMERIC(15,3), #{minVal2}),
+			TRY_CONVERT(NUMERIC(15,3), #{minVal3}),
+			TRY_CONVERT(NUMERIC(15,3), #{minRate}),
+			TRY_CONVERT(NUMERIC(15,3), #{maxRate})
+		)
+	</insert>
+	
+	<update id="updateStandardTariffRates" parameterType="StandardTariffRateItem">
+		UPDATE 	/*standardTariffRate.updateStandardTariffRates*/
+			TMT_B_TRF 
+		SET		
+			EXPR_YMD = 	CASE 
+							WHEN #{exprYmd} IS NOT NULL THEN
+								FORMAT(CONVERT(DATE, #{exprYmd}, 103), 'yyyyMMdd')
+							ELSE
+								#{exprYmd}
+						END,
+
+			MIN_VAL1 	= TRY_CONVERT(NUMERIC(15,3), #{minVal1}),
+			MIN_VAL2 	= TRY_CONVERT(NUMERIC(15,3), #{minVal2}),
+			MIN_VAL3 	= TRY_CONVERT(NUMERIC(15,3), #{minVal3}),
+			UNIT_PRC 	= TRY_CONVERT(NUMERIC(15,3), #{unitPrc}),
+			MIN_RATE 	= TRY_CONVERT(NUMERIC(15,3), #{minRate}),
+			MAX_RATE 	= TRY_CONVERT(NUMERIC(15,3), #{maxRate}),
+			VERSION 	= #{newVersion},
+			STAFF_CD 	= #{userId},
+			UPDATE_TIME = SYSDATETIME()
+            <!--SYTM_ID = 'MT'-->
+	  	WHERE	
+			TRF_REG_NO = #{trfRegNo} 
+	</update>
+	
+	<update id="updateStandardTariffGstRates" parameterType="StandardTariffRateItem">
+		UPDATE /*standardTariffRate.updateStandardTariffGstRates*/
+			TMT_B_TRF_CD
+		SET 
+			TAX_TYPE 		= #{gstTpCd},
+			TAX_VALUE 		= TRY_CONVERT(NUMERIC(3,1), #{gstRate})
+		WHERE
+			TRF_CD 			= #{trfCd}
+			AND SUB_TRF_CD 	= #{subTrfCd}
+	</update>
+	
+	<delete id="deleteStandardTariffRate" parameterType="StandardTariffRateItem">
+		DELETE /*standardTariffRate.deleteStandardTariffRate*/
+		FROM 
+			TMT_B_TRF 
+		WHERE
+			PRC_TP_CD 		= 'S' 
+			AND  APLY_YMD	= FORMAT(CONVERT(DATE, #{aplyYmd},103),'yyyyMMdd')  
+			AND  EXPR_YMD	= FORMAT(CONVERT(DATE, #{exprYmd},103),'yyyyMMdd')	
+	</delete>
+</mapper>

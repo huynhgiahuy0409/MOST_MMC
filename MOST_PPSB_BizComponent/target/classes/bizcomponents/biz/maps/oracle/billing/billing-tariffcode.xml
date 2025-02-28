@@ -1,0 +1,585 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="tariffCode">
+	
+	<!--  ################ Result Map Define ######################################### -->
+	<resultMap type="TariffCodeItem" id="CostCenterDataItemMap">
+		<result property="costCntCd" column="COST_CENT_CD" />
+	</resultMap>
+	
+	<resultMap type="TariffCodeItem" id="FinancialDataItemMap">
+		<result property="costCntCd" column="COST_CENT_CD" />
+		<result property="financialCode" column="ERP_COST_CENT" />
+	</resultMap>
+	<!--  ################ Query Statement Define ######################################### -->
+	
+	<select id="selectTariffCodeCount"  parameterType="TariffCodeParm" resultType="java.lang.String">
+		  SELECT COUNT(*)
+          FROM (<include refid="getTariffCode"/>)
+	</select>
+	
+	
+	<select id="selectTariffCode"  parameterType="TariffCodeParm" resultType="TariffCodeItem">
+		<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getTariffCode"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	
+	<sql id="getTariffCode">
+			SELECT 	TRF_CD as trfCd,
+					SUB_TRF_CD as subTrfCd,
+			 	   	DESCR as descr,
+			 	   	DESCR_VN as descrVN,
+				   	TRF_TP_CD as trfTpCd,
+				   	(SELECT S_CD_NM FROM TMT_CD_MSTD WHERE L_CD = 'MT' AND M_CD = 'TRFTP' AND S_CD = TRF_TP_CD) as trfTpCdNm, 
+				   	BILL_TP_CD as billTpCd,
+				   	SSR_TP_CD as ssrTpCd,
+				    (SELECT S_CD_NM FROM TMT_CD_MSTD WHERE L_CD = 'MT' AND M_CD = 'SSRTP' AND S_CD = SSR_TP_CD) as sCdNm,
+					COST_CENT_CD as costCntCd,
+					PAYER as pyrTpCd,
+					IV_UNIT1 as ivUnit1,
+					IV_UNIT2 as ivUnit2,
+					IV_UNIT3 as ivUnit3,
+					(SELECT DECODE(INSTR(TO_CHAR(unitPrc),'.')
+											,1, '0' || TO_CHAR(unitPrc)
+											,TO_CHAR(unitPrc)) as unitPrc
+										FROM (SELECT c.UNIT_PRC as unitPrc,c.SUB_TRF_CD as subTrfCd,
+										TO_DATE(c.APLY_YMD,'YYYYMMDD') as aplyYmd,
+										NVL2(c.EXPR_YMD,c.EXPR_YMD,'N/A') as exprYmd
+										,c.TRF_CD as trfCd 
+										FROM TMT_B_TRF c 
+										WHERE c.PRC_TP_CD = 'S'
+										ORDER BY aplyYmd)
+					WHERE rownum = 1  AND trfCd = a.TRF_CD AND subTrfCd = a.SUB_TRF_CD 
+					AND aplyYmd <![CDATA[<]]>=sysdate
+					AND (exprYmd = 'N/A' 
+						OR (exprYmd != 'N/A' 
+							AND TO_DATE(exprYmd,'YYYYMMDD') >sysdate ))
+					) as stdPrc,
+					VERSION as version,
+					STAFF_CD as userId,
+					TO_CHAR(UPDATE_TIME,'DD/MM/YYYY HH24:MI:SS')	AS updDt,
+					ERP_COST_CENT							AS financialCode,
+                    TAX_TYPE								AS gstTpCd,
+					NVL(TAX_VALUE, 0)						AS gstRate,
+					PRF_YN									AS prfYn
+			FROM   	TMT_B_TRF_CD a
+			WHERE VLD_YN = 'Y'
+			<if test="costCntCd != null and costCntCd != ''">
+  				AND	COST_CENT_CD = #{costCntCd}
+			</if>
+			<if test="trfTpCd != null and trfTpCd != ''">
+  				AND	TRF_TP_CD = #{trfTpCd}
+			</if>
+			<if test="billTpCd != null and billTpCd != ''">
+  				AND	BILL_TP_CD = #{billTpCd}
+			</if>
+			<if test="trfCd != null and trfCd != ''">
+   				AND	TRF_CD = #{trfCd}
+			</if>
+			<if test="subTrfCd != null and subTrfCd != ''">
+   				AND	SUB_TRF_CD = #{subTrfCd}
+			</if>
+			<if test="searchTp == 'INV_TPL'">
+				ORDER BY trfTpCdNm
+			</if>
+			ORDER BY trfTpCd ASC, SUB_TRF_CD ASC
+	</sql>
+	
+	<select id="selectCostCenter" parameterType="TariffCodeParm" resultMap="CostCenterDataItemMap">
+		SELECT	DISTINCT COST_CENT_CD
+		FROM 	TMT_B_COSTCENT
+		WHERE 	VLD_YN = 'Y' 
+				AND SBU_CD != 'PC'  
+		ORDER BY COST_CENT_CD
+	</select>
+	
+	<select id="selectFinancialCode" parameterType="TariffCodeParm" resultMap="FinancialDataItemMap">
+		SELECT COST_CENT_CD, ERP_COST_CENT
+		FROM TMT_B_COSTCENT
+		WHERE VLD_YN = 'Y' AND SBU_CD != 'PC'  ORDER BY COST_CENT_CD, ERP_COST_CENT
+	</select>
+	
+	<select id="checkTariffConditionPropertyList" parameterType="TariffCodeParm" resultType="TariffConditionItem">
+		SELECT	'R' as crud,
+			a.TRF_CD as trfCd,
+			a.SUB_TRF_CD as subTrfCd,
+			a.PRPT_CD as prptCd,
+			a.PRPT_NM as prptNm,
+			a.DATA_TP_CD as dataTpCd,
+			a.DATA_LEN as dataLen,
+			a.COL_NM as colNm,
+			a.PRI_SEQ as priSeq,
+			a.STAFF_CD as userId,
+			a.UPDATE_TIME as updateTime,
+			a.VERSION as version
+               <!--a.SYTM_ID as sytmId-->
+		FROM TMT_B_TRF_COND_PRPT a INNER JOIN TMT_B_TRF_COND b
+		ON a.TRF_CD = b.TRF_CD AND a.SUB_TRF_CD = b.SUB_TRF_CD
+		WHERE a.PRC_TP_CD = 'S' 
+		<if test="trfCd != null and trfCd != ''">
+  			AND	b.TRF_CD = #{trfCd}
+		</if>
+		<if test="subTrfCd != null and subTrfCd != ''">
+  			AND	b.SUB_TRF_CD = #{subTrfCd}
+		</if>
+	</select>
+	
+	<select id="isItemExisted" parameterType="TariffCodeItem" resultType="java.lang.Integer">
+		SELECT (
+			CASE counter 
+				WHEN  1 
+					then (
+						SELECT count(1) 
+						FROM TMT_B_TRF_CD
+						WHERE rownum = 1 AND VLD_YN = 'Y'
+							<if test="trfCd != null and trfCd != ''">
+								AND	TRF_CD = #{trfCd}
+							</if>
+							<if test="subTrfCd != null and subTrfCd != ''">
+								AND	SUB_TRF_CD = #{subTrfCd}
+							</if>
+							<if test="subTrfCd == null or subTrfCd == ''">
+								AND	SUB_TRF_CD = 'NIL'
+		    				</if>
+						)
+				ELSE -1 END
+			) AS CNTR
+		FROM							
+		(SELECT count(1) as counter FROM TMT_B_TRF_CD
+		 WHERE rownum = 1
+			<if test="trfCd != null and trfCd != ''">
+	   			AND	TRF_CD = #{trfCd}
+			</if>
+			<if test="subTrfCd != null and subTrfCd != ''">
+	   			AND	SUB_TRF_CD = #{subTrfCd}
+			</if>
+			<if test="subTrfCd == null or subTrfCd == ''">
+   				AND	SUB_TRF_CD = 'NIL'
+			</if>
+		)
+	</select>
+	
+	<select id="isSubTariffExisted" parameterType="TariffCodeItem" resultType="java.lang.Integer">
+		SELECT count(1) FROM TMT_B_TRF_CD
+		WHERE rownum = 1 
+			AND TRF_CD = #{trfCd}
+			AND	SUB_TRF_CD = #{subTrfCd}
+	</select>
+	
+	<select id="selectMaxConditionSeq" parameterType="TariffCodeItem" resultType="java.lang.String">
+		SELECT MAX(SEQ) FROM TMT_B_TRF_COND WHERE TRF_CD = #{trfCd} AND SUB_TRF_CD = #{subTrfCd}
+	</select>
+	
+	<select id="selectMaxTrfRegNo" resultType="java.lang.String">
+		SELECT 	SUBSTR(MAX(TRF_REG_NO),10) as maxTrfRegNo
+				,CONCAT('TRF',CONCAT(TO_CHAR(systimestamp,'YYYYMM'),'%')) 
+		FROM 	TMT_B_TRF
+		WHERE 	TRF_REG_NO LIKE CONCAT('TRF',CONCAT(TO_CHAR(systimestamp,'YYYYMM'),'%'))
+	</select>
+	
+	<select id="selectRefChildBeforeDelete" parameterType="TariffCodeParm" resultType="TariffCodeItem">
+    	SELECT 
+		    DECODE(COUNT(*), 0, 'Y', 'N') AS CHK
+		FROM TMT_B_IV_DATA
+		WHERE STAT_CD IN ('IV', 'VF')
+		AND TRF_CD = #{trfCd}
+		AND SUB_TRF_CD = #{subTrfCd}
+    </select>
+    
+    <select id="selectCmdtHeredityMultiSelectPopupList"  parameterType="TariffCodeParm" resultType="codeMasterItem">
+	    SELECT 
+	    	*
+	    FROM (
+	    	SELECT DISTINCT
+	    	<if test=" searchTp == 'CGTP' ">
+	    		 CG_TP AS SCD
+			    ,F_CM_001('MT', 'CGTP', C.CG_TP) AS SCDNM
+	    	</if> 
+	    	<if test=" searchTp == 'CMDT_GRP' ">
+	    		 CMDT_GRP_CD	AS SCD
+			    ,CMDT_GRP		AS SCDNM
+	    	</if> 
+	    	<if test=" searchTp == 'CMDT' ">
+	    		 C.CMDT_CD		AS SCD
+			    ,C.DESCR		AS SCDNM
+	    	</if> 
+	    	<if test=" searchTp == 'PKGTP' ">
+	    		 P.PKGTP_CD		AS SCD
+			    ,S_CD_NM		AS SCDNM
+	    	</if> 
+			FROM TMT_CMDT C
+			<if test=" searchTp != 'PKGTP' ">
+				LEFT
+			</if> 
+				JOIN (SELECT * FROM TMT_CMDT_PKGTP JOIN TMT_CD_MSTD ON S_CD = PKGTP_CD AND M_CD = 'PKGTP' ) p ON C.CMDT_CD = P.CMDT_CD
+			WHERE 1 = 1
+			<if test=" searchTp != 'CGTP' ">
+				<foreach item="item" index="index" collection="cgTpItems" open="AND CG_TP IN (" separator="," close=")" >
+					#{item}
+		    	</foreach>
+		    </if>
+		    <if test=" searchTp != 'CMDT_GRP' ">
+		    	<foreach item="item" index="index" collection="cmdtGrpItmes" open="AND CMDT_GRP_CD IN (" separator="," close=")" >
+					#{item}
+		    	</foreach>
+		    </if>
+		    <if test=" searchTp != 'CMDT' ">
+		    	<foreach item="item" index="index" collection="cmdtItmes" open="AND C.CMDT_CD IN (" separator="," close=")" >
+					#{item}
+		    	</foreach>
+		    </if>
+	    	<if test=" searchTp != 'PKGTP' ">
+				<foreach item="item" index="index" collection="pkgTpItmes" open="AND P.PKGTP_CD IN (" separator="," close=")" >
+					#{item}
+		    	</foreach>
+		    </if>
+		)
+		WHERE 1 = 1
+		<if test=" scd != null and scd != '' ">
+			AND SCD LIKE '%' || #{scd} || '%'
+		</if>
+		<if test=" scdNm != null and scdNm != '' ">
+			AND SCDNM LIKE '%' || #{scdNm} || '%'
+		</if>
+    </select>
+    
+    <select id="selectTariffConditionPropertyList" parameterType="TariffCodeParm" resultType="TariffConditionPropertyItem">
+		SELECT	/*tariffCode.selectTariffConditionPropertyList*/
+				'R' AS crud,
+				A.TRF_CD AS trfCd,
+				A.SUB_TRF_CD AS subTrfCd,
+				A.PRPT_CD AS prptCd,
+				A.PRPT_NM AS prptNm,
+				A.DATA_TP_CD AS dataTpCd,
+				A.DATA_LEN AS dataLen,
+				A.COL_NM AS colNm,
+				A.PRI_SEQ AS priSeq,
+				A.STAFF_CD AS userId,
+				A.UPDATE_TIME AS updateTime,
+				A.VERSION AS version,
+				'' AS sytmId
+		FROM TMT_B_TRF_COND_PRPT A LEFT OUTER JOIN TMT_B_TRF_CD B
+		ON A.TRF_CD = B.TRF_CD AND A.SUB_TRF_CD = B.SUB_TRF_CD
+		WHERE A.PRC_TP_CD = 'S' AND B.VLD_YN = 'Y'
+		<if test="costCntCd != null and costCntCd != ''">
+			AND B.COST_CENT_CD = #{costCntCd}
+		</if>
+		<if test="trfTpCd != null and trfTpCd != ''">
+			AND B.TRF_TP_CD = #{trfTpCd}
+		</if>
+		<if test="billTpCd != null and billTpCd != ''">
+			AND B.BILL_TP_CD = #{billTpCd}
+		</if>
+		<if test="trfCd != null and trfCd != ''">
+			AND	B.TRF_CD = #{trfCd}
+		</if>
+		<if test="subTrfCd != null and subTrfCd != ''">
+			AND B.SUB_TRF_CD = #{subTrfCd}
+		</if>
+	</select>
+	
+	<select id="selectTariffConditionList" parameterType="TariffCodeParm" resultType="TariffConditionItem">
+		SELECT /*tariffCode.selectTariffConditionPropertyList*/
+			   A.SEQ AS SEQ,
+			   A.TRF_CD AS TRFCD,
+			   A.SUB_TRF_CD AS SUBTRFCD,
+			   A.PRPT_CD AS PRPTCD,
+			   A.OPR_IDT_CD AS OPRIDTCD,
+			   A.CHR_VAL AS CHRVAL,
+			   NVL2(A.NO_VAL,DECODE(INSTR(TO_CHAR(A.NO_VAL),'.')
+											,1, '0' || TO_CHAR(A.NO_VAL)
+											,TO_CHAR(A.NO_VAL))
+									,A.NO_VAL) AS NOVAL,
+			   A.DT_VAL AS DTVAL,
+			   NVL2(A.TIER_VAL1,DECODE(INSTR(TO_CHAR(A.TIER_VAL1),'.')
+											,1, '0' || TO_CHAR(A.TIER_VAL1)
+											,TO_CHAR(A.TIER_VAL1))
+									,A.TIER_VAL1) AS TIERVAL1,
+			   NVL2(A.TIER_VAL2,DECODE(INSTR(TO_CHAR(A.TIER_VAL2),'.')
+											,1, '0' || TO_CHAR(A.TIER_VAL2)
+											,TO_CHAR(A.TIER_VAL2))
+									,A.TIER_VAL2) AS TIERVAL2,
+			   A.BND_VAL1 AS BNDVAL1,
+			   A.BND_VAL2 AS BNDVAL2,
+			   A.STAFF_CD AS USERID,
+			   A.UPDATE_TIME AS UPDATETIME,
+			   A.VERSION AS VERSION,
+			   '' AS SYTMID,
+			   B.PRPT_NM AS PRPTNM,
+			   B.DATA_TP_CD AS DATATPCD,
+			   B.DATA_LEN AS DATALEN
+		FROM TMT_B_TRF_COND A 
+		LEFT OUTER JOIN TMT_B_TRF_COND_PRPT B
+		ON A.TRF_CD = B.TRF_CD AND A.SUB_TRF_CD = B.SUB_TRF_CD AND A.PRPT_CD = B.PRPT_CD
+		LEFT OUTER JOIN TMT_B_TRF_CD C
+		ON A.TRF_CD = C.TRF_CD AND A.SUB_TRF_CD = C.SUB_TRF_CD
+		WHERE B.PRC_TP_CD = 'S' AND C.VLD_YN = 'Y'
+		<if test="costCntCd != null and costCntCd != ''">
+			AND	C.COST_CENT_CD = #{costCntCd}
+		</if>
+		<if test="trfTpCd != null and trfTpCd != ''">
+			AND	C.TRF_TP_CD = #{trfTpCd}
+		</if>
+		<if test="billTpCd != null and billTpCd != ''">
+			AND	C.BILL_TP_CD = #{billTpCd}
+		</if>
+		<if test="trfCd != null and trfCd != ''">
+	 		AND	C.TRF_CD = #{trfCd}
+		</if>
+		<if test="subTrfCd != null and subTrfCd != ''">
+			AND	C.SUB_TRF_CD = #{subTrfCd}
+		</if>
+	</select>
+
+	<!--  ################ Insert Statement Define ######################################### -->			
+	<insert id="insertTariffCode"  parameterType="TariffCodeItem">
+		INSERT /*tariffCode.insertTariffCode*/
+		INTO TMT_B_TRF_CD(
+			TRF_CD,
+			SUB_TRF_CD,
+			DESCR,
+			TRF_TP_CD,
+			BILL_TP_CD,
+			SSR_TP_CD,
+			COST_CENT_CD,
+			PAYER,
+			IV_UNIT1,
+			IV_UNIT2,
+			IV_UNIT3,
+			VLD_YN,
+			VERSION,
+			STAFF_CD,
+			UPDATE_TIME,
+            <!-- SYTM_ID, -->
+			TAX_TYPE,
+			TAX_VALUE,
+			ERP_COST_CENT,
+			DESCR_VN,
+			PRF_YN
+		) VALUES (
+    		#{trfCd},
+   			<if test="subTrfCd != null and subTrfCd != ''">
+   				#{subTrfCd},
+   			</if>
+   			<if test="subTrfCd == null or subTrfCd == ''">
+   				'NIL',
+   			</if>
+			#{descr},
+			#{trfTpCd},
+			#{billTpCd},
+			#{ssrTpCd},
+			#{costCntCd},
+			#{pyrTpCd},
+			#{ivUnit1},
+			#{ivUnit2},
+			#{ivUnit3},
+			'Y',
+			#{newVersion},
+			#{userId},
+			SYSDATE,
+            <!-- 'MT', -->
+			#{gstTpCd},
+			#{gstRate},
+			#{financialCode},
+			#{descrVN},
+			#{prfYn}
+		)
+	</insert>
+	
+	<insert id="insertTariffConditionProperty" parameterType="TariffConditionPropertyItem">
+		INSERT /*tariffCode.insertTariffConditionProperty*/
+		INTO TMT_B_TRF_COND_PRPT(
+			TRF_CD,
+			SUB_TRF_CD,
+			PRC_TP_CD,
+			PRPT_CD,
+			PRPT_NM,
+			DATA_TP_CD,
+			DATA_LEN,
+			COL_NM,
+			PRI_SEQ,
+			STAFF_CD,
+			UPDATE_TIME,
+			VERSION
+            <!--SYTM_ID-->
+        ) VALUES( 
+            #{trfCd},
+    		<if test="subTrfCd != null and subTrfCd != ''">
+    			#{subTrfCd},
+    		</if>
+    		<if test="subTrfCd == null or subTrfCd == ''">
+    			'NIL',
+    		</if>
+			'S',
+			#{prptCd},
+			#{prptNm},
+			#{dataTpCd},
+			#{dataLen},
+			#{colNm},
+			#{priSeq},
+			#{userId},
+			systimestamp,
+			#{newVersion}
+            <!--'MT'-->
+        )
+	</insert>
+	
+	<insert id="insertTariffCondition" parameterType="TariffConditionItem">
+		INSERT /*tariffCode.insertTariffCondition*/
+		INTO TMT_B_TRF_COND (
+			SEQ,
+			TRF_CD,
+			SUB_TRF_CD,
+			PRPT_CD,
+			OPR_IDT_CD,
+			CHR_VAL,
+			NO_VAL,
+			DT_VAL,
+			TIER_VAL1,
+			TIER_VAL2,
+			BND_VAL1,
+			BND_VAL2,
+			STAFF_CD,
+			VERSION,
+            <!--SYTM_ID,-->
+			UPDATE_TIME
+        ) VALUES (
+		    #{seq},
+			#{trfCd},
+    		<if test="subTrfCd != null and subTrfCd != ''">
+    			#{subTrfCd},
+    		</if>
+    		<if test="subTrfCd == null or subTrfCd == ''">
+    			'NIL',
+    		</if>
+			#{prptCd},
+			#{oprIdtCd},
+			#{chrVal},
+			#{noVal},
+			#{dtVal},
+			#{tierVal1},
+			#{tierVal2},
+			#{bndVal1},
+			#{bndVal2},
+			#{userId},
+			#{newVersion},
+            <!--'MT',-->
+			SYSDATE
+        )
+	</insert>
+	<!--  ################ Update Statement Define ######################################### -->
+	<update id="updateTariffCode"  parameterType="TariffCodeItem">
+		UPDATE 	/*tariffCode.updateTariffCode*/
+		TMT_B_TRF_CD SET		
+			DESCR = #{descr, jdbcType=VARCHAR},
+			TRF_TP_CD = #{trfTpCd,jdbcType=VARCHAR},
+			BILL_TP_CD = #{billTpCd,jdbcType=VARCHAR},
+			SSR_TP_CD = #{ssrTpCd,jdbcType=VARCHAR},
+			COST_CENT_CD = #{costCntCd,jdbcType=VARCHAR},
+			PAYER = #{pyrTpCd,jdbcType=VARCHAR},
+			IV_UNIT1 = #{ivUnit1,jdbcType=VARCHAR},
+			IV_UNIT2 = #{ivUnit2,jdbcType=VARCHAR},
+			IV_UNIT3 = #{ivUnit3,jdbcType=VARCHAR},
+			VLD_YN = 'Y',
+			VERSION = #{newVersion,jdbcType=VARCHAR},
+			STAFF_CD = #{userId,jdbcType=VARCHAR},
+			UPDATE_TIME = systimestamp,
+            TAX_TYPE = #{gstTpCd},
+			TAX_VALUE = #{gstRate},
+			DESCR_VN = #{descrVN},
+			ERP_COST_CENT = #{financialCode},
+			PRF_YN = #{prfYn}
+		WHERE TRF_CD = #{trfCd} 
+        AND SUB_TRF_CD = #{subTrfCd}
+        <!--AND SYTM_ID <![CDATA[<>]]> 'MS'-->
+		<if test="version != null and version != ''">
+  			AND	VERSION =#{version}
+		</if>
+	</update>
+	
+	<update id="updateTariffConditionProperty"  parameterType="TariffConditionPropertyItem">
+		UPDATE /*tariffCode.updateTariffConditionProperty*/
+		TMT_B_TRF_COND_PRPT SET		
+			PRPT_NM = #{prptNm},
+			DATA_TP_CD = #{dataTpCd},
+			DATA_LEN = #{dataLen},
+			STAFF_CD = #{userId},
+			UPDATE_TIME = systimestamp,
+			VERSION = #{newVersion}
+			<!--SYTM_ID = 'MT'-->
+		WHERE TRF_CD = #{trfCd} 
+        AND SUB_TRF_CD = #{subTrfCd} 
+        AND PRPT_CD = #{prptCd} 
+        AND PRC_TP_CD = 'S'
+        <!--AND SYTM_ID <![CDATA[<>]]> 'MS'-->
+		<if test="version != null and version != ''">
+  		AND	VERSION =#{version}
+		</if>
+	</update>
+
+	<update id="updateTariffCondition" parameterType="TariffConditionItem">
+		UPDATE /*tariffCode.updateTariffCondition*/
+		TMT_B_TRF_COND SET 
+			CHR_VAL = #{chrVal},
+			NO_VAL = #{noVal},
+			DT_VAL = #{dtVal},
+			TIER_VAL1 = #{tierVal1},
+			TIER_VAL2 = #{tierVal2},
+			BND_VAL1 = #{bndVal1},
+			BND_VAL2 = #{bndVal2},
+			STAFF_CD = #{userId},
+			VERSION = #{newVersion},
+            <!--SYTM_ID = 'MT',-->
+			UPDATE_TIME = systimestamp
+		WHERE TRF_CD = #{trfCd} 
+		AND SUB_TRF_CD = #{subTrfCd} AND SEQ = #{seq} 
+		<!--AND SYTM_ID <![CDATA[<>]]> 'MS'-->
+		<if test="version != null and version != ''">
+  			AND	VERSION =#{version}
+		</if>
+	</update>
+	<!--  ################ Delete Tariff Code Statement Define ######################################### -->
+	<delete id="deleteTariffCode"  parameterType="TariffCodeItem">
+		DELETE TMT_B_TRF_CD
+		WHERE TRF_CD = #{trfCd} AND SUB_TRF_CD = #{subTrfCd} <!--AND SYTM_ID <![CDATA[<>]]> 'MS'-->
+	</delete>
+
+	<delete id="deleteTariffConditionProperty"  parameterType="TariffConditionPropertyItem">
+		DELETE TMT_B_TRF_COND_PRPT
+		WHERE TRF_CD = #{trfCd} AND SUB_TRF_CD = #{subTrfCd} 
+		<if test="prptCd != null and prptCd != ''">
+			AND PRPT_CD = #{prptCd} 
+		</if>
+		AND PRC_TP_CD = 'S' 
+		<!--AND SYTM_ID <![CDATA[<>]]> 'MS'
+		<if test="version != null and version != ''">
+ 		 AND
+		VERSION =#{version}
+		</if>-->
+	</delete>
+
+	<delete id="deleteTariffCondition" parameterType="TariffConditionItem">
+		DELETE TMT_B_TRF_COND 
+		WHERE TRF_CD = #{trfCd} AND SUB_TRF_CD = #{subTrfCd} 
+		<if test="seq != null and seq != ''">
+			AND SEQ = #{seq} 
+		</if>
+		<!--AND SYTM_ID <![CDATA[<>]]> 'MS'
+		<if test="version != null and version != ''">
+  		AND
+		VERSION =#{version}
+		</if>-->
+	</delete>
+
+</mapper>

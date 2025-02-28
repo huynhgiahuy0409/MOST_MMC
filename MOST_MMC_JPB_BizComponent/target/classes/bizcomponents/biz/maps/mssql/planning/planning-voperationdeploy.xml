@@ -1,0 +1,2944 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="vOperationDeploy">
+
+	<!--  ############################## Sql Statments ############################## -->
+	<select id="isItemExisted" parameterType="VOperationDeployItem" resultType="java.lang.Integer">
+		SELECT TOP(1) /* vOperationDeploy.isItemExisted */
+			COUNT(ATD) 
+		FROM 
+			TMT_VSL_SCH
+		WHERE 
+			1 = 1
+			<if test="vslCallId != null and vslCallId != ''">
+   				AND VSL_CALL_ID 								= #{vslCallId}
+			</if>
+	</select>
+
+	<select id="isExistedWorkDate" parameterType="VOperationDeployItem" resultType="java.lang.Integer">
+		SELECT /* vOperationDeploy.isExistedWorkDate */
+			COUNT (*)
+	  	FROM 
+			TMT_RSTR_SET 										A
+	 	WHERE     
+			A.EMP_ID = #{empId}
+			AND A.RSTR_YMD = FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+			AND A.SHFT_ID = #{depyShftId}
+			AND A.EMP_ID IN	(
+							SELECT TOP(1)
+								EMP_ID 
+							FROM 
+								TMT_DEPY 
+							WHERE 
+								WORK_YMD = FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd') 
+								AND EMP_ID = #{empId} AND
+								WORK_CD ='WD'
+								AND SHFT_ID <![CDATA[<>]]> 'SF0013')
+	</select>
+
+	<!--Group & Staff Division Sql-->	
+	<sql id="groupStaffDivisionSql" >
+		<if test="rstrType != 'GRP'">
+			AND (A.SHFT_GRP_CD IS NULL							OR A.SHFT_GRP_CD = '')
+		</if>
+		<if test="rstrType == 'GRP'">
+			<if test="groupCd == null or groupCd == ''">
+				AND	(A.SHFT_GRP_CD IS NOT NULL					AND A.SHFT_GRP_CD <![CDATA[<>]]> '')
+			</if>
+			<if test="groupCd != null and groupCd != ''">
+				AND A.SHFT_GRP_CD 								= #{groupCd}
+			</if>
+		</if>
+	</sql>
+
+	<!--StStaff & ExStaff Division Sql-->	
+	<sql id="StaffTypeDivisionSql">
+		<if test="staffType == 'ST'">
+			AND A.SHFT_ID IN 
+				(SELECT 
+					ISNULL(E.SHFT_ID, ' ') 
+				FROM 
+					TMT_SHFT 									E, 
+					TMT_SHFT 									F
+				WHERE 
+					E.VLD_YN 									= 'Y'
+					<if test="shftId == 'SF0014'">	
+						<!-- AND F.SHFT_ID = 'SF0044' -->
+						AND E.SHFT_IDX 							= F.SHFT_IDX
+						AND E.FM_HHMM 							<![CDATA[ < (SELECT FM_HHMM + 800 FROM TMT_SHFT WHERE SHFT_ID = #{shftId}) ]]>   
+					</if>
+					<if test="shftId == 'SF0012'">
+						AND E.SHFT_IDX 							= F.SHFT_IDX
+						<!-- AND F.SHFT_ID = 'SF0045' -->
+						AND  E.FM_HHMM 							> 	(SELECT 
+																		FM_HHMM 
+																	FROM 
+																		TMT_SHFT 
+																	WHERE 
+																		SHFT_ID 	= #{shftId}) 
+																	OR E.TO_HHMM > 	(SELECT 
+																						FM_HHMM 
+																					FROM 
+																						TMT_SHFT 
+																					WHERE 
+																						SHFT_ID = #{shftId})
+					</if>
+					<if test="shftId == 'SF0013'">
+						AND E.FM_HHMM 							>= 	(SELECT 
+																		FM_HHMM 
+																	FROM 
+																		TMT_SHFT 
+																	WHERE 
+																		SHFT_ID 	= #{shftId})
+						OR E.TO_HHMM 							<![CDATA[ <= (SELECT TO_HHMM FROM TMT_SHFT WHERE SHFT_ID = #{shftId})]]>   
+					</if>
+				)
+		</if>
+		<if test="staffType == 'EX'">
+			AND A.SHFT_ID NOT IN 
+				(SELECT 
+					ISNULL(E.SHFT_ID, ' ') 
+				FROM 
+					TMT_SHFT 									E, 
+					TMT_SHFT 									F
+				WHERE 
+					E.SHFT_IDX 									= F.SHFT_IDX
+					AND F.SHFT_ID 								= #{shftId}
+					AND E.VLD_YN 								= 'Y' 
+				)
+		</if>
+	</sql>
+				
+	<!--Staff Group Combo List Sql-->
+	<sql id="selectStaffGroupSql">
+		<!--Other Shifts-->
+		<if test="staffType != 'NEW'">  
+			SELECT /* vOperationDeploy.selectStaffGroupSql */
+				A.SHFT_GRP_CD 									AS GROUPCD, 
+				B.SHFT_GRP_NM 									AS GROUPNM, 
+				#{vslCallId, 	jdbcType=VARCHAR} 				AS VSLCALLID, 
+				#{purpTpCd, 	jdbcType=VARCHAR} 				AS PURPTPCD, 
+				#{workYmd, 		jdbcType=VARCHAR} 				AS RSTRYMD, 
+				#{shftId, 		jdbcType=VARCHAR} 				AS SHFTID, 
+				#{staffType, 	jdbcType=VARCHAR} 				AS STAFFTYPE, 
+				#{rstrType, 	jdbcType=VARCHAR} 				AS RSTRTYPE, 
+				#{colColor1,	jdbcType=VARCHAR} 				AS COLCOLOR1, 
+				#{colColor2, 	jdbcType=VARCHAR} 				AS COLCOLOR2
+			FROM 
+				TMT_RSTR_SET 									AS A, 
+				TMT_GROUP 										AS B, 
+				TMT_STAFF 										AS C
+			WHERE 
+				A.RSTR_YMD = FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+				<include refid="StaffTypeDivisionSql"/> 
+				AND A.EMP_ID 									= C.EMP_ID
+				AND C.USE_YN									= 'Y'
+				<if test="staffType != null and staffType != ''">
+					<if test="staffType == 'NEW'">
+						AND C.WORK_LOC_CD 						= 'OE'
+						AND (A.SHFT_GRP_CD IS NULL				OR A.SHFT_GRP_CD = '')
+					</if>
+					<if test="staffType == 'EX'">
+						AND C.WORK_LOC_CD 						= 'NE'
+						<if test="rstrType == 'GRP'">
+							AND (A.SHFT_GRP_CD IS NOT NULL		AND A.SHFT_GRP_CD <![CDATA[<>]]> '')
+						</if>
+						<if test="rstrType == 'STF'">
+							AND (A.SHFT_GRP_CD IS NULL			OR A.SHFT_GRP_CD = '')
+						</if>
+						AND A.SHFT_GRP_CD 						= B.SHFT_GRP_CD 
+					</if>
+					<if test="staffType == 'ST'">
+						AND C.WORK_LOC_CD 						= 'NE'
+						AND (A.SHFT_GRP_CD IS NOT NULL			AND A.SHFT_GRP_CD <![CDATA[<>]]> '')
+						AND A.SHFT_GRP_CD 						= B.SHFT_GRP_CD 
+					</if>
+				</if>
+			GROUP BY 
+				A.SHFT_GRP_CD, 
+				B.SHFT_GRP_NM
+		
+		<if test="staffType == 'EX'">
+			UNION
+			SELECT 
+				B.SHFT_GRP_CD 									AS GROUPCD, 
+				C.SHFT_GRP_NM 									AS GROUPNM, 
+				#{vslCallId, 	jdbcType=VARCHAR} 				AS VSLCALLID, 
+				#{purpTpCd, 	jdbcType=VARCHAR} 				AS PURPTPCD, 
+				#{workYmd, 		jdbcType=VARCHAR} 				AS RSTRYMD, 
+				#{shftId, 		jdbcType=VARCHAR} 				AS SHFTID, 
+				#{staffType, 	jdbcType=VARCHAR} 				AS STAFFTYPE, 
+				#{rstrType, 	jdbcType=VARCHAR} 				AS RSTRTYPE, 
+				#{colColor1, 	jdbcType=VARCHAR} 				AS COLCOLOR1, 
+				#{colColor2, 	jdbcType=VARCHAR} 				AS COLCOLOR2
+			FROM 
+				TMT_STAFF 										A, 
+				TMT_EMP_NON_AVAIL_LOG 							B, 
+				TMT_GROUP 										C
+			WHERE 
+				A.USE_YN 										= 'Y'
+				AND A.EMP_ID 									= B.EMP_ID
+				AND B.FM_YMD 									= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+				AND B.RSN_CD 									= 'DO'
+				AND A.WORK_LOC_CD 								= 'NE'
+				AND (B.SHFT_GRP_CD IS NOT NULL					AND B.SHFT_GRP_CD <![CDATA[<>]]> '')
+				AND B.SHFT_GRP_CD 								= C.SHFT_GRP_CD 
+		</if>
+			ORDER BY 
+				GROUPCD, 
+				GROUPNM
+		</if> 
+
+		<if test="staffType == 'NEW'">
+			SELECT 
+				B.SHFT_GRP_CD 									AS GROUPCD, 
+				C.SHFT_GRP_NM 									AS GROUPNM, 
+				#{vslCallId, 	jdbcType=VARCHAR} 				AS VSLCALLID, 
+				#{purpTpCd, 	jdbcType=VARCHAR} 				AS PURPTPCD, 
+				#{workYmd, 		jdbcType=VARCHAR} 				AS RSTRYMD, 
+				#{shftId, 		jdbcType=VARCHAR} 				AS SHFTID, 
+				#{staffType, 	jdbcType=VARCHAR} 				AS STAFFTYPE, 
+				#{rstrType, 	jdbcType=VARCHAR} 				AS RSTRTYPE, 
+				#{colColor1, 	jdbcType=VARCHAR} 				AS COLCOLOR1, 
+				#{colColor2,	jdbcType=VARCHAR} 				AS COLCOLOR2
+			FROM 
+				TMT_STAFF 										A, 
+				TMT_EMP_NON_AVAIL_LOG 							B, 
+				TMT_GROUP 										C
+			WHERE 
+				A.USE_YN 										= 'Y'
+				AND A.EMP_ID 									= B.EMP_ID
+				AND B.FM_YMD 									= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+				AND B.RSN_CD 									= 'DO'
+				AND A.WORK_LOC_CD 								= 'NE'
+				AND (B.SHFT_GRP_CD IS NOT NULL					AND B.SHFT_GRP_CD <![CDATA[<>]]> '')
+				AND B.SHFT_GRP_CD 								= C.SHFT_GRP_CD 
+				AND A.WORK_LOC_CD 								='ADDDDDDD'
+		</if>
+	</sql>
+		
+	<!--Role Combo List Sql-->
+	<sql id="selectRoleComboListSql">
+		SELECT DISTINCT /* vOperationDeploy.selectRoleComboListSql */
+			B.ROLE_CD 											AS ROLECD, 
+			<!-- A.SHFT_GRP_CD 									AS GROUPCD, -->
+			ISNULL(dbo.F_CM_CODE_NM(
+						'CM', 
+						'ROLECD', 
+						B.ROLE_CD), B.ROLE_CD) 					AS ROLECDNM
+		FROM 
+			TMT_RSTR_SET 										A, 
+			TMT_ROLE 											B
+		WHERE 
+			A.RSTR_YMD 											= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+			<include refid="groupStaffDivisionSql"/>
+			<include refid="StaffTypeDivisionSql"/>
+			AND A.EMP_ID = B.EMP_ID
+		<if test="staffType == 'EX'">
+			<if test="rstrType != 'GRP'">
+				UNION
+				SELECT DISTINCT /* vOperationDeploy.selectRoleComboListSql */
+					C.ROLE_CD 									AS ROLECD,
+					ISNULL(dbo.F_CM_CODE_NM(
+								'CM', 
+								'ROLECD', 
+								C.ROLE_CD), 
+					C.ROLE_CD) 									AS ROLECDNM
+				FROM 
+					TMT_STAFF 									AS B, 
+					TMT_ROLE 									AS C
+				WHERE 
+					B.USE_YN 									= 'Y'
+					AND B.WORK_LOC_CD 							= 'OE'
+					AND NOT EXISTS 	(SELECT 
+										EMP_ID 
+									FROM 
+										TMT_EMP_NON_AVAIL_LOG 
+									WHERE 
+										EMP_ID 					= B.EMP_ID 
+										AND FM_YMD 				= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd'))
+					AND NOT EXISTS (SELECT EMP_ID 
+									FROM 
+										TMT_RSTR_SET  
+									WHERE 
+										EMP_ID 					= B.EMP_ID 
+										AND RSTR_YMD			= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd'))
+					AND B.EMP_ID 								= C.EMP_ID
+			</if>
+				UNION
+				SELECT DISTINCT 
+					C.ROLE_CD 									AS ROLECD,
+					ISNULL(dbo.F_CM_CODE_NM(
+								'CM', 
+								'ROLECD', 
+								C.ROLE_CD), 
+					C.ROLE_CD) 									AS ROLECDNM
+				FROM 
+					TMT_STAFF 									AS B, 
+					TMT_EMP_NON_AVAIL_LOG 						AS A, 
+					TMT_ROLE 									AS C
+				WHERE 
+					B.USE_YN 									= 'Y'
+					AND B.EMP_ID 								= A.EMP_ID
+					AND A.FM_YMD 								= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+					AND A.RSN_CD 								= 'DO'
+					<include refid="groupStaffDivisionSql"/>
+					AND B.EMP_ID 								= C.EMP_ID
+		</if>
+		ORDER BY 
+			ROLECD
+	</sql>
+
+	<select id="selectAllRoleByWrkYmd" parameterType="VOperationDeployParm" resultType="VOperationDeployItem">
+		SELECT DISTINCT /* vOperationDeploy.selectAllRoleByWrkYmd */
+			B.ROLE_CD 											AS ROLECD, 
+			A.SHFT_GRP_CD 										AS SHFTGRPCD,
+			ISNULL(dbo.F_CM_CODE_NM(
+						'CM', 
+						'ROLECD', 
+						B.ROLE_CD), 
+			B.ROLE_CD) 											AS ROLECDNM
+		FROM 
+			TMT_RSTR_SET 										A, 
+			TMT_ROLE 											B
+		WHERE 
+			A.RSTR_YMD 											= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+			AND A.SHFT_ID 										IN (SELECT 
+																		ISNULL(E.SHFT_ID, ' ') 
+																	FROM 
+																		TMT_SHFT		E, 
+																		TMT_SHFT 		F
+																	WHERE 
+																		E.SHFT_IDX 		= F.SHFT_IDX
+																		AND F.SHFT_ID 	= #{shftId}
+																		AND E.VLD_YN 	= 'Y' 
+																	)
+			AND A.EMP_ID 										= B.EMP_ID
+		ORDER BY 
+			ROLECD, 
+			SHFTGRPCD
+	</select>
+	
+	<sql id="selectAllRoleComboListSql">
+		SELECT DISTINCT /* vOperationDeploy.selectAllRoleComboListSql */
+			B.ROLE_CD 											AS ROLECD, 
+			A.SHFT_GRP_CD 										AS GROUPCD,
+			ISNULL(dbo.F_CM_CODE_NM(
+						'CM', 
+						'ROLECD',
+						B.ROLE_CD), 
+			B.ROLE_CD) 											AS ROLECDNM
+		FROM 
+			TMT_RSTR_SET 										AS A, 
+			TMT_ROLE 											AS B
+		WHERE 
+			A.RSTR_YMD = FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+					AND
+							A.SHFT_GRP_CD IS NOT NULL
+							
+					<!--  AND A.SHFT_ID IN 
+											(SELECT 
+												ISNULL(E.SHFT_ID, ' ') 
+											FROM 
+												TMT_SHFT 		E, 
+												TMT_SHFT 		F
+											WHERE 
+												E.SHFT_IDX 		= F.SHFT_IDX
+												AND F.SHFT_ID	= #{shftId}
+												AND E.VLD_YN 	= 'Y')
+					-->
+					AND A.EMP_ID = B.EMP_ID
+		UNION
+
+		SELECT DISTINCT 
+			C.ROLE_CD 											AS ROLECD, 
+			A.SHFT_GRP_CD 										AS GROUPCD,
+			ISNULL(dbo.F_CM_CODE_NM(
+						'CM', 
+						'ROLECD', 
+						C.ROLE_CD), 
+			C.ROLE_CD) 											AS ROLECDNM
+		FROM 
+			TMT_STAFF 											B, 
+			TMT_EMP_NON_AVAIL_LOG 								A, 
+			TMT_ROLE 											C
+		WHERE 
+			B.USE_YN 											= 'Y'
+			AND B.EMP_ID 										= A.EMP_ID
+			AND A.FM_YMD 										= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+			AND A.RSN_CD 										= 'DO'
+			AND SHFT_GRP_CD IS NOT NULL
+			AND B.EMP_ID 										= C.EMP_ID
+		ORDER BY 
+			ROLECD
+	</sql>
+
+	<!--Deployed Staff Check Sql-->
+	<sql id="deployedStaffChk" >
+		/* vOperationDeploy.deployedStaffChk */
+		CASE
+			WHEN 
+				(SELECT 
+					COUNT(*)
+				FROM 
+					TMT_DEPY 									E, 
+					TMT_STAFF F 
+				WHERE 
+					E.USE_YN 									= 'Y' 
+					AND E.RS_DIV_CD 							= 'MP'
+				<if test="purpTpCd != null and purpTpCd != ''">
+					AND E.PURP_TP_CD 							= #{purpTpCd}
+				</if>
+				
+				<if test="vslCallId == null or vslCallId == ''">
+					AND E.VSL_CALL_ID 							LIKE '%STRG%'
+				</if>
+				<if test="vslCallId != null and vslCallId != ''">
+					AND E.VSL_CALL_ID 							= #{vslCallId}
+				</if>
+					AND E.SHFT_ID 								= #{shftId}
+					AND E.WORK_YMD 								= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+					AND E.EMP_ID  								= F.EMP_ID
+					AND F.USE_YN  								= 'Y'
+					AND F.EMP_ID  								= A.EMP_ID
+				) = 0
+				THEN 
+					CASE
+						WHEN
+							(SELECT 
+								COUNT(*)
+							FROM 
+								TMT_DEPY 						E, 
+								TMT_STAFF 						F 
+							WHERE 
+								E.USE_YN 						= 'Y' 
+								AND E.RS_DIV_CD 				= 'MP'
+								AND E.SHFT_ID 					= #{shftId}
+								AND E.WORK_YMD 					= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+								AND E.EMP_ID 					= F.EMP_ID
+								AND F.USE_YN 					= 'Y'
+								AND F.EMP_ID 					= A.EMP_ID
+							) = 0
+								THEN ''
+						ELSE 
+							#{colColor2, jdbcType=VARCHAR}
+					END
+			ELSE #{colColor1, jdbcType=VARCHAR}
+		END														AS COLCOLOR
+	</sql>
+		
+	<!--Standard Staff List Sql-->
+	<sql id="selectStStaffSql">
+		SELECT DISTINCT /* vOperationDeploy.selectStStaffSql */
+			A.EMP_ID 											AS EMPID, 
+			dbo.F_GET_EMP_ROLE_CD(STAFF.EMP_ID) 				AS ROLECD, 
+			SUBSTRING(A.EMP_ID,3,6)  							AS HIDDENEMPID,
+			(SELECT 
+				C.SHFT_GRP_CD 
+			FROM 
+				TMT_GROUP 										C
+			WHERE 
+				C.SHFT_GRP_CD 			= A.SHFT_GRP_CD
+			)											 		AS GROUPCD,
+			(SELECT 
+				C.SHFT_GRP_NM 
+			FROM 
+				TMT_GROUP C
+			WHERE 
+				C.SHFT_GRP_CD 			= A.SHFT_GRP_CD
+			) 													AS GROUPNM,
+			(SELECT 
+				ENG_NM 
+			FROM 
+				TMT_STAFF 
+			WHERE 
+				EMP_ID 					= A.EMP_ID
+			) 													AS ENGNM,
+			A.SHFT_ID 											AS DEPYSHFTID, 
+			'Normal Shift' 										AS RMK,
+			(SELECT 
+				I.SHFT_NM
+			FROM 
+				TMT_SHFT 				H, 
+				TMT_SHFT 				I
+			WHERE     
+				H.SHFT_ID 				= A.SHFT_ID
+				AND H.SHFT_IDX 			= I.SHFT_IDX
+				AND I.SHFT_METH_CD 		= 'Standard'
+				AND I.VLD_YN 			= 'Y'
+			)													AS STATUS,
+				<include refid="deployedStaffChk"/>
+			FROM 
+				TMT_RSTR_SET 									A, 
+				TMT_STAFF 										STAFF
+			WHERE 
+				A.RSTR_YMD 										= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+				AND A.SHFT_ID IN 
+					(SELECT 
+						ISNULL(E.SHFT_ID, ' ') 
+					FROM 
+						TMT_SHFT 		E, 
+						TMT_SHFT 		F
+					WHERE 
+						E.VLD_YN 		= 'Y'
+						<if test="shftId == 'SF0014'">
+							<!-- AND F.SHFT_ID = 'SF0044' -->
+							AND E.SHFT_IDX 	= F.SHFT_IDX
+							AND E.FM_HHMM 	<![CDATA[ < (SELECT FM_HHMM + 800 FROM TMT_SHFT WHERE SHFT_ID = #{shftId}) ]]>   
+						</if>
+						<if test="shftId == 'SF0012'">
+							AND E.SHFT_IDX 	= F.SHFT_IDX
+							<!--  AND F.SHFT_ID = 'SF0045' -->
+							AND E.FM_HHMM 	> (SELECT FM_HHMM FROM TMT_SHFT WHERE SHFT_ID = #{shftId}) OR E.TO_HHMM > (SELECT FM_HHMM FROM TMT_SHFT WHERE SHFT_ID = #{shftId})
+						</if>
+						<if test="shftId == 'SF0013'">
+							<!-- AND F.SHFT_ID = 'SF0083' -->
+							AND E.FM_HHMM 	>= (SELECT FM_HHMM FROM TMT_SHFT WHERE SHFT_ID = #{shftId})
+							OR E.TO_HHMM 	<![CDATA[ <=  (SELECT TO_HHMM FROM TMT_SHFT WHERE SHFT_ID = #{shftId})]]>   	
+						</if>
+					)
+			<if test="vslCallId == null or vslCallId == ''">
+				<if test="rstrType != null and rstrType != ''">
+					<if test="rstrType == 'STF'">
+						<if test="shftId == 'SF0065'">
+								AND A.SHFT_ID 					= 'SF0032'	
+						</if>
+						<if test="shftId == 'SF0080'">
+								AND A.SHFT_ID 					= 'SF0033'	
+						</if>
+						<if test="shftId == 'SF0081'">
+								AND A.SHFT_ID 					= 'SF0089'	
+						</if>
+					</if>
+					</if>
+			</if>
+				
+				AND A.EMP_ID 									= STAFF.EMP_ID
+				AND STAFF.WORK_LOC_CD 							= 'NE'
+			<if test="conttDiv != null and conttDiv != ''">
+				AND STAFF.CONTT_DIV 							= #{conttDiv}
+			</if>	
+			<if test="rstrType != ''">
+				<include refid="groupStaffDivisionSql"/> 
+			</if>		
+	</sql>	
+
+	<!--Extra Staff List Sql-->
+	<sql id="selectExStaffSql" >
+		<!--Other Shifts-->
+		SELECT DISTINCT /* vOperationDeploy.selectExStaffSql */
+			A.EMP_ID 											AS EMPID, 
+			<!-- dbo.F_GET_EMP_ROLE_CD(A.EMP_ID) 				AS ROLECD,-->
+			(SELECT 	
+				STRING_AGG(ROLE_CD,',') 
+					WITHIN GROUP(ORDER BY ROLE_CD)				AS ROLE_CD
+			FROM	
+				TMT_ROLE
+			WHERE	
+				EMP_ID 					= A.EMP_ID    
+			) 													AS ROLECD,
+			SUBSTRING(A.EMP_ID, 3, 6)  							AS HIDDENEMPID,
+			(SELECT C.SHFT_GRP_CD 
+			FROM 
+				TMT_GROUP C
+			WHERE 
+				C.SHFT_GRP_CD = A.SHFT_GRP_CD) 					AS GROUPCD,
+			(SELECT C.SHFT_GRP_NM 
+			FROM 
+				TMT_GROUP C
+			WHERE 
+				C.SHFT_GRP_CD = A.SHFT_GRP_CD) 					AS GROUPNM,
+			(SELECT 
+				ENG_NM 
+			FROM 
+				TMT_STAFF 
+			WHERE 
+				EMP_ID = A.EMP_ID
+			) 													AS ENGNM,
+			#{shftId} 											AS DEPYSHFTID, 
+			(SELECT 
+				I.SHFT_NM 
+			FROM 
+				TMT_SHFT H, TMT_SHFT I
+			WHERE 
+				H.SHFT_ID 				= A.SHFT_ID
+				AND H.SHFT_IDX 			= I.SHFT_IDX
+				AND I.SHFT_METH_CD 		= 'Standard'
+				AND I.VLD_YN 			= 'Y') 					AS STATUS,
+			'Other Shift' 										AS RMK,
+			<include refid="deployedStaffChk"/>
+			FROM 
+				TMT_RSTR_SET A, 
+				TMT_STAFF B
+			WHERE 
+				A.RSTR_YMD 				= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+				AND A.SHFT_ID NOT IN 
+								(SELECT 
+									ISNULL(E.SHFT_ID, ' ') 
+								FROM 
+									TMT_SHFT E, TMT_SHFT F
+								WHERE 
+									E.SHFT_IDX 		= F.SHFT_IDX
+									AND F.SHFT_ID 	= #{shftId}
+									AND E.VLD_YN 	= 'Y' 
+							)
+				<if test="rstrType == 'STF'">
+						AND (A.SHFT_GRP_CD IS NULL				OR A.SHFT_GRP_CD = '')
+						AND B.WORK_LOC_CD 						= 'NE'
+				</if>
+				<if test="rstrType == 'GRP'">
+						AND (A.SHFT_GRP_CD IS NOT NULL			AND A.SHFT_GRP_CD <![CDATA[<>]]> '')
+						<!--AND B.WORK_LOC_CD 					= 'NE'-->
+				</if>
+				<!--  <include refid="groupStaffDivisionSql"/>-->
+				<!--Non Operation Staff (Office Staff) -->
+				<!--LL others course(annual leave,off day,public holiday...)-->
+		
+		UNION ALL
+		
+		SELECT 	
+			B.EMP_ID 											AS EMPID, 
+			<!-- dbo.F_GET_EMP_ROLE_CD(B.EMP_ID) 				ROLECD,-->
+			(SELECT 	
+				STRING_AGG(ROLE_CD,',') 
+					WITHIN GROUP(ORDER BY ROLE_CD) 				AS ROLE_CD
+			FROM	
+				TMT_ROLE
+			WHERE	
+				EMP_ID 					= B.EMP_ID    
+			) 													AS ROLECD,					
+			SUBSTRING(B.EMP_ID,3,6)  							AS HIDDENEMPID,
+			(SELECT 
+				C.SHFT_GRP_CD 
+			FROM 
+				TMT_GROUP C
+			WHERE 
+				C.SHFT_GRP_CD 			= A.SHFT_GRP_CD
+			) 													AS GROUPCD,
+			(SELECT 
+				C.SHFT_GRP_NM 
+			FROM 
+				TMT_GROUP C
+			WHERE 
+				C.SHFT_GRP_CD			= A.SHFT_GRP_CD
+			) 													AS GROUPNM,
+			B.ENG_NM ENGNM, #{shftId} 							AS DEPYSHFTID, 
+			dbo.F_CM_CODE_NM('MT', 'STATRSN', A.RSN_CD)			AS STATUS,
+			dbo.F_CM_CODE_NM(
+					'MT', 
+					'WORKCD', 
+					dbo.F_GET_RSN_CD(B.EMP_ID, #{workYmd})) 	AS RMK,
+			<include refid="deployedStaffChk"/>
+		FROM 
+			TMT_STAFF 											B, 
+			TMT_EMP_NON_AVAIL_LOG 								A
+		WHERE 
+			B.EMP_ID 											= A.EMP_ID
+		<include refid="groupStaffDivisionSql"/>
+			AND B.USE_YN 										= 'Y'
+			AND A.FM_YMD 										= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+	</sql>
+	
+	
+	<!--  ############################## Result Maps ############################## -->
+	
+	<!--Group Role Master-->
+	<resultMap type="VOperationDeployStaffItem" 				id="GroupComboMap">
+		<result property="groupCd"           					column="GROUPCD"/>
+		<result property="groupNm"           					column="GROUPNM"/>
+		<!-- 
+		<result property="collection" 	select="VOperationDeployMap.selectRoleComboDtList" 
+																column="{workYmd=RSTRYMD, 
+																		groupCd=GROUPCD, 
+																		staffType=STAFFTYPE,
+																		rstrType=RSTRTYPE,
+																		shftId=SHFTID}"/> 
+		-->
+	</resultMap>
+	
+	<!--Group Role Detail-->
+	<resultMap type="voperationdeploystaffitem" 				id="RoleComboMap">
+		<result property="roleCd"            					column="ROLECD"/>
+		<result property="roleCdNm"          					column="ROLECDNM"/>
+	</resultMap>
+	
+	<!--Group StStaff Master-->
+	<resultMap type="VOperationDeployStaffItem" 				id="StStaffGroupMap">
+		<result property="groupCd"           					column="GROUPCD"/>
+		<result property="groupNm"           					column="GROUPNM"/>
+		<!-- 
+		<result property="collection" 	select="VOperationDeployMap.selectStStaffDtList" 
+																column="{vslCallId	= VSLCALLID,
+																		purpTpCd	= PURPTPCD,
+																		workYmd		= RSTRYMD,
+																		groupCd		= GROUPCD,
+																		shftId		= SHFTID,
+																		rstrType	= RSTRTYPE,
+																		colColor1	= COLCOLOR1,
+																		colColor2	= COLCOLOR2}"/> 
+		-->
+	</resultMap>
+	
+	<!--Group StStaff Detail-->
+	<resultMap type="VOperationDeployStaffItem" 				id="StStaffListMap">
+		<result property="empId"            					column="EMPID"/>
+		<result property="roleCd"           					column="ROLECD"/>
+		<result property="engNm"            					column="ENGNM"/>
+		<result property="groupNm"         		 				column="GROUPNM"/>
+		<result property="depyShftId"       					column="DEPYSHFTID"/>
+		<result property="colColor"         					column="COLCOLOR"/>
+		<result property="hiddenEmpId"         					column="HIDDENEMPID"/>
+	</resultMap>
+	
+	<!--Group ExStaff Master-->
+	<resultMap type="VOperationDeployStaffItem" 				id="ExStaffGroupMap">
+		<result property="groupCd"           					column="GROUPCD"/>
+		<result property="groupNm"           					column="GROUPNM"/>
+		<!-- 
+		<result property="collection" 	select="VOperationDeployMap.selectExStaffDtList" 
+																column="{vslCallId	= VSLCALLID,
+																		purpTpCd	= PURPTPCD,
+																		workYmd		= RSTRYMD,
+																		groupCd		= GROUPCD,
+																		shftId		= SHFTID,
+																		rstrType	= RSTRTYPE,
+																		colColor1	= COLCOLOR1,
+																		colColor2	= COLCOLOR2}"/> 
+		-->
+	</resultMap>
+	
+	<!--Group ExStaff Detail-->
+	<resultMap type="VOperationDeployStaffItem" 				id="ExStaffListMap">
+		<result property="empId"            					column="EMPID"/>
+		<result property="hiddenEmpId"      					column="HIDDENEMPID"/>
+		<result property="roleCd"           					column="ROLECD"/>
+		<result property="engNm"            					column="ENGNM"/>
+		<result property="groupNm"          					column="GROUPNM"/>
+		<result property="depyShftId"       					column="DEPYSHFTID"/>
+		<result property="status"           					column="STATUS"/>
+		<result property="colColor"         					column="COLCOLOR"/>
+	</resultMap>
+
+	<!--  ############################## Select Statements ############################## -->
+	
+	<!-- Mega Summary Sql-->
+	<sql id="sumMegaParmSql">
+		WHERE  /* vOperationDeploy.sumMegaParmSql */
+			A.STAT_CD         									= 'AP'
+			AND ((A.MEGA_TP_CD IS NULL							OR A.MEGA_TP_CD = '') 
+				OR A.MEGA_TP_CD         						&lt;&gt; 'H')
+			<if test="purpTpCd != null and purpTpCd != ''">
+			AND A.PURP_TP_CD      								= #{purpTpCd}
+			</if>
+		<if test="vslCallId == null or vslCallId == ''">
+			AND A.VSL_CALL_ID      								&lt;&gt; 'STRG'
+		</if>
+		<if test="vslCallId != null and vslCallId != ''">
+			AND A.VSL_CALL_ID      								= #{vslCallId}
+		</if>
+			AND A.SHFT_ID      									= #{shftId}
+			AND A.WORK_YMD 	     								= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+			AND A.MEGA_NO 	     								= B.MEGA_NO
+	</sql>
+		
+	<!-- Mega Summary -->
+	<sql id="sqlSumMega">
+		SELECT /* vOperationDeploy.sqlSumMega */
+			B.EQ_DIV_CD 										AS EQDIVCD, 
+			dbo.F_CM_CODE_NM('MT', 'EQFCTPCD', B.EQ_DIV_CD) 	AS EQDIVCDNM,
+			B.CAPA_CD 											AS CAPACD,
+			(SELECT CAPA_DESCR FROM TMT_EQ_CAPA 
+				WHERE CAPA_CD = B.CAPA_CD) 						AS CAPADESCR,
+			ISNULL(B.LOC_ID,' ') 								AS LOCID, 
+			B.WH_QTY 											AS WHQTY, 
+			B.REQ_QTY 											AS CONFMQTY, 				
+			CASE C.OPE_DIV_CD
+				WHEN 'P' THEN C.NOF_OPE
+			END 												AS NOFPORT,  				
+			CASE C.OPE_DIV_CD
+				WHEN 'C' THEN  C.NOF_OPE
+			END 												AS NOFCNTT,
+			C.OPE_COMP 											AS OPECOMP,
+			B.FL_STATUS 										AS flStatus
+		FROM 
+			TMT_MEGA 											AS A, 
+			TMT_MEGA_DTL 										AS B
+		LEFT OUTER JOIN 
+			TMT_MEGA_DTL_OPE 									AS C
+				ON 	B.MEGA_NO 									= C.MEGA_NO
+				AND B.SEQ 										= C.MEGA_IDX 
+				AND B.EQ_DIV_CD 								= C.EQ_DIV_CD
+				AND B.CAPA_CD 									= C.CAPA_CD
+		<include refid="sumMegaParmSql"/>
+			AND B.DIV_CD 										= 'EQ' 
+	</sql>
+
+	<sql id="sqlSumMegaShipCrn">
+		SELECT /* vOperationDeploy.sqlSumMegaShipCrn */
+			B.EQ_DIV_CD 										AS EQDIVCD, 
+			dbo.F_CM_CODE_NM(
+					'MT', 
+					'EQFCTPCD', 
+					B.EQ_DIV_CD) 								AS EQDIVCDNM, 
+			B.CAPA_CD CAPACD, 
+			' ' 												AS CAPADESCR,
+			ISNULL(B.LOC_ID,' ') 								AS LOCID, 
+			B.WH_QTY 											AS WHQTY, 
+			B.REQ_QTY 											AS CONFMQTY, 				
+			CASE C.OPE_DIV_CD
+				WHEN 'P' THEN  C.NOF_OPE
+			END 												AS NOFPORT, 		
+			CASE C.OPE_DIV_CD
+				WHEN 'C' THEN  C.NOF_OPE
+			END 												AS NOFCNTT,
+			C.OPE_COMP 											AS OPECOMP,
+			B.FL_STATUS 										AS FLSTATUS
+		FROM 
+			TMT_MEGA 											A,
+			TMT_MEGA_DTL 										B
+		LEFT OUTER JOIN
+			TMT_MEGA_DTL_OPE 									C
+				ON 	B.MEGA_NO 									= C.MEGA_NO
+				AND B.SEQ 										= C.MEGA_IDX 
+				AND B.EQ_DIV_CD 								= C.EQ_DIV_CD	
+		<include refid="sumMegaParmSql"/>
+			AND B.DIV_CD 										= 'EQ' 
+			AND B.EQ_DIV_CD 									= 'SR'
+	</sql>
+
+	<select id="selectSumMegaList"  parameterType="VOperationDeployParm" resultType="VOperationDeployItem">
+		SELECT /* vOperationDeploy.selectSumMegaList */
+			EQDIVCD, 
+			EQDIVCDNM, 
+			CAPACD, 
+			CAPADESCR, 
+			LOCID, 
+			SUM(WHQTY) 											AS WHQTY, 
+			CASE 
+				WHEN 
+					SUM (ISNULL(NOFPORT, NOFCNTT)) > 0 
+						THEN SUM (ISNULL(NOFPORT, NOFCNTT))
+				ELSE
+					(SUM (CONFMQTY + 0))
+			END 												AS CONFMQTY,
+			SUM(NOFPORT) 										AS NOFPORT, 
+			SUM(NOFCNTT) 										AS NOFCNTT, 
+			OPECOMP, 
+			FLSTATUS
+		FROM 
+			(<include refid="sqlSumMega"/>
+				AND B.EQ_DIV_CD = 'FL'
+
+			UNION ALL
+
+			<include refid="sqlSumMega"/>
+				AND EXISTS( 
+						SELECT 
+							S_CD 
+						FROM 
+							TMT_CD_MSTD
+						WHERE 
+							L_CD 		 	= 'MT' 
+							AND M_CD 	 	= 'EQFCTPCD'
+							AND S_CD 	 	= B.EQ_DIV_CD
+							AND S_CD_VAL 	= 'PC' ) 
+			UNION ALL
+
+			<include refid="sqlSumMegaShipCrn"/>
+			
+			UNION ALL
+
+			<include refid="sqlSumMega"/>
+				AND B.EQ_DIV_CD 			= 'SC'
+			) TEMPTB
+			GROUP BY 
+				EQDIVCD,
+				EQDIVCDNM,
+				CAPACD,
+				CAPADESCR,
+				LOCID,
+				OPECOMP,
+				FLSTATUS
+			ORDER BY 
+				EQDIVCD
+	</select>
+
+	<!-- Mega Summary Operator -->
+	<select id="selectSumMegaOprList"  parameterType="VOperationDeployParm" resultType="VOperationDeployItem">
+		SELECT /* vOperationDeploy.selectSumMegaOprList */
+			'Opr Supervisor' 									AS OPRNM, 
+			SUM(B.NOF_OPR_SPRR) 								AS OPRQTY, 
+			B.LOC_ID 											AS LOCID, 
+			LEFT(B.REQ_HHMM, 2) + RIGHT(B.REQ_HHMM, 2) 			AS DSPREQHHMM
+		FROM 
+			TMT_MEGA 											A, 
+			TMT_MEGA_DTL 										B
+		<include refid="sumMegaParmSql"/>
+			AND B.DIV_CD 										= 'SD'
+			AND (B.NOF_OPR_SPRR IS NOT NULL)
+			AND B.NOF_OPR_SPRR 									> 0
+		GROUP BY 
+			B.LOC_ID,
+			B.REQ_HHMM
+
+		UNION ALL
+
+		SELECT 
+		'Opr Clerk' 											OPRNM, 
+		SUM(B.NOF_OPR_CLERK) 									OPRQTY, 
+		B.LOC_ID												AS LOCID, 
+		LEFT(B.REQ_HHMM, 2) + RIGHT(B.REQ_HHMM, 2) 				AS DSPREQHHMM
+		FROM 
+			TMT_MEGA 											AS A, 
+			TMT_MEGA_DTL 										AS B
+		<include refid="sumMegaParmSql"/>
+			AND B.DIV_CD 										= 'SD'
+			AND (B.NOF_OPR_CLERK IS NOT NULL)
+			AND B.NOF_OPR_CLERK 								> 0
+		GROUP BY 
+			B.LOC_ID, 
+			B.REQ_HHMM
+	</select>
+		
+	<!-- Mega Summary Forklift, Trailer -->
+	<select id="selectSumMegaEquipmentList"  parameterType="VOperationDeployParm" resultType="VOperationDeployItem">
+		SELECT /* vOperationDeploy.selectSumMegaEquipmentList */
+			EQDIVCD, 
+			EQDIVCDNM, 
+			CAPACD, 
+			CAPADESCR, 
+			LOCID, 
+			SUM(WHQTY) 											AS WHQTY,
+			CASE 
+				WHEN SUM (ISNULL(NOFPORT, NOFCNTT)) > 0 
+					THEN SUM (ISNULL(NOFPORT, NOFCNTT))
+				ELSE
+					SUM(CONFMQTY + 0)
+				END 											AS CONFMQTY,
+			SUM(NOFPORT) 										AS NOFPORT, 
+			SUM(NOFCNTT) 										AS NOFCNTT, 
+			OPECOMP, 
+			FLSTATUS
+		FROM 
+			(<include refid="sqlSumMega"/>
+				AND B.EQ_DIV_CD 								= #{eqDivCd}
+			) TEMPTB
+		GROUP BY 
+			EQDIVCD, 
+			EQDIVCDNM, 
+			CAPACD, 
+			CAPADESCR, 
+			LOCID, 
+			OPECOMP, 
+			FLSTATUS
+	</select>
+		
+	<!-- Mega Summary ShipCrane -->
+	<select id="selectSumMegaShipCrnList"  parameterType="VOperationDeployParm" resultType="VOperationDeployItem">
+		SELECT /* vOperationDeploy.selectSumMegaShipCrnList */
+			EQDIVCD, 
+			EQDIVCDNM, 
+			CAPACD, 
+			CAPADESCR, 
+			LOCID, 
+			SUM(ISNULL(NOFPORT, NOFCNTT)) 						AS CONFMQTY, 
+			SUM(NOFPORT) 										AS NOFPORT, 
+			SUM(NOFCNTT) 										AS NOFCNTT, 
+			OPECOMP
+		FROM 
+			(<include refid="sqlSumMegaShipCrn"/>) TEMPTB
+		GROUP BY 
+			EQDIVCD, 
+			EQDIVCDNM, 
+			CAPACD, 
+			CAPADESCR, 
+			LOCID, 
+			OPECOMP
+	</select>
+
+	<!-- Mega Summary PortCrane Equipment-->
+	<select id="selectSumMegaPortCrnList"  parameterType="VOperationDeployParm" resultType="VOperationDeployItem">
+		SELECT /* vOperationDeploy.selectSumMegaPortCrnList */
+			EQDIVCD, 
+			EQDIVCDNM, 
+			CAPACD, 
+			CAPADESCR, 
+			LOCID, 
+			SUM(ISNULL(NOFPORT, NOFCNTT)) 						AS CONFMQTY, 
+			SUM(NOFPORT) 										AS NOFPORT, 
+			SUM(NOFCNTT) 										AS NOFCNTT, 
+			OPECOMP
+			FROM 
+				(<include refid="sqlSumMega"/>
+					AND EXISTS 
+						(SELECT 
+							S_CD 
+						FROM 
+							TMT_CD_MSTD
+						WHERE 
+							L_CD 			= 'MT' 
+							AND M_CD 		= 'EQFCTPCD'
+							AND S_CD 		= B.EQ_DIV_CD
+							AND S_CD_VAL 	= 'PC' )
+				) TEMPTB
+			GROUP BY 
+				EQDIVCD, 
+				EQDIVCDNM, 
+				CAPACD, 
+				CAPADESCR, 
+				LOCID, 
+				OPECOMP
+			ORDER BY 
+				EQDIVCD
+	</select>
+	
+	<!-- Mega Summary PortCrane/Ship Crane Equipment-->
+	<select id="selectSumMegaPortAndShipCrnList"  parameterType="VOperationDeployParm" resultType="VOperationDeployItem">
+		SELECT /* vOperationDeploy.selectSumMegaPortAndShipCrnList */
+			EQDIVCD, 
+			EQDIVCDNM, 
+			CAPACD, 
+			CAPADESCR, 
+			LOCID, 
+			SUM(ISNULL(NOFPORT, NOFCNTT)) 						AS CONFMQTY, 
+			SUM(NOFPORT) 										AS NOFPORT, 
+			SUM(NOFCNTT) 										AS NOFCNTT, 
+			OPECOMP
+		FROM 
+			(<include refid="sqlSumMega"/>
+				AND EXISTS (
+						SELECT 
+							S_CD 
+						FROM 
+							TMT_CD_MSTD
+						WHERE 
+							L_CD 			= 'MT' 
+							AND M_CD 		= 'EQFCTPCD'
+							AND S_CD 		= B.EQ_DIV_CD
+							AND S_CD_VAL 	= 'PC' )
+								
+			UNION ALL
+
+			<include refid="sqlSumMegaShipCrn"/>
+			) 													TEMPTB
+		GROUP BY 
+			EQDIVCD, 
+			EQDIVCDNM, 
+			CAPACD, 
+			CAPADESCR, 
+			LOCID, 
+			OPECOMP
+		ORDER BY 
+			EQDIVCD
+	</select>
+		
+	<!-- Mega Summary Shore Crane Equipment-->
+	<select id="selectSumMegaShoreCrnList"  parameterType="VOperationDeployParm" resultType="VOperationDeployItem">
+		SELECT /* vOperationDeploy.selectSumMegaShoreCrnList */
+			EQDIVCD, 
+			EQDIVCDNM, 
+			CAPACD, 
+			CAPADESCR, 
+			LOCID, 
+			SUM(ISNULL(NOFPORT, NOFCNTT)) 						AS CONFMQTY, 
+			SUM(NOFPORT) 										AS NOFPORT, 
+			SUM(NOFCNTT) 										AS NOFCNTT, 
+			OPECOMP
+			FROM 
+				(<include refid="sqlSumMega"/>
+					AND B.EQ_DIV_CD 							= 'SC'
+				) AS TEMPTB
+		GROUP BY 	
+			EQDIVCD, 
+			EQDIVCDNM, 
+			CAPACD, 
+			CAPADESCR, 
+			LOCID, 
+			OPECOMP
+		ORDER BY 
+			EQDIVCD
+	</select>
+			
+	<!--Group Combo data (Master of role)-->
+	<select id="selectGroupComboList" parameterType="VOperationDeployParm" resultMap="GroupComboMap">
+		<include refid="selectStaffGroupSql"/>
+	</select>
+
+	<!--Role Combo data (Detail of group)-->
+	<select id="selectRoleComboDtList" resultMap="RoleComboMap">
+		<include refid="selectRoleComboListSql"/>
+	</select>
+
+	<!--Role Combo data (Staff or All select)-->
+	<select id="selectRoleComboList" parameterType="VOperationDeployParm" resultType="VOperationDeployStaffItem">
+		<include refid="selectRoleComboListSql"/>
+	</select>
+	
+	<select id="selectAllRoleComboList" parameterType="VOperationDeployParm" resultType="VOperationDeployStaffItem">
+		<include refid="selectAllRoleComboListSql"/>
+	</select>
+	
+	<!--Staff grid master data (StStaff)-->
+	<select id="selectStStaffGroupList"  parameterType="VOperationDeployParm" resultMap="StStaffGroupMap">
+		<include refid="selectStaffGroupSql"/>
+	</select>
+	
+	<!--Staff grid detail data (StStaff)-->
+	<select id="selectStStaffDtList" resultMap="StStaffListMap">
+		<include refid="selectStStaffSql"/>
+	</select>
+	
+	<!--Staff grid master data (ExStaff)-->
+	<select id="selectExStaffGroupList"  parameterType="VOperationDeployParm" resultMap="ExStaffGroupMap">
+		<include refid="selectStaffGroupSql"/>
+	</select>
+
+	<!--Staff grid detail data (ExStaff)-->
+	<select id="selectExStaffDtList" resultMap="ExStaffListMap">
+		<include refid="selectExStaffSql"/>
+	</select>
+	
+	<!--Staff grid master data (StStaff or All select)-->
+	<select id="selectStStaffList"  parameterType="VOperationDeployParm" resultType="VOperationDeployStaffItem">
+		<include refid="selectStStaffSql"/>
+	</select>
+
+	<!--Staff grid master data (ExStaff or All select)-->
+	<select id="selectExStaffList"  parameterType="VOperationDeployParm" resultType="VOperationDeployStaffItem">
+		<include refid="selectExStaffSql"/>
+	</select>
+
+	<!--new  Staff-->
+	<select id="selecNewStaff"  parameterType="VOperationDeployParm" resultType="VOperationDeployItem">
+		<if test="rstrType == 'STF'">
+			SELECT DISTINCT /* vOperationDeploy.selecNewStaff.STF */
+				EMP_ID 											AS EMPID, 
+				SUBSTRING(emp_id, 3, 6)  						AS HIDDENEMPID,
+				ROLE_CD 										AS ROLECD,
+				'' 												AS GROUPNM, 
+				ENG_NM 											AS ENGNM,		
+				CASE
+					WHEN 
+						(SELECT 
+							COUNT(*)
+						FROM 
+							TMT_DEPY 							E, 
+							TMT_STAFF 							F 
+						WHERE
+							E.USE_YN 							= 'Y' 
+							AND E.RS_DIV_CD 					= 'MP'
+							<if test="purpTpCd != null and purpTpCd != ''">
+								AND E.PURP_TP_CD 					= #{purpTpCd}
+							</if>
+							<if test="vslCallId == null or vslCallId == ''">
+								AND E.VSL_CALL_ID 				LIKE '%STRG%'
+							</if>
+							<if test="vslCallId != null and vslCallId != ''">
+								AND E.VSL_CALL_ID 				= #{vslCallId}
+							</if>
+							AND E.SHFT_ID 						= #{shftId}
+							AND E.WORK_YMD 						= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+							AND E.EMP_ID 						= F.EMP_ID
+							AND F.USE_YN 						= 'Y'
+							AND F.EMP_ID 						= A.EMP_ID
+						) = 0
+							THEN 
+								CASE
+									WHEN
+										(SELECT 
+											COUNT(*)
+										FROM 
+											TMT_DEPY 			E, 
+											TMT_STAFF			F 
+										WHERE 
+											E.USE_YN			= 'Y' 
+											AND E.RS_DIV_CD 	= 'MP'
+											AND E.SHFT_ID 		= #{shftId}
+											AND E.WORK_YMD 		= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+											AND E.EMP_ID 		= F.EMP_ID
+											AND F.USE_YN 		= 'Y'
+											AND F.EMP_ID 		= A.EMP_ID
+										) = 0
+											THEN ' '
+									ELSE #{colColor2, jdbcType=VARCHAR}
+								END
+					ELSE #{colColor1, jdbcType=VARCHAR}
+				END 											AS colColor 
+			FROM 
+				TMT_STAFF 										A 
+			WHERE 
+				EMP_ID NOT IN 	(SELECT 
+									EMP_ID 
+								FROM 
+									TMT_SHFT_GRP_EMP) 
+				AND USE_YN 										= 'Y'    
+				AND WORK_LOC_CD 								= 'OE' 
+		</if>
+
+		<if test="rstrType == 'GRP'">
+			SELECT DISTINCT /* vOperationDeploy.selecNewStaff.GRP */
+				A.EMP_ID 										AS EMPID, 
+				SUBSTRING(A.EMP_ID, 3, 6)  						AS HIDDENEMPID,
+				A.ROLE_CD   									AS ROLECD,	
+				A.ROLE_CD   									AS ROLECD,
+				'' 												AS GROUPNM, 
+				A.ENG_NM 										AS ENGNM,
+				CASE
+					WHEN	
+						(SELECT 
+							COUNT(*)
+						FROM 
+							TMT_DEPY E, 
+							TMT_STAFF F 
+						WHERE 
+							E.USE_YN 				= 'Y' 
+							AND E.RS_DIV_CD 		= 'MP'
+							AND F.WORK_LOC_CD 		='OE'
+							<if test="purpTpCd != null and purpTpCd != ''">
+								AND E.PURP_TP_CD 	= #{purpTpCd}
+							</if>
+							<if test="vslCallId == null or vslCallId == ''">
+								AND E.VSL_CALL_ID 	LIKE '%STRG%'
+							</if>
+							<if test="vslCallId != null and vslCallId != ''">
+								AND E.VSL_CALL_ID 	= #{vslCallId}
+							</if>
+							AND E.SHFT_ID 			= #{shftId}
+							AND E.WORK_YMD 			= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+							AND E.EMP_ID 			= F.EMP_ID
+							AND F.USE_YN 			= 'Y'
+							AND F.USE_YN 			='TEST'
+							AND F.EMP_ID 			= A.EMP_ID
+						) = 0
+							THEN
+								CASE
+									WHEN
+										(SELECT 
+											COUNT(*)
+										FROM 
+											TMT_DEPY 	E, 
+											TMT_STAFF 	F 
+										WHERE E.USE_YN 	= 'Y' 
+										AND E.RS_DIV_CD = 'MP'
+										AND E.SHFT_ID 	= #{shftId}
+										AND E.WORK_YMD	= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+										AND E.EMP_ID 	= F.EMP_ID
+										AND F.USE_YN	= 'Y'
+										AND F.USE_YN 	='TEST'
+										AND F.EMP_ID 	= F.EMP_ID
+										) = 0
+											THEN ' '
+									ELSE #{colColor2, jdbcType=VARCHAR}
+								END
+					ELSE #{colColor1, jdbcType=VARCHAR}
+				END 											AS colColor 
+					FROM 
+					TMT_STAFF 									A, 
+					TMT_EMP_NON_AVAIL_LOG 						B 
+				WHERE 
+					A.EMP_ID 									= B.EMP_ID
+					AND (B.RSN_CD 								= 'DO' 
+					AND (B.SHFT_GRP_CD IS NOT NULL 
+						AND B.SHFT_GRP_CD <![CDATA[<>]]> ''))
+					AND A.WORK_LOC_CD 							= 'OE' 
+					AND B.FM_YMD 								= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+		</if>
+	</select>
+
+	<select id="selectRole4Other"  parameterType="VOperationDeployParm" resultType="VOperationDeployStaffItem">
+		SELECT DISTINCT /* vOperationDeploy.selectRole4Other */
+			B.ROLE_CD											AS ROLECD,
+			ISNULL(
+				DBO.F_CM_CODE_NM ('CM', 'ROLECD', B.ROLE_CD)
+			, B.ROLE_CD ) 										AS ROLECDNM
+		FROM  
+			TMT_ROLE 											AS A, 
+			TMT_STAFF 											AS B
+		WHERE 
+			A.EMP_ID 											NOT IN 	(SELECT 
+																			EMP_ID 
+																		FROM 
+																			TMT_SHFT_GRP_EMP)
+			AND A.EMP_ID 										= B.EMP_ID 
+			AND B.USE_YN 										='Y' 
+			AND B.WORK_LOC_CD 									='OE' 
+			AND (B.ROLE_CD IS NOT NULL							AND B.ROLE_CD <![CDATA[<>]]> '')
+		ORDER BY 
+			ROLECD
+	</select>
+
+	<!--Deploy List-->
+	<select id="selectStaffDeployMentList"  parameterType="VOperationDeployParm" resultType="VOperationDeployItem" >
+	 	<if test="pageNo != 0"> 
+			SELECT /* vOperationDeploy.selectStaffDeployMentList */
+             	*
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY SVCDATE DESC, SHFTIDX DESC, PURPTPCD) AS ROW_NUM,
+					innerTable.*
+				FROM ( 
+		</if>
+				<include refid="getStaffDeployMentList"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	CAST((CASE WHEN #{pageNo}  = '0' THEN '1' ELSE #{pageNo} END) AS INT) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+	 </select>
+
+	 <select id="selectStaffDeployMentListCount" parameterType="VOperationDeployParm" resultType="java.lang.String">
+	 	SELECT /* vOperationDeploy.selectStaffDeployMentListCount */
+			COUNT(*)
+        FROM 
+			(<include refid="getStaffDeployMentList"/>) AS TEMPTABLE
+	 </select>
+
+	<sql id="getStaffDeployMentList">
+		SELECT /* vOperationDeploy.getStaffDeployMentList */
+			A.WORK_YMD      									AS SVCDATE, 
+			FORMAT(
+				CONVERT(DATE, A.WORK_YMD, 112), 
+				'dd/MM/yyyy') 									AS WORKYMD, 
+			A.VSL_CALL_ID    									AS VSLCALLID, 
+			(SELECT TOP(1)
+				S_CD_LGV 
+			FROM 
+				TMT_CD_MSTD 
+			WHERE 
+				L_CD					='MT' 
+				AND M_CD				='MGPURP' 
+				AND S_CD				=A.PURP_TP_CD
+			) 													AS PURPTYPE,
+			A.PURP_TP_CD      									AS PURPTPCD, 
+			dbo.F_CM_CODE_NM('MT', 'MGPURP', A.PURP_TP_CD) 		AS PURPTPCDNM,
+			A.SHFT_ID       									AS SHFTID, 
+			(SELECT 
+				SHFT_NM 
+			FROM 
+				TMT_SHFT 
+			WHERE 
+				SHFT_ID = A.SHFT_ID) 							AS SHFTNM,
+			(SELECT 
+				SHFT_IDX 
+			FROM 
+				TMT_SHFT 
+			WHERE 
+				SHFT_ID = A.SHFT_ID) 							AS SHFTIDX,
+			C.VSL_NM        									AS VSLNM, 
+			(SELECT TOP(1)
+				WH_UPD_YN 
+			FROM 
+				TMT_DEPY 
+				WHERE USE_YN 			= 'Y' 
+				AND VSL_CALL_ID 		= A.VSL_CALL_ID
+				AND WORK_YMD 			= A.WORK_YMD
+				AND PURP_TP_CD 			= A.PURP_TP_CD
+				AND SHFT_ID 			= A.SHFT_ID
+				AND WH_UPD_YN 			= 'Y') 					AS WHUPDYN, 
+			FORMAT(B.ETA, 'dd/MM/yyyy HH:mm') 					AS ETA,
+			FORMAT(B.ETB, 'dd/MM/yyyy HH:mm') 					AS ETB,
+			FORMAT(B.ATD, 'dd/MM/yyyy HH:mm') 					AS ATD,
+			<!-- 
+			B.CARGO_TP_MPTS AS cgTpCd, 
+			dbo.F_CM_CODE_NM('MT', 'CGTP', B.CARGO_TP_MPTS) 	AS CGTPNM, 
+			-->
+			B.ARRV_SA_ID    									AS SAID,
+			ISNULL(
+				(SELECT 
+					D.NX_BERTH_NO
+				FROM 
+					TMT_VSL_SHFT D
+				WHERE 
+					B.VSL_CALL_ID 		= D.VSL_CALL_ID
+					AND D.SEQ 	=	(SELECT 
+										MAX(E.SEQ) 
+									FROM 
+										TMT_VSL_SHFT E 
+									WHERE 
+										D.VSL_CALL_ID = E.VSL_CALL_ID)
+			), B.BERTH_LOC) 									AS BERTHLOC,
+			(SELECT TOP(1)
+				'Y' 
+			FROM 
+				TMT_DEPY
+			WHERE USE_YN 				= 'Y' 
+				AND VSL_CALL_ID 		= A.VSL_CALL_ID
+				AND WORK_YMD 			= A.WORK_YMD
+				AND PURP_TP_CD 			= A.PURP_TP_CD
+				AND SHFT_ID 			= A.SHFT_ID
+				AND RS_DIV_CD 			= 'MP') 				AS MANPOWERYN,
+			(SELECT TOP(1)
+				'Y' 
+			FROM 
+				TMT_DEPY 
+			WHERE 
+				USE_YN 					= 'Y' 
+				AND VSL_CALL_ID 		= A.VSL_CALL_ID
+				AND WORK_YMD 			= A.WORK_YMD
+				AND PURP_TP_CD 			= A.PURP_TP_CD
+				AND SHFT_ID 			= A.SHFT_ID
+				AND RS_DIV_CD 			= 'EQ' 
+				AND EQ_TP_CD 			NOT IN ('FL') 
+				AND (EQ_TP_CD 			IS NOT NULL 
+					AND EQ_TP_CD 		<![CDATA[<>]]> '')
+			) 													AS PORTCRNYN,
+			(SELECT TOP(1) 
+				'Y' 
+			FROM 
+				TMT_DEPY 
+			WHERE 
+				USE_YN 					= 'Y' 
+				AND VSL_CALL_ID 		= A.VSL_CALL_ID
+				AND WORK_YMD 			= A.WORK_YMD
+				AND PURP_TP_CD 			= A.PURP_TP_CD
+				AND SHFT_ID 			= A.SHFT_ID
+				AND RS_DIV_CD 			= 'EQ' 
+				AND EQ_TP_CD 			IN ('FL')
+			) 													AS FORKLIFTYN,
+			(SELECT 
+				FORMAT(MAX(UPDATE_TIME), 'dd/MM/yyy HH:mm:ss') 
+			FROM 
+				TMT_DEPY
+			WHERE 
+				USE_YN 					= 'Y' 
+				AND VSL_CALL_ID 		= A.VSL_CALL_ID
+				AND PURP_TP_CD 			= A.PURP_TP_CD
+				AND SHFT_ID 			= A.SHFT_ID
+				AND WORK_YMD 			= A.WORK_YMD
+			) 													AS UPDDT,
+			(SELECT TOP(1)
+				D.STAFF_CD + '/' + E.ENG_NM 
+			FROM 
+				TMT_DEPY D, 
+				TMT_USER_INFO E 
+			WHERE 
+				D.USE_YN 				= 'Y' 
+				AND D.VSL_CALL_ID 		= A.VSL_CALL_ID
+				AND D.PURP_TP_CD  		= A.PURP_TP_CD
+				AND D.SHFT_ID  			= A.SHFT_ID
+				AND D.WORK_YMD  		= A.WORK_YMD
+				AND D.UPDATE_TIME	= 	(SELECT 
+											MAX(UPDATE_TIME) 
+										FROM 
+											TMT_DEPY
+										WHERE 
+											USE_YN 				= 'Y' 
+											AND VSL_CALL_ID	 	= A.VSL_CALL_ID
+											AND PURP_TP_CD 		= A.PURP_TP_CD
+											AND SHFT_ID 		= A.SHFT_ID
+											AND WORK_YMD 		= A.WORK_YMD)
+				AND D.STAFF_CD 			= E.USER_ID
+			) 													AS UPDUSERID
+		FROM 
+			(SELECT 
+				WORK_YMD, 
+				VSL_CALL_ID, 
+				PURP_TP_CD, 
+				SHFT_ID
+			FROM 
+				TMT_DEPY
+			WHERE 
+				USE_YN 											= 'Y'  
+				AND EMP_ID 										= EMP_ID 
+				AND VSL_CALL_ID 								= VSL_CALL_ID
+				<if test="vslCallId != null and vslCallId != ''">
+					AND VSL_CALL_ID 							= #{vslCallId}
+				</if>
+				<if test="etaFrom != null and etaFrom != ''">
+					AND CONVERT(DATE, WORK_YMD, 112) 
+						BETWEEN CONVERT(DATE, #{etaFrom}, 103) 
+							AND CONVERT(DATE, #{etaTo}, 103)
+					AND SUBSTRING(VSL_CALL_ID, 3, 9) 			&lt;&gt; 'STRG'
+				</if>
+				<if test="purpTpCd != null and purpTpCd != ''">
+					AND PURP_TP_CD 								= #{purpTpCd}
+				</if>
+				<if test="shftId != null and shftId != ''">
+					AND SHFT_ID 								= #{shftId}
+				</if>  
+				GROUP BY 
+					WORK_YMD, 
+					VSL_CALL_ID, 
+					PURP_TP_CD, 
+					SHFT_ID
+			) 													A, 
+			TMT_VSL_SCH	 										B, 
+			TMT_VSL_PART 										C
+		WHERE 
+			A.VSL_CALL_ID 										= B.VSL_CALL_ID
+			AND B.VSL_CD 										= C.VSL_CD
+			<if test="vslCallId != null and vslCallId != ''">
+				AND A.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test="etaFrom != null and etaFrom != ''">
+				AND CONVERT(DATE, A.WORK_YMD, 112) 
+						BETWEEN CONVERT(DATE, #{etaFrom}, 103) 
+							AND CONVERT(DATE, #{etaTo}, 103)
+				</if>
+			<if test="purpTpCd != null and purpTpCd != ''">
+				AND A.PURP_TP_CD 								= #{purpTpCd}
+			</if>
+			<if test="shftId != null and shftId != ''">
+				AND A.SHFT_ID 									= #{shftId}
+			</if>
+	</sql>
+		
+	<!--Deploy List-->
+	<select id="selectNonVesselDeployList"  parameterType="VOperationDeployParm" resultType="VOperationDeployItem">
+	 	<if test="pageNo != 0"> 
+            SELECT /* vOperationDeploy.selectNonVesselDeployList */
+             	*
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY SVCDATE DESC, SHFTIDX DESC, PURPTPCD) AS ROW_NUM,
+					innerTable.*
+				FROM ( 
+		</if>
+				<include refid="getNonVesselDeployList"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	CAST((CASE WHEN #{pageNo}  = '0' THEN '1' ELSE #{pageNo} END) AS INT) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+
+	<select id="selectNonVesselDeployListCount" parameterType="VOperationDeployParm" resultType="java.lang.String">
+	 	SELECT /* vOperationDeploy.selectNonVesselDeployListCount */
+			COUNT(*)
+        FROM 
+			(<include refid="getNonVesselDeployList"/>)			AS TEMPTABLE
+	</select>
+
+	<sql id="getNonVesselDeployList">
+		SELECT /* vOperationDeploy.getNonVesselDeployList */
+			A.WORK_YMD            								AS SVCDATE, 
+			FORMAT(
+				CONVERT(DATE, A.WORK_YMD, 102), 
+				'dd/MM/yyyy') 									AS WORKYMD,
+			A.VSL_CALL_ID         								AS VSLCALLID, 
+			(SELECT 
+				S_CD_LGV 
+			FROM 
+				TMT_CD_MSTD 
+			WHERE 
+				L_CD					= 'MT' 
+				AND M_CD				='MGPURP' 
+				AND S_CD				= A.PURP_TP_CD) 		AS PURPTYPE,
+			A.PURP_TP_CD          								AS PURPTPCD, 
+			dbo.F_CM_CODE_NM('MT', 'MGPURP', A.PURP_TP_CD) 		AS PURPTPCDNM,
+			A.SHFT_ID             								AS SHFTID, 
+			(SELECT 
+				SHFT_NM 
+			FROM 
+				TMT_SHFT 
+			WHERE 
+				SHFT_ID = A.SHFT_ID
+			) 													AS SHFTNM,
+			(SELECT 
+				SHFT_IDX 
+			FROM 
+				TMT_SHFT 
+			WHERE 
+				SHFT_ID = A.SHFT_ID
+			) 													AS SHFTIDX,
+			(SELECT TOP(1)
+				WH_UPD_YN 
+			FROM 
+				TMT_DEPY 
+			WHERE 
+				USE_YN 					= 'Y' 
+				AND VSL_CALL_ID 		= A.VSL_CALL_ID
+				AND WORK_YMD 			= A.WORK_YMD
+				AND PURP_TP_CD 			= A.PURP_TP_CD
+				AND SHFT_ID 			= A.SHFT_ID
+				AND WH_UPD_YN 			= 'Y'
+			)   												AS WHUPDYN, 
+			(SELECT 
+				'Y' 
+			FROM 
+				TMT_DEPY 
+			WHERE 
+				USE_YN 					= 'Y' 
+				AND VSL_CALL_ID 		= A.VSL_CALL_ID
+				AND WORK_YMD 			= A.WORK_YMD
+				AND PURP_TP_CD 			= A.PURP_TP_CD
+				AND SHFT_ID 			= A.SHFT_ID
+				AND RS_DIV_CD 			= 'EQ' 
+				AND EQ_TP_CD 			IN ('FL') 
+			) 													AS FORKLIFTYN,
+			(SELECT 
+				FORMAT(MAX(UPDATE_TIME), 'dd/MM/yyyy HH:mm:ss') 
+			FROM 
+				TMT_DEPY
+			WHERE 
+				USE_YN 					= 'Y' 
+				AND VSL_CALL_ID 		= A.VSL_CALL_ID
+				AND PURP_TP_CD 			= A.PURP_TP_CD
+				AND SHFT_ID 			= A.SHFT_ID
+				AND WORK_YMD 			= A.WORK_YMD
+			) 													AS UPDDT,
+			(SELECT TOP(1)
+				D.STAFF_CD + '/' + E.ENG_NM 
+			FROM 
+				TMT_DEPY 				D, 
+				TMT_USER_INFO 			E 
+			WHERE 
+				D.USE_YN 				= 'Y' 
+				AND D.VSL_CALL_ID 		= A.VSL_CALL_ID
+				AND D.PURP_TP_CD 		= A.PURP_TP_CD
+				AND D.SHFT_ID 			= A.SHFT_ID
+				AND D.WORK_YMD 			= A.WORK_YMD
+				AND D.UPDATE_TIME 		= 
+					(SELECT 
+						MAX(UPDATE_TIME) 
+					FROM 
+						TMT_DEPY
+					WHERE 
+						USE_YN 			= 'Y' 
+						AND VSL_CALL_ID = A.VSL_CALL_ID
+						AND PURP_TP_CD 	= A.PURP_TP_CD
+						AND SHFT_ID 	= A.SHFT_ID
+						AND WORK_YMD 	= A.WORK_YMD)
+				AND D.STAFF_CD = E.USER_ID
+			) 													AS UPDUSERID
+		FROM 
+			(SELECT 
+				WORK_YMD, 
+				VSL_CALL_ID, 
+				PURP_TP_CD, 
+				SHFT_ID
+			FROM 
+				TMT_DEPY
+			WHERE 
+				USE_YN 					= 'Y' 
+				AND SUBSTRING(
+					VSL_CALL_ID,
+					3,
+					9) 					= 'STRG'
+			GROUP BY 
+				WORK_YMD, 
+				VSL_CALL_ID, 
+				PURP_TP_CD, 
+				SHFT_ID
+			) 													AS A
+		WHERE 
+			CONVERT(DATE, A.WORK_YMD, 112) 
+				BETWEEN CONVERT(DATE, #{etaFrom}, 103) 
+					AND CONVERT(DATE, #{etaTo}, 103)
+			<if test="purpTpCd != null and purpTpCd != ''">
+				AND A.PURP_TP_CD 								= #{purpTpCd}
+			</if>
+			<if test="shftId != null and shftId != ''">
+				AND A.SHFT_ID 									= #{shftId}
+			</if>
+	</sql>
+		
+	<!--Mega Remarks-->
+	<select id="selectVOperationDeployRmk"  parameterType="VOperationDeployParm" resultType="VOperationDeployItem">
+		SELECT /* vOperationDeploy.selectVOperationDeployRmk */
+			MEGA_NO 											AS MEGANO,
+			RMK     											AS RMK,
+			ISNULL(
+				(SELECT 
+					USER_ID 
+				FROM 
+					TMT_USER_INFO
+				WHERE 
+					USER_ID 			= SUMIT_BY
+				), 
+				SUMIT_BY
+			) 													AS REQRNM
+		FROM 
+			TMT_MEGA
+		WHERE 
+			STAT_CD 											= 'AP'
+			AND ((MEGA_TP_CD IS NULL 							OR MEGA_TP_CD = '') 
+				OR MEGA_TP_CD 									&lt;&gt; 'H')
+			<if test="purpTpCd != null and purpTpCd != ''">
+				AND PURP_TP_CD 									= #{purpTpCd}
+			</if>
+				AND VSL_CALL_ID 								= #{vslCallId}
+				AND WORK_YMD 									= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+				AND SHFT_ID 									= #{shftId}
+		ORDER BY 
+			MEGANO ASC
+	</select>
+	
+	<!--Deployed Staff List-->
+	<select id="selectVOperationDeployMPStaff"  parameterType="VOperationDeployParm" resultType="VOperationDeployItem">
+		SELECT /* vOperationDeploy.selectVOperationDeployMPStaff */
+			A.WORK_CD  											AS WORKCD,
+			A.VSL_CALL_ID 										AS VSLCALLID,
+			A.SEQ         										AS SEQ,
+			A.RS_DIV_CD   										AS RSDIVCD,
+			A.EMP_ID      										AS EMPID,
+			<!--
+			(SELECT DISTINCT 
+				SHFT_GRP_CD 
+			FROM TMT_RSTR_SET 
+			WHERE 
+				RSTR_YMD = A.WORK_YMD
+				AND EMP_ID = A.EMP_ID) SHFTGRPCD,
+				CASE 
+					WHEN 
+						(SELECT DISTINCT 
+							SHFT_GRP_CD 
+						FROM 
+							TMT_RSTR_SET 
+						WHERE 
+							RSTR_YMD = A.WORK_YMD
+							AND EMP_ID = A.EMP_ID
+						) = '' 
+							THEN 'STF'
+					WHEN 
+						(SELECT DISTINCT 
+							SHFT_GRP_CD 
+						FROM 
+							TMT_RSTR_SET 
+						WHERE 
+							RSTR_YMD = A.WORK_YMD
+							AND EMP_ID = A.EMP_ID
+						) IS NULL 
+							THEN 'STF'
+					ELSE 'GRP'
+				END STFGRP,
+			-->
+			SUBSTRING(A.EMP_ID,3,6)  							AS HIDDENEMPID,
+			ISNULL(ISNULL(A.FM_HHMM,A.OT_FM_HHMM), '00:00') 	AS frTime,
+			ISNULL(ISNULL(A.FM_HHMM,A.OT_FM_HHMM), '00:00') 	AS fmHhmm,
+			ISNULL(A.TO_HHMM,A.OT_TO_HHMM) 						AS toTime,
+			ISNULL(ISNULL(A.TO_HHMM,A.OT_TO_HHMM), '00:00')	 	AS endTime,
+			FORMAT(
+				CONVERT(DATE, A.WORK_YMD, 112), 
+				'dd/MM/yyyy') 									AS WORKYMD,
+			ISNULL(A.WORK_LOC, ' ') 							AS WORKLOC,
+			ISNULL(A.WORK_MODE, ' ') 							AS WORKMODE,
+			ISNULL(
+				dbo.F_CM_CODE_NM(
+						'MT', 
+						'NONJPVCCD', 
+						A.WORK_MODE), 
+			' ') 												AS WORKMODENM,
+			ISNULL(A.WHWORK_DIV_CD, ' ') 						AS WHWORKDIVCD,
+			ISNULL(A.WH_UPD_YN, ' ') 							AS WHUPDYN,
+			A.ROLE_CD     										AS ROLECD,
+			B.ENG_NM      										AS ENGNM,
+			A.PURP_TP_CD  										AS PURPTPCD,
+			A.SHFT_ID 	 										AS SHFTID,
+			<!-- 
+			A.CHANGE_SHFT 										AS changeShft,
+			CASE 
+				WHEN A.GRP = '' THEN 'ST Staffs'
+				WHEN A.GRP IS NULL THEN 'St Staffs'
+				ELSE A.GRP
+			END AS grp, -->
+			A.VERSION          									AS VERSION
+		FROM 
+			TMT_STAFF      										AS B,
+			TMT_DEPY      										AS A 
+		LEFT OUTER JOIN	
+			TMT_RSTR_SET      									AS C
+				ON A.EMP_ID 									= C.EMP_ID 
+				AND A.SHFT_ID									= C.SHFT_ID 
+		WHERE 
+			A.USE_YN 											= 'Y' 
+			AND A.EMP_ID  										= B.EMP_ID
+			AND A.RS_DIV_CD 									= 'MP'
+			AND A.WORK_CD 										IN ('WD','OT')
+			<if test="purpTpCd != null and purpTpCd != ''">
+				AND A.PURP_TP_CD 								= #{purpTpCd}
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+				AND A.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test="vslCallId == null or vslCallId == ''">
+				AND SUBSTRING(A.VSL_CALL_ID, 3, 9) 				= 'STRG'
+			</if>
+				AND A.WORK_YMD 									= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+			<if test="shftId != null and shftId != ''">
+				AND A.SHFT_ID 									= #{shftId}
+			</if>
+		ORDER BY 
+			A.VSL_CALL_ID, 
+			A.SHFT_ID
+	</select>
+		
+	<!--Equipment Capacity List-->
+	<select id="selectVOperationDeployEquipCapa"  parameterType="VOperationDeployParm" resultType="VOperationDeployItem">
+		SELECT /* vOperationDeploy.selectVOperationDeployEquipCapa */
+			A.DIV_CD               								AS DIVCD,
+			A.EQ_TP_CD             								AS EQTPCD,
+			dbo.F_CM_CODE_NM('MT', 'EQFCTPCD', A.EQ_TP_CD) 		AS EQTPCDNM,
+			A.EQ_FAC_NO            								AS EQFACNO,
+			A.EQ_FAC_NM            								AS EQFACNM,
+			A.OWN_DIV_CD           								AS OWNDIVCD,
+			dbo.F_CM_CODE_NM('MT', 'EQFCOWNCD', A.OWN_DIV_CD) 	AS OWNDIVCDNM,
+			A.STAT_CD              								AS STATCD,
+			dbo.F_CM_CODE_NM('MT', 'EQFCSTAT', A.STAT_CD) 		AS STATCDNM,
+			A.CAPA_CD              								AS CAPACD,
+			B.CAPA_DESCR           								AS CAPADESCR
+		FROM 
+			TMT_EQ_FAC 		     								AS A, 
+			TMT_EQ_CAPA 		     							AS B
+		WHERE 
+			A.DIV_CD      										IN ('EQ','FC')
+		<if test="eqTpCd != null and eqTpCd != ''">
+			AND A.EQ_TP_CD      								= #{eqTpCd}
+		</if>
+			
+		<if test="eqFacNo != null and eqFacNo != ''">
+			AND EQ_FAC_NO      									LIKE '%${eqFacNo}%'
+		</if>
+			AND A.CAPA_CD 			     						= B.CAPA_CD
+			AND B.VLD_YN 			     						= 'Y'
+	</select>
+	
+	<select id="selectVOperationDeployShipCraneEquipCapa"  parameterType="VOperationDeployParm" resultType="VOperationDeployItem">
+		SELECT /* vOperationDeploy.selectVOperationDeployShipCraneEquipCapa */
+			A.DIV_CD               								AS DIVCD,
+			A.EQ_TP_CD             								AS EQTPCD,
+			dbo.F_CM_CODE_NM('MT', 'EQFCTPCD', A.EQ_TP_CD) 		AS EQTPCDNM,
+			A.EQ_FAC_NO            								AS EQFACNO,
+			A.EQ_FAC_NM            								AS EQFACNM,
+			A.OWN_DIV_CD           								AS OWNDIVCD,
+			dbo.F_CM_CODE_NM('MT', 'EQFCOWNCD', A.OWN_DIV_CD) 	AS OWNDIVCDNM,
+			A.STAT_CD              								AS STATCD,
+			dbo.F_CM_CODE_NM('MT', 'EQFCSTAT', A.STAT_CD) 		AS STATCDNM,
+			A.CAPA_CD              								AS CAPACD,
+			B.CAPA_DESCR           								AS CAPADESCR
+		FROM 
+			TMT_EQ_FAC      									A, 
+			TMT_EQ_CAPA      									B
+		WHERE 
+			A.DIV_CD      										IN ('EQ','FC')
+		<if test="eqTpCd != null and eqTpCd != ''">
+			AND A.EQ_TP_CD      								= #{eqTpCd}
+		</if>
+			
+		<if test="eqFacNo != null and eqFacNo != ''">
+			AND EQ_FAC_NO      									LIKE '%${eqFacNo}%'
+		</if>
+			AND A.CAPA_CD 	     								= B.CAPA_CD
+			AND B.VLD_YN 	     								= 'Y'
+			AND A.EQ_TP_CD IN 
+						(SELECT    
+							S_CD
+						FROM     
+							TMT_CD_MSTD
+						WHERE    
+							S_CD  <![CDATA[<>]]>  'CP'
+							AND	L_CD 		= 'MT'
+							AND	M_CD 		= 'EQFCTPCD'
+							AND	S_CD_USE 	= 'Y'
+							AND	(S_CD_LGV 	= 'EQ' OR S_CD_LGV ='FC')
+							AND	(S_CD_VAL 	= 'PC' OR S_CD_VAL = 'PL')
+							AND S_CD NOT 	IN ('SC1','SC2','SC3','SR1','SR2','SR3')
+						)
+	</select>
+	
+	<!--Deployed PortCrane List-->	
+	<sql id="sqlEquipmentListParm3">
+		dbo.F_COUNT_MEGA_REQ (
+			A.VSL_CALL_ID,
+			D.SEQ,
+			A.WORK_YMD,
+			A.SHFT_ID,
+			(CASE
+				WHEN D.EQ_DIV_CD IN ('FL', 'TR') THEN D.EQ_DIV_CD
+				ELSE 'ME'
+			END),
+			(CASE
+				WHEN D.FL_STATUS = 'N' THEN ' '
+				WHEN C.OPE_COMP IS NOT NULL THEN 'CTR'
+				ELSE 'JPB'
+			END),
+			A.MEGA_NO,
+			D.EQ_DIV_CD,
+			ISNULL(C.OPE_COMP, ' ')
+		) 
+
+		- 0
+
+		<!-- 
+		dbo.F_COUNT_VSR (
+			A.VSL_CALL_ID,
+			D.SEQ,
+			A.WORK_YMD,
+			A.SHFT_ID,
+			(CASE
+				WHEN D.EQ_DIV_CD IN ('FL', 'TR') 
+					THEN D.EQ_DIV_CD
+				ELSE 'ME'
+			END),
+			(CASE
+				WHEN D.FL_STATUS = 'N' THEN ' '
+				WHEN (C.OPE_COMP IS NOT NULL AND C.OPE_COMP <![CDATA[<>]]> '')
+					THEN 'CTR'
+				ELSE 'JPB'
+			END),
+			A.REF_NO,
+			D.EQ_DIV_CD,
+			ISNULL(C.OPE_COMP, ' ')
+		)
+		 -->
+	</sql>
+	
+	<sql id="sqlEquipmentListParm2">
+		AND WORK_YMD											= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+		<if test="vslCallId != null and vslCallId != ''">	
+			AND VSL_CALL_ID 									= #{vslCallId}
+		</if>
+		<if test="vslCallId == null or vslCallId == ''">
+			AND SUBSTRING(A.VSL_CALL_ID, 3, 9) 					= 'STRG'
+		</if>
+		<if test="shftId != null and shftId != ''">
+			AND SHFT_ID 										= #{shftId}
+		</if>
+		AND (CASE 
+				WHEN D.EQ_DIV_CD IN ('FL', 'TR') 
+					THEN D.EQ_DIV_CD 
+				ELSE 'ME' 
+			END) 												= DIV_CD
+		AND MEGA_SEQ 											= D.SEQ
+		AND REF_NO 												= A.REF_NO
+		AND ISNULL(MBS_CD, ' ') = 	(CASE
+										WHEN D.FL_STATUS = 'N' 
+											THEN ' '
+										WHEN C.OPE_COMP IS NOT NULL 
+											THEN 'CTR'
+										ELSE 'JPB'
+									END)
+	</sql>
+				
+	<sql id="sqlEquipmentListParm">
+		/* vOperationDeploy.sqlEquipmentListParm */
+		AND A.WORK_YMD 											= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+		<if test="purpTpCd != null and purpTpCd != ''">
+			AND A.PURP_TP_CD 									= #{purpTpCd}
+		</if>
+		<if test="vslCallId != null and vslCallId != ''">
+			AND A.VSL_CALL_ID 									= #{vslCallId}	
+		</if>
+		<if test="vslCallId == null or vslCallId == ''">
+			AND SUBSTRING(A.VSL_CALL_ID, 3, 9) 					= 'STRG'
+		</if>
+		<if test="shftId != null and shftId != ''">
+			AND A.SHFT_ID 										= #{shftId}
+		</if>
+	</sql> 
+
+	<sql id="sqlEquipmentListItem">
+		SELECT /* vOperationDeploy.sqlEquipmentListItem */
+			A.VSL_CALL_ID        								AS VSLCALLID,
+			CONVERT(VARCHAR, A.SEQ) + ''           				AS SEQ,
+			A.EQ_TP_CD           								AS EQTPCD,
+			dbo.F_CM_CODE_NM('MT', 'EQFCTPCD', A.EQ_TP_CD) 		AS EQTPCDNM,
+			A.EQ_NO              								AS EQNO,
+			A.EQ_NO              								AS EQFACNO,
+			A.EQ_QTY             								AS EQQTY,
+			A.EQ_GRP             								AS EQGRP,
+			ISNULL(A.DRIVER, ' ')   							AS DRIVER,
+			A.JPBI_DRIVER_YN     								AS JPBIDRIVERYN,
+			(CASE
+				WHEN LEN(A.DRIVER) >= 6
+					THEN ISNULL(SUBSTRING(A.DRIVER, 3, 6), ' ')
+				ELSE A.DRIVER
+			END) 												AS driverhidden,
+			ISNULL(A.WORK_LOC, ' ') 							AS WORKLOC,
+			B.EQ_FAC_NM          								AS EQFACNM,
+			C.CAPA_DESCR         								AS CAPADESCR,
+			A.INT_EXT_DIV_CD     								AS INTEXTDIVCD,
+			dbo.F_CM_CODE_NM(
+					'MT', 
+					'EQFCOWNCD', 
+					A.INT_EXT_DIV_CD) 							AS OWNDIVCDNM,
+			A.VERSION            								AS ERSION
+		FROM 
+			TMT_DEPY 											AS A, 
+			TMT_EQ_FAC 											AS B, 
+			TMT_EQ_CAPA 										AS C
+		WHERE 
+			A.USE_YN 											= 'Y' 
+			AND A.RS_DIV_CD 									= 'EQ'
+	</sql>
+
+	<sql id="sqlOthersEquipmentItem">
+		WITH 
+			BASE_TABLE AS (
+				SELECT /* vOperationDeploy.sqlOthersEquipmentItem */
+					A.VSL_CALL_ID        									AS VSLCALLID,
+					A.SEQ                									AS SEQ,
+					A.EQ_TP_CD           									AS EQTPCD,
+					A.EQ_NO              									AS EQNO,
+					A.EQ_NO              									AS EQFACNO,
+					A.EQ_QTY             									AS EQQTY,
+					A.EQ_GRP             									AS EQGRP,
+					ISNULL(A.Driver, ' ')   								AS DRIVER,
+					A.JPBI_DRIVER_YN     									AS JPBIDRIVERYN,
+					(CASE
+						WHEN LEN(A.DRIVER) >= 6
+							THEN ISNULL(SUBSTRING(A.DRIVER, 3, 6), ' ')
+						ELSE A.DRIVER
+					END) 													AS driverhidden,
+					ISNULL(A.WORK_LOC, ' ') 								AS WORKLOC,
+					B.EQ_FAC_NM          									AS EQFACNM,
+					C.CAPA_DESCR         									AS CAPADESCR,
+					A.VERSION            									AS VERSION,
+					ROW_NUMBER() 
+						OVER (PARTITION BY 
+								A.VSL_CALL_ID, 
+								A.EQ_GRP, 
+								A.DRIVER 
+							ORDER BY 
+								A.SEQ 
+							) 												AS CNT
+				FROM 
+					TMT_DEPY 												A, 
+					TMT_EQ_FAC 												B, 
+					TMT_EQ_CAPA 											C
+				WHERE 
+					A.USE_YN 												= 'Y' 
+					AND A.RS_DIV_CD 										= 'EQ'
+					AND (A.EQ_GRP IS NOT NULL)
+					AND EXISTS 
+						(SELECT 
+							S_CD 
+						FROM 
+							TMT_CD_MSTD
+						WHERE 
+							L_CD											= 'MT' 
+							AND M_CD 										= 'EQFCTPCD'
+							AND S_CD 										= A.EQ_TP_CD
+							AND S_CD_VAL  									= 'PC' OR S_CD_VAL='PL'
+							AND M_CD 										IN ('BG','CP','CU','LL','PC','TX')
+							)
+					<include refid="sqlEquipmentListParm"/>
+					AND A.EQ_NO 											= B.EQ_FAC_NO
+					AND B.CAPA_CD 											= C.CAPA_CD		
+				),
+			CTE AS (
+				SELECT
+					VSLCALLID												AS VSLCALLID,	
+					CAST(SEQ 		AS VARCHAR(MAX)) 						AS SEQ_STR, 
+					CAST(EQTPCD 	AS VARCHAR(MAX)) 						AS EQTPCD_STR, 
+					CAST(EQNO 		AS VARCHAR(MAX)) 						AS EQNO_STR, 
+					CAST(EQFACNO 	AS VARCHAR(MAX)) 						AS EQFACNO_STR, 
+					EQQTY, 
+					EQGRP, 
+					DRIVER, 
+					JPBIDRIVERYN, 
+					DRIVERHIDDEN, 
+					WORKLOC, 
+					CAST(EQFACNM	AS VARCHAR(MAX)) 						AS EQFACNM_STR, 
+					CAST(CAPADESCR	AS VARCHAR(MAX)) 						AS CAPADESCR_STR, 
+					CAST(VERSION	AS VARCHAR(MAX)) 						AS VERSION_STR, 
+					CNT
+				FROM 
+					BASE_TABLE												AS A
+				WHERE
+					CNT = 1
+
+				UNION ALL
+
+				SELECT
+					B.VSLCALLID												AS VSLCALLID, 
+					C.SEQ_STR	    +','+ CAST(B.SEQ 	   AS VARCHAR(MAX)) AS SEQ_STR, 
+					C.EQTPCD_STR    +','+ CAST(B.EQTPCD    AS VARCHAR(MAX)) AS EQTPCD_STR, 
+					C.EQNO_STR	    +','+ CAST(B.EQNO 	   AS VARCHAR(MAX)) AS EQNO_STR, 
+					C.EQFACNO_STR   +','+ CAST(B.EQFACNO   AS VARCHAR(MAX)) AS EQFACNO_STR, 
+					B.EQQTY, 
+					B.EQGRP, 
+					B.DRIVER, 
+					B.JPBIDRIVERYN, 
+					B.DRIVERHIDDEN, 
+					B.WORKLOC, 
+					C.EQFACNM_STR	+'/'+ CAST(B.EQFACNM   AS VARCHAR(MAX)) AS EQFACNM_STR, 
+					C.CAPADESCR_STR +','+ CAST(B.CAPADESCR AS VARCHAR(MAX)) AS CAPADESCR_STR, 
+					C.VERSION_STR	+','+ CAST(B.VERSION   AS VARCHAR(MAX)) AS VERSION_STR, 
+					B.CNT
+				FROM 
+					BASE_TABLE 												AS B
+				INNER JOIN
+					CTE														AS C
+						ON	B.VSLCALLID										= C.VSLCALLID									
+						AND B.EQQTY											= C.EQQTY
+						AND B.EQGRP											= C.EQGRP
+						AND B.DRIVER										= C.DRIVER
+						AND B.JPBIDRIVERYN									= C.JPBIDRIVERYN
+						AND B.DRIVERHIDDEN									= C.DRIVERHIDDEN
+						AND B.WORKLOC										= C.WORKLOC
+						AND B.CNT - 1										= C.CNT							
+			)
+
+		SELECT /* staffAndDeployment.sqlOthersEquipmentItem */
+			VSLCALLID, 
+			SEQ,
+			EQTPCD,
+			ISNULL(
+				dbo.F_CM_CODE_NM(
+						'MT', 
+						'EQFCTPCD', 
+						EQTPCD 
+				),
+				'-'
+			) 																AS EQTPCDNM,
+			EQNO,
+			EQFACNO,
+			EQQTY,
+			EQGRP, 
+			DRIVER,
+			JPBIDRIVERYN,
+			DRIVERHIDDEN,
+			WORKLOC,
+			EQFACNM,
+			CAPADESCR,
+			INTEXTDIVCD,
+			OWNDIVCDNM,
+			VERSION	
+		FROM
+			(SELECT 
+				VSLCALLID,
+				MAX(SEQ_STR)												AS SEQ,
+				MAX(EQTPCD_STR) 											AS EQTPCD,
+				MAX(EQNO_STR) 												AS EQNO,
+				MAX(EQFACNO_STR) 											AS EQFACNO,
+				EQQTY,
+				EQGRP,
+				DRIVER,
+				JPBIDRIVERYN,
+				DRIVERHIDDEN,
+				WORKLOC,
+				MAX(EQFACNM_STR) 											AS EQFACNM,
+				MAX(CAPADESCR_STR) 											AS CAPADESCR,
+				' ' 														AS INTEXTDIVCD,
+				' ' 														AS OWNDIVCDNM,
+				MAX(VERSION_STR) 											AS VERSION
+			FROM 
+				CTE
+			GROUP BY
+				VSLCALLID, 
+				EQGRP, 
+				DRIVER, 
+				DRIVERHIDDEN, 
+				WORKLOC,
+				EQQTY, 
+				JPBIDRIVERYN
+			) D
+
+			UNION ALL 
+
+			SELECT 
+				A.VSL_CALL_ID   											AS VSLCALLID,
+				CONVERT(VARCHAR, A.SEQ) + '' 								AS SEQ,
+				A.EQ_TP_CD          										AS EQTPCD,
+				ISNULL(dbo.F_CM_CODE_NM (
+							'MT', 
+							'EQFCTPCD', 
+							A.EQ_TP_CD), 
+				'-') 														AS EQTPCDNM,
+				A.EQ_NO              										AS EQNO,
+				A.EQ_NO              										AS EQFACNO,
+				A.EQ_QTY             										AS EQQTY,
+				A.EQ_GRP             										AS EQGRP,
+				ISNULL(A.DRIVER, ' ')   									AS DRIVER,
+				A.JPBI_DRIVER_YN											AS JPBIDRIVERYN,
+				CASE
+					WHEN LEN(A.DRIVER) >= 6 
+						THEN ISNULL (SUBSTRING(A.DRIVER, 3, 6), ' ')
+					ELSE A.DRIVER
+				END 														AS DRIVERHIDDEN,
+				ISNULL(A.WORK_LOC, ' ') 									AS WORKLOC,
+				B.EQ_FAC_NM          										AS EQFACNM,
+				C.CAPA_DESCR         										AS CAPADESCR,
+				' ' 														AS INTEXTDIVCD, 
+				' ' 														AS OWNDIVCDNM,
+				A.VERSION            										AS VERSION
+			FROM 
+				TMT_DEPY 													A, 
+				TMT_EQ_FAC 													B, 
+				TMT_EQ_CAPA 												C
+			WHERE 
+				A.USE_YN 													= 'Y' 
+				AND A.RS_DIV_CD 											= 'EQ'
+				AND (A.EQ_GRP IS NOT NULL)
+				AND EXISTS (
+					SELECT 
+						S_CD 
+					FROM 
+						TMT_CD_MSTD
+					WHERE 
+						L_CD 				= 'MT' 
+						AND M_CD 			= 'EQFCTPCD'
+						AND S_CD 			= A.EQ_TP_CD
+						AND S_CD_VAL 		= 'PC' 
+						OR S_CD_VAL			= 'PL'
+				)
+				<include refid="sqlEquipmentListParm"/>
+				AND A.EQ_NO 												= B.EQ_FAC_NO
+				AND B.CAPA_CD 												= C.CAPA_CD
+				AND A.EQ_TP_CD  											IN ('SR1','SR2','SR3', 'SC1', 'SC2', 'SC3','PMC')
+	</sql>
+
+	<select id="selectVOperationDeployPortCrnList"  parameterType="VOperationDeployParm" resultType="VOperationDeployItem">
+		/* vOperationDeploy.selectVOperationDeployPortCrnList */
+		<include refid="sqlOthersEquipmentItem"/>
+		
+		UNION
+		
+		<include refid="sqlEquipmentListItem"/>
+			AND (A.EQ_GRP IS NULL)
+			AND A.EQ_TP_CD 										<![CDATA[ <> ]]> 'FL' 
+			AND EXISTS 
+					(SELECT 
+						S_CD 
+					FROM 
+						TMT_CD_MSTD
+					WHERE 
+						L_CD 			= 'MT' 
+						AND M_CD 		= 'EQFCTPCD'
+						AND S_CD 		= A.EQ_TP_CD
+						AND S_CD_VAL 	= #{eqTpCd} 
+						OR S_CD_VAL 	='PL' )
+		<include refid="sqlEquipmentListParm"/>
+			AND A.EQ_NO 										= B.EQ_FAC_NO
+			AND B.CAPA_CD 										= C.CAPA_CD
+		
+		UNION ALL
+
+		<include refid="sqlEquipmentListItem"/>
+			AND A.EQ_TP_CD 										= 'SR'
+		<include refid="sqlEquipmentListParm"/>
+			AND A.EQ_NO 										= B.EQ_FAC_NO
+			AND B.CAPA_CD 										= C.CAPA_CD
+		
+	</select>
+		
+	<!--Deployed Forklift List-->	
+	<select id="selectVOperationDeployForkliftList"  parameterType="VOperationDeployParm" resultType="VOperationDeployItem">
+		/* vOperationDeploy.selectVOperationDeployForkliftList */
+		<include refid="sqlEquipmentListItem"/>
+			AND A.EQ_TP_CD 										= #{eqTpCd}
+		<include refid="sqlEquipmentListParm"/>
+			AND A.EQ_NO 										= B.EQ_FAC_NO
+			AND B.CAPA_CD 										= C.CAPA_CD
+		ORDER BY 
+			EQTPCDNM, 
+			EQNO
+	</select>
+
+	<!--Summary Stevedore List-->	
+	<select id="selectVOperationDeployStvdList"  parameterType="VOperationDeployParm" resultType="VOperationDeployItem">
+		SELECT /* vOperationDeploy.selectVOperationDeployStvdList */
+			'Break' 											AS BULKDIV, 
+			B.STVD_COMP 										AS COMPANY, 
+			B.LOC_ID 											AS WORKLOC, 
+			LEFT(B.REQ_HHMM, 2) + RIGHT(B.REQ_HHMM, 2) 			AS DSPREQHHMM, 
+			SUM(B.NOF_GANG) 									AS GANGQTY, 
+			SUM(B.NOF_STVD_SPRR) 								AS NOFSPRR, 
+			SUM(B.STVD_NON_TON) 								AS NOFNONTON
+		FROM 
+			TMT_MEGA 											AS A, 
+			TMT_MEGA_DTL 										AS B
+		<include refid="sumMegaParmSql"/>
+			AND B.DIV_CD 										= 'SD'
+			AND (B.STVD_COMP IS NOT NULL						AND B.STVD_COMP <![CDATA[<>]]> '')
+		GROUP BY 
+			B.STVD_COMP, 
+			B.LOC_ID,
+			B.REQ_HHMM
+		
+		UNION ALL
+		
+		SELECT 
+			'Break' 											AS BULKDIV, 
+			'Ship''s											AS Crew', 
+			B.LOC_ID 											AS WORKLOC, 
+			LEFT(B.REQ_HHMM, 2) + RIGHT(B.REQ_HHMM, 2)			AS DSPREQHHMM, 
+			SUM(B.NOF_GANG) 									AS GANGQTY, 
+			SUM(B.NOF_STVD_SPRR) 								AS NOFSPRR, 
+			SUM(B.STVD_NON_TON) 								AS NOFNONTON
+		FROM 
+			TMT_MEGA 											A, 
+			TMT_MEGA_DTL 										B
+		<include refid="sumMegaParmSql"/>
+			AND B.DIV_CD 										= 'SD'
+			AND B.SHIP_CLEW_YN 									= 'Y'
+		GROUP BY 
+			B.TRMG_COMP, 
+			B.LOC_ID, 
+			B.REQ_HHMM
+
+		UNION ALL
+
+		SELECT 
+			'Dry' 												AS BULKDIV, 
+			B.TRMG_COMP 										AS COMPANY, 
+			B.LOC_ID 											AS WORKLOC, 
+			LEFT(B.REQ_HHMM, 2) + RIGHT(B.REQ_HHMM, 2)			AS DSPREQHHMM, 
+			SUM(B.NOF_HATCH) 									AS GANGQTY, 
+			SUM(B.NOF_TRMG_SPRR) 								AS NOFSPRR, 
+			SUM(B.TRMG_NON_TON) 								AS NOFNONTON
+		FROM 
+			TMT_MEGA 											A, 
+			TMT_MEGA_DTL										B
+		<include refid="sumMegaParmSql"/>
+			AND B.DIV_CD 										= 'SD'
+			AND (B.TRMG_COMP IS NOT NULL						AND B.TRMG_COMP <![CDATA[<>]]> '')
+		GROUP BY
+			B.TRMG_COMP, 
+			B.LOC_ID, 
+			B.REQ_HHMM
+		ORDER BY
+			BULKDIV
+	</select>
+		
+	<!--  ############################## Insert Statements ############################## -->
+	
+	<insert id="insertVOperationDeployItems"  parameterType="VOperationDeployItem">
+		INSERT /* vOperationDeploy.insertVOperationDeployItems */
+		INTO TMT_DEPY(
+		    VSL_CALL_ID,
+			SEQ,
+			WORK_YMD,
+			PURP_TP_CD,
+			RS_DIV_CD,
+			SHFT_ID,
+			<if test="workCd != 'OT'">
+				FM_HHMM,
+				TO_HHMM,
+			</if>
+			<if test="workCd == 'OT'">
+				OT_FM_HHMM,
+				OT_TO_HHMM,
+			</if>
+			WHWORK_DIV_CD,
+			WORK_LOC,
+			WORK_MODE,
+			WORK_CD,
+			<if test="fridayYn != null and fridayYn != ''">
+				FRIDAY_YN,
+			</if>
+			ROLE_CD,
+			EMP_ID,
+			EQ_TP_CD,
+			EQ_NO,
+			EQ_QTY,
+			EQ_GRP,
+			INT_EXT_DIV_CD,
+			DRIVER,
+			JPBI_DRIVER_YN,
+			WH_UPD_YN,
+			USE_YN, 
+			UPDATE_TIME,
+			STAFF_CD,
+			<!-- 
+			GAZA_HLD,
+			CHANGE_SHFT,
+			GRP, 
+			-->
+			VERSION
+		) VALUES (
+			<if test="vslCallId == null or vslCallId == ''"> 
+				dbo.F_GET_NON_VSL_ID(#{workYmd}, #{purpTpCd}, #{shftId})
+			</if>
+			<if test="vslCallId != null and vslCallId != ''"> 
+				#{vslCallId}
+			</if>
+			,
+			<if test="vslCallId == null or vslCallId == ''">
+				(SELECT 
+					ISNULL(MAX(SEQ) + 1, 1) 
+				FROM 
+					TMT_DEPY 
+				WHERE 
+					VSL_CALL_ID	= dbo.F_GET_NON_VSL_ID(#{workYmd}, #{purpTpCd}, #{shftId}))
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+				(SELECT 
+					ISNULL(MAX(SEQ) + 1, 1) 
+				FROM 
+					TMT_DEPY 
+				WHERE 
+					VSL_CALL_ID = #{vslCallId})
+			</if>
+			,
+			FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd'), 
+			#{purpTpCd}, 
+			#{rsDivCd}, 
+			#{shftId},
+			#{frTime},
+			#{endTime},
+			#{whworkDivCd}, 
+			#{workLoc}, 
+			#{workMode}, 
+			#{workCd}, 
+			<if test="fridayYn != null and fridayYn != ''">
+				#{fridayYn},
+			</if>
+			#{roleCd}, 
+			#{empId}, 
+			#{eqTpCd}, 
+			#{eqNo}, 
+			#{eqQty}, 
+			#{eqGrp}, 
+			#{intExtDivCd}, 
+			#{driver},
+			#{jpbiDriverYn}, 
+			#{whUpdYn}, 
+			'Y', 
+			SYSDATETIME(), 
+			#{userId}, 
+			<!-- #{gazaHld},
+			#{changeShft},
+			#{grp}, -->
+			#{newVersion}
+		)
+	</insert>
+
+
+	<!--  ################ Update Statements ######################################### -->
+	
+	<update id="updateVOperationDeployItems"  parameterType="VOperationDeployItem">
+		UPDATE /* vOperationDeploy.updateVOperationDeployItems */
+			TMT_DEPY
+		SET 
+			<if test="empId != null">
+				EMP_ID 											= #{empId}, 
+			</if>
+			<if test="workLoc != null">
+				WORK_LOC 										= #{workLoc}, 
+			</if>
+			<if test="whUpdYn != null">
+				WH_UPD_YN 										= #{whUpdYn}, 
+			</if>
+			<if test="workMode != null">
+				WORK_MODE 										= #{workMode}, 
+			</if>
+			<if test="whworkDivCd != null">
+				WHWORK_DIV_CD 									= #{whworkDivCd}, 
+			</if>
+			<if test="eqTpCd != null">
+				EQ_TP_CD 										= #{eqTpCd}, 
+			</if>
+			<if test="eqNo != null">
+				EQ_NO 											= #{eqNo}, 
+			</if>
+			<if test="driver != null">
+				DRIVER 											= #{driver}, 
+			</if>
+			<if test="jpbiDriverYn != null">
+				JPBI_DRIVER_YN 									= #{jpbiDriverYn}, 
+			</if>
+			<if test="eqQty != null">
+				EQ_QTY 											= #{eqQty}, 
+			</if>
+			<if test="eqQty == null">
+				EQ_QTY 											= NULL, 
+			</if>
+			<if test="intExtDivCd != null">
+				INT_EXT_DIV_CD 									= #{intExtDivCd}, 
+			</if>
+			<!--
+			<if test="changeShft != null">
+				CHANGE_SHFT 									= #{changeShft}, 
+			</if>
+			-->
+			<if test="workCd != 'OT'">
+				FM_HHMM 										= #{frTime},
+				TO_HHMM 										= #{endTime},
+			</if>
+				<if test="workCd == 'OT'">
+					OT_FM_HHMM 									= #{frTime},
+					OT_TO_HHMM 									= #{endTime},
+				</if>
+			   UPDATE_TIME         								= SYSDATETIME(),
+			   STAFF_CD    										= #{userId},
+			   VERSION        									= #{newVersion}
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+		   	AND SEQ 											= #{seq}
+		   	<if test="version != null and version != ''">
+     			AND VERSION 									= #{version} 
+		   	</if>
+	</update>
+	
+	<update id="updateStaffAttendanceSum" parameterType="VOperationDeployItem">
+		UPDATE /* vOperationDeploy.updateStaffAttendanceSum */
+			TMT_DEPY_RSLT 										A
+		SET 
+			UPD_YN = 'Y'
+		WHERE 
+			GNRT_YM 											= SUBSTRING(FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd'), 1, 6)
+		   	AND EXISTS 
+					(SELECT 
+						'1' 
+					FROM 
+						TMT_STAFF S 
+		   			WHERE 
+						S.EMP_ID 			= #{empId} 
+		   				AND S.COST_CENT_CD 	= A.COST_CENT_CD)
+	</update>
+	
+	<!--  ################ Delete Statements ######################################### -->
+	
+	<delete id="deleteVOperationDeployItems"  parameterType="VOperationDeployItem">
+		DELETE /* vOperationDeploy.deleteVOperationDeployItems */
+		FROM 
+			TMT_DEPY
+		WHERE 
+			USE_YN 												= 'Y'
+		   	AND VSL_CALL_ID 									= #{vslCallId}
+		  	AND SEQ 											= #{seq}
+		   	<if test="version != null and version != ''">
+     			AND VERSION 									= #{version} 
+		   </if>
+	</delete>   
+
+    <select id="selectShiftIdxByShiftId" parameterType="java.lang.String" resultType="java.lang.Integer">
+    	SELECT /* vOperationDeploy.selectShiftIdxByShiftId */
+			SHFT_IDX
+    	FROM 
+			TMT_SHFT
+    	WHERE 
+			SHFT_ID = #{value}
+    </select>
+    
+	<!--Deployed Forklift List-->	
+	<select id="selectForkliftDeployListForVSR"  parameterType="VOperationDeployParm" resultType="vsrCheckListItem">
+		SELECT /* vOperationDeploy.selectForkliftDeployListForVSR */ 
+	        A.VSL_CALL_ID 										AS VSLCALLID,
+			CONVERT(VARCHAR, D.SEQ) + '' 						AS SEQ,
+			A.WORK_YMD 											AS WORKYMD,
+			FORMAT(
+				CONVERT(DATE, A.WORK_YMD, 103), 
+				'dd/MM/yyyy') 									AS workDate,
+			A.SHFT_ID 											AS SHFTID,
+			ISNULL(
+				(SELECT 
+					SHFT_NM 			AS SHFTNM
+				FROM TMT_SHFT
+				WHERE     
+					SHFT_METH_CD 		= 'Standard'
+					AND VLD_YN 			= 'Y'
+					AND SHFT_ID 		= A.SHFT_ID)
+			, ' ')												AS SHFTNM,
+			(CASE 
+				WHEN D.EQ_DIV_CD IN ( 'FL', 'TR')
+					THEN D.EQ_DIV_CD
+				ELSE 'ME'
+			END) 												AS DIVCD,
+			D.EQ_DIV_CD 										AS EQNO,
+			(CASE 
+				WHEN D.FL_STATUS = 'N' THEN ' '
+				WHEN (C.OPE_COMP IS NOT NULL AND C.OPE_COMP <![CDATA[<>]]> '') 
+					THEN 'CTR' 
+				ELSE 'JPB' 
+			END) 												AS MBSCD,
+			ISNULL(D.LOC_ID, ' ') 								AS WORKLOC,
+			CASE ISNULL(D.LOC_DIV_CD, '')
+				WHEN ''
+					THEN	
+						(SELECT TOP(1) 
+							BERTH_TP
+						FROM 
+							TMT_BERTH_LOC
+						WHERE 
+							LOC_CD 		 = 'BBT' 
+							AND BERTH_CD = ISNULL(D.LOC_ID, ''))
+				ELSE D.LOC_DIV_CD
+			END 												AS WORKLOCTP,
+			(SELECT 
+				S_CD_NM
+			FROM 
+				TMT_CD_MSTD
+			WHERE 
+				L_CD = 'MT' 
+				AND M_CD = 'LOCDIV1' 
+				AND S_CD = D.LOC_ID)							AS WORKLOCTPNM,
+			FORMAT(SYSDATETIME(), 'dd/MM/yyyy HH:mm') 			AS WORKSTDT,
+			FORMAT(SYSDATETIME(), 'dd/MM/yyyy HH:mm') 			AS WORKENDDT,
+			'' 													AS WORKODRNO,
+			(SELECT 
+				EQ_FAC_NO 				AS EQNO
+			FROM 
+				TMT_EQ_FAC
+			WHERE 
+				DIV_CD 					= 'EQ'
+				AND EQ_TP_CD 			= 'FL'
+				AND CAPA_CD 			= D.CAPA_CD
+			) 													AS RSNM,
+			ISNULL(D.CAPA_CD, ' ') 								AS CAPACD,
+			(SELECT 
+				CAPA_DESCR
+			FROM 
+				TMT_EQ_CAPA
+			WHERE 
+				CAPA_CD = D.CAPA_CD) 							AS CAPADESCR,
+			<!--<include refid="sqlEquipmentListParm3"/> 		AS RSQTY,-->
+			0 													AS RSQTY,
+			ISNULL(D.STVD_COMP, '') 							AS DRIVER,
+			(CASE
+				WHEN LEN(D.STVD_COMP) <![CDATA[>]]>= 6
+					THEN
+						ISNULL(
+							SUBSTRING(D.STVD_COMP, 3, 6), 
+							' '
+						)
+				ELSE D.STVD_COMP
+			END)												AS DRIVERHIDDEN,
+			'' 													AS ENGNM,
+			A.STAFF_CD 											AS USER_ID,
+			ISNULL(A.RMK, ' ') 									AS RMK,
+			ISNULL(A.SUMIT_BY, ' ') 							AS SUMITBY,
+			CASE C.OPE_COMP
+				WHEN '' THEN ISNULL(C.OPE_COMP, ' ')
+				ELSE ''
+			END 												AS EMPID,
+			CASE C.OPE_COMP
+				WHEN ''
+					THEN
+						(SELECT 
+							ENG_NM
+						FROM 
+							TMT_STAFF STF
+						WHERE 
+							STF.EMP_ID 	= C.OPE_COMP)
+				ELSE ' '
+			END 												AS EMPNM,
+			ISNULL(C.OPE_COMP, ' ') 							AS CNRTCD,
+			ISNULL(C.OPE_COMP, ' ') 							AS OPERATOR,
+			'' 													AS INTEXTDIVCD,
+			'' 													AS OWNDIVCDNM,
+			FORMAT(SYSDATETIME(), 'dd/MM/yyyy HH:mm') 			AS SETUPTIME,
+			A.REF_NO AS REFNO,
+			ISNULL(A.PURP_TP_CD, '') 							AS PURPOSE,
+			(SELECT 
+				S_CD_NM
+			FROM 
+				TMT_CD_MSTD
+			WHERE 
+				L_CD 					= 'MT' 
+				AND M_CD 				= 'MGPURP' 
+				AND S_CD 				= A.PURP_TP_CD)			AS PURPOSENM,
+			ISNULL(
+				(SELECT TOP(1) 
+					PTNR_CODE
+				FROM 
+					TMT_PTNR_USER
+				WHERE 
+					USER_ID = A.SUMIT_BY),
+			'JPB') 												AS PAYER, 
+			(SELECT TOP(1)
+				CG_TP_CD
+			FROM 
+				TMT_MEGA_DTL
+			WHERE 
+				MEGA_NO = A.MEGA_NO)							AS CGTPCD,
+			(SELECT 
+				S_CD_NM
+			FROM 
+				TMT_CD_MSTD
+			WHERE 
+				L_CD = 'MT' 
+				AND M_CD 	= 'CGTP' 
+				AND S_CD 	= 	(SELECT TOP(1) 
+									CG_TP_CD
+								FROM 
+									TMT_MEGA_DTL
+								WHERE 
+									MEGA_NO = A.MEGA_NO)
+			)													AS CGTPNM
+	    FROM 
+			TMT_MEGA 											A,
+			TMT_MEGA_DTL 										D
+		LEFT OUTER JOIN
+	        TMT_MEGA_DTL_OPE 									C
+				ON C.MEGA_NO 									= D.MEGA_NO
+				AND C.EQ_DIV_CD 								= D.EQ_DIV_CD
+				AND C.CAPA_CD 									= D.CAPA_CD
+				AND C.MEGA_IDX 									= D.SEQ
+	   	WHERE 
+			1 = 1
+			<include refid="sqlEquipmentListParm"/>
+			AND A.MEGA_NO 										= D.MEGA_NO
+			AND A.STAT_CD 										= 'AP'
+			AND D.DIV_CD 										= 'EQ' 
+			AND D.EQ_DIV_CD 									IN ('FL', 'TR', 'SL', 'SH', 'SC', 'MC', 'MV', 'EV')
+			AND CASE 
+					WHEN D.EQ_DIV_CD IN ( 'FL', 'TR') 
+						THEN D.EQ_DIV_CD 
+					ELSE 'ME' 
+				END 											<![CDATA[<>]]> 'ME'
+			<!-- AND NOT EXISTS (SELECT * FROM TMT_VSL_SVC_RPT A WHERE MEGA_SEQ = D.SEQ) -->
+			<!-- AND  <include refid="sqlEquipmentListParm3"/> <![CDATA[>]]> 0-->
+		<!-- 
+		ORDER BY 
+			CAPACD, 
+			RSNM 
+		-->
+
+		UNION ALL
+
+		SELECT  
+	        A.VSL_CALL_ID  										AS VSLCALLID,
+			CONVERT(VARCHAR, D.SEQ) + '' 						AS SEQ,
+			A.WORK_YMD 											AS WORKYMD,
+			FORMAT(
+				CONVERT(DATE, A.WORK_YMD, 112), 
+				'dd/MM/yyyy') 									AS workDate,
+			A.SHFT_ID 											AS SHFTID,
+			ISNULL(
+				(SELECT 
+					SHFT_NM 			AS SHFTNM
+				FROM TMT_SHFT
+				WHERE     
+					SHFT_METH_CD 		= 'Standard'
+					AND VLD_YN 			= 'Y'
+					AND SHFT_ID 		= A.SHFT_ID),
+			' ') 												AS SHFTNM,
+			(CASE 
+				WHEN 
+					D.EQ_DIV_CD IN ( 'FL', 'TR')
+						THEN D.EQ_DIV_CD
+				ELSE 'ME'
+			END) 												AS DIVCD,
+			D.EQ_DIV_CD 										AS EQNO,
+			(CASE 
+				WHEN D.FL_STATUS = 'N' THEN ' '
+				WHEN (C.OPE_COMP IS NOT NULL AND C.OPE_COMP <![CDATA[<>]]> '') 
+					THEN 'CTR' 
+				ELSE 'JPB' 
+			END) 												AS MBSCD,
+			ISNULL (D.LOC_ID, ' ') WORKLOC,
+			<!-- ISNULL(D.LOC_DIV_CD, ' ') 						AS WORKLOCTP, -->
+	        CASE ISNULL(D.LOC_DIV_CD, '')
+				WHEN ''
+					THEN 
+						(SELECT TOP(1) 
+							BERTH_TP
+	                    FROM 
+							TMT_BERTH_LOC
+	                    WHERE 
+							LOC_CD 		 = 'BBT' 
+							AND BERTH_CD = ISNULL(D.LOC_ID, ''))
+					ELSE D.LOC_DIV_CD
+			END 												AS WORKLOCTP,
+			(SELECT 
+				S_CD_NM
+			FROM 
+				TMT_CD_MSTD
+			WHERE 
+				L_CD = 'MT' 
+				AND M_CD = 'LOCDIV1' 
+				AND S_CD = D.LOC_ID)							AS WORKLOCTPNM,
+			FORMAT(SYSDATETIME(), 'DD/MM/YYYY HH24:MI') 		AS WORKSTDT,
+			FORMAT(SYSDATETIME(), 'DD/MM/YYYY HH24:MI') 		AS WORKENDDT,
+			'' 													AS WORKODRNO,
+			(SELECT TOP(1)
+				EQ_FAC_NO 				AS EQNO
+			FROM 
+				TMT_EQ_FAC
+			WHERE 
+				DIV_CD 					= 'EQ'
+				AND EQ_TP_CD 			= 'FL'
+				AND CAPA_CD 			= D.CAPA_CD) 			AS RSNM,
+			ISNULL(D.CAPA_CD, ' ') 								AS CAPACD,
+			(SELECT 
+				CAPA_DESCR
+			FROM 
+				TMT_EQ_CAPA
+			WHERE 
+				CAPA_CD = D.CAPA_CD) 							AS CAPADESCR,
+			dbo.F_COUNT_MEGA_REQ(
+				A.VSL_CALL_ID,
+				D.SEQ,
+				A.WORK_YMD,
+				A.SHFT_ID,
+				(CASE
+					WHEN D.EQ_DIV_CD IN ('FL', 'TR') 
+						THEN D.EQ_DIV_CD
+					ELSE 'ME'
+				END),
+				(CASE
+					WHEN D.FL_STATUS = 'N' THEN ' '
+					WHEN C.OPE_COMP IS NOT NULL THEN 'CTR'
+					ELSE 'JPB'
+				END),
+				A.MEGA_NO,
+				D.EQ_DIV_CD,
+				ISNULL(C.OPE_COMP, ' '))						AS RSQTY,
+			ISNULL(D.STVD_COMP, '') 							AS DRIVER,
+			(CASE
+				WHEN LEN(D.STVD_COMP) <![CDATA[>=]]> 6
+					THEN
+						ISNULL(
+							SUBSTRING(D.STVD_COMP, 3, 6), 
+							' '
+						)
+				ELSE
+				D.STVD_COMP
+			END)												AS DRIVERHIDDEN,
+			'' 													AS ENGNM,
+			A.STAFF_CD 											AS USER_ID,
+			ISNULL(A.RMK, ' ') 									AS RMK,
+			ISNULL(A.SUMIT_BY, ' ') 							AS SUMITBY,
+			CASE C.OPE_COMP
+				WHEN '' THEN ISNULL(C.OPE_COMP, ' ')
+				ELSE ' '
+			END 												AS EMPID,
+			CASE C.OPE_COMP
+				WHEN ''
+					THEN 
+						(SELECT 
+							ENG_NM
+						FROM 
+							TMT_STAFF STF
+						WHERE 
+							STF.EMP_ID = C.OPE_COMP)
+					ELSE ' '
+			END 												AS EMPNM,
+			ISNULL(C.OPE_COMP, ' ') 							AS CNRTCD,
+			ISNULL(C.OPE_COMP, ' ') 							AS OPERATOR,
+			'' 													AS INTEXTDIVCD,
+			'' 													AS OWNDIVCDNM,
+			FORMAT(SYSDATETIME(), 'dd/MM/yyyy HH:mm') 			AS SETUPTIME,
+			A.REF_NO 											AS REFNO,
+			ISNULL(A.PURP_TP_CD, '') 							AS PURPOSE,
+			(SELECT 
+				S_CD_NM
+			FROM 
+				TMT_CD_MSTD
+			WHERE 
+				L_CD 					= 'MT' 
+				AND M_CD 				= 'MGPURP' 
+				AND S_CD 				= A.PURP_TP_CD)			AS PURPOSENM,
+			ISNULL(
+				(SELECT TOP(1)
+					PTNR_CODE
+				FROM 
+					TMT_PTNR_USER
+				WHERE 
+					USER_ID = A.SUMIT_BY),
+			'JPB') 												AS PAYER, 
+			(SELECT TOP(1) 
+				CG_TP_CD
+			FROM 
+				TMT_MEGA_DTL
+			WHERE 
+				MEGA_NO = A.MEGA_NO)							AS CGTPCD,
+			(SELECT 
+				S_CD_NM
+			FROM 
+				TMT_CD_MSTD
+			WHERE 
+				L_CD = 'MT' 
+				AND M_CD = 'CGTP' 
+				AND S_CD = 	(SELECT TOP(1)
+								CG_TP_CD
+							FROM 
+								TMT_MEGA_DTL
+							WHERE 
+								MEGA_NO = A.MEGA_NO))			AS CGTPNM
+	    FROM TMT_MEGA 											A,
+	        TMT_MEGA_DTL 										D
+		LEFT OUTER JOIN
+			TMT_MEGA_DTL_OPE 									C
+	        	ON 	C.MEGA_NO 									= D.MEGA_NO
+				AND C.EQ_DIV_CD 								= D.EQ_DIV_CD
+				AND C.CAPA_CD 									= D.CAPA_CD
+				AND C.MEGA_IDX 									= D.SEQ 
+	   	WHERE 
+			1 = 1
+			<include refid="sqlEquipmentListParm"/>
+			AND A.MEGA_NO 										= D.MEGA_NO
+			AND A.STAT_CD 										= 'AP'
+			AND D.DIV_CD 										= 'EQ' 
+			<!--AND D.EQ_DIV_CD IN ('FL', 'TR', 'SL', 'SH', 'SC', 'MC', 'MV', 'EV' , 'GR') -->
+			AND CASE 
+					WHEN D.EQ_DIV_CD IN ('FL', 'TR') 
+						THEN D.EQ_DIV_CD 
+				ELSE 'ME' 
+			END 												= 'ME'
+			<!-- AND NOT EXISTS (SELECT * FROM TMT_VSL_SVC_RPT A WHERE MEGA_SEQ = D.SEQ) -->
+			<!-- AND dbo.F_COUNT_VSR (
+				A.VSL_CALL_ID,
+				d.seq,
+				A.WORK_YMD,
+				a.SHFT_ID,
+				(CASE
+					WHEN D.EQ_DIV_CD IN ('FL', 'TR') THEN D.EQ_DIV_CD
+					ELSE 'ME'
+				END),
+				(CASE
+					WHEN D.FL_STATUS = 'N' THEN ' '
+					WHEN C.OPE_COMP IS NOT NULL THEN 'CTR'
+					ELSE 'JPB'
+				END),
+				A.REF_NO,
+				D.EQ_DIV_CD,
+				NVL (C.OPE_COMP, ' ')) <![CDATA[<=]]> 0 -->
+		<!-- 
+		ORDER BY 
+			CAPACD, 
+			RSNM 
+		-->
+	</select>
+	
+	<select id="checkValidation" parameterType="VOperationDeployParm" resultType="VOperationDeployItem">
+		SELECT /* vOperationDeploy.checkValidation */
+			EMP_ID 												AS empId,
+			WORK_YMD 											AS workYmd,
+			SHFT_ID 											AS shftId,
+			WORK_CD 											AS workCd,
+			CASE 
+				WHEN 
+					(SELECT 
+						COUNT(*)  
+					FROM 
+						TMT_HLDAY 
+					WHERE 
+						HLDAY_YMD 								= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')) > 0
+					THEN 'Y'
+				ELSE 'N'
+			END  												AS isPuclicHoliday
+		FROM 
+			TMT_DEPY   
+		WHERE
+			(EMP_ID IS NOT NULL									AND EMP_ID <![CDATA[<>]]> '')
+			AND (WORK_CD IS NOT NULL							AND WORK_CD <![CDATA[<>]]> '')
+			<!-- AND (  GAZA_HLD <![CDATA[<> ]]>'Y' OR GAZA_HLD IS NULL) -->
+			<if test="workYmd != null and workYmd != ''">
+				AND WORK_YMD 									= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+			</if>
+			<if test="shftId != null and shftId != ''">
+				AND SHFT_ID  									= #{shftId}
+			</if>
+			<if test="empId != null and empId != ''">
+				AND EMP_ID 										= #{empId}
+			</if>
+		GROUP BY 
+			EMP_ID,
+			WORK_YMD,
+			SHFT_ID,
+			WORK_CD
+	</select>
+	
+	<select id="selectStaffAdded" parameterType="VOperationDeployParm" resultType="VOperationDeployItem">
+		SELECT /* vOperationDeploy.selectStaffAdded */
+			EMP_ID 												AS EMPID	
+		FROM 
+			TMT_DEPY
+		WHERE  
+			WORK_YMD 											= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+			AND SHFT_ID  										= #{shftId}
+			AND EMP_ID 											= #{empId}
+			
+	</select>
+</mapper>

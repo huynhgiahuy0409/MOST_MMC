@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:util="http://www.springframework.org/schema/util" xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/aop
+		http://www.springframework.org/schema/aop/spring-aop-3.1.xsd
+		http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/mvc
+		http://www.springframework.org/schema/mvc/spring-mvc-3.1.xsd
+		http://www.springframework.org/schema/context
+		http://www.springframework.org/schema/context/spring-context-3.1.xsd
+		http://www.springframework.org/schema/tx
+		http://www.springframework.org/schema/tx/spring-tx-3.1.xsd
+		http://www.springframework.org/schema/util
+		http://www.springframework.org/schema/util/spring-util-3.1.xsd
+        http://www.springframework.org/schema/task
+        http://www.springframework.org/schema/task/spring-task-3.1.xsd">
+	
+	<!--  
+	<bean id="sendInvoice" class="com.tsb.most.common.util.scheduler.SendInvoiceScheduler" />
+	<bean id="coldStorageInvoice" class="com.tsb.most.common.util.scheduler.ColdStorageInvoiceScheduler" />
+	<task:scheduler id="schedulerList" pool-size="10" />
+	<task:scheduler id="coldStorageSheduler" pool-size="10" />
+
+	<task:scheduled-tasks scheduler="schedulerList">
+		<task:scheduled ref="sendInvoice" method="executeTask" cron="* 00 00 * * *" />
+	</task:scheduled-tasks>
+	
+	<task:scheduled-tasks scheduler="coldStorageSheduler">
+		<task:scheduled ref="coldStorageInvoice" method="executeTask" cron="* 45 23 * * *" />
+	</task:scheduled-tasks>
+	-->
+	
+	<!-- SSO Session Manager -->
+	<bean id="ssoSessionManager" class="com.tsb.most.common.sso.scheduler.SSOSessionScheduler" />
+	<task:scheduler id="ssoSessionManagerScheduler" pool-size="10" />
+	
+	<task:scheduled-tasks scheduler="ssoSessionManagerScheduler">
+		<task:scheduled ref="ssoSessionManager" method="executeTask" cron="0 0/10 * * * ?" />
+	</task:scheduled-tasks>
+</beans>

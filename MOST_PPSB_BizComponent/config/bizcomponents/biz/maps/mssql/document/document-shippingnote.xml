@@ -1,0 +1,2027 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="shippingNote">
+	<resultMap 	id="resultUnitItem" 				type="shippingNoteItem">
+   		<result property = "vslCd"					column = "VSL_CD"/>
+   		<result property = "callYear"				column = "CALL_YEAR"/>
+   		<result property = "callSeq"				column = "CALL_SEQ"/>
+   		<result property = "vslCallId"				column = "VSL_CALL_ID"/>
+   		<result property = "mfDocId"				column = "MF_DOC_ID"/>
+   		<result property = "shipgNoteNo"			column = "CG_NO"/>
+   		<result property = "seq"					column = "SEQ"/>
+   		<result property = "unitNo"					column = "CHAS_NO"/>
+   		<result property = "brandCd"				column = "BRAND_CD"/>
+   		<result property = "brandNm"				column = "BRAND_NM"/>
+   		<result property = "modelCd"				column = "MODEL_CD"/>
+   		<result property = "modelNm" 				column = "MODEL_NM"/>
+   		<result property = "roroMt"					column = "DOC_WGT"/>
+   		<result property = "cbm"					column = "CBM"/>
+   		<result property = "newYn" 					column = "NEW_YN"/>
+   		<result property = "action" 				column = "ACTION"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultPackageItem" 				type="shippingNoteItem">
+   		<result property = "callYear"				column = "CALL_YEAR"/>
+   		<result property = "callSeq"				column = "CALL_SEQ"/>
+   		<result property = "vslCallId"				column = "VSL_CALL_ID"/>
+   		<result property = "mfDocId"				column = "MF_DOC_ID"/>
+   		<result property = "shipgNoteNo"			column = "REF_NO"/>
+   		<result property = "pkgNo"					column = "PKG_NO"/>
+   		<result property = "pkgDesc"				column = "PKG_DESC"/>
+   		<result property = "pkgMt"					column = "CG_WGT"/>
+   		<result property = "pkgM3"					column = "CG_VOL"/>
+   		<result property = "weight" 				column = "WEIGHT"/>
+   		<result property = "height"					column = "HEIGHT"/>
+   		<result property = "length"					column = "LENGTH"/>
+   		<result property = "pkgRmk"					column = "RMK"/>
+   		<result property = "action" 				column = "ACTION"/>
+ 	</resultMap>
+	
+	<sql id="sqlShippingNote">
+		SELECT 	DISTINCT /* shippingnote.sqlShippingNote */
+				ISNULL(A.VSL_CALL_ID, ' ') 											AS VSLCALLID,
+				ISNULL(A.VSL_CD, ' ') 												AS VSLCD,
+				ISNULL(A.CALL_YEAR, ' ') 											AS CALLYEAR,
+				ISNULL(A.CALL_SEQ, ' ') 											AS CALLSEQ,
+				ISNULL(A.SHIPG_NOTE_NO, ' ') 										AS SHIPGNOTENO, 
+				ISNULL(A.SHIPG_NOTE_NO, ' ') 										AS NEWSHIPGNOTENO, 
+				A.CBR_NO 															AS CBRNO,
+				A.SHIP_CALL_NO														AS SCN,
+				CASE A.DOMESTIC_CHK
+					WHEN 'Y' THEN 'Domestic Cargo'
+					ELSE ''
+				END 																AS domesticChk,
+				A.WGT_CHK AS WGTCHK,
+				A.PROJECT_CARGO         											AS projectCargo,
+				CASE (SELECT DG_CHK FROM TMT_DG WHERE SEQ = A.DG_SEQ)
+					WHEN 'Y' THEN 'Confirmed'
+					WHEN 'N' THEN 'Not Confirmed'
+					WHEN 'R' THEN 'Reject'
+					WHEN 'C' THEN 'Cancel'
+					ELSE ''
+				END 																AS DGSTATNM,
+				FORMAT(
+					(SELECT 
+						CONFM_DT 
+					FROM 
+						TMT_DG 
+					WHERE 
+						SEQ = A.DG_SEQ), 
+					'dd/MM/yyyy HH:mm'
+				) 																	AS DGAPRVDT,
+				(SELECT TOP(1)
+					CASE
+						WHEN (CUS.DOC_NO IS NULL OR CUS.DOC_NO = '') 
+							THEN 'HOLD'
+						WHEN (CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]> '') AND (CUS.RELEASE_MT IS NULL OR CUS.RELEASE_MT = '')
+							THEN 'RELEASE'
+						ELSE 'RELEASE'
+					END 					AS status
+				FROM 
+					TMT_SHIPG_NOTE 			SN
+				LEFT OUTER JOIN 
+					(SELECT 
+						DOC_NO, 
+						REF_NO,  
+						VSL_CALL_ID, 
+						SUM (RELEASE_MT) 	AS RELEASE_MT, 
+						SUM (RELEASE_QTY) 	AS RELEASE_QTY
+					FROM 
+						TMT_CUSTOMS_RELEASE
+					GROUP BY 
+						DOC_NO, 
+						REF_NO, 
+						VSL_CALL_ID
+					) 									CUS 	
+						ON CUS.VSL_CALL_ID = SN.VSL_CALL_ID
+						AND (
+							((CUS.REF_NO IS NULL OR CUS.REF_NO = '') AND CUS.DOC_NO = SN.MF_DOC_ID)
+							OR 
+							((CUS.REF_NO IS NOT NULL AND CUS.REF_NO <![CDATA[<>]]> '') AND CUS.REF_NO = SN.SHIPG_NOTE_NO)
+						)
+				WHERE 
+					SN.VSL_CALL_ID 			= A.VSL_CALL_ID 
+					AND SN.SHIPG_NOTE_NO 	= A.SHIPG_NOTE_NO 
+				) 																	AS CUSTOMSAPRVSTAT,
+	            (SELECT TOP(1)
+					CUSTOMS_RELEASE_DT
+				FROM 
+					TMT_SHIPG_NOTE SN
+	     		LEFT OUTER JOIN 
+					TMT_CUSTOMS_RELEASE 	CUS
+	        			ON CUS.VSL_CALL_ID 	= SN.VSL_CALL_ID
+						AND (
+							((CUS.REF_NO IS NULL OR CUS.REF_NO = '') AND CUS.DOC_NO = SN.MF_DOC_ID)
+							OR 
+							((CUS.REF_NO IS NOT NULL AND CUS.REF_NO <![CDATA[<>]]> '') AND CUS.REF_NO = SN.SHIPG_NOTE_NO)
+						)
+				WHERE 
+					SN.VSL_CALL_ID 			= A.VSL_CALL_ID 
+					AND SN.SHIPG_NOTE_NO 	= A.SHIPG_NOTE_NO
+				)  																	AS CUSTOMSAPRVDT,
+				A.SHPR_NM 															AS SHPRNM,
+				A.CNSNE_NM 															AS CNSNENM,
+				ISNULL(A.CG_WGT, 0.00) 												AS CGWGT, 
+				A.TSPT_TP_CD  														AS TSPTTPCD, 
+				A.DELV_TP_CD  														AS DELVTPCD, 
+				ISNULL(A.STAT_CD, ' ')  											AS STATCD, 
+				CASE A.STAT_CD
+					WHEN 'AP' THEN 'Approved'
+					WHEN 'ST' THEN 'Submitted'
+					ELSE ''
+				END 																AS STATCDNM,
+				A.POD  																AS PORTOFDIS, 
+				dbo.F_CM_CODE_NM('MT', 'PORT', A.POD) 								AS PORTOFDISNM,
+				A.POR  																AS CNTRYOFORG,
+				dbo.F_CM_CODE_NM('MT', 'PORT', A.POR)  								AS CNTRYOFORGNM,
+				ISNULL(A.PKG_QTY,0)  												AS PKGQTY, 
+				A.PKG_TP_CD  														AS PKGTPCD, 
+				dbo.F_CM_CODE_NM('MT', 'PKGTP', A.PKG_TP_CD) 						AS PKGTPCDNM,
+				dbo.F_CM_CODE_NM('MT', 'DELVTP', A.DELV_TP_CD) 						AS DELVTPCDNM,
+				<!-- dbo.F_CM_CODE_NM('MT', 'TSPTTP', A.TSPT_TP_CD)						AS TSPTTPCDNM, -->
+				CASE
+					WHEN (D.D_LR_MT > 0 OR D.D_LR_M3 > 0 OR D_LR_QTY > 0) AND (D.D_VSL_MT = 0 AND D.D_VSL_M3 = 0 AND D.D_VSL_QTY = 0)
+						THEN 'LORRY'
+					WHEN (D.D_LR_MT = 0 AND D.D_LR_M3 = 0 AND D_LR_QTY = 0) AND (D.D_VSL_MT > 0 OR D.D_VSL_M3 > 0 OR D.D_VSL_QTY > 0)
+						THEN 'VESSEL'
+					WHEN (D.I_MT > 0 OR D.I_M3 > 0 OR D.I_QTY > 0)
+						THEN 'LORRY'
+					ELSE ''
+				END 																AS TSPTTPCDNM,
+				FORMAT(A.ACK_DT, 'dd/MM/yyyy HH:mm:ss') 							AS ACKDT,
+				ISNULL(A.ACK_BY, ' ') 			 									AS ACKBY,
+				ISNULL(A.CG_VOL, 0.00)  											AS CGMSRMT,
+				A.TSPT_COMP  														AS TSPTCOMP,
+				(SELECT 
+					ENG_SNM 
+				FROM 
+					TMT_PTNR 
+				WHERE 
+					PTNR_TYPE 				= 'TRK' 
+					AND PTNR_CODE 			= A.TSPT_COMP) 							AS TSPTCOMPNM,
+				A.IMDG  															AS IMDG,
+				A.UNNO  															AS UNNO,
+				A.FDEST  															AS FNLDEST,
+				dbo.F_CM_CODE_NM('MT', 'PORT', A.FDEST) 							AS FNLDESTNM,
+				FORMAT(A.EST_ARRV_DT, 'dd/MM/yyyy HH:mm') 							AS ESTARRVDT,
+				ISNULL(FORMAT(A.EST_ARRV_DT, 'dd/MM/yyyy HH:mm'),'') 				AS ESTARRVDT1,
+				ISNULL(A.MARK_NO, ' ')  											AS MARKNO,
+				A.RMK  																AS RMK,
+				A.SHPR  															AS SHPR, 
+				A.SHPR_ADDR  														AS SHPRADDR,
+				A.CNSNE  															AS CNSNE,
+				A.CNSNE_ADDR  														AS CNSNEADDR,
+				dbo.F_CM_CODE_NM('MT', 'CATGTP', A.CATG_CD)  						AS CATGCDNM,
+				A.CATG_CD  															AS CATGCD,
+				dbo.F_GET_SN_LINKED(A.VSL_CALL_ID, A.SHIPG_NOTE_NO) 				AS LINKED,
+				A.FWRD  															AS FWRD, 
+				(SELECT 
+					ENG_SNM 
+				FROM 
+					TMT_PTNR 
+				WHERE 
+					PTNR_TYPE 				= 'FWD' 
+					AND PTNR_CODE 			= A.FWRD)								AS FWRDNM,
+				(SELECT 
+					ADDR 
+				FROM 
+					TMT_PTNR 
+				WHERE 
+					PTNR_TYPE 				= 'FWD' 
+					AND PTNR_CODE 			= A.FWRD)								AS FWRDADDR,
+				A.CG_TP_CD  														AS CGTPCD,
+				dbo.F_CM_CODE_NM('MT','CGTP',A.CG_TP_CD) 							AS CGTPCDNM, 
+				A.CMDT_CD AS CMDTCD,
+				(SELECT CMDT_DESC FROM TMT_CMDT WHERE CMDT_CD = A.CMDT_CD) 			AS CMDTCDNM,
+				' '  																AS CHK, 
+				CASE (SELECT 
+						COUNT(*) 
+					FROM 
+						TMT_GR B 
+					WHERE 
+						B.VSL_CALL_ID 		= A.VSL_CALL_ID 
+						AND B.SHIPG_NOTE_NO = A.SHIPG_NOTE_NO)
+					WHEN 0 THEN 'false'
+					ELSE 'true'
+				END 																AS GRYN,
+				(SELECT TOP(1)
+					VSL_NM 
+				FROM 
+					TMT_VSL_PART 
+				WHERE 
+					VSL_CD 					= B.VSL_CD 
+				) 																	AS VSLNM,
+				B.INB_VOY 															AS INBVOYAGE,
+				B.OUTB_VOY 															AS OUTBVOYAGE,
+				B.BERTH_LOC 														AS BERTHLOC,
+				dbo.F_GET_SN_LOC(A.VSL_CALL_ID, A.SHIPG_NOTE_NO) 					AS WHLOC, 
+				FORMAT(B.ETA,'dd/MM/yyyy') 											AS ETA,
+		     	A.SHIPG_AGNCY 														AS SACD,
+				(SELECT 
+					ENG_SNM 
+				FROM 
+					TMT_AGENCY_INFO 
+				WHERE 
+					AGENCY_CODE 			= B.ARRV_SA_ID
+				) 																	AS SA,
+				(SELECT 
+					ADDR 
+				FROM 
+					TMT_AGENCY_INFO
+				WHERE 
+					AGENCY_CODE 			= B.ARRV_SA_ID
+				) 																	AS SAADDR1,
+				dbo.F_CM_CODE_NM('MT', 'CGTP', A.CG_TP_CD) 							AS CGTPNM,
+				A.DG_SEQ 															AS DGSEQ,
+				(SELECT 
+					STAT_CD 
+				FROM 
+					TMT_DG 
+				WHERE 
+					A.DG_SEQ = SEQ
+				) 																	AS DGSTATCD,
+				A.VERSION 															AS VERSION,
+				A.MF_DOC_ID 														AS MFDOCID,
+				A.MF_DOC_ID 														AS NEWMFDOCID,
+				GDS_RMK 															AS GOODSDESCR,
+				CMDT_GRP_CD 														AS CMDTGROUPCD,
+				(SELECT TOP(1)
+					CMDT_GRP_DESC
+				FROM 
+					TMT_CMDT CMDT
+				WHERE 
+					CMDT.CMDT_GRP_CD 		= A.CMDT_GRP_CD
+				) 																	AS CMDTGROUPCDNM,
+				PKG_NO 																AS PKGNUMBER,
+				EACH_WGT 															AS EACHWGT,
+				EACH_VOL 															AS EACHMSRMT,
+				WIDTH 																AS CGWTH,
+				HEIGHT 																AS CGHGT,
+				LENGTH 																AS CGLEN,
+				FREIGHT_TON 														AS FREIGHTTON,
+				C.VSL_TP 															AS VSLTP,
+				CASE A.BONDED_WH_YN
+					WHEN 'Y' THEN 'Y'
+					ELSE ''
+				END																	AS BONDEDWHYN,
+				ADDITIONAL_CHK 														AS ADDITIONALCHK,
+				LOT_NO 																AS LOTNO,
+				(SELECT 
+					STRING_AGG(DBL.HATCH_NO, ',') 
+					WITHIN GROUP 
+						(ORDER BY 
+							DBL.VSL_CD, 
+							DBL.CALL_YEAR, 
+							DBL.CALL_SEQ, 
+							DBL.VSL_CALL_ID
+						) 
+	            FROM 
+					TMT_SHIPG_NOTE_DTL 		DBL
+	            WHERE 
+					1 = 1
+					AND DBL.VSL_CD 			= A.VSL_CD
+					AND DBL.CALL_YEAR 		= A.CALL_YEAR
+					AND DBL.CALL_SEQ		= A.CALL_SEQ
+					AND DBL.VSL_CALL_ID 	= A.VSL_CALL_ID 
+					AND DBL.SHIPG_NOTE_NO 	= A.SHIPG_NOTE_NO
+				)  																	AS hatchNo,
+				A.STAFF_CD 															AS UPDUSERID,
+				A.UPDATE_TIME 														AS UPDDT,
+				ISNULL(D.D_MT, 0) 													AS DMT,	 
+				ISNULL(D.D_M3, 0) 													AS DM3,
+				ISNULL(D.D_QTY, 0) 													AS DQTY,
+				ISNULL(D.I_MT, 0) 													AS IMT, 
+				ISNULL(D.I_M3, 0) 													AS IM3,	 
+				ISNULL(D.I_QTY, 0) 													AS IQTY,
+				ISNULL(D.D_LR_MT, 0) 												AS DLRMT,
+				ISNULL(D.D_LR_M3, 0) 												AS DLRM3, 
+				ISNULL(D.D_LR_QTY, 0) 												AS DLRQTY,	 
+				ISNULL(D.D_VSL_MT, 0) 												AS DVSLMT,
+				ISNULL(D.D_VSL_M3, 0) 												AS DVSLM3,
+				ISNULL(D.D_VSL_QTY, 0) 												AS DVSLQTY,
+				A.HS_CODE															AS HSCODE,
+				(SELECT TOP(1)
+					HS_CD_NM
+				FROM
+					TMT_HS_AHTN_CD_MST
+				WHERE
+					HS_CD = A.HS_CODE)												AS HSNM
+		FROM 
+				TMT_SHIPG_NOTE A 
+				LEFT OUTER JOIN TMT_VSL_SCH B ON A.VSL_CALL_ID = B.VSL_CALL_ID 
+				LEFT OUTER JOIN TMT_VSL_PART C ON B.VSL_CD = C.VSL_CD 
+				LEFT OUTER JOIN TMT_SHIPG_NOTE_AMT D ON A.VSL_CALL_ID = D.VSL_CALL_ID AND A.SHIPG_NOTE_NO = D.SHIPG_NOTE_NO AND A.MF_DOC_ID = D.MF_DOC_ID
+		WHERE 
+				(A.VSL_CALL_ID IS NOT NULL AND A.VSL_CALL_ID <![CDATA[<>]]> '')  														
+				<if test="vslCallId != null and vslCallId != ''">
+					AND A.VSL_CALL_ID = #{vslCallId} 
+				</if>
+				<if test="scn != null and scn != ''">
+                    AND A.SHIP_CALL_NO = #{scn}
+                </if>
+				<if test="lotNo != null and lotNo != ''">
+					AND A.LOT_NO = #{lotNo}
+				</if>
+				<if test="mfDocId != null and mfDocId != ''">
+					AND A.MF_DOC_ID LIKE '%' + #{mfDocId} + '%'
+				</if>
+				<if test="vslNm != null and vslNm != ''">
+					AND C.VSL_NM LIKE '%' + #{vslNm} + '%'
+				</if>
+	</sql>
+	
+	<select id="selectShippingNoteList" parameterType="shippingNoteParm" resultType="shippingNoteItem">
+	 	<if test="pageNo != 0"> 
+			SELECT /* shippingNote.selectShippingNoteList */
+             	*
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY VSLCALLID) AS ROW_NUM,
+					innerTable.*
+				FROM ( 
+		</if>
+				<include refid="getItems"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT)) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<select id="selectShippingNoteListCount" parameterType="shippingNoteParm" resultType="java.lang.String">
+		SELECT 
+			COUNT(*)
+        FROM 
+			(<include refid="getItems"/>) 						AS TEMPTABLE 
+	</select>
+  	
+  	<sql id="getItems">
+		<include refid="sqlShippingNote"/>
+			AND A.VSL_CALL_ID = B.VSL_CALL_ID
+		<if test="delvTpCd != null and delvTpCd != ''">
+  			AND	A.DELV_TP_CD = #{delvTpCd}
+		</if>
+		<if test="statCd != null and statCd != ''">
+  			AND	A.STAT_CD = #{statCd}
+		</if>
+		<if test="shipgNoteNo != null and shipgNoteNo != ''">
+  			AND	A.SHIPG_NOTE_NO LIKE '%' + #{shipgNoteNo} + '%'
+		</if>
+		<if test='authority == "FWD"'>
+			<if test="ptnrCd != null and ptnrCd != ''">
+    			AND	A.FWRD  = #{ptnrCd}
+			</if>
+		</if>
+		<if test="ptnrCd != null and ptnrCd != ''">
+			<if test='authority == "SHA"'>
+				AND A.SHIPG_AGNCY = #{ptnrCd}
+			</if>
+			<if test='authority == "BH"'>
+				AND (A.SHIPG_AGNCY = #{ptnrCd} OR A.FWRD = #{ptnrCd})
+			</if>
+			<if test='authority == "SHAFWD"'>
+				AND (A.SHIPG_AGNCY = #{ptnrCd} OR A.FWRD = #{ptnrCd})
+			</if>
+			<if test='authority == "CNS"'>
+				AND A.CNSNE = #{ptnrCd} OR A.SHPR = #{ptnrCd}
+			</if>
+		</if>
+		<if test="fwrd != null and fwrd != ''">
+  			AND	A.FWRD = #{fwrd}
+		</if>
+		<if test="arrvDtFm != null and arrvDtFm != ''">
+			<choose>
+				<when test="vslCallId == 'STRG'">
+					AND	A.EST_ARRV_DT <![CDATA[ >=]]> CONVERT(DATE, #{arrvDtFm}, 103)
+				</when>
+				<otherwise>
+					AND	B.ETA <![CDATA[ >=]]> CONVERT(DATE, #{arrvDtFm}, 103)
+				</otherwise>
+			</choose>
+  			
+		</if>
+		<if test="arrvDtTo != null and arrvDtTo != ''">
+			<choose>
+				<when test="vslCallId == 'STRG'">
+					AND	A.EST_ARRV_DT <![CDATA[ <=]]> CONVERT(DATE, #{arrvDtTo}, 103)
+				</when>
+				<otherwise>
+					AND	B.ETA <![CDATA[ <=]]> DATEADD(DAY, 1, CONVERT(DATE, #{arrvDtTo}, 103))
+				</otherwise>
+			</choose>
+  			
+		</if>
+    </sql>
+    
+	<select id="selectShippingNoteDtlList" parameterType="shippingNoteParm" resultType="shippingNoteItem">
+		SELECT DISTINCT /* shippingNote.selectShippingNoteDtlList */
+			ISNULL(FORMAT(A.EST_ARRV_DT, 'dd/MM/yyyy HH:mm'),'')	AS estArrvDt,
+			ISNULL(B.VSL_CALL_ID, ' ')  						AS VSLCALLID,
+			B.VSL_CD  				 							AS VSLCD,
+			B.CALL_YEAR  				 						AS CALLYEAR,
+			B.CALL_SEQ  										AS CALLSEQ,
+			ISNULL(B.SHIPG_NOTE_NO, ' ')  						AS SHIPGNOTENO,
+			B.CMDT_CD AS CMDTCDDTL,
+			(SELECT 
+				CMDT_DESC 
+			FROM 
+				TMT_CMDT 
+			WHERE 
+				CMDT_CD = A.CMDT_CD
+			)  				 									AS CMDTCDNM,
+			ISNULL(A.CG_WGT, 0.00)  							AS CGWGT,
+			ISNULL(A.PKG_QTY, 0.00)  							AS PKGQTY,
+			A.ACK_DT,
+			ISNULL(B.PKG_QTY,0)  								AS PKGQTYDTL,
+			ISNULL(B.CG_WGT,0)  								AS WGTDTL,
+			ISNULL(B.PKG_TP_CD, ' ')   							AS PKGTPCDDTL,	
+			ISNULL(B.SEQ, 0 )             						AS SEQ,	
+			CONVERT(NVARCHAR, B.PKG_QTY) + '/' + 	
+				(SELECT TOP(1)
+					S_CD_NM 
+				FROM 
+					TMT_CD_MSTD 
+				WHERE 
+					L_CD 		= 'MT' 
+					AND M_CD 	='PKGTP' 
+					AND S_CD 	= B.PKG_TP_CD
+			) 													AS PKG, 
+			B.DIV_CD           									AS DIVCD,
+			B.TSPT_TP_CD       									AS TSPTTPCDDTL,	
+			(SELECT TOP(1)
+				S_CD_NM 
+			FROM 
+				TMT_CD_MSTD 
+			WHERE 
+				L_CD 			= 'MT' 
+				AND M_CD 		= 'PKGTP' 
+				AND S_CD 		= B.PKG_TP_CD
+			) 													AS PKGTPCDNM,	
+			B.HATCH_NO 											AS HATCHNO                                  
+		FROM 
+			TMT_SHIPG_NOTE 										A, 
+			TMT_SHIPG_NOTE_DTL 									B               
+		WHERE 
+			A.VSL_CALL_ID										= B.VSL_CALL_ID
+			AND A.SHIPG_NOTE_NO 								= B.SHIPG_NOTE_NO 			 
+			AND B.VSL_CALL_ID									= #{vslCallId}		
+			AND B.SHIPG_NOTE_NO 								= #{shipgNoteNo}
+		<if test="divCd != null and divCd != ''">
+			AND	B.DIV_CD 										= #{divCd}
+		</if>	   	
+		<if test='tsptTpCd == "LC"'>
+			AND	(B.TSPT_TP_CD 									= 'LR' OR B.TSPT_TP_CD = 'CV')
+		</if>
+		<if test='tsptTpCd == "LW"'>
+			AND	(B.TSPT_TP_CD 									= 'LR' OR B.TSPT_TP_CD = 'WG')
+		</if>
+		 <if test='tsptTpCd == "LR"'>
+	 		AND	B.TSPT_TP_CD 									= 'LR' 
+		</if>
+		<if test='tsptTpCd == "CV"'>
+			AND	B.TSPT_TP_CD 									= 'CV' 
+		</if>
+		<if test='tsptTpCd == "WG"'>
+			AND	B.TSPT_TP_CD 									= 'WG' 
+		</if>	
+		<if test='tsptTpCd == "SE"'>
+			AND	 B.TSPT_TP_CD 									= 'SE' 
+		</if>	
+		ORDER BY 
+		 	B.TSPT_TP_CD ASC	     	
+    </select>    
+    
+	<select id="selectShippingNoteNoItems" parameterType="shippingNoteParm" resultType="shippingNoteItem">
+		SELECT /* shippingNote.selectShippingNoteNoItems */
+			'SN' 
+			+ #{vslCd}
+			+ FORMAT(SYSDATETIME(), 'yyyyMMdd')
+			+ REPLACE (RIGHT('00000'+ CONVERT(INT, ISNULL(MAX(SUBSTRING(SHIPG_NOTE_NO, 15, 5)), '0')) + 1 , 5), ' ','') 	AS SHIPGNOTENO
+		FROM 
+			TMT_SHIPG_NOTE 
+		WHERE 
+			SHIPG_NOTE_NO LIKE 'SN' + #{vslCd} + FORMAT(SYSDATETIME(), 'yyyyMMdd') + '%'
+    </select>
+    
+	<select id="selectDetailSumItems" parameterType="shippingNoteParm" resultType="shippingNoteItem">
+		SELECT /* shippingNote.selectDetailSumItems */
+			MAX(
+				CASE TSPT_TP_CD
+					WHEN 'LR' THEN CG_WGT
+					ELSE ISNULL(0.00, '')
+				END
+			)  													AS WGTLORRY,     			 
+			MAX(
+				CASE TSPT_TP_CD
+					WHEN 'CV' THEN CG_WGT
+					ELSE ISNULL(0.00, '')
+				END
+			)  													AS WGTCONVEYOR,
+			MAX(
+				CASE TSPT_TP_CD
+					WHEN 'WG' THEN CG_WGT
+					ELSE ISNULL(0.00, '')
+				END
+			)  													AS WGTWEGON      
+		FROM 
+			TMT_SHIPG_NOTE_DTL            
+		WHERE 
+			VSL_CALL_ID											= #{vslCallId}
+			AND SHIPG_NOTE_NO 									= #{shipgNoteNo}
+			AND DIV_CD 											= 'W'  
+		GROUP BY 
+			VSL_CALL_ID, 
+			SHIPG_NOTE_NO         
+	</select>
+ 
+	<select id="selectShippingNoteComboList"  parameterType="shippingNoteParm" resultType="shippingNoteItem">
+		SELECT /* shippingNote.selectShippingNoteComboList */
+			SHIPG_NOTE_NO    									AS SHIPGNOTENO
+		FROM 
+			TMT_SHIPG_NOTE 										S
+		WHERE 
+			S.CG_TP_CD 											<![CDATA[<>]]> 'RCV'
+		<if test="vslCallId != null and vslCallId != ''">
+			AND VSL_CALL_ID 									= #{vslCallId} 
+		</if>			
+		<if test="ptnrCd != null and ptnrCd != ''">
+			AND FWRD 											= #{ptnrCd} 
+		</if>
+		<if test="vslCallId == null or vslCallId == ''">
+			AND VSL_CALL_ID 									&lt;&gt; 'NonCallId'
+		</if>
+		<if test='opType == "cgMst"'>
+			AND CATG_CD IN ('E','S')
+			AND EXISTS	(SELECT 
+							GR_NO 
+						FROM 
+							TMT_GR R 
+						WHERE 
+							R.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO)
+		</if>
+		<if test='opType == "popUpGr"'>
+			 AND CATG_CD 										IN ('E')
+		</if>
+		<if test='opType == "whCgMstGr"'>
+			AND CATG_CD 										IN ('E','S')
+		</if>
+		<if test='opType == "cgRh"'>
+			AND CATG_CD 										IN ('S')
+		</if>
+		GROUP BY 
+		 	SHIPG_NOTE_NO
+		ORDER BY 
+			SHIPG_NOTE_NO
+	</select>
+	
+	<select id="selectShippingNoteComboList2"  parameterType="shippingNoteParm" resultType="shippingNoteItem">
+		<if test='searchTypeCboSN == "B"'>
+			SELECT DISTINCT /* shippingNote.selectShippingNoteComboList2 */
+				A.SHIPG_NOTE_NO 								AS SHIPGNOTENO
+			FROM 
+				TMT_SHIPG_NOTE 									A, 
+				<!-- 
+				TMT_ASGN_LORRY									B
+				 -->
+				TMT_ASSIGN_TRANSPORT							B
+			WHERE 
+				A.VSL_CALL_ID 									= B.VSL_CALL_ID
+		 		AND A.CG_TP_CD 									<![CDATA[<>]]> 'RCV'
+			<if test="lorryNo != null and lorryNo != ''">
+				AND B.LORRY_NO = #{lorryNo}
+			</if>      
+			UNION
+			SELECT DISTINCT 
+				A.SHIPG_NOTE_NO 								AS SHIPGNOTENO
+			FROM 
+				TMT_SHIPG_NOTE 									A, 
+				TMT_TRUCK_MST									B
+			WHERE 
+				A.TSPT_COMP 									= B.PTNR_CD
+		 		AND A.CG_TP_CD 									<![CDATA[<>]]> 'RCV'
+			<if test="lorryNo != null and lorryNo != ''">
+				AND B.PTNR_CD 									IN 	(SELECT 
+																		PTNR_CD 
+																	FROM 
+																		TMT_TRUCK_MST 
+																	WHERE 
+																		LORRY_NO = #{lorryNo})
+			</if>
+		</if>
+		<if test='searchTypeCboSN == "N"'>
+			SELECT DISTINCT /* shippingNote.selectShippingNoteComboList2 */
+				A.SHIPG_NOTE_NO  								AS SHIPGNOTENO
+			FROM 
+				TMT_SHIPG_NOTE 									A, 
+				TMT_TRUCK_MST 									B
+			WHERE 
+				A.VSL_CALL_ID 									= 'NonCallId'
+				AND A.TSPT_COMP 								= B.PTNR_CD
+				AND A.CG_TP_CD 									<![CDATA[<>]]> 'RCV'
+			<if test="lorryNo != null and lorryNo != ''">
+				AND B.PTNR_CD 									IN	(SELECT 
+																		PTNR_CD 
+																	FROM 
+																		TMT_LORRY_PL 
+																	WHERE 
+																		LORRY_NO =#{lorryNo})
+			</if>
+		</if>
+		<if test='searchTypeCboSN == "J"'>
+			SELECT DISTINCT /* shippingNote.selectShippingNoteComboList2 */
+				A.SHIPG_NOTE_NO  								AS SHIPGNOTENO
+			FROM 
+				TMT_SHIPG_NOTE 									A, 
+				TMT_ASGN_LORRY 									B
+			WHERE 
+				A.VSL_CALL_ID 									= B.VSL_CALL_ID
+				AND A.CG_TP_CD 									<![CDATA[<>]]> 'RCV'
+			<if test="vslCallId != null and vslCallId != ''">
+				AND B.VSL_CALL_ID 								= #{vslCallId}
+			</if> 
+			<if test="lorryNo != null and lorryNo != ''">
+				AND B.LORRY_NO 									= #{lorryNo}
+			</if>
+		</if>	
+	</select>
+			
+	<select id="selectBlNoItems" parameterType="shippingNoteParm" resultType="shippingNoteItem">
+	 	SELECT /* shippingNote.selectBlNoItems */
+	 		ORG_REF_NO 											AS BLNO
+		FROM 
+			TMT_RHDL_CG
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId} 
+			AND OPE_CLASS_CD 									= #{catgCd}
+    </select>   
+       
+	<select id="selectCbrNoList" parameterType="shippingNoteParm" resultType="shippingNoteItem">
+		SELECT /* shippingNote.selectCbrNoList */
+			CBR_NO 
+		FROM 
+			TMT_SHIPG_NOTE
+		WHERE  
+			VSL_CALL_ID 										= #{vslCallId} 
+		<if test="catgCd != null and catgCd != ''">
+			<if test="catgCd != 'E'">
+				AND CATG_CD 									= 'E' 
+			</if>
+		</if>
+		<if test="shipgNoteNo != null and shipgNoteNo != ''">
+	 		AND SHIPG_NOTE_NO 									!= #{shipgNoteNo}
+		</if>
+		<if test="cbrNo != null and cbrNo != ''">
+	 		AND CBR_NO 											= UPPER(#{cbrNo})
+		</if>
+	</select>
+	
+	<select id="selectGateInList" parameterType="shippingNoteParm" resultType="GoodsReceiptItem">
+		SELECT /* shippingNote.selectGateInList */
+			GR.GR_NO 											AS GDSRECVNO,
+	       	DELV.GATE_IN_DT 									AS GATEINDT
+		FROM 
+			TMT_GR 												GR 
+		LEFT OUTER JOIN
+			TMT_CG_ARRV_DELV 									DELV 
+				ON GR.GR_NO 									= DELV.GR_NO 
+		WHERE 
+			GR.VSL_CALL_ID       								= #{vslCallId}
+			AND GR.SHIPG_NOTE_NO 								IN (${shipgNoteNo})
+	</select>
+	
+	<select id="selectDgSeq" parameterType="shippingNoteParm" resultType="shippingNoteItem">
+		SELECT TOP(1) /* shippingNote.selectDgSeq */
+			A.DG_SEQ 											AS dgSeq  
+		FROM 
+			(SELECT 
+				* 
+			FROM 
+				TMT_SHIPG_NOTE
+			WHERE 
+				1 = 1 
+			<if test='vslCallId == "NonCallId"'>
+		  		AND FWRD 										= #{ptnrCd} 
+				AND (DG_SEQ IS NOT NULL AND DG_SEQ <![CDATA[<>]]> '')
+				ORDER BY 
+					UPDATE_TIME DESC 
+			</if>
+			<if test="vslCallId != 'NonCallId'">
+				AND SHIPG_NOTE_NO 								= #{shipgNoteNo}
+			</if>
+		 ) 														AS A  
+	</select>
+	
+	<select id="selectManifestList" parameterType="shippingNoteParm" resultType="shippingNoteItem">
+		SELECT /* shippingNote.selectManifestList */
+			MF.VSL_CALL_ID 										AS VSLCALLID,
+			MF.VSL_CD 											AS VSLCD,
+			MF.CALL_YEAR 										AS CALLYEAR,
+			MF.CALL_SEQ 										AS CALLSEQ,
+			MF.MF_DOC_ID 										AS MFDOCID
+		FROM 
+			TMT_MF 												MF
+		WHERE 
+			MF.VSL_CALL_ID 										= #{vslCallId}
+			AND MF.MF_DOC_ID 									= #{docId}
+	</select>
+
+	<select id="selectDGDeclarationReport" parameterType="dgDeclarationParm" resultType="dgDeclarationItem">
+		SELECT /* shippingNote.selectDGDeclarationReport */
+			DG_DIV 												AS dgDiv,	
+			VSL_CALL_ID 										AS vslCallId, 
+			dbo.F_GET_LST_PORT_NM(VSL_CALL_ID) 					AS lstPortNm,
+			VSL_TP												AS vslTp,
+			VSL_NM												AS vslNm,    
+			CG_NO 												AS cgNo,  	
+			SEQ 												AS refNo,  		
+			IMDG 												AS imdg,  		
+			UNNO 												AS unno,  		
+			CG_TP_CD 											AS cgTpCd,  	
+			CMDT_CD 											AS cmdtCd,  
+			dbo.F_GET_CMDT_DESC(CMDT_CD) 						AS cmdtDesc,
+			CASE DG_CHK
+                WHEN 'S' THEN 'Save'
+                WHEN 'N' THEN 'Submit'
+                WHEN 'Y' THEN 'Confirm'
+                WHEN 'C' THEN 'Cancel'
+            END 												AS dgChk,
+			FORMAT(UPDATE_TIME, 'dd/MM/yyyy HH:mm') 			AS dclrDt,
+			UPDATE_TIME,
+			CONFM_BY 											AS confmBy,
+			FORMAT(CONFM_DT, 'dd/MM/yyyy HH:mm') 				AS confmDt,
+			ISNULL(F_GET_PTNR_SNM(SHIPG_AGNCY), ' ')   			AS shipgAgncy,
+	        FWRD 												AS fwrd,
+	        ISNULL(F_GET_PTNR_SNM(SHPR), ' ') 					AS shpr,
+	        ISNULL(F_GET_PTNR_SNM(CNSNE), ' ') 					AS cnsne,
+			PKG 												AS pkg,  
+			PKG_QTY 											AS pkgQty,  		
+			VSL_CD 												AS vslCd,  		
+			CALL_YEAR 											AS callYear,  	
+			CALL_SEQ 											AS callSeq,  	
+			SEQ 												AS dgSeq,  	
+			TRANSHIPMENT										AS transhipment,	
+			PROP_SNM  											AS propSnm,
+			RMK 												AS rmk,
+	        ETA  												AS eta,
+	        BERTH_LOC 											AS berthLoc,
+	        TEL_NO 												AS telNo,
+	        MOBILE_NO 											AS mobileNo,
+	        ENG_NM 												AS engNm,
+	        EMPCD 												AS empCd,
+	        ID_NO 												AS idNo,
+	        DESIGNATION 										AS desgination
+		FROM 
+			(SELECT 
+				'EX' DG_DIV,
+                C.VSL_CALL_ID VSL_CALL_ID,
+                VSLP.VSL_TP,
+                VSLP.VSL_NM,
+				A.CG_NO,
+				A.REF_NO,
+				A.IMDG,
+				A.UNNO,
+				B.CG_TP_CD,
+				B.CMDT_CD ,
+				A.DG_CHK,
+				A.UPDATE_TIME,
+				A.CONFM_BY,
+				A.CONFM_DT,
+				B.SHIPG_AGNCY,
+				B.FWRD,
+				B.SHPR,
+				B.CNSNE,
+				A.PKG,
+				A.PKG_QTY,
+				A.VSL_CD,
+				A.CALL_YEAR,
+				A.CALL_SEQ,
+				A.SEQ,
+				'EXPORT' 										AS TRANSHIPMENT,
+				A.PROP_SNM,
+				A.RMK,
+				FORMAT(C.ETA, 'dd/MM/yyyy HH:mm') 				AS ETA,
+				C.BERTH_LOC 									AS BERTH_LOC,
+	            (SELECT 
+					TEL_NO 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.EMP_CD = USERINFO.USER_ID
+				) 												AS tel_no,
+	            (SELECT 
+					MOBILE_NO 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.EMP_CD = USERINFO.USER_ID
+				) 												AS mobile_no,
+	            (SELECT 
+					ENG_NM 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.CONFM_BY = USERINFO.USER_ID
+				) 												AS eng_nm,
+	            (SELECT 
+					ENG_NM 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.EMP_CD = USERINFO.USER_ID
+				) 												AS empCd,
+	            (SELECT 
+					ID_NO 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.EMP_CD = USERINFO.USER_ID
+				) 												AS ID_NO,
+	            (SELECT 
+					DESIGNATION 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.EMP_CD = USERINFO.USER_ID
+				) 												AS DESIGNATION
+			FROM 
+				TMT_DG 											A,
+				TMT_SHIPG_NOTE 									B, 
+				TMT_VSL_SCH 									C, 
+				TMT_VSL_PART 									VSLP
+			WHERE 
+				A.VSL_CD 										= C.VSL_CD
+				AND A.CALL_YEAR 								= C.CALL_YEAR
+				AND A.CALL_SEQ 									= C.CALL_SEQ	
+				AND A.SEQ 										= B.DG_SEQ
+				AND B.VSL_CALL_ID 								= C.VSL_CALL_ID
+				AND C.VSL_CD 									= VSLP.VSL_CD
+				AND A.SEQ 										= #{seq}
+
+			UNION ALL
+
+			SELECT  
+				TMP.DG_DIV,
+				TMP.VSL_CALL_ID,
+				TMP.VSL_TP,
+				TMP.VSL_NM,
+				C.CG_NO,
+				C.REF_NO,
+				C.IMDG,
+				C.UNNO,
+				TMP.CG_TP_CD,
+				TMP.CMDT_CD,
+				C.DG_CHK,
+				C.UPDATE_TIME,
+				C.CONFM_BY,
+				C.CONFM_DT,
+				TMP.SHIPG_AGNCY,
+				TMP.FWRD,
+				TMP.CNSNE,
+				TMP.SHPR,
+				C.PKG,
+				C.PKG_QTY,
+				C.VSL_CD,
+				C.CALL_YEAR,
+				C.CALL_SEQ,
+				C.SEQ,
+				'IMPORT'										AS TRANSHIPMENT,
+				C.PROP_SNM,
+				C.RMK,
+				TMP.ETA,
+				TMP.BERTH_LOC,
+				(SELECT 
+					TEL_NO 
+				FROM TMT_USER_INFO userInfo 
+					WHERE C.EMP_CD = USERINFO.USER_ID) 			AS tel_no,
+				(SELECT 
+					MOBILE_NO 
+				FROM TMT_USER_INFO userInfo 
+					WHERE C.EMP_CD = USERINFO.USER_ID) 			AS mobile_no,
+				(SELECT 
+					ENG_NM 
+				FROM TMT_USER_INFO userInfo 
+					WHERE C.CONFM_BY = USERINFO.USER_ID) 		AS eng_nm,
+				(SELECT 
+					ENG_NM 
+				FROM TMT_USER_INFO userInfo 
+					WHERE C.EMP_CD = USERINFO.USER_ID) 			AS empCd,
+				(SELECT 
+					ID_NO 
+				FROM TMT_USER_INFO userInfo 
+					WHERE C.EMP_CD = USERINFO.USER_ID) 			AS ID_NO,
+				(SELECT 
+					DESIGNATION 
+				FROM TMT_USER_INFO userInfo 
+					WHERE C.EMP_CD = USERINFO.USER_ID) 			AS DESIGNATION
+			FROM 
+				(SELECT 
+					A.BL_NO 									AS BLNO,
+					A.VSL_CALL_ID,
+					A.DG_SEQ 									AS DGSEQ,
+					A.CG_TP_CD,
+					A.CMDT_CD,
+					CASE A.DOC_ID
+						WHEN 'K4BL' THEN 'IM'
+						ELSE 'TS'
+					END 										AS DG_DIV,
+					ISNULL(A.FWRD, ' ') 						AS FWRD,
+					A.SHPR 										AS CNSNE,
+					A.CNSNE 									AS SHPR,
+					B.ARRV_SA_ID 								AS SHIPG_AGNCY,
+					P.VSL_TP,
+					P.VSL_NM,
+					FORMAT(B.ETA, 'dd/MM/yyyy HH:mm') 			AS ETA,
+					B.BERTH_LOC 								AS BERTH_LOC
+				FROM 
+					TMT_BL 										A, 
+					TMT_VSL_SCH 								B, 
+					TMT_VSL_PART 								P
+				WHERE 
+					A.CATG_CD 									IN ('I','T')
+					AND A.VSL_CD 								= B.VSL_CD
+					AND A.CALL_SEQ 								= B.CALL_SEQ
+					AND A.CALL_YEAR 							= B.CALL_YEAR
+					AND B.VSL_CD 								= P.VSL_CD
+				) 												TMP, 
+				TMT_DG 											C
+			WHERE 
+				TMP.DGSEQ 										= C.SEQ
+				AND  C.SEQ 										= #{seq}
+
+			UNION ALL
+
+			SELECT DISTINCT 
+				'EX' 											AS DG_DIV,
+				B.VSL_CALL_ID,
+				NULL 											AS VSL_TP,
+				NULL 											AS VSL_NM,
+				A.CG_NO,
+				A.REF_NO,
+				A.IMDG,
+				A.UNNO,
+				B.CG_TP_CD,
+				B.CMDT_CD, 
+				A.DG_CHK,
+				A.UPDATE_TIME,
+				A.CONFM_BY,
+				A.CONFM_DT,
+				ISNULL(B.SHIPG_AGNCY, B.FWRD),
+				B.FWRD,
+				B.SHPR,
+				B.CNSNE,
+				A.PKG,
+				A.PKG_QTY,
+				A.VSL_CD,
+				A.CALL_YEAR,
+				A.CALL_SEQ,
+				A.SEQ,
+				'EXPORT' 										AS TRANSHIPMENT,
+				A.PROP_SNM,
+				A.RMK,
+				'' 												AS ETA,
+				'' 												AS BERTH_LOC,
+				(SELECT 
+					TEL_NO 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.EMP_CD = USERINFO.USER_ID) 				AS tel_no,
+				(SELECT 
+					MOBILE_NO 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.EMP_CD = USERINFO.USER_ID) 				AS mobile_no,
+				(SELECT 
+					ENG_NM 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.CONFM_BY = USERINFO.USER_ID) 				AS eng_nm,
+				(SELECT 
+					ENG_NM 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.EMP_CD = USERINFO.USER_ID) 				AS empCd,
+				(SELECT 
+					ID_NO 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.EMP_CD = USERINFO.USER_ID) 				AS ID_NO,
+				(SELECT 
+					DESIGNATION 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.EMP_CD = USERINFO.USER_ID) 				AS DESIGNATION
+			FROM 
+				TMT_DG 											A,
+				TMT_SHIPG_NOTE 									B
+			WHERE 
+				A.SEQ 											= B.DG_SEQ
+				AND B.VSL_CALL_ID 								= 'NonCallId' 
+				AND A.SEQ 										= #{seq}		
+
+			UNION ALL		
+
+			SELECT 
+				CASE B.CG_OPT_TP_CD
+					WHEN 'DS' THEN 'IM'
+					WHEN 'LD' THEN 'EX'
+					WHEN 'TD' THEN 'TS'
+					WHEN 'TL' THEN 'TS'
+					WHEN 'SD' THEN 'ST'
+					WHEN 'SL' THEN 'ST'
+				END 											AS DG_DIV,
+				C.VSL_CALL_ID 									AS VSL_CALL_ID,
+				VSLP.VSL_TP,
+				VSLP.VSL_NM,
+				A.CG_NO,
+				A.REF_NO,
+				A.IMDG,
+				A.UNNO,
+				B.CG_TP_CD,
+				B.CMDT_CD,
+				A.DG_CHK,
+				A.UPDATE_TIME,
+				A.CONFM_BY,
+				A.CONFM_DT,
+				C.ARRV_SA_ID 									AS SHIPG_AGNCY,
+				dbo.F_GET_FWRD_BL(B.VSL_CALL_ID, BL.BL_NO) 		AS FWRD,
+				B.SHPR_CNSNE 									AS SHPR,
+				B.CNSNE 										AS CNSNE,
+				A.PKG,
+				A.PKG_QTY,
+				A.VSL_CD,
+				A.CALL_YEAR,
+				A.CALL_SEQ,
+				A.SEQ,
+				CASE B.CG_OPT_TP_CD
+					WHEN 'DS' THEN 'IMPORT'
+					WHEN 'LD' THEN 'EXPORT'
+					WHEN 'TD' THEN 'TRANSHIPMENT'
+					WHEN 'TL' THEN 'TRANSHIPMENT'
+					WHEN 'SD' THEN 'TRANSHIPMENT'
+					WHEN 'SL' THEN 'TRANSHIPMENT'
+				END 											AS TRANSHIPMENT,
+				A.PROP_SNM
+				A.RMK1
+				FORMAT(C.ETA, 'dd/MM/yyyy HH:mm') 				AS ETA
+				C.BERTH_LOC 									AS BERTH_LOC
+				(SELECT 
+					TEL_NO 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE A.EMP_CD = USERINFO.USER_ID) 				AS tel_no
+				(SELECT 
+					MOBILE_NO 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE A.EMP_CD = USERINFO.USER_ID) 				AS mobile_no
+				(SELECT 
+					ENG_NM 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE A.CONFM_BY = USERINFO.USER_ID) 			AS eng_nm
+				(SELECT 
+					ENG_NM 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE A.EMP_CD = USERINFO.USER_ID) 				AS empCd
+				(SELECT 
+					ID_NO 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE A.EMP_CD = USERINFO.USER_ID) 				AS ID_NO
+				(SELECT 
+					DESIGNATION 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE A.EMP_CD = USERINFO.USER_ID) 				AS DESIGNATION
+				A.RMK2 											AS RMK2
+			FROM 
+				TMT_DG 											A, 
+				TMT_CONFM_SLP_DTL 								B
+			LEFT OUTER JOIN
+				TMT_BL 											BL
+					ON B.VSL_CALL_ID 							= BL.VSL_CALL_ID
+					AND B.BL_NO 								= BL.BL_NO       
+				TMT_VSL_SCH 									C, 
+				TMT_VSL_PART 									VSLP
+			WHERE 
+				A.VSL_CD 										= C.VSL_CD
+				AND A.CALL_YEAR 								= C.CALL_YEAR
+				AND A.CALL_SEQ 									= C.CALL_SEQ
+				AND A.SEQ 										= B.DG_SEQ                                
+				AND C.VSL_CD 									= VSLP.VSL_CD
+				AND A.SEQ 										= #{seq}
+		) AS TEMPTABLE
+	</select>
+	
+	<select id="selectRoRoItems" parameterType="shippingNoteParm" resultMap="resultUnitItem">
+	<if test="grNo !=null and grNo !=''">
+		SELECT /* shippingNote.selectRoRoItems */
+			R.VSL_CD,
+			R.CALL_YEAR,
+			R.CALL_SEQ,
+			R.VSL_CALL_ID,
+			R.MF_DOC_ID,
+			R.CG_NO,
+			R.CHASSIS_NO										AS CHAS_NO,
+			R.BRAND_CD,
+			R.MODEL_CD,
+			B.BRAND_NM,
+			M.MODEL_NM,
+			R.DOC_WGT,
+			R.CBM,
+			R.NEW_YN,
+			'R' 												AS ACTION
+		FROM 
+			TMT_RORO_MST 										R
+		LEFT OUTER JOIN 
+			TMT_BRAND 											B					
+				ON 	R.BRAND_CD 									= B.BRAND_CD
+		LEFT OUTER JOIN 
+			TMT_BRAND_DTL 										M				
+				ON 	R.MODEL_CD 									= M.MODEL_CD
+    			AND R.BRAND_CD 									= M.BRAND_CD
+		WHERE 
+			1 = 1
+		<if test="vslCallId !=null and vslCallId !=''">
+			AND R.VSL_CALL_ID 									= #{vslCallId}
+		</if>
+		<if test="mfDocId !=null and mfDocId !=''">
+			AND R.MF_DOC_ID 									= #{mfDocId}
+		</if>
+		<if test="shipgNoteNo !=null and shipgNoteNo !=''">
+			AND R.CG_NO 										= #{shipgNoteNo}
+		</if>
+			AND R.GR_NO 										= #{grNo}
+		ORDER BY 
+			R.VSL_CD ASC
+	</if>
+	<if test="grNo ==null or grNo ==''">
+		SELECT /* shippingNote.selectRoRoItems */
+			R.VSL_CD,
+			R.CALL_YEAR,
+			R.CALL_SEQ,
+			R.VSL_CALL_ID,
+			R.MF_DOC_ID,
+			R.CG_NO,
+			R.CHAS_NO,
+			R.SEQ,
+			R.BRAND_CD,
+			R.MODEL_CD,
+			B.BRAND_NM,
+			M.MODEL_NM,
+			R.DOC_WGT,
+			R.CBM,
+			R.NEW_YN,
+			'R' 												AS ACTION
+		FROM 
+			TMT_SHIPG_NOTE_DTL 									R
+		LEFT OUTER JOIN 
+			TMT_BRAND B					
+				ON R.BRAND_CD 									= B.BRAND_CD
+		LEFT OUTER JOIN 
+			TMT_BRAND_DTL M				
+				ON R.MODEL_CD 									= M.MODEL_CD
+	    		AND R.BRAND_CD									= M.BRAND_CD
+		WHERE 
+			1 = 1
+			<if test="vslCallId !=null and vslCallId !=''">
+				AND R.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test="mfDocId !=null and mfDocId !=''">
+				AND R.MF_DOC_ID 								= #{mfDocId}
+			</if>
+			<if test="shipgNoteNo !=null and shipgNoteNo !=''">
+				AND R.CG_NO 									= #{shipgNoteNo}
+			</if>
+			<if test="searchFlag !=null and searchFlag !=''">
+				AND R.CHAS_NO NOT 								IN 	(SELECT 
+																		CHAS_NO 
+																	FROM 
+																		TMT_RORO_MST RM 
+																	WHERE 
+																		1 = 1
+																		AND RM.CHASSIS_NO 	= R.CHAS_NO
+                                     									AND RM.CG_NO 		= R.SHIPG_NOTE_NO)
+			</if>
+		ORDER BY 
+			R.CHAS_NO ASC
+	</if>
+	</select>
+	
+	<select id="selectValidationCode" parameterType="shippingNoteParm" resultType="shippingNoteItem">
+		<if test='tyCd == "validationSN"'>
+			SELECT /* shippingNote.selectValidationCode */
+				CASE COUNT (*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS isValidated
+			FROM 
+				TMT_SHIPG_NOTE
+            WHERE 
+				SHIPG_NOTE_NO 									= #{shipgNoteNo}
+		</if>
+		<if test='tyCd == "checkSNEmptyGR"'>
+			SELECT /* shippingNote.selectValidationCode */
+				CASE COUNT (*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated
+			FROM 
+				TMT_SHIPG_NOTE SN
+			INNER JOIN 
+				TMT_GR GR 	
+					ON SN.VSL_CALL_ID 							= GR.VSL_CALL_ID
+					AND SN.SHIPG_NOTE_NO 						= GR.SHIPG_NOTE_NO
+            WHERE 
+				SN.SHIPG_NOTE_NO 								= #{shipgNoteNo}
+		</if>
+		<if test='tyCd == "checkSNTruckAssign"'>
+			SELECT /* shippingNote.selectValidationCode */
+				CASE COUNT (*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated
+			FROM 
+				TMT_SHIPG_NOTE SN
+			INNER JOIN 
+				TMT_ASSIGN_TRANSPORT AG	
+					ON 	SN.VSL_CALL_ID 							= AG.VSL_CALL_ID
+					AND	SN.SHIPG_NOTE_NO 						= AG.SHIPG_NOTE_NO
+			WHERE 
+				SN.SHIPG_NOTE_NO 								= #{shipgNoteNo}
+		</if>
+	</select>
+	
+	<select id="selectPackageItems" parameterType="shippingNoteParm" resultMap="resultPackageItem">
+		SELECT /* shippingNote.selectPkgDetail */
+			CALL_YEAR, 
+			CALL_SEQ, 
+			VSL_CALL_ID, 
+			PKG_NO, 
+			PKG_DESC, 
+			CG_WGT, 
+			CG_VOL, 
+			WIDTH, 
+			LENGTH, 
+			HEIGHT,
+			RMK,
+			'R' 												AS ACTION
+		FROM 
+			TMT_PKG_INFO         
+		WHERE 
+			VSL_CALL_ID											= #{vslCallId}
+			AND MF_DOC_ID 										= #{mfDocId}
+			AND REF_NO 											= #{shipgNoteNo}
+	</select>
+	
+	<insert id="insertShippingNoteItem" parameterType="shippingNoteItem">
+		INSERT /* shippingNote.insertShippingNoteItem */
+		INTO TMT_SHIPG_NOTE(
+			SHIP_CALL_NO,
+			VSL_CALL_ID,
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			MF_DOC_ID,
+			SHIPG_NOTE_NO,
+			CATG_CD,
+			CG_WGT,
+			CG_VOL,
+			PKG_QTY,
+			PKG_TP_CD,
+			CG_TP_CD,
+			TSPT_TP_CD,
+			DELV_TP_CD,			
+			ACK_DT,
+			POD,
+			POL,
+			POR,
+			FDEST,
+			IMDG,
+			UNNO,
+			RMK,			
+			SHIPG_AGNCY,
+			FWRD,
+			CNSNE,
+			CNSNE_NM,
+			CNSNE_ADDR,
+			SHPR,
+			SHPR_NM,
+			SHPR_ADDR,
+			TSPT_COMP,
+			UPDATE_TIME,
+			STAFF_CD,
+			CMDT_CD,
+			STAT_CD,
+			DG_SEQ,
+			GDS_RMK,
+			CMDT_GRP_CD,
+			PKG_NO,
+			EACH_WGT,
+			EACH_VOL,
+			WIDTH,
+			HEIGHT,
+			LENGTH,
+			FREIGHT_TON,
+			MARK_NO,
+			REF_NO,
+			VERSION,
+			PROJECT_CARGO,
+			DOMESTIC_CHK,
+			WGT_CHK,
+			BONDED_WH_YN,
+			ADDITIONAL_CHK,
+			LOT_NO,
+			EST_ARRV_DT,
+			HS_CODE
+		) VALUES (
+			#{scn},
+			#{vslCallId},
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			UPPER(#{mfDocId}),
+			#{shipgNoteNo},
+			#{catgCd},
+			#{cgWgt},			
+			#{cgMsrmt},
+			#{pkgQty},
+			#{pkgTpCd},
+			#{cgTpCd},
+			#{tsptTpCd},
+			#{delvTpCd},
+			CASE
+				WHEN #{ackDt} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{ackDt}, 103)
+			END,			
+			#{portOfDis},
+			#{portOfLoad},
+			#{cntryOfOrg},
+			#{fnlDest},
+			#{imdg},
+			#{unno},		
+			#{rmk},			
+			#{ptnrCd},
+			#{fwrd},						
+			#{cnsne},
+			#{cnsneNm},
+			#{cnsneAddr},			
+			#{shpr},
+			#{shprNm},
+			#{shprAddr},
+			UPPER(#{tsptComp}),
+			SYSDATETIME(),
+			#{userId},
+			#{cmdtCd},
+			#{statCd},
+			#{dgSeq},
+			#{goodsDescr},
+			#{cmdtGroupCd},
+			#{pkgNumber},
+			#{eachWgt},
+			#{eachMsrmt},
+			#{cgWth},
+			#{cgHgt},
+			#{cgLen},
+			#{freightTon},
+			#{markNo},
+			#{refNo},
+			#{newVersion},
+			#{projectCargo},
+			CASE #{domesticChk}
+				WHEN 'Y' 				THEN 'Y'
+				WHEN 'Domestic Cargo'	THEN 'Y'
+				ELSE 'N' 
+			END,
+			#{wgtChk},
+			#{bondedWhYn},
+			#{additionalChk},
+			#{lotNo},
+			CASE
+				WHEN #{estArrvDt1} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{estArrvDt1}, 103)
+			END,
+			#{hsCode}
+		)
+    </insert>
+    
+    <insert id="insertShippingNoteDtlItem" parameterType="shippingNoteItem">
+     	INSERT /* shippingNote.insertShippingNoteDtlItem */
+     	INTO TMT_SHIPG_NOTE_DTL (
+     		SHIP_CALL_NO,
+     		VSL_CALL_ID ,
+     		VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			SHIPG_NOTE_NO,
+			MF_DOC_ID,
+			SEQ,
+			CMDT_CD,
+			PKG_QTY,
+			PKG_TP_CD,
+			DIV_CD,
+			TSPT_TP_CD,
+			CG_WGT,
+			CG_TP_CD,
+			STAFF_CD,
+			UPDATE_TIME,
+			HATCH_NO
+		) VALUES (
+			#{scn},
+			#{vslCallId},
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{shipgNoteNo},
+			UPPER(#{mfDocId}),
+			ISNULL((SELECT MAX(SEQ) FROM TMT_SHIPG_NOTE_DTL), 0) + 1,
+			ISNULL(#{cmdtCdDtl}, ' '), 
+			#{pkgQtyDtl},
+			#{pkgTpCdDtl},
+			#{divCd},
+			#{tsptTpCdDtl},
+			#{wgtDtl},
+			#{cgTpCd},
+			#{userId},
+			SYSDATETIME(),
+			#{hatchNo}
+		)
+    </insert>
+    
+    <insert id="insertManifestItem" parameterType="shippingNoteParm">
+     	INSERT /* shippingNote.insertManifestItem */
+     	INTO TMT_MF (
+			SHIP_CALL_NO,
+			VSL_CALL_ID,
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			MF_DOC_ID,
+			OP_CLASS_CD,
+			STAFF_CD,
+			UPDATE_TIME,
+			VERSION
+		) VALUES (
+			#{scn},
+			#{vslCallId}, 
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{mfDocId},
+			#{opClassCd},
+			#{updUserId},
+			SYSDATETIME(),
+			#{newVersion}
+		)
+    </insert>
+    
+    <insert id="insertRoRoItems" parameterType="shippingNoteItem">
+		INSERT /* shippingNote.insertRoRoItems */
+		INTO TMT_SHIPG_NOTE_DTL (
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			VSL_CALL_ID,
+			SHIPG_NOTE_NO,
+			MF_DOC_ID,
+			PKG_TP_CD,
+			CG_NO,
+			CHAS_NO,
+			SEQ,
+			CMDT_CD,
+			BRAND_CD,
+			MODEL_CD,
+			DOC_WGT,
+			CBM,
+			CATG_CD,
+			CG_TP_CD,
+			IX_CD,
+			NEW_YN,
+			STAT_CD,
+			UPDATE_TIME,
+			STAFF_CD
+		) VALUES (
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{vslCallId},
+			#{shipgNoteNo},
+			UPPER(#{mfDocId}),
+			#{pkgTpCd},
+			#{shipgNoteNo},
+			#{unitNo},
+			ISNULL((SELECT MAX(SEQ) FROM TMT_SHIPG_NOTE_DTL), 0) + 1,
+			ISNULL(#{cmdtCd}, ' '),
+			#{brandCd},
+			#{modelCd},
+			TRY_CONVERT(NUMERIC(15,3),#{roroMt}),
+			TRY_CONVERT(NUMERIC(15,3),#{cbm}),
+			#{catgCd},
+			#{cgTpCd},
+			'X',
+			#{newYn},
+			'RS',
+			SYSDATETIME(),
+			#{userId}
+		) 
+	</insert>
+
+	<insert id="insertRoRoMSTItems" parameterType="shippingNoteItem">
+		<selectKey keyProperty="roroSeq" resultType="String" order="BEFORE">
+			SELECT	
+				RTRIM(LTRIM(FORMAT(MAX(roroSeq),'0000'))) 		AS roroSeq
+			FROM (
+					SELECT  
+						MAX(CAST(RORO_SEQ AS INT)) + 1 			AS roroSeq
+					FROM    
+						TMT_RORO_MST
+					WHERE   
+						VSL_CALL_ID 							= #{vslCallId}
+						AND MF_DOC_ID 							= #{mfDocId}
+						AND CG_NO 								= #{shipgNoteNo}
+					UNION
+					SELECT 1
+			)													AS TEMP
+		</selectKey>
+		INSERT /* roro.insertRoRoMSTItems */
+		INTO TMT_RORO_MST (
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			VSL_CALL_ID,
+			MF_DOC_ID,
+			GR_NO,
+			CG_NO,
+			CHASSIS_NO,
+			BRAND_CD,
+			MODEL_CD,
+			DOC_WGT,
+			CBM,
+			CATG_CD,
+			CG_TP_CD,
+			IX_CD,
+			NEW_YN,
+			STAT_CD,
+			STAFF_CD,
+			UPDATE_TIME,
+			RORO_SEQ
+		) VALUES (     
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{vslCallId},
+			#{mfDocId},
+			#{grNo},
+			#{shipgNoteNo},
+			#{unitNo},
+			#{brandCd},
+			#{modelCd},
+			(CASE
+			WHEN #{roroMt} = '' THEN 0
+		    ELSE CAST(#{roroMt} AS NUMERIC(8,3))
+		    END),
+			(CASE
+				WHEN #{cbm} = '' THEN 0
+		    	ELSE CAST(#{cbm} AS NUMERIC(8,3))
+		    END),
+			#{catgCd},
+			#{cgTpCd},
+			'X',
+			#{newYn},
+			'RS',
+			#{userId},
+			SYSDATETIME(),
+			#{roroSeq}
+		)
+	</insert>
+	
+	<insert id="insertPackageItems" parameterType="shippingNoteItem">
+		INSERT /* shippingNote.insertPackageItems */
+		INTO TMT_PKG_INFO (
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			VSL_CALL_ID,
+			REF_NO,
+			MF_DOC_ID,
+			PKG_NO,
+			PKG_DESC,
+			PKG_TP_CD,
+			CG_VOL,
+			CG_WGT,
+			HEIGHT,
+			LENGTH,
+			WIDTH,
+			OPE_CLASS_CD,
+			UPDATE_TIME,
+			STAFF_CD,
+			RMK
+		) VALUES (
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{vslCallId},
+			#{shipgNoteNo},
+			UPPER(#{mfDocId}),
+			#{pkgNo},
+			#{pkgDesc},
+			#{pkgTpCd},
+			CASE WHEN #{pkgM3} IS NULL OR #{pkgM3} = '' THEN NULL ELSE #{pkgM3} END,
+			CASE WHEN #{pkgMt} IS NULL OR #{pkgMt} = '' THEN NULL ELSE #{pkgMt} END,
+			CASE WHEN #{height} IS NULL OR #{height} = '' THEN NULL ELSE #{height} END,
+			CASE WHEN #{length} IS NULL OR #{length} = '' THEN NULL ELSE #{length} END,
+			CASE WHEN #{width} IS NULL OR #{width} = '' THEN NULL ELSE #{width} END,
+			#{catgCd},
+			SYSDATETIME(),
+			#{userId},
+			#{pkgRmk}
+		) 
+	</insert>
+	
+	<insert id="insertShippingNoteAmtItems" parameterType="shippingNoteItem">
+		INSERT /* shippingNote.insertShippingNoteAmtItems */
+		INTO TMT_SHIPG_NOTE_AMT (
+			SHIP_CALL_NO,
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			VSL_CALL_ID,
+			SHIPG_NOTE_NO,
+			MF_DOC_ID,
+			CG_WGT,
+			CG_VOL,
+			PKG_QTY,
+			D_MT,
+			D_M3,
+			D_QTY,
+			D_LR_MT,
+			D_LR_M3,
+			D_LR_QTY,
+			D_VSL_MT,
+			D_VSL_M3,
+			D_VSL_QTY,
+			I_MT,
+			I_M3,
+			I_QTY,
+			UPDATE_TIME,
+			STAFF_CD
+		) VALUES (
+			#{scn},
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{vslCallId},
+			#{shipgNoteNo},
+			UPPER(#{mfDocId}),
+			TRY_CONVERT(NUMERIC(15,3), #{cgWgt}),		
+			TRY_CONVERT(NUMERIC(15,3), #{cgMsrmt}),
+			TRY_CONVERT(NUMERIC(10,0), #{pkgQty}),
+			TRY_CONVERT(NUMERIC(15,3), #{dmt}),	
+			TRY_CONVERT(NUMERIC(15,3), #{dm3}),
+			TRY_CONVERT(NUMERIC(10,0), #{dqty}),
+			TRY_CONVERT(NUMERIC(15,3), #{dLrMt}),		
+			TRY_CONVERT(NUMERIC(15,3), #{dLrM3}),
+			TRY_CONVERT(NUMERIC(10,0), #{dLrQty}),
+			TRY_CONVERT(NUMERIC(15,3), #{dVslMt}),		
+			TRY_CONVERT(NUMERIC(15,3), #{dVslM3}),
+			TRY_CONVERT(NUMERIC(10,0), #{dVslQty}),
+			TRY_CONVERT(NUMERIC(15,3), #{imt}),		
+			TRY_CONVERT(NUMERIC(15,3), #{im3}),
+			TRY_CONVERT(NUMERIC(10,0), #{iqty}),
+			SYSDATETIME(),
+			#{userId}
+		) 
+	</insert>
+	
+	<update id="updateShippingNoteAckItems" parameterType="shippingNoteItem">
+    	UPDATE	/* shippingNote.updateShippingNoteAckItems */
+    		TMT_SHIPG_NOTE 
+		SET 	
+    		ACK_BY 												= #{ackBy},
+			STAT_CD 											= #{statCd},				
+			<if test="ackBy != null and ackBy != ''">
+				ACK_DT 											= SYSDATETIME(),
+			</if>				
+			TSPT_COMP 											= #{tsptComp},
+			CG_TP_CD 											= #{cgTpCd},
+			UPDATE_TIME 										= SYSDATETIME(),                                                
+			STAFF_CD 											= #{userId},
+			VERSION 											= #{newVersion}
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND SHIPG_NOTE_NO 									= #{shipgNoteNo}	
+    </update>
+    
+    <update id="updateCgTpItems" parameterType="shippingNoteItem">
+    	UPDATE  /* shippingNote.updateCgTpItems */
+    		TMT_CG_MST 
+		SET     
+    		CG_TP_CD 											= #{cgTpCd},
+            UPDATE_TIME 										= SYSDATETIME(),                                                
+            STAFF_CD 											= #{userId},
+            VERSION 											= #{newVersion}
+        WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND SHIPG_NOTE_NO 									= #{shipgNoteNo}
+    </update>
+    
+    <update id="updateShippingNoteItems"  parameterType="shippingNoteItem">
+		UPDATE	/* shippingNote.updateShippingNoteItems */
+			TMT_SHIPG_NOTE 
+		SET 
+			SHIPG_NOTE_NO 										= #{newShipgNoteNo},
+			MF_DOC_ID 											= #{newMfDocId},
+			CATG_CD    											= #{catgCd},                                                     
+			CG_WGT      										= #{cgWgt},			                         
+			CG_VOL												= #{cgMsrmt},                                       
+			PKG_QTY												= #{pkgQty},
+			PKG_TP_CD											= #{pkgTpCd},
+			CG_TP_CD											= #{cgTpCd},
+			TSPT_TP_CD											= #{tsptTpCd},
+			DELV_TP_CD											= #{delvTpCd},
+			POD													= #{portOfDis},
+			POR													= #{cntryOfOrg},
+			FDEST												= #{fnlDest},
+			ACK_DT 												= #{ackDt},
+			REF_NO												= #{refNo},
+			STAT_CD 											= #{statCd},
+			IMDG												= #{imdg},
+			UNNO												= #{unno},
+			RMK													= #{rmk},
+			FWRD												= #{fwrd},
+			CNSNE												= #{cnsne},
+			CNSNE_NM											= #{cnsneNm},                                              
+			CNSNE_ADDR											= #{cnsneAddr},			                        
+			SHPR												= #{shpr},                                                 
+			SHPR_NM												= #{shprNm},                                               
+			SHPR_ADDR											= #{shprAddr},                                             
+			TSPT_COMP											= #{tsptComp},                                             
+			UPDATE_TIME											= SYSDATETIME(),                                                
+			STAFF_CD											= #{userId},
+			CMDT_CD 											= #{cmdtCd},
+			DG_SEQ 												= #{dgSeq},
+			VERSION 											= #{newVersion},
+			MARK_NO 											= #{markNo},
+			GDS_RMK 											= #{goodsDescr},
+			CMDT_GRP_CD 										= #{cmdtGroupCd},		
+			PKG_NO 												= #{pkgNumber},		
+			EACH_WGT 											= #{eachWgt},			
+			EACH_VOL 											= #{eachMsrmt},		
+			WIDTH												= #{cgWth},
+			HEIGHT												= #{cgHgt},
+			LENGTH												= #{cgLen},
+			FREIGHT_TON 										= #{freightTon},
+			PROJECT_CARGO 										= #{projectCargo},
+			DOMESTIC_CHK 										= 	CASE #{domesticChk} 
+																		WHEN 'Y' THEN 'Y'
+																		ELSE 
+																			CASE #{domesticChk}
+																				WHEN 'Domestic Cargo' THEN 'Y'
+																				ELSE 'N'
+																			END
+																	END,
+			WGT_CHK												= #{wgtChk},
+			BONDED_WH_YN 										= #{bondedWhYn},
+			ADDITIONAL_CHK 										= #{additionalChk},
+			LOT_NO 												= #{lotNo},
+			EST_ARRV_DT											= CASE
+																		WHEN #{estArrvDt1} = '' THEN NULL
+																		ELSE CONVERT(DATETIME, #{estArrvDt1}, 103)
+																	END,
+			HS_CODE												= #{hsCode}
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND SHIPG_NOTE_NO 									= #{shipgNoteNo}	
+		<if test="version != null and version != ''">
+  			AND VERSION 										= #{version}
+		</if>			
+    </update>
+    
+    <update id="updateShippingNoteAmtItems"  parameterType="shippingNoteItem">
+		UPDATE	/* shippingNote.updateShippingNoteAmtItems */
+			TMT_SHIPG_NOTE_AMT 
+		SET 
+			SHIPG_NOTE_NO 										= #{newShipgNoteNo},
+			MF_DOC_ID 											= #{newMfDocId},                                                    
+			CG_WGT      										= TRY_CONVERT(NUMERIC(15,3), #{cgWgt}),			                         
+			CG_VOL												= TRY_CONVERT(NUMERIC(15,3), #{cgMsrmt}),                                     
+			PKG_QTY												= TRY_CONVERT(NUMERIC(10,0), #{pkgQty}),
+			D_MT												= TRY_CONVERT(NUMERIC(15,3), #{dmt}),	
+			D_M3												= TRY_CONVERT(NUMERIC(15,3), #{dm3}),
+			D_QTY												= TRY_CONVERT(NUMERIC(10,0), #{dqty}),
+			D_LR_MT  											= TRY_CONVERT(NUMERIC(15,3), #{dLrMt}),
+			D_LR_M3												= TRY_CONVERT(NUMERIC(15,3), #{dLrM3}),
+			D_LR_QTY											= TRY_CONVERT(NUMERIC(10,0), #{dLrQty}),
+			D_VSL_MT											= TRY_CONVERT(NUMERIC(15,3), #{dVslMt}),		
+			D_VSL_M3											= TRY_CONVERT(NUMERIC(15,3), #{dVslM3}),
+			D_VSL_QTY 											= TRY_CONVERT(NUMERIC(10,0), #{dVslQty}),
+			I_MT												= TRY_CONVERT(NUMERIC(15,3), #{imt}),		
+			I_M3												= TRY_CONVERT(NUMERIC(15,3), #{im3}),
+			I_QTY  												= TRY_CONVERT(NUMERIC(10,0), #{iqty}),                                   
+			UPDATE_TIME											= SYSDATETIME(),                                                
+			STAFF_CD											= #{userId}
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND SHIPG_NOTE_NO 									= #{shipgNoteNo}			
+    </update>
+
+    <update id="updateShippingNoteDtlItems"  parameterType="shippingNoteItem">
+	    UPDATE /* shippingNote.updateShippingNoteDtlItems */
+	    	TMT_SHIPG_NOTE_DTL 
+		SET 
+			CMDT_CD 											= ISNULL(#{cmdtCdDtl}, ' '),
+		    PKG_QTY 											= #{pkgQtyDtl},
+		    PKG_TP_CD											= #{pkgTpCdDtl},
+		    DIV_CD 												= #{divCd},
+		    TSPT_TP_CD 											= #{tsptTpCdDtl},
+		    CG_WGT 												= #{wgtDtl},
+		    HATCH_NO 											= #{hatchNo}
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND SHIPG_NOTE_NO 									= #{shipgNoteNo}
+			AND SEQ 											= #{seq}
+    </update>
+
+	<update id="updateSnNoDtlItems"  parameterType="shippingNoteItem">
+	    UPDATE /* shippingNote.updateSnNoDtlItems */
+	    	TMT_SHIPG_NOTE_DTL 
+		SET 
+	    	SHIPG_NOTE_NO 										= #{newShipgNoteNo}
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND SHIPG_NOTE_NO 									= #{shipgNoteNo}
+    </update>
+    
+    <delete id="deleteShippingNoteDtlItems" parameterType="shippingNoteItem">
+   		DELETE /* shippingNote.deleteShippingNoteDtlItems */
+		FROM 
+			TMT_SHIPG_NOTE_DTL 
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND SHIPG_NOTE_NO 									= #{shipgNoteNo}
+			<!-- MMC REMOVED FOR TESTING 
+			AND (CHAS_NO IS NULL 								OR CHAS_NO = '')
+			 -->
+		<if test="seq != 0">
+   			AND SEQ 											= #{seq}
+		</if>	
+	</delete>
+	 
+    <delete id="deleteManifestItem" parameterType="shippingNoteItem">
+    	DELETE /* shippingNote.deleteManifestItem */
+    	FROM 
+			TMT_MF 
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND MF_DOC_ID 										= #{mfDocId}
+			AND (
+				SELECT 
+					COUNT(SHIPG_NOTE_NO) 
+				FROM 
+					TMT_SHIPG_NOTE
+				WHERE 
+					SHIPG_NOTE_NO 								= #{shipgNoteNo}
+					AND VSL_CALL_ID 							= #{vslCallId}
+					AND MF_DOC_ID 								= #{mfDocId}
+			) = 0
+	 </delete>
+	
+	<delete id="deleteDgShippingNoteItem" parameterType="shippingNoteItem">
+		DELETE /* shippingNote.deleteDgShippingNoteItem */
+		FROM 
+			TMT_DG 
+		WHERE 
+			SEQ 												= #{dgSeq}
+	</delete>
+	
+	<delete id="deleteShippingNoteItems" parameterType="shippingNoteItem">
+    	DELETE /* shippingNote.deleteShippingNoteItems */
+    	FROM 
+			TMT_SHIPG_NOTE
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND SHIPG_NOTE_NO 									= #{shipgNoteNo}
+		<if test="version != null and version != ''">
+  			AND VERSION = #{version}
+		</if>			
+	</delete>
+	
+	<delete id="deleteShippingNoteAmtItems" parameterType="shippingNoteItem">
+    	DELETE /* shippingNote.deleteShippingNoteAmtItems */
+    	FROM 
+			TMT_SHIPG_NOTE_AMT
+		WHERE 
+			VSL_CALL_ID											= #{vslCallId}
+			AND SHIPG_NOTE_NO 									= #{shipgNoteNo}			
+	</delete>
+	
+	<delete id="deleteRoRoItems" parameterType="shippingNoteItem">
+		DELETE /* shippingNote.deleteRoRoItems */
+		FROM 
+			TMT_SHIPG_NOTE_DTL
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND MF_DOC_ID 										= #{mfDocId}
+			AND CG_NO 											= #{shipgNoteNo}
+			<!-- 
+			AND IX_CD 											= 'X'
+			 -->
+	</delete>
+	
+	<delete id="deleteRoRoMSTItems" parameterType="shippingNoteItem">
+		DELETE /* shippingNote.deleteRoRoMSTItems */
+		FROM 
+			TMT_RORO_MST
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND MF_DOC_ID 										= #{mfDocId}
+			AND CG_NO 											= #{shipgNoteNo}
+			AND IX_CD 											= 'X'
+	</delete>
+	
+	<delete id="deletePackageItems" parameterType="shippingNoteItem">
+		DELETE /* shippingNote.deletePackageItems */
+		FROM 
+			TMT_PKG_INFO
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND MF_DOC_ID 										= #{mfDocId}
+			AND REF_NO 											= #{shipgNoteNo}
+	</delete>
+	
+	<select id="selectManifestComboList" parameterType="shippingNoteItem" resultType="shippingNoteItem">
+		SELECT  /* selectManifestComboList */
+			MF.VSL_CALL_ID 										AS VSLCALLID,
+			MF.VSL_CD 											AS VSLCD,
+			MF.CALL_YEAR 										AS CALLYEAR,
+			MF.CALL_SEQ 										AS CALLSEQ,
+			MF.MF_DOC_ID 										AS MFDOCID
+		FROM 
+			TMT_MF 												MF 
+		INNER JOIN  
+			TMT_SHIPG_NOTE SN  						
+				ON SN.VSL_CALL_ID 								= MF.VSL_CALL_ID 
+		       	AND SN.MF_DOC_ID 								= MF.MF_DOC_ID
+		       	AND SN.CG_TP_CD 								<![CDATA[<>]]> 'RCV'
+		       	AND CATG_CD 									IN ('E','S')
+				AND EXISTS	(SELECT 
+								GR_NO 
+							FROM 
+								TMT_GR R 
+							WHERE 
+								R.SHIPG_NOTE_NO = SN.SHIPG_NOTE_NO)
+		WHERE 
+			MF.VSL_CALL_ID 										= #{vslCallId}
+			<if test="docId !=null and docId !=''">
+				AND MF.MF_DOC_ID 								= #{docId}
+			</if>
+			<if test="opeClassCd !=null and opeClassCd !=''">
+				AND MF.OP_CLASS_CD 								= #{opeClassCd}
+			</if>
+		GROUP BY 
+			MF.VSL_CALL_ID,
+			MF.VSL_CD,
+			MF.CALL_YEAR,
+			MF.CALL_SEQ,
+			MF.MF_DOC_ID
+	</select>
+	
+	<update id="updateShippingNoteAmountItems" parameterType="shippingNoteItem">
+    	UPDATE	/* shippingnote.updateShippingNoteAmountItems */
+			TMT_SHIPG_NOTE
+		SET 	
+			CG_WGT      										= #{cgWgt},			                         
+			CG_VOL												= #{cgMsrmt},                                       
+			PKG_QTY												= #{pkgQty}, 
+			UPDATE_TIME											= SYSDATETIME(),                                                
+			STAFF_CD											= #{userId},
+			VERSION 											= #{newVersion}
+		WHERE	
+			VSL_CALL_ID       									= #{vslCallId}
+		 	AND SHIPG_NOTE_NO 									= #{shipgNoteNo}	
+    </update>  
+	
+	<select id="selectExistsShipgNoteNo" parameterType="shippingNoteParm" resultType="shippingNoteItem">
+    	SELECT /* shippingnote.selectExistsShipgNoteNo */
+			A.VSL_CALL_ID 										AS VSLCALLID, 
+			A.SHIPG_NOTE_NO 									AS SHIPGNOTENO
+		FROM 
+			TMT_SHIPG_NOTE 										A
+		WHERE 
+			A.VSL_CALL_ID 										= #{vslCallId}
+		 	AND A.SHIPG_NOTE_NO 								= #{shipgNoteNo} 		
+    </select>
+    
+</mapper>

@@ -1,0 +1,1681 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Thu Jun 18 09:41:35 ICT 2015-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="bl">
+	<resultMap 	id="resultUnitItem" 							type="blItem">
+   		<result property = "vslCd"								column = "VSL_CD"/>
+   		<result property = "callYear"							column = "CALL_YEAR"/>
+   		<result property = "callSeq"							column = "CALL_SEQ"/>
+   		<result property = "vslCallId"							column = "VSL_CALL_ID"/>
+   		<result property = "mfDocId"							column = "MF_DOC_ID"/>
+   		<result property = "blNo"								column = "CG_NO"/>
+   		<result property = "unitNo"								column = "CHAS_NO"/>
+   		<result property = "brandCd"							column = "BRAND_CD"/>
+   		<result property = "brandNm"							column = "BRAND_NM"/>
+   		<result property = "modelCd"							column = "MODEL_CD"/>
+   		<result property = "modelNm" 							column = "MODEL_NM"/>
+   		<result property = "roroMt"								column = "DOC_WGT"/>
+   		<result property = "cbm"								column = "CBM"/>
+   		<result property = "newYn" 								column = "NEW_YN"/>
+ 	</resultMap>
+ 	
+	<resultMap 	id="resultBlCargoDetailItem" 					type="blItem">
+   		<result property = "vslCd"								column = "VSL_CD"/>
+   		<result property = "callYear"							column = "CALL_YEAR"/>
+   		<result property = "callSeq"							column = "CALL_SEQ"/>
+   		<result property = "vslCallId"							column = "VSL_CALL_ID"/>
+   		<result property = "mfDocId"							column = "MF_DOC_ID"/>
+   		<result property = "blNo"								column = "BL_NO"/>
+   		<result property = "blDtlSeq"							column = "SEQ"/>
+   		<result property = "pkgQty"	 							column = "PKG_QTY"/>
+   		<result property = "pkgTpCd"							column = "PKG_TP_CD"/>
+   		<result property = "wgt"								column = "CG_WGT"/>
+   		<result property = "msrmt" 								column = "CG_VOL"/>
+   		<result property = "hatchNo"							column = "HATCH_NO"/>
+   		<result property = "cmdtCd"								column = "CMDT_CD"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultPackageItem" 							type="blItem">
+   		<result property = "callYear"							column = "CALL_YEAR"/>
+   		<result property = "callSeq"							column = "CALL_SEQ"/>
+   		<result property = "vslCallId"							column = "VSL_CALL_ID"/>
+   		<result property = "mfDocId"							column = "MF_DOC_ID"/>
+   		<result property = "blNo"								column = "REF_NO"/>
+   		<result property = "pkgNo"								column = "PKG_NO"/>
+   		<result property = "pkgDesc"							column = "PKG_DESC"/>
+   		<result property = "pkgMt"								column = "CG_WGT"/>
+   		<result property = "pkgM3"								column = "CG_VOL"/>
+   		<result property = "width" 								column = "WIDTH"/>
+   		<result property = "height"								column = "HEIGHT"/>
+   		<result property = "length"								column = "LENGTH"/>
+   		<result property = "orgBlNo"							column = "ORG_BL_NO"/>
+   		<result property = "pkgRmk"								column = "RMK"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="checkBLOperation" 	type="blItem">
+ 		<result property = "dMt" 								column = "MT"/>
+ 		<result property = "dM3" 								column = "M3"/>
+ 		<result property = "dQty" 								column = "QTY"/>
+ 	</resultMap>
+ 	
+ 	<select id="checkBLOperation" parameterType="blParm" resultMap="checkBLOperation">
+		SELECT /*bl.checkBLOperation VA*/
+			(ISNULL (CAST (SUM (CG_WGT) AS FLOAT), 0)) 	AS MT,
+	        (ISNULL (CAST (SUM (CG_VOL) AS FLOAT), 0)) 	AS M3,
+	        (ISNULL (CAST (SUM (PKG_QTY) AS INT), 0)) 	AS QTY
+	    FROM
+			TMT_JOB JB
+	    WHERE
+			JB.VSL_CALL_ID 							= #{vslCallId}
+			AND JB.CG_NO 							= #{blNo}
+	        AND JB.JOB_PURP_CD 						= 'VA'
+	    GROUP BY
+			JB.VSL_CALL_ID,
+			JB.CG_NO
+ 	</select>
+	
+	<select id="selectBLList" parameterType="blParm" resultType="blItem">
+	 	<if test="pageNo != 0"> 
+			SELECT /* bl.selectBLList */
+             	*
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY VSLCALLID) AS ROW_NUM,
+					innerTable.*
+				FROM ( 
+		</if>
+				<include refid="getBLList"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT)) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+
+	<sql id="getBLList">
+		SELECT /* BL.getBLList */
+	        DOCID,
+	        JOBNO, 
+	        REGNO,
+	        DOCSTATCD,
+	        DOCSTATNM,
+	        BLNO, 
+	        GDSRMK,
+	        POL, 
+	        POD,
+	        POLNM, 
+	        PODNM, 
+	        FNLPORTCD,
+	        FNLPORTNM,
+	        VSLCALLID,
+	        SHIPCALLNO,
+	        VSLNM,
+	        MFDOCID,
+	        MFJOBNO,
+	        MFSTATUS,
+	        MFSTATUSNM,
+	        USERDEFNO,
+	        VSLCD,
+	        CALLYEAR,
+	        CALLSEQ,
+	        VOYAGE,
+	        RMK,
+	        CGTPCD,
+	        CGCLASSCD,
+	        PKGTPCD,
+	        PKGTPNM,
+	        PKGQTY,
+	        CUSTGDSRMK,
+	        SHANM,
+	        SHACD,
+	        MARKNO,
+	        EACHWGT, 
+	        EACHVOL, 
+	        PARENTID, 
+	        PARENTCGTP,
+	        CGWIDTH,
+	        CGHEIGHT,
+			CGLENGTH, 
+			FREIGHTON,
+	        WGT,
+			VOL,
+			SPLITCGVOL,
+			SPLITCGWGT,
+			SPLITPKGQTY,
+	        CUSTREF,
+	        SHPR,
+	        SHPRNM,
+	        SHPRADDR,
+	        CNSNE,
+	        CNSNENM,
+	        CNSNEADDR,
+	        FWDCD, 
+	        FWDNM,
+	        SCN,
+	        IMDGCLASS,
+	        UNNO,
+	        IMDGUNNO,
+	        VALIDYN,
+	        CNNTVSLCD,
+	        DELVTPCD,
+	        CATGCD,
+	        OPCLASSCD,
+	        CMDTGRPCD,
+	        CMDTGRPNM,
+			CMDTCD,
+			CMDTCDNM,
+			HSCODE,
+			OLDBLNO,
+			OLDMFDOCID,
+			INSDATE, 
+			INSUSERID, 
+			UPDDATE, 
+			UPDUSERID,
+			OPCLASSNM,
+			DELVTPNM,
+			CGTPNM,
+			HATCHNO,
+			DOMESTICCHK,
+			VSLTP,
+			PROJECTCARGO,
+			WGTCHK,
+			ORGBLNO,
+			ORGWGT,
+			ORGVOL,
+			ORGPKGQTY,
+			BONDEDWHYN,
+			ADDITIONALCHK,
+			LOTNO,
+			TSPTTPCD,
+			DISWGT,
+			DISVOL,
+			DISPKGQTY,
+			DONO,
+			ETA,
+			ETD,
+			BERTHLOC,
+			ARRVSAID,
+			DGSEQ
+			<!-- ,HSNM -->
+	    FROM 
+			(SELECT
+				'' 												AS docId,
+				'' 												AS jobNo,
+				'' 												AS regNo,
+				BL.STAT_CD 										AS docStatCd,
+				CASE BL.STAT_CD
+					WHEN 'AP' THEN 'Approved'
+					WHEN 'CF' THEN 'Confirmed'
+					WHEN 'SP' THEN 'Splitted'
+					WHEN 'CA' THEN 'Canceled'
+					ELSE 'Submitted'
+				END 											AS docStatNm,
+				BL.CATG_CD 										AS catgCd, 
+				CASE BL.CATG_CD
+					WHEN 'I' THEN 'Import'
+					WHEN 'T' THEN 'Transshipment'
+					ELSE 'Transit'
+				END 											AS catgNm,
+				BL.OP_CLASS_CD 									AS opClassCd,
+				CASE BL.OP_CLASS_CD
+					WHEN 'I' THEN 'Import'
+					WHEN 'T' THEN 'Transshipment'
+					ELSE 'Transit'
+				END 											AS opClassNm,
+				BL.BL_NO 										AS blNo,
+				BL.BL_NO 										AS oldBlNo,
+				BL.GDS_RMK 										AS gdsRmk,
+				BL.POL 											AS pol,
+				(SELECT TOP(1) 
+					PORT_NM 
+				FROM 
+					TMT_PORT_MST 
+				WHERE 
+					BL.POL = (CNTRY_CD + PORT_CD)
+				) 												AS polNm,
+				BL.POD 											AS pod,
+				(SELECT TOP(1) 
+					PORT_NM 
+				FROM 
+					TMT_PORT_MST 
+				WHERE 
+					BL.POD = (CNTRY_CD + PORT_CD)
+				) 												AS podNm,
+				BL.FND 											AS fnlPortCd,
+	            (SELECT TOP(1) 
+					PORT_NM 
+				FROM 
+					TMT_PORT_MST 
+				WHERE 
+					BL.FND = (CNTRY_CD + PORT_CD)
+				) 												AS fnlPortNm,
+	            SCH.SHIP_CALL_NO 								AS shipCallNo, 
+	            PART.VSL_NM 									AS vslNm,
+	            BL.MF_DOC_ID 									AS mfDocId, 
+	            BL.MF_DOC_ID									AS oldMfDocId, 
+	            '' 												AS mfJobNo,
+	            '' 												AS mfStatus,
+	            '' 												AS mfStatusNm,
+	            '' 												AS userDefNo,
+	            BL.VSL_CD 										AS vslCd, 
+	            BL.CALL_YEAR 									AS callYear, 
+	            BL.CALL_SEQ 									AS callSeq, 
+	            SCH.INB_VOY + '/' + SCH.OUTB_VOY				AS voyage, 
+	            BL.MARK_NO 										AS markNo,
+	            BL.EACH_WGT 									AS eachWgt, 
+	            BL.EACH_VOL 									AS eachVol, 
+	            BL.PARENT_ID 									AS parentId, 
+	            BL.PARENT_CG_TP 								AS parentCgTp,
+	            BL.WIDTH 										AS cgWidth, 
+	            BL.HEIGHT 										AS cgHeight, 
+	            BL.LENGTH 										AS cgLength, 
+	            BL.FREIGHT_TON 									AS freighTon,
+	            '' 												AS rmk,
+	            BL.CG_TP_CD 									AS cgTpCd, 
+	            '' 												AS cgClassCd, 
+	            BL.PKG_TP_CD 									AS pkgTpCd, 
+	            (SELECT TOP(1)
+					S_CD_NM 
+				FROM 
+					TMT_CD_MSTD 
+				WHERE 
+					L_CD 				= 'MT' 
+					AND M_CD 			= 'PKGTP' 
+					AND S_CD_USE 		= 'Y' 
+					AND  S_CD 			= BL.PKG_TP_CD
+				) 												AS pkgTpNm,
+	            ISNULL(BL.PKG_QTY,'0') 							AS pkgQty, 
+	            ISNULL(BL.PKG_QTY,'0') 							AS orgPkgQty, 
+				ISNULL(BL.CG_WGT,'0') 							AS wgt,
+				ISNULL(BL.CG_WGT,'0') 							AS orgWgt,
+				ISNULL (BL.CG_VOL, '0') 						AS vol,
+				ISNULL (BL.CG_VOL, '0') 						AS orgVol,
+				ISNULL(BL.SPLIT_PKG_QTY,'0') 					AS splitPkgQty, 
+				TRIM(
+					FORMAT(
+						ISNULL(BL.SPLIT_CG_WGT,'0'),
+						'0000'
+					)
+				) 												AS splitCgWgt,
+				ISNULL (BL.SPLIT_CG_VOL, '0') 					AS splitCgVol,
+	       		'' 												AS custGdsRmk,
+	       		PTNR.ENG_SNM 									AS shaNm,
+	            PTNR.AGENCY_CODE 								AS shaCd,
+	            '' 												AS CUSTREF,
+	            BL.SHPR 										AS shpr,
+			    (SELECT TOP(1) 
+					ENG_SNM 
+				FROM 
+					TMT_PTNR 
+				WHERE 
+					BL.SHPR 			= PTNR_CODE
+				) 												AS shprNm,
+			    (SELECT TOP(1) 
+					ADDR 
+				FROM 
+					TMT_PTNR 
+				WHERE 
+					BL.SHPR 			= PTNR_CODE
+				) 												AS shprAddr,
+			    BL.CNSNE  										AS cnsne,
+			    (SELECT TOP(1) 
+					ENG_SNM 
+				FROM 
+					TMT_PTNR 
+				WHERE 
+					BL.CNSNE 			= PTNR_CODE
+				) 												AS cnsneNm,
+			    (SELECT TOP(1) 
+					ADDR 
+				FROM 
+					TMT_PTNR 
+				WHERE 
+					BL.CNSNE 			= PTNR_CODE
+				) 												AS cnsneAddr,
+			    BL.FWRD 										AS fwdCd,
+			    (SELECT TOP(1) 
+					ENG_SNM 
+				FROM 
+					TMT_PTNR 
+				WHERE 
+					PTNR_TYPE 			= 'FWD' 
+					AND PTNR_CODE 		= BL.FWRD
+				) 												AS fwdNm,
+			    SCH.VSL_CALL_ID 								AS vslCallId,
+			    SCH.SHIP_CALL_NO 								AS SCN, 
+			    BL.IMDG_CLASS 									AS imdgClass, 
+			    BL.UNNO 										AS unno,
+			    BL.WGT_CHK 										AS wgtChk,
+			    CASE
+					WHEN (BL.IMDG_CLASS IS NOT NULL AND BL.IMDG_CLASS <![CDATA[<>]]>'') 
+							AND (BL.UNNO IS NOT NULL AND BL.UNNO <![CDATA[<>]]>'')
+						THEN BL.IMDG_CLASS + '/' + BL.UNNO 
+					ELSE NULL
+				END 											AS imdgunno, 
+				'' 												AS validYn, 
+				'' 												AS cnntVslCd, 
+				BL.DELV_TP_CD 									AS delvTpCd, 
+				CASE BL.DELV_TP_CD
+					WHEN 'I' THEN 'Indirect'
+					WHEN 'D' THEN 'Direct'
+					ELSE 'Both Direct and Indirect'
+				END 											AS delvTpNm,
+				BL.CMDT_GRP_CD 									AS cmdtGrpCd,
+				(SELECT TOP(1)
+					CMDT_GRP_DESC 
+				FROM 
+					TMT_CMDT 
+				WHERE 
+					CMDT_GRP_CD 	= BL.CMDT_GRP_CD
+				) 												AS CMDTGRPNM,
+				BL.CMDT_CD 										AS cmdtCd,
+				(SELECT TOP(1)
+					CMDT_DESC 
+				FROM 
+					TMT_CMDT CMDT 
+				WHERE 
+					CMDT.CMDT_CD 		= BL.CMDT_CD
+				) 												AS CMDTCDNM,
+				BL.HS_CODE 										AS hsCode, 
+				dbo.F_CM_CODE_NM('MT', 'CGTP', bl.CG_TP_CD) 	AS cgTpNm,
+				BL.UPDATE_TIME 									AS insDate, 
+				BL.STAFF_CD 									AS insUserId, 
+				BL.UPDATE_TIME 									AS updDate, 
+				BL.STAFF_CD 									AS updUserId,
+				BL.ORG_BL_NO 									AS orgBlNo,
+				CASE BL.DOMESTIC_CHK
+					WHEN 'Y' THEN 'Domestic Cargo'
+					ELSE ' '
+				END 											AS domesticChk,
+				PART.VSL_TP 									AS vslTp,
+				BL.PROJECT_CARGO 								AS projectCargo,
+				CASE BL.BONDED_WH_YN
+					WHEN 'Y' THEN 'Y'
+					ELSE ''
+				END 											AS bondedWhYn,
+				BL.ADDITIONAL_CHK 								AS additionalChk,
+				BL.LOT_NO 										AS lotNo,
+				(SELECT  
+					STRING_AGG(DBL.HATCH_NO, ',') 
+						WITHIN GROUP (
+						ORDER BY 
+							DBL.VSL_CD,
+							DBL.CALL_YEAR,
+							DBL.CALL_SEQ, 
+							DBL.VSL_CALL_ID,
+							DBL.MF_DOC_ID, 
+							DBL.BL_NO
+						) 
+				FROM 
+					TMT_BL_DTL DBL
+				WHERE 
+					1 = 1
+                    AND DBL.VSL_CD 		= BL.VSL_CD
+                    AND DBL.CALL_YEAR 	= BL.CALL_YEAR
+                    AND DBL.CALL_SEQ 	= BL.CALL_SEQ
+                    AND DBL.VSL_CALL_ID = BL.VSL_CALL_ID 
+                    AND DBL.MF_DOC_ID 	= BL.MF_DOC_ID
+                    AND DBL.BL_NO 		= BL.BL_NO
+  				) 												AS HATCHNO,
+  				BL.TSPT_TP_CD 									AS tsptTpCd,
+  				(SELECT 
+					SUM(ISNULL(CG_WGT, 0)) 
+				FROM 
+					TMT_JOB 
+				WHERE 
+					VSL_CALL_ID 		= BL.VSL_CALL_ID 
+	  				AND CG_NO 			= BL.BL_NO 
+	  				AND (DELV_TP_CD 	= 'D' AND JOB_PURP_CD = 'VG'
+	  					OR
+	  					DELV_TP_CD 		= 'I' AND JOB_PURP_CD = 'AW'
+	  				)
+	  			) 												AS DISWGT,
+  				(SELECT 
+					SUM(ISNULL(CG_VOL, 0)) 
+				FROM 
+					TMT_JOB 
+				WHERE 
+					VSL_CALL_ID 		= BL.VSL_CALL_ID 
+  					AND CG_NO 			= BL.BL_NO 
+  					AND (DELV_TP_CD 	= 'D' AND JOB_PURP_CD = 'VG'
+	  					OR
+	  					DELV_TP_CD 		= 'I' AND JOB_PURP_CD = 'AW'
+	  				)
+  				) 												AS DISVOL,
+  				(SELECT 
+					SUM(ISNULL(PKG_QTY, 0)) 
+				FROM 
+					TMT_JOB 
+				WHERE 
+					VSL_CALL_ID 		= BL.VSL_CALL_ID 
+  					AND CG_NO 			= BL.BL_NO 
+  					AND (DELV_TP_CD 	= 'D' AND JOB_PURP_CD = 'VG'
+	  					OR
+	  					DELV_TP_CD 		= 'I' AND JOB_PURP_CD = 'AW'
+	  				)
+  				) 												AS DISPKGQTY,
+  				(SELECT TOP(1)
+					DO_NO 
+				FROM 
+					TMT_DO 
+				WHERE 
+					VSL_CALL_ID			= BL.VSL_CALL_ID 
+					AND BL_NO 			= BL.BL_NO
+				) 												AS DONO,
+				FORMAT(SCH.ETA, 'dd/MM/yyyy HH:mm') 			AS eta,
+				ISNULL(FORMAT(SCH.ETD, 'dd/MM/yyyy HH:mm'), '') AS etd,
+				SCH.BERTH_LOC 									AS berthLoc,
+				SCH.ARRV_SA_ID									AS arrvSaId,
+				BL.DG_SEQ                                       AS DGSEQ
+				<!-- (SELECT TOP(1)
+					HS_CD_NM
+				FROM
+					TMT_HS_AHTN_CD_MST
+				WHERE
+					HS_CD = BL.HS_CODE)							AS HSNM -->
+			FROM 	
+				TMT_BL 											BL
+			LEFT OUTER JOIN 
+				TMT_VSL_SCH 									SCH 
+					ON BL.VSL_CALL_ID							= SCH.VSL_CALL_ID
+			LEFT OUTER JOIN 
+				TMT_VSL_PART PART 
+					ON SCH.VSL_CD 								= PART.VSL_CD
+			LEFT OUTER JOIN 
+				TMT_AGENCY_INFO PTNR 
+					ON SCH.ARRV_SA_ID 							= PTNR.AGENCY_CODE
+	        WHERE 
+				<choose>
+					<when test='splitChk=="Y"'>
+						(BL.ORG_BL_NO IS NOT NULL				AND BL.ORG_BL_NO <![CDATA[<>]]> '')
+					</when>
+					<otherwise>
+						(BL.ORG_BL_NO IS NULL 					OR BL.ORG_BL_NO = '')
+					</otherwise>
+				</choose>
+				<if test="vslCallId !=null and vslCallId != ''">
+					AND SCH.VSL_CALL_ID 						= #{vslCallId}
+				</if>
+				<if test="mfDocId !=null and mfDocId != ''">
+					AND BL.MF_DOC_ID 							LIKE '%' + #{mfDocId} + '%'
+				</if>
+				<if test="blNo!=null and blNo!=''">
+					<choose>
+						<when test='splitChk=="Y"'>
+							AND BL.ORG_BL_NO 					LIKE '%' + #{blNo} + '%'
+						</when>
+						<otherwise>
+							AND BL.BL_NO 						LIKE '%' + #{blNo} + '%'
+						</otherwise>
+					</choose>
+				</if>
+				<if test="docStatCd!=null and docStatCd!=''">
+					AND BL.STAT_CD 								= #{docStatCd}
+				</if>
+				<if test="userDefNo!=null and userDefNo!=''">
+					AND BL.LOT_NO 								LIKE '%' + #{userDefNo} + '%'
+				</if>
+				<if test="docStatFromDate!= null  and docStatFromDate!= ''" >
+					AND BL.UPDATE_TIME 							&gt;=  CONVERT(DATETIME, #{docStatFromDate} + ' 00:00', 103) 
+				</if>
+				<if test="docStatToDate != null and docStatToDate != ''" >
+					AND BL.UPDATE_TIME 							&lt;=  CONVERT(DATETIME, #{docStatToDate} + ' 23:59', 103) 
+				</if>
+				<if test="ptnrCd != '' and ptnrCd != null">
+					AND PTNR.PTNR_TYPE 							= #{ptnrCd}
+				</if>
+				<if test="shaCd !=null and shaCd != ''">
+					AND PTNR.AGENCY_CODE 						= #{shaCd}
+				</if>
+				<if test="blDocId !=null and blDocId != ''">
+					AND BL.OP_CLASS_CD 							= #{blDocId}
+				</if>
+				<if test="extUserCNSCd !=null and extUserCNSCd != ''">
+					AND BL.CNSNE 								= #{extUserCNSCd}
+				</if>
+		) AS TEMPT
+		WHERE 
+			1 = 1
+	</sql>
+	
+	<select id="selectBLListCount" parameterType="blParm" resultType="java.lang.String" >
+    	SELECT /* bl.selectBLListCount */
+			COUNT(*)
+        FROM 
+			(<include refid="getBLList"/>) 				AS TEMPTABLE
+	</select>
+	
+	<select id="checkBLNo" parameterType="blParm" resultType="blItem">
+		SELECT /* bl.checkBLNo */
+			BL_NO 												AS blNo
+		FROM 
+			TMT_BL
+		WHERE 
+			STAT_CD 											NOT IN ('DE','CA') 
+			AND BL_NO 											= #{blNo}
+			AND EXISTS (
+			    SELECT 
+			    	1
+			    FROM 
+			    	TMT_VSL_SCH
+			    WHERE 
+			    	VSL_CALL_ID 		= #{vslCallId}
+			      	AND VSL_CD 			= TMT_BL.VSL_CD
+			     	AND CALL_YEAR 		= TMT_BL.CALL_YEAR
+			      	AND CALL_SEQ 		= TMT_BL.CALL_SEQ
+			  );
+		</select>
+		
+	<select id="selectBLListForMf" parameterType="blParm" resultType="blItem">
+		SELECT /* bl.selectBLListForMf */
+			HDR.DOC_ID 											AS docId,
+			HDR.JOB_NO 											AS jobNo,
+			HDR.USER_DEF_NO 									AS regNo,
+			BL.BL_NO 											AS blNo, 
+			BL.HBL_NO 											AS hblNo,
+			BL.GDS_RMK 											AS gdsRmk,
+			CASE BL.CG_INOUT_TP
+				WHEN #{cgInOutTp} THEN BL.POL
+				ELSE BL.POD
+			CASE BL.CG_INOUT_TP
+				WHEN #{cgInOutTp} THEN CONSIGNEE.PTNR_NM
+				ELSE CONSIGNOR.PTNR_NM
+			END 												AS consNm,
+			FAGENT.PTNR_NM 										AS fwdNm,
+			FAGENT.PTNR_CD 										AS fwdCd,
+			HDR.DOC_STAT_CD 									AS docStatCd,
+			BL.VALID_YN 										AS validYn
+		FROM 
+			TMT_BL 												BL,
+	       	TMT_DOC_HDR 										HDR,
+	      	TMT_DOC_PTNR_ROLE_DEF 								CONSIGNEE,
+	    	TMT_DOC_PTNR_ROLE_DEF 								CONSIGNOR,
+	       	TMT_DOC_PTNR_ROLE_DEF 								FAGENT,
+	       	TMT_DOC_PTNR_ROLE_DEF 								SAGENT
+		WHERE 
+			BL.DOC_ID 											= HDR.DOC_ID
+			AND BL.JOB_NO 										= HDR.JOB_NO
+			AND BL.DOC_ID 										= CONSIGNEE.DOC_ID
+			AND BL.JOB_NO 										= CONSIGNEE.JOB_NO
+			AND BL.DOC_ID 										= CONSIGNOR.DOC_ID
+			AND BL.JOB_NO 										= CONSIGNOR.JOB_NO
+			AND BL.DOC_ID 										= FAGENT.DOC_ID
+			AND BL.JOB_NO 										= FAGENT.JOB_NO
+			AND BL.DOC_ID 										= SAGENT.DOC_ID
+			AND BL.JOB_NO 										= SAGENT.JOB_NO
+			AND CONSIGNEE.ROLE_CD 								= 'CNSNEE'
+			AND CONSIGNOR.ROLE_CD 								= 'CNSNOR'
+			AND FAGENT.ROLE_CD 									= 'FWDAGN'
+			AND SAGENT.ROLE_CD 									= 'SHPAGN'
+			AND BL.DOC_ID 										= #{docId}
+			AND SAGENT.PTNR_CD 									= #{ptnrCd}
+			AND BL.VSL_CD 										= #{vslCd}
+			AND BL.CALL_YEAR 									= #{callYear}
+			AND BL.CALL_SEQ 									= #{callSeq}
+			AND BL.CG_INOUT_TP 									= #{cgInOutTp}
+			AND BL.MF_JOB_NO IS NULL OR BL.MF_JOB_NO =''
+			<if test="userDefNo!=null and userDefNo!=''">
+				AND HDR.USER_DEF_NO  							LIKE #{userDefNo} + '%'
+			</if>
+			AND ( 
+				BL.HBL_NO 		LIKE #{blNo} + '%'
+				OR BL.BL_NO 	LIKE #{blNo} + '%'
+				OR BL.HBL_NO 	IS NULL OR BL.HBL_NO=''
+				OR BL.BL_NO 	IS NULL OR BL.BL_NO=''
+			)
+			AND HDR.DOC_STAT_CD 								NOT IN ('DE', 'CA')
+			AND BL.VALID_YN 									= 'Y'
+	</select>
+	
+	<select id="selectMfBLList" parameterType="blParm" resultType="blItem">
+		SELECT /* bl.selectMfBLList */
+			BL.DOC_ID 											AS docId,                              
+			BL.JOB_NO 											AS jobNo,                              
+			HDR.REG_NO 											AS regNo,                             
+			SAGENT.PTNR_NM 										AS shpagnNm,                
+			HDR.DOC_STAT_CD 									AS doctStatCd,                        
+			HDR.DOC_STAT_DTM 									AS docStatDtm                       
+		FROM                                        
+			TMT_BL 												BL,                              
+			TMT_DOC_HDR 										HDR,                        
+			TMT_DOC_PTNR_ROLE_DEF 								SAGENT            
+		WHERE                                       
+		    HDR.DOC_ID          								= BL.DOC_ID         
+		    AND HDR.JOB_NO      								= BL.JOB_NO         
+		    AND HDR.DOC_ID      								= SAGENT.DOC_ID     
+		    AND HDR.JOB_NO      								= SAGENT.JOB_NO     
+		    AND SAGENT.ROLE_CD  								= 'SHPAGN'          
+		    AND BL.MF_DOC_ID    								=  #{mfDocId}             
+		    AND BL.MF_JOB_NO    								=  #{mfJobNo}
+	</select>
+	
+	<select id="selectNewBLJobNo" parameterType="blParm" resultType="blItem">
+		SELECT '14444' jobNo from dual
+	</select>
+	
+	<insert id="insertDocBL" parameterType="blItem">
+		INSERT /* bl.insertDocBL */
+		INTO TMT_BL(
+			SHIP_CALL_NO,
+			VSL_CD, 
+			CALL_SEQ, 
+			CALL_YEAR, 
+			VSL_CALL_ID, 
+			MF_DOC_ID, 
+		    BL_NO, 
+		    CG_TP_CD, 
+		    CMDT_GRP_CD,
+		    CMDT_CD, 
+		    TSPTR, 
+		    DELV_TP_CD, 
+		    TSPT_TP_CD, 
+		    FDEST, 
+		    CATG_CD, 
+		    DG_SEQ, 
+		    PKG_TP_CD,
+		    FWRD,	   
+		    CG_WGT, 
+		    CG_VOL,
+		    PKG_QTY,
+		    GDS_RMK, 
+		    MARK_NO,
+		    POL, 
+		    POD, 
+		    FND,
+		    OP_CLASS_CD, 
+		    IMDG_CLASS, 
+		    UNNO, 
+		    <!-- CUSTOMS_APRV_DT, 
+		    CUSTOMS_APRV_STAT,  -->
+		    CUST_DECL_NO, 
+		    UPDATE_TIME, 
+		    STAFF_CD,
+		    VERSION, 
+		    CNSNE,
+		    SHPR,
+		    HS_CODE,
+		    EACH_WGT, 
+		    EACH_VOL, 
+		    PARENT_ID, 
+		    PARENT_CG_TP,
+		    WIDTH, 
+		    HEIGHT, 
+		    LENGTH, 
+		    FREIGHT_TON,
+		    STAT_CD,
+		    DOMESTIC_CHK,
+		    PROJECT_CARGO,
+		    WGT_CHK,
+		    ORG_BL_NO,
+		    SPLIT_CG_WGT,
+		    SPLIT_CG_VOL,
+		    SPLIT_PKG_QTY,
+		    BONDED_WH_YN,
+		    ADDITIONAL_CHK,
+		    LOT_NO
+		) VALUES (
+			#{scn},
+			#{vslCd}, 
+			#{callSeq}, 
+			#{callYear}, 
+			#{vslCallId}, 
+			#{mfDocId}, 
+		    #{blNo}, 
+		    #{cgTpCd},
+		    #{cmdtGrpCd},
+		    #{cmdtCd}, 
+		    #{tsptr}, 
+		    #{delvTpCd}, 
+		    #{tsptTpCd}, 
+		    #{fDest}, 
+		    #{opClassCd}, 
+		    #{dgSeq}, 
+		    #{pkgTpCd},
+		    #{fwrd},   
+		     <choose>
+				<when test='changeSplit == "Y"'>
+				 	TRY_CONVERT(NUMERIC(15, 3), #{splitCgWgt}),
+				    TRY_CONVERT(NUMERIC(15, 3), #{splitCgVol}),
+				    TRY_CONVERT(NUMERIC(8, 0), #{splitPkgQty}),
+				</when>
+				<otherwise>
+				    TRY_CONVERT(NUMERIC(15, 3), #{wgt}),
+		    		TRY_CONVERT(NUMERIC(15, 3), #{vol}),
+		    		TRY_CONVERT(NUMERIC(8, 0), #{pkgQty}),
+				</otherwise>
+			</choose>
+		    #{gdsRmk},
+		    #{markNo},
+		    #{pol}, 
+		    #{pod},
+		    #{fnlPortCd}, 
+		    #{opClassCd}, 
+		    #{imdgClass}, 
+		    #{unno}, 
+		    <!-- #{customsAprvDt}, 
+		    #{customsAprvStat},  -->
+		    #{custDeclNo}, 
+		    SYSDATETIME(), 
+		    #{userId}, 
+		    #{version}, 
+		    #{cnsne}, 
+		    #{shpr},
+		    #{hsCode}, 
+		    TRY_CONVERT(NUMERIC(15, 3), #{eachWgt}),
+		    TRY_CONVERT(NUMERIC(15, 3), #{eachVol}),
+		    #{parentId},  
+		    #{parentCgTp},
+		    TRY_CONVERT(NUMERIC(15, 3), #{cgWidth}),
+		    TRY_CONVERT(NUMERIC(15, 3), #{cgHeight}),
+		    TRY_CONVERT(NUMERIC(15, 3), #{cgLength}),
+		    TRY_CONVERT(NUMERIC(15, 3), #{freighTon}),
+		    #{docStatCd},
+		    #{domesticChk},
+		    #{projectCargo},
+		    #{wgtChk},
+		    #{orgBlNo},
+		    <choose>
+				<when test='changeSplit == "Y"'>
+					0.000,
+					0.000,
+					0.000,
+				</when>
+				<otherwise>
+				    TRY_CONVERT(NUMERIC(15, 3), #{splitCgWgt}),
+				    TRY_CONVERT(NUMERIC(15, 3), #{splitCgVol}),
+				    TRY_CONVERT(NUMERIC(8, 0), #{splitPkgQty}),
+				</otherwise>
+			</choose>
+		    #{bondedWhYn},
+		    #{additionalChk},
+		    #{lotNo}
+		)
+	</insert>
+	
+	<update id="updateDocBL" parameterType="blItem">
+		UPDATE /* bl.updateDocBL */
+			TMT_BL 
+		SET 
+			CG_TP_CD 											= #{cgTpCd},
+			CMDT_GRP_CD 										= #{cmdtGrpCd},
+			CMDT_CD 											= #{cmdtCd},
+			TSPTR 												= #{tsptr},
+			DELV_TP_CD 											= #{delvTpCd},
+			TSPT_TP_CD 											= #{tsptTpCd},
+			FDEST 												= #{fDest},
+			DG_SEQ 												= #{dgSeq},
+			PKG_QTY 											= CASE 
+																	WHEN #{pkgQty} = '' THEN NULL
+		    														ELSE CAST(#{pkgQty} AS NUMERIC(8,0))
+			    												  END,
+			PKG_TP_CD 											= #{pkgTpCd},
+			FWRD 												= #{fwrd},
+			CG_WGT 												= CASE 
+																	WHEN #{wgt} = '' THEN NULL
+		    														ELSE CAST(#{wgt} AS NUMERIC(15,3))
+			    												  END,
+			CG_VOL 												= CASE 
+																	WHEN #{vol} = '' THEN NULL
+		    														ELSE CAST(#{vol} AS NUMERIC(15,3))
+			    												  END,
+			GDS_RMK 											= #{gdsRmk},
+			MARK_NO												= #{markNo},
+			POL 												= #{pol},
+			FND 												= #{fnlPortCd},
+			POD 												= #{pod},
+			CATG_CD 											= #{opClassCd},
+			OP_CLASS_CD 										= #{opClassCd},
+			IMDG_CLASS 											= #{imdgClass},
+			UNNO 												= #{unno},
+			CUSTOMS_APRV_DT 									= #{customsAprvDt},
+			CUSTOMS_APRV_STAT 									= #{customsAprvStat},
+			CUST_DECL_NO 										= #{custDeclNo},
+			STAT_CD 											= #{docStatCd},
+			STAFF_CD  											= #{userId},
+			UPDATE_TIME 										= SYSDATETIME(),
+			VERSION 											= #{version},
+			CNSNE 												= #{cnsne},
+			SHPR 												= #{shpr},
+			EACH_WGT 											= CASE 
+																	WHEN #{eachWgt} = '' THEN NULL
+		    														ELSE CAST(#{eachWgt} AS NUMERIC(15,3))
+			    												  END, 
+			EACH_VOL 											= CASE 
+																	WHEN #{eachVol} ='' THEN NULL
+		    														ELSE CAST(#{eachVol} AS NUMERIC(15,3))
+			    												  END,
+			PARENT_ID 											= #{parentId}, 
+			PARENT_CG_TP 										= #{parentCgTp},
+		    WIDTH 												= CASE 
+		    														WHEN #{cgWidth} = '' THEN NULL
+		    														ELSE CAST(#{cgWidth} AS NUMERIC(15,3))
+			    												  END, 
+		    HEIGHT 												= CASE 
+		    														WHEN #{cgHeight} = '' THEN NULL
+		    														ELSE CAST(#{cgHeight} AS NUMERIC(15,3))
+			    												  END, 
+		    LENGTH 												= CASE 
+		    														WHEN #{cgLength} = '' THEN NULL
+		    														ELSE CAST(#{cgLength} AS NUMERIC(15,3))
+			    												  END, 
+		    FREIGHT_TON 										= CASE 
+		    														WHEN #{freighTon} = '' THEN NULL
+		    														ELSE CAST(#{freighTon} AS NUMERIC(15,3))
+		    													  END,
+			HS_CODE 											= #{hsCode},
+		    BL_NO 												= #{blNo},
+		    MF_DOC_ID 											= #{mfDocId},
+		    DOMESTIC_CHK 										= #{domesticChk},
+		    PROJECT_CARGO 										= #{projectCargo},
+		    WGT_CHK 											= #{wgtChk},
+		    BONDED_WH_YN 										= #{bondedWhYn},
+		    ADDITIONAL_CHK 										= #{additionalChk},
+		    LOT_NO 												= #{lotNo},
+		    SPLIT_CG_WGT 										= CASE WHEN ORG_BL_NO  IS NOT NULL THEN CAST(#{wgt} AS NUMERIC(15,3)) ELSE NULL END,
+		    SPLIT_CG_VOL 										= CASE WHEN ORG_BL_NO  IS NOT NULL THEN CAST(#{vol} AS NUMERIC(15,3)) ELSE NULL END,
+		    SPLIT_PKG_QTY 										= CASE WHEN ORG_BL_NO  IS NOT NULL THEN CAST(#{pkgQty} AS NUMERIC(8,0)) ELSE NULL END
+		WHERE 
+			BL_NO 												= #{oldBlNo} 
+			AND VSL_CALL_ID 									= #{vslCallId} 
+			AND MF_DOC_ID 										= #{oldMfDocId}
+	</update>
+	
+	<select id="selectContainerList" parameterType="java.util.Map" resultType="blItem">
+		SELECT /* bl.selectContainerList */
+			CNTR_NO 											AS cntrNo, 
+			CNTR_SZTP 											AS "size", 
+			FCL_LCL_TP_CD 										AS type,
+			(SELECT 
+				S_CD_NM 				AS packageNm 
+			FROM 
+				TCM_CD_MSTD 
+			WHERE 
+				L_CD 					= 'CM' 
+				AND M_CD 				= 'FETP' 
+				AND S_CD_USE 			= 'Y' 
+				AND  S_CD 				= FCL_LCL_TP_CD
+			) 													AS cntrTypeNm,
+			SEAL_NO 											AS sealNo 
+		FROM 
+			TMT_CNTR_LST_BL 
+		WHERE 
+			DOC_ID 												= #{docId} 
+			AND JOB_NO 											= #{jobNo}
+	</select>
+	
+	<select id="selectRoRoItems" parameterType="blParm" resultMap="resultUnitItem">
+		SELECT 	DISTINCT /* bl.selectRoRoItems */
+			R.VSL_CD,
+			R.CALL_YEAR,
+			R.CALL_SEQ,
+			R.VSL_CALL_ID,
+			R.MF_DOC_ID,
+			R.CG_NO,
+			R.CHAS_NO,
+			R.SEQ,
+			R.BRAND_CD,
+			R.MODEL_CD,
+			B.BRAND_NM,
+			M.MODEL_NM,
+			R.DOC_WGT,
+			R.CBM,
+			R.NEW_YN
+		FROM 
+			TMT_BL_DTL 											R 
+		LEFT OUTER JOIN 
+			TMT_BRAND 											B 
+			ON R.BRAND_CD 										= B.BRAND_CD
+		LEFT OUTER JOIN 
+			TMT_BRAND_DTL 										M  
+			ON R.MODEL_CD 										= M.MODEL_CD 
+			AND R.BRAND_CD 										= M.BRAND_CD
+		<if test="sdoNo !=null and sdoNo !=''">
+			LEFT JOIN 
+				TMT_RORO_MST 									RM 
+					ON RM.VSL_CALL_ID 							= R.VSL_CALL_ID 
+					AND RM.CG_NO 								= R.CG_NO 
+					AND RM.CHASSIS_NO IN (
+						SELECT
+							CHAS_NO
+						FROM
+							TMT_BL_DTL BD
+						WHERE
+							BD.CHAS_NO 							= R.CHAS_NO)
+		</if>
+		LEFT OUTER JOIN 
+			TMT_DO D 
+		ON 
+			R.VSL_CALL_ID 								= D.VSL_CALL_ID 
+			AND R.BL_NO 									= D.BL_NO
+		WHERE 
+			1 = 1
+			<if test="vslCallId !=null and vslCallId !=''">
+				AND R.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test="mfDocId !=null and mfDocId !=''">
+				AND R.MF_DOC_ID 								= #{mfDocId}
+			</if>
+			<if test="blNo !=null and blNo !=''">
+				AND R.CG_NO 									= #{blNo}
+			</if>
+			<if test="sdoNo !=null and sdoNo !=''">
+				AND RM.SDO_NO 									= #{sdoNo}
+			</if>
+			<if test="doNo !=null and doNo !=''">
+				AND R.CHAS_NO NOT IN 	
+					(SELECT 
+						CHASSIS_NO 
+					FROM 
+						TMT_RORO_MST RM 
+					WHERE 
+						RM.CHASSIS_NO 	= R.CHAS_NO 
+						AND RM.CG_NO 	= R.CG_NO 
+						AND RM.SDO_NO 	IS NOT NULL 
+						AND RM.SDO_NO <![CDATA[<>]]>'')
+			</if>
+		ORDER BY 
+			R.CHAS_NO ASC
+	</select>
+	
+	<select id="selectPackageItems" parameterType="blParm" resultMap="resultPackageItem">
+		SELECT	/* bl.selectPkgDetail */
+			CALL_YEAR, 
+			CALL_SEQ, 
+			VSL_CALL_ID, 
+			PKG_NO, 
+			PKG_DESC, 
+			CG_WGT, 
+			CG_VOL, 
+			WIDTH, 
+			LENGTH, 
+			HEIGHT,
+			ORG_BL_NO,
+			RMK
+		FROM 
+			TMT_PKG_INFO
+		WHERE 
+			VSL_CALL_ID											= #{vslCallId}
+			AND MF_DOC_ID 										= #{mfDocId}
+			AND (REF_NO = #{blNo} 								OR ORG_BL_NO = #{blNo})
+	</select>
+	
+	<select id="selectSplitPackageItems" parameterType="blParm" resultMap="resultPackageItem">
+		SELECT 	/* bl.selectSplitPackageItems */
+			CALL_YEAR, 
+			CALL_SEQ, 
+			VSL_CALL_ID, 
+			PKG_NO, 
+			PKG_DESC, 
+			CG_WGT, 
+			CG_VOL, 
+			WIDTH, 
+			LENGTH, 
+			HEIGHT,
+			ORG_BL_NO
+		FROM 
+			TMT_PKG_INFO
+		WHERE 
+			VSL_CALL_ID											= #{vslCallId}
+			AND MF_DOC_ID 										= #{mfDocId}
+			AND REF_NO 											= #{blNo}
+			AND ORG_BL_NO IS NOT NULL AND ORG_BL_NO <![CDATA[<>]]> ''
+	</select>
+	
+	<insert id="insertRoRoItems" parameterType="blItem">
+		INSERT /* bl.insertRoRoItems */
+		INTO TMT_BL_DTL (
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			VSL_CALL_ID,
+			MF_DOC_ID,
+			BL_NO,
+			CG_NO,
+			CMDT_CD,
+			CHAS_NO,
+			SEQ,
+			BRAND_CD,
+			MODEL_CD,
+			PKG_TP_CD,
+			DOC_WGT,
+			CBM,
+			CATG_CD,
+			CG_TP_CD,
+			IX_CD,
+			NEW_YN,
+			STAT_CD,
+			STAFF_CD,
+			UPDATE_TIME
+		) VALUES (     
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{vslCallId},
+			#{mfDocId},
+			#{blNo},
+			#{blNo},
+			#{cmdtCd},
+			#{unitNo},
+			(SELECT 
+				ISNULL(MAX(SEQ), 0) + 1
+			FROM TMT_BL_DTL
+			),
+			#{brandCd},
+			#{modelCd},
+			#{pkgTpCd},
+			TRY_CONVERT(NUMERIC(15,3), #{roroMt}),
+			TRY_CONVERT(NUMERIC(15,3), #{cbm}),
+			#{opClassCd},
+			#{cgTpCd},
+			#{ixCd},
+			#{newYn},
+			'RS',
+			#{userId},
+			SYSDATETIME()
+		)
+	</insert>
+	
+	<insert id="insertRoRoMSTItems" parameterType="blItem">
+		INSERT /* bl.insertRoRoItems */
+		INTO TMT_RORO_MST (
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			VSL_CALL_ID,
+			MF_DOC_ID,
+			SDO_NO,
+			DO_NO,
+			CG_NO,
+			CHASSIS_NO,
+			RORO_SEQ,
+			BRAND_CD,
+			MODEL_CD,
+			DOC_WGT,
+			CBM,
+			CATG_CD,
+			CG_TP_CD,
+			IX_CD,
+			NEW_YN,
+			STAT_CD,
+			STAFF_CD,
+			UPDATE_TIME
+		) VALUES (     
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{vslCallId},
+			#{mfDocId},
+			#{sdoNo},
+			#{doNo},
+			#{blNo},
+			#{unitNo},  
+			(SELECT    
+				RTRIM(LTRIM(FORMAT(MAX(A.roroSeq), '0000'))) roroSeq
+			FROM 
+				(SELECT    
+					CAST(MAX(RORO_SEQ) AS INT) + 1 AS roroSeq
+				FROM    
+					TMT_RORO_MST
+				WHERE   
+					VSL_CALL_ID     =  #{vslCallId}
+					AND MF_DOC_ID  =  #{mfDocId}
+					<if test="blNo != null and blNo != ''">
+						AND CG_NO   =  #{blNo}
+					</if>
+
+				UNION
+
+				SELECT 1
+				) A
+			),
+			#{brandCd},
+			#{modelCd},
+			TRY_CONVERT(NUMERIC(15,3), #{roroMt}),
+			TRY_CONVERT(NUMERIC(15,3), #{cbm}),
+			#{opClassCd},
+			#{cgTpCd},
+			#{ixCd},
+			#{newYn},
+			'RS',
+			#{userId},
+			SYSDATETIME()
+		)
+	</insert>
+	
+	<update id="updateRoRoItems" parameterType="blItem">
+		UPDATE /* bl.updateRoRoItems */
+			TMT_RORO_MST 
+		SET 
+			SDO_NO 												= #{sdoNo}, 
+			DO_NO 												= #{doNo},
+			DOC_WGT 											= (CASE
+																	WHEN #{roroMt} = '' OR #{roroMt} IS NULL
+																		THEN 0
+																	ELSE TRY_CONVERT(NUMERIC(15,3), #{roroMt})
+																END),
+			CBM 												= (CASE
+																	WHEN #{cbm} = '' OR #{cbm} IS NULL
+																		THEN 0
+																	ELSE TRY_CONVERT(NUMERIC(15,3), #{cbm})
+																END),
+			STAFF_CD 											= #{userId},
+			UPDATE_TIME 										= SYSDATETIME()
+		WHERE 
+			VSL_CALL_ID											= #{vslCallId} 
+			AND CG_NO 											= #{blNo}
+			AND CHASSIS_NO										= #{unitNo} 
+	</update>
+	
+	<delete id="deleteRoRoItems" parameterType="blItem">
+		DELETE /* bl.deleteRoRoItems */
+		FROM 
+			TMT_BL_DTL
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND MF_DOC_ID 										= #{mfDocId}
+			AND CG_NO 											= #{blNo}
+			AND IX_CD 											= 'I'
+	</delete>
+	
+	<select id="selectBlCargoDetail" parameterType="blParm" resultMap="resultBlCargoDetailItem">
+		SELECT 	 /* bl.selectBlCargoDetail */
+			VSL_CD,
+            CALL_YEAR,
+            CALL_SEQ,
+            VSL_CALL_ID,
+            CMDT_CD,
+            MF_DOC_ID,
+            BL_NO,
+            SEQ,
+            CG_WGT,
+            CG_VOL,
+            PKG_QTY,
+            PKG_TP_CD,
+            HATCH_NO
+		FROM 
+			TMT_BL_DTL 
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND MF_DOC_ID 										= #{mfDocId}
+			AND BL_NO 											= #{blNo}
+		ORDER BY 
+			SEQ
+	</select>
+	
+	<insert id="insertBlCargoDetailItems" parameterType="blItem">
+		INSERT /* bl.insertBlCargoDetailItems */
+		INTO TMT_BL_DTL (
+			VSL_CD,
+            CALL_YEAR,
+            CALL_SEQ,
+            VSL_CALL_ID,
+            MF_DOC_ID,
+            BL_NO,
+            SEQ,
+            CMDT_CD,
+            PKG_QTY,
+            PKG_TP_CD,
+            CG_WGT,
+            CG_VOL,
+            HATCH_NO,
+            STAFF_CD,
+            UPDATE_TIME
+		) VALUES (  
+			#{vslCd},
+            #{callYear},
+            #{callSeq},
+            #{vslCallId},
+            #{mfDocId},
+            #{blNo},
+            (SELECT 
+				ISNULL(MAX(SEQ), 0) + 1
+			FROM 
+				TMT_BL_DTL 
+			WHERE 
+				VSL_CALL_ID 			= #{vslCallId} 
+				AND MF_DOC_ID 			= #{mfDocId} 
+				AND BL_NO 				= #{blNo}
+			),
+            #{cmdtCd},
+            #{pkgQty},
+            #{pkgTpCd},
+            TRY_CONVERT(NUMERIC(15,3), #{wgt}),
+            TRY_CONVERT(NUMERIC(15,3), #{msrmt}),
+            #{hatchNo},
+            #{userId},
+            SYSDATETIME()
+		)
+	</insert>
+	
+	<insert id="insertPackageItems" parameterType="blItem">
+		INSERT /* bl.insertPackageItems */
+		INTO TMT_PKG_INFO (
+			SHIP_CALL_NO,
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			VSL_CALL_ID,
+			REF_NO,
+			MF_DOC_ID,
+			PKG_NO,
+			PKG_DESC,
+			PKG_TP_CD,
+			CG_VOL,
+			CG_WGT,
+			HEIGHT,
+			LENGTH,
+			WIDTH,
+			OPE_CLASS_CD,
+			ORG_BL_NO,
+			UPDATE_TIME,
+			STAFF_CD,
+			RMK
+		) VALUES (
+			#{scn},
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{vslCallId},
+			#{blNo},
+			UPPER(#{mfDocId}),
+			#{pkgNo},
+			#{pkgDesc},
+			#{pkgTpCd},
+			CASE WHEN #{pkgM3} IS NULL OR #{pkgM3} = '' THEN NULL ELSE #{pkgM3} END,
+			CASE WHEN #{pkgMt} IS NULL OR #{pkgMt} = '' THEN NULL ELSE #{pkgMt} END,
+			CASE WHEN #{height} IS NULL OR #{height} = '' THEN NULL ELSE #{height} END,
+			CASE WHEN #{length} IS NULL OR #{length} = '' THEN NULL ELSE #{length} END,
+			CASE WHEN #{width} IS NULL OR #{width} = '' THEN NULL ELSE #{width} END,
+			#{opClassCd},
+			#{orgBlNo},
+			SYSDATETIME(),
+			#{userId},
+			#{pkgRmk}
+		) 
+	</insert>
+	
+	<update id="updatePackageItems" parameterType="blItem">
+		UPDATE /* bl.updatePackageItems */
+			TMT_PKG_INFO 
+		SET
+			REF_NO 												= #{blNo},
+			ORG_BL_NO 											= #{orgBlNo},
+			CG_WGT 												= #{pkgMt},
+			CG_VOL 												= #{pkgM3},
+			PKG_QTY 											= #{pkgQty}
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND MF_DOC_ID 										= #{mfDocId}
+			AND PKG_NO 											= #{pkgNo}
+	</update>
+	
+	<update id="updateSplitPackageItems" parameterType="blItem">
+		UPDATE /* bl.updateSplitPackageItems */
+			TMT_PKG_INFO 
+		SET
+			REF_NO 												= #{orgBlNo},
+			ORG_BL_NO 											= ''
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND MF_DOC_ID 										= #{mfDocId}
+			AND REF_NO 											= #{blNo}
+	</update>
+	
+	<delete id="deleteBlItems" parameterType="blItem">
+		DELETE /* bl.deleteBlItems */
+		FROM 
+			TMT_BL
+		WHERE 
+			VSL_CALL_ID 										=  #{vslCallId}
+			AND MF_DOC_ID 										=  #{mfDocId}
+			AND BL_NO 											=  #{blNo}
+			AND OP_CLASS_CD 									= #{opClassCd}
+	</delete>
+	
+	<delete id="deleteBlCargoDetailItems" parameterType="blItem">
+		DELETE /* bl.deleteBlCargoDetailItems */
+		FROM 
+			TMT_BL_DTL
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND MF_DOC_ID 										= #{mfDocId}
+			AND BL_NO 											= #{blNo}
+	</delete>
+	
+	<delete id="deletePackageItems" parameterType="blItem">
+		DELETE /* bl.deletePackageItems */
+		FROM 
+			TMT_PKG_INFO
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND MF_DOC_ID 										= #{mfDocId}
+			AND REF_NO 											= #{blNo}
+	</delete>
+	
+	<insert id="insertManifestItems" parameterType="blItem">
+		INSERT /* bl.insertManifestItems */
+		INTO TMT_MF (
+			SHIP_CALL_NO,
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			VSL_CALL_ID,
+			MF_DOC_ID,
+			STAFF_CD,
+			UPDATE_TIME,
+			OP_CLASS_CD
+		) VALUES (
+			#{scn},     
+			#{vslCd},
+            #{callYear},
+            #{callSeq},
+            #{vslCallId},
+            #{mfDocId},
+            #{userId},
+            SYSDATETIME(),
+            'I'
+		)
+	</insert>
+	
+	<select id="checkManifest" parameterType="blParm" resultType="blItem">
+		SELECT /* bl.checkManifest */
+			MF_DOC_ID mfDocId
+		FROM 
+			TMT_MF
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId} 
+			AND MF_DOC_ID 										=  #{mfDocId} 
+	</select>
+	
+	<select id="checkNilManifest" parameterType="blParm" resultType="blItem">
+		SELECT /* bl.checkNilManifest */
+			BL_NO mfDocId
+		FROM 
+			TMT_BL
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId} 
+			AND MF_DOC_ID 										= #{mfDocId} 
+			AND OP_CLASS_CD 									= #{catgCd}
+	</select>
+	
+	<update id="updateManifest" parameterType="blItem">
+		UPDATE /* bl.updateManifest */
+			TMT_MF 
+		SET 
+			MF_DOC_ID 											= #{mfDocId}, 
+			VERSION 											= #{version}
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId} 
+			AND MF_DOC_ID 										= #{mfDocId} 
+	</update>
+	
+	<delete id="deleteManifest" parameterType="blItem">
+		DELETE /* bl.deleteManifest */
+		FROM 
+			TMT_MF
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND MF_DOC_ID 										= #{mfDocId}
+	</delete>
+	
+	<select id="checkDO" parameterType="blParm" resultType="blItem">
+		SELECT /* bl.checkDO */
+			BL_NO 												AS blNo
+		FROM 
+			TMT_DO
+		WHERE 
+			BL_NO 												= #{blNo} 
+			AND VSL_CALL_ID 									= #{vslCallId}
+	</select>
+	
+	<select id="checkTruck" parameterType="blParm" resultType="blItem">
+		SELECT /* bl.checkTruck */
+			BL_NO 												blNo
+		FROM 
+			TMT_ASSIGN_TRANSPORT
+		WHERE 
+			BL_NO 												= #{blNo} 
+			AND VSL_CALL_ID 									= #{vslCallId}
+	</select>
+	
+	<select id="checkOperation" parameterType="blParm" resultType="blItem">
+		SELECT /* bl.checkOperation */
+			BL_NO 												blNo
+		FROM 
+			TMT_CG_MST
+		WHERE
+			BL_NO 												= #{blNo} 
+			AND VSL_CALL_ID 									= #{vslCallId}
+	</select>
+	
+	<select id="checkGateIn" parameterType="blParm" resultType="blItem">
+		SELECT /* bl.checkGateIn */
+			CG_NO 												blNo
+		FROM 
+			TMT_CG_ARRV_DELV
+		WHERE 
+			CG_NO 												= #{blNo} 
+			AND VSL_CALL_ID 									= #{vslCallId}
+	</select>
+	
+	<select id="selectSplitWgtChk" parameterType="blParm" resultType="blItem">
+		SELECT /* bl.selectSplitWgtChk */
+			SPLIT_CG_WGT 										AS SPLITCGWGT, 
+			SPLIT_CG_VOL 										AS SPLITCGVOL, 
+			SPLIT_PKG_QTY 										AS SPLITPKGQTY
+		FROM 
+			TMT_BL
+		WHERE 
+			ORG_BL_NO 											= #{orgBlNo} 
+			AND VSL_CALL_ID 									= #{vslCallId}
+	</select>
+	
+	<select id="selectSplitWgt" parameterType="blParm" resultType="blItem">
+		SELECT /* bl.selectSplitWgt */
+			CG_WGT 												AS WGT,
+			CG_VOL 												AS MSRMT,
+			PKG_QTY 											AS PKGQTY,
+			SPLIT_CG_WGT 										AS SPLITCGWGT,
+			SPLIT_CG_VOL 										AS SPLITCGVOL,
+			SPLIT_PKG_QTY 										AS SPLITPKGQTY
+		FROM 
+			TMT_BL
+		WHERE 
+			ORG_BL_NO IS NOT NULL AND ORG_BL_NO <![CDATA[<>]]> ''
+			AND VSL_CALL_ID 									= #{vslCallId}
+			AND MF_DOC_ID 										= #{mfDocId}
+	</select>
+	
+	<select id="selectOriginalWgt" parameterType="blParm" resultType="blItem">
+		SELECT /* bl.selectOriginalWgt */
+			BL.CG_WGT 											AS ORGWGT,
+			BL.CG_VOL 											AS ORGVOL,
+			BL.PKG_QTY 											AS ORGPKGQTY,
+			ISNULL(BL.SPLIT_CG_WGT, '0') 						AS SPLITCGWGT,
+			ISNULL(BL.SPLIT_CG_VOL, '0') 						AS SPLITCGVOL,
+			ISNULL(BL.SPLIT_PKG_QTY, '0') 						AS SPLITPKGQTY,
+			(SELECT 
+				SUM(ISNULL(CG_WGT, 0)) 
+			FROM 
+				TMT_JOB 
+			WHERE 
+				VSL_CALL_ID = BL.VSL_CALL_ID 
+				AND CG_NO = BL.BL_NO 
+				AND (DELV_TP_CD = 'D' AND JOB_PURP_CD = 'VG'
+					OR
+					DELV_TP_CD = 'I' AND JOB_PURP_CD = 'AW'
+				)
+	  		)													AS WGT,
+  			(SELECT 
+				SUM(ISNULL(CG_VOL, 0)) 
+			FROM 
+				TMT_JOB 
+			WHERE 
+				VSL_CALL_ID = BL.VSL_CALL_ID 
+				AND CG_NO = BL.BL_NO 
+				AND (DELV_TP_CD = 'D' AND JOB_PURP_CD = 'VG'
+					OR
+					DELV_TP_CD = 'I' AND JOB_PURP_CD = 'AW'
+				)
+  			) 													AS VOL,
+  			(SELECT 
+				SUM(ISNULL(PKG_QTY, 0)) 
+			FROM 
+				TMT_JOB 
+			WHERE 
+				VSL_CALL_ID = BL.VSL_CALL_ID 
+				AND CG_NO = BL.BL_NO 
+				AND (DELV_TP_CD = 'D' AND JOB_PURP_CD = 'VG'
+					OR
+					DELV_TP_CD = 'I' AND JOB_PURP_CD = 'AW'
+				)
+  			) 													AS PKGQTY
+		FROM 
+			TMT_BL 												BL 
+		WHERE 
+			BL.VSL_CALL_ID 										= #{vslCallId}
+			AND BL.BL_NO 										= #{blNo}
+			AND BL.MF_DOC_ID 									= #{mfDocId}
+	</select>
+	
+	<select id="selectOriginalDOWgt" parameterType="blParm" resultType="blItem">
+		SELECT /* bl.selectOriginalDOWgt */
+			ISNULL(D_MT, 0) 									AS DMT,
+			ISNULL(D_M3, 0) 									AS DM3,
+			ISNULL(D_QTY, 0) 									AS DQTY,
+			ISNULL(I_MT, 0) 									AS IMT,
+			ISNULL(I_M3, 0) 									AS IM3,
+			ISNULL(I_QTY, 0) 									AS IQTY
+		FROM 
+			TMT_DO 
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND BL_NO 											= #{blNo}
+			AND MF_DOC_ID 										= #{mfDocId}
+	</select>
+	
+	<select id="selectSplitExistChk" parameterType="blParm" resultType="blItem">
+		SELECT /* bl.selectSplitExistChk */
+			BL_NO 												AS BLNO, 
+			SPLIT_CG_WGT 										AS SPLITBLWGT, 
+			SPLIT_CG_VOL 										AS SPLITCGVOL, 
+			SPLIT_PKG_QTY 										AS SPLITPKGQTY
+		FROM 
+			TMT_BL
+		WHERE 
+			ORG_BL_NO 											= #{orgBlNo} 
+			AND VSL_CALL_ID 									= #{vslCallId}
+	</select>
+	
+	<select id="selectSubDoWeightList" parameterType="blParm" resultType="blItem">
+		SELECT /* bl.selectSubDoWeightList */
+			CASE
+				WHEN I_MT = 0 THEN D_MT
+				WHEN I_MT IS NULL THEN D_MT
+				ELSE I_MT
+			END 												AS WGT,
+			CASE
+				WHEN I_M3 = 0 THEN D_M3
+				WHEN I_M3 IS NULL THEN D_M3
+				ELSE I_M3
+			END 												AS VOL,
+			CASE
+				WHEN I_QTY = 0 THEN D_QTY
+				WHEN I_QTY IS NULL THEN D_QTY
+				ELSE I_QTY
+			END 												AS PKGQTY,
+			ADDITIONAL_CHK 										AS ADDITIONALCHK
+		FROM 
+			TMT_DO_DTL
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId} 
+			AND MF_DOC_ID 										= #{mfDocId} 
+			AND BL_NO 											= #{blNo}
+	</select>
+	
+	<update id="updateOriginalBlWgt" parameterType="blItem">
+		UPDATE /* bl.updateOriginalBlWgt */
+			TMT_BL 
+		SET 
+			CG_WGT 												= #{wgt},
+			CG_VOL 												= #{vol},
+			PKG_QTY 											= #{pkgQty},
+			SPLIT_CG_WGT 										= #{splitCgWgt},
+			SPLIT_CG_VOL 										= #{splitCgVol},
+			SPLIT_PKG_QTY 										= #{splitPkgQty}
+		WHERE 
+			BL_NO 												= #{orgBlNo} 
+			AND VSL_CALL_ID 									= #{vslCallId} 
+			AND MF_DOC_ID 										= #{oldMfDocId}
+	</update>
+	
+	<update id="updateDoWgt" parameterType="blItem">
+		UPDATE /* bl.updateDoWgt */
+			TMT_DO 
+		SET 
+			MT 													= TRY_CONVERT(NUMERIC(15,3), #{wgt}),
+			M3 													= TRY_CONVERT(NUMERIC(15,3), #{vol}),
+			QTY 												= TRY_CONVERT(NUMERIC(10,0), #{pkgQty}),
+			<choose>
+				<when test='delvTpCd == "B"'>
+					D_MT 										= TRY_CONVERT(NUMERIC(15,3), #{dMt}),
+					D_M3 										= TRY_CONVERT(NUMERIC(15,3), #{dM3}),
+					D_QTY 										= TRY_CONVERT(NUMERIC(10,0), #{dQty}),
+					I_MT 										= TRY_CONVERT(NUMERIC(15,3), #{iMt}),
+					I_M3 										= TRY_CONVERT(NUMERIC(15,3), #{iM3}),
+					I_QTY 										= TRY_CONVERT(NUMERIC(10,0), #{iQty})
+				</when>
+				<when test='delvTpCd == "D"'>
+					D_MT 										= TRY_CONVERT(NUMERIC(15,3), #{wgt}),
+					D_M3 										= TRY_CONVERT(NUMERIC(15,3), #{vol}),
+					D_QTY 										= TRY_CONVERT(NUMERIC(10,0), #{pkgQty})
+				</when>
+				<otherwise>
+					I_MT 										= TRY_CONVERT(NUMERIC(15,3), #{wgt}),
+					I_M3 										= TRY_CONVERT(NUMERIC(15,3), #{vol}),
+					I_QTY 										= TRY_CONVERT(NUMERIC(10,0), #{pkgQty})
+				</otherwise>
+			</choose>
+		WHERE 
+			BL_NO 												= #{blNo} 
+			AND VSL_CALL_ID 									= #{vslCallId} 
+			AND MF_DOC_ID 										= #{mfDocId}
+	</update>
+	
+	<update id="updateOriginalBlStatus" parameterType="blItem">
+		UPDATE /* bl.updateOriginalBlStatus */
+			TMT_BL 
+		SET 
+			STAT_CD 											= 'SP'
+		WHERE
+			BL_NO 												= #{orgBlNo} 
+			AND VSL_CALL_ID 									= #{vslCallId} 
+			AND MF_DOC_ID 										= #{oldMfDocId}
+	</update>
+	
+	<update id="updateBlStatus" parameterType="blItem">
+		UPDATE /* bl.updateBlStatus */
+			TMT_BL 
+		SET 
+			STAT_CD 											= 'AP'
+		WHERE 
+			BL_NO 												= #{orgBlNo} 
+			AND VSL_CALL_ID 									= #{vslCallId} 
+			AND MF_DOC_ID 										= #{oldMfDocId}
+	</update> 
+	
+	<select id="selectIsROROMst"   parameterType="cargoMasterParm" resultType="java.lang.String">
+		SELECT TOP(1)	
+			'1' 
+		FROM 
+			TMT_RORO_MST
+		WHERE 	
+			CG_NO 												= #{cgNo} 
+			AND	VSL_CALL_ID 									= #{vslCallId}
+			<if test="unitNo != null and unitNo != ''">
+				AND CHASSIS_NO 									= #{unitNo}
+			</if>
+	</select>
+</mapper>

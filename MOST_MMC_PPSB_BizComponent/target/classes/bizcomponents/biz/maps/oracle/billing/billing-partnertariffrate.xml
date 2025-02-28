@@ -1,0 +1,762 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="partnerTariffRate">
+	
+	<!--  ################ Result Map Define ######################################### -->
+
+	<!--  ################ Query Statement Define ######################################### -->
+    <select id="selectBerthList" resultType="partnerTariffRateItem">
+		SELECT BERTH_CD  berthCd,
+			   BERTH_NM berthNm
+		FROM TMT_BERTH_LOC
+	</select>
+	
+    <select id="selectMaxPkgNo" resultType="java.lang.String">
+		SELECT 'PKG'||'_'||
+		REPLACE(TO_CHAR (TO_NUMBER (NVL (MAX (SUBSTR (PKG_TRF_NO, 5, 7)), '0')) + 1, '0000000'),' ','')
+		FROM  TMT_B_TRF WHERE PKG_TRF_NO LIKE 'PKG%'
+	</select>
+	
+	<select id="selectPartnerTariffRateSummary"  parameterType="partnerTariffRateParm" resultType="partnerTariffRateItem">
+		SELECT DISTINCT /*partnerTariffRate.selectPartnerTariffRateSummary*/
+			'' AS CONSIG,
+			TO_CHAR(TO_DATE(APLY_YMD,'YYYYMMDD'),'DD/MM/YYYY') AS APLYYMD,
+			NVL2(EXPR_YMD,TO_CHAR(TO_DATE(EXPR_YMD,'YYYYMMDD'),'DD/MM/YYYY'),EXPR_YMD) AS EXPRYMD,
+			PRC_TP_CD AS PRCTPCD,
+			PKG_TRF_NO AS PKGTRFNO,
+			PKG_NM AS PKGNM,
+			RMK AS RMK,            
+			(
+				(
+					SELECT NM
+					FROM (
+						SELECT 
+							ENG_SNM AS NM, PTNR_CODE AS CD 
+						FROM TMT_PTNR
+						UNION
+						SELECT 
+							ENG_SNM AS NM, AGENCY_CODE AS CD 
+						FROM TMT_AGENCY_INFO
+					)
+					WHERE CD = SUBSTR(PTNR_CD,1,4) 
+					AND ROWNUM = 1
+				) || ' - ' || (
+					SELECT NM
+					FROM (
+						SELECT 
+							ENG_SNM AS NM, PTNR_CODE AS CD 
+						FROM TMT_PTNR
+						UNION
+						SELECT 
+							ENG_SNM AS NM, AGENCY_CODE AS CD 
+						FROM TMT_AGENCY_INFO
+					)
+					WHERE CD = SUBSTR(PTNR_CD,6,4)
+				) || (
+					SELECT NM
+						FROM (
+							SELECT 
+								ENG_SNM AS NM, PTNR_CODE AS CD 
+							FROM TMT_PTNR
+			                UNION
+			                SELECT 
+			                	ENG_SNM AS NM, AGENCY_CODE AS CD
+							FROM TMT_AGENCY_INFO
+						)
+					WHERE CD = PTNR_CD AND ROWNUM = 1
+				)
+			) AS PTNRNM,
+			PTNR_CD AS PTNRCD,
+			(
+				SELECT 
+					UPDTIME 
+				FROM (
+					SELECT DISTINCT 
+						STAFF_CD AS USERID, 
+						TO_CHAR(UPDATE_TIME,'DD/MM/YYYY HH24:SS') AS UPDTIME,
+						PKG_TRF_NO AS PKG_TRF_NO
+					FROM TMT_B_TRF G WHERE G.PRC_TP_CD = 'P'
+					ORDER BY PKG_TRF_NO, UPDTIME DESC
+				) H
+				WHERE H.PKG_TRF_NO = A.PKG_TRF_NO AND ROWNUM = 1
+			) AS UPDTIME,
+			(
+				SELECT 
+					USERID 
+				FROM(
+					SELECT DISTINCT 
+						STAFF_CD AS USERID, 
+						TO_CHAR(UPDATE_TIME,'DD/MM/YYYY HH24:SS') AS UPDTIME,
+						PKG_TRF_NO AS PKG_TRF_NO
+					FROM TMT_B_TRF G WHERE G.PRC_TP_CD = 'P'
+					ORDER BY PKG_TRF_NO, UPDTIME DESC
+				) H
+				WHERE H.PKG_TRF_NO = A.PKG_TRF_NO AND ROWNUM = 1
+			) AS USERID
+		FROM TMT_B_TRF A, TMT_B_TRF_CD B
+		WHERE A.TRF_CD = B.TRF_CD AND A.SUB_TRF_CD = B.SUB_TRF_CD
+		<if test="trfTp != null and trfTp != ''">
+          	AND	B.TRF_TP_CD = #{trfTp}
+		</if>
+		 <if test="ptnrCd != null and ptnrCd != ''">
+           	AND	A.PTNR_CD  like  '%'||#{ptnrCd}||'%'
+		</if>
+		<if test="pkgTrfNo != null and pkgTrfNo != ''">
+          	AND PKG_TRF_NO = #{pkgTrfNo}
+		</if>
+		<choose>
+			<when test='expireDtChk == "Y"'>
+				AND A.EXPR_YMD <![CDATA[<]]> TO_CHAR(SYSDATE, 'YYYYMMDD')
+			</when>
+			<otherwise>
+				AND	TO_DATE(A.APLY_YMD,'YYYYMMDD') BETWEEN TO_DATE(#{startDtm},'DD/MM/YYYY')
+				AND TO_DATE(#{endDtm},'DD/MM/YYYY')
+			</otherwise>
+		</choose>
+		AND PRC_TP_CD = 'P' AND b.VLD_YN = 'Y'
+		AND PKG_TRF_NO IN (
+			SELECT DISTINCT 
+				PKG_TRF_NO 
+			FROM TMT_B_TRF D
+			LEFT OUTER JOIN TMT_B_TRF_CD E  ON d.TRF_CD = E.TRF_CD 
+			AND D.SUB_TRF_CD = E.SUB_TRF_CD
+		)
+	</select>
+	
+	<select id="selectPartnerTariffRate"  parameterType="partnerTariffRateParm" resultType="partnerTariffRateItem">
+		SELECT DISTINCT	/*partnerTariffRate.selectPartnerTariffRate*/
+			B.TRF_CD AS TRFCD,
+			B.TRF_REG_NO AS TRFREGNO,
+			'' AS CONSIG,
+			B.SUB_TRF_CD AS SUBTRFCD,
+	 	   	A.DESCR AS DESCR,
+		   	A.TRF_TP_CD AS TRFTPCD,
+		   	A.BILL_TP_CD AS BILLTPCD,
+		   	A.COST_CENT_CD AS COSTCNTCD,
+			A.IV_UNIT1 AS IVUNIT1,
+			A.IV_UNIT2 AS IVUNIT2,
+			A.IV_UNIT3 AS IVUNIT3,
+			A.PAYER AS PYRTPCD,
+			A.SSR_TP_CD AS SSRTPCD,
+			B.MIN_VAL1 AS MINVAL1,
+			B.MIN_VAL2 AS MINVAL2,
+			B.MIN_VAL3 AS MINVAL3,
+			B.VERSION AS VERSION,
+			B.STAFF_CD AS USERID,
+			TO_CHAR(B.UPDATE_TIME,'DD/MM/YYYY HH24:SS')	AS UPDTIME,  
+			B.PTNR_CD AS PTNRCD,
+			(
+				(SELECT NM
+					FROM (
+						SELECT 
+							ENG_SNM AS NM, PTNR_CODE AS CD 
+						FROM TMT_PTNR
+						UNION
+						SELECT 
+							ENG_SNM AS NM, AGENCY_CODE AS CD 
+					FROM TMT_AGENCY_INFO
+				)
+				WHERE CD = SUBSTR(PTNR_CD,1,4) 
+				AND ROWNUM = 1) || ' - ' || (
+					SELECT NM
+                    FROM (
+                    	SELECT 
+                    		ENG_SNM AS NM, PTNR_CODE AS CD 
+                    	FROM TMT_PTNR
+						UNION
+						SELECT 
+							ENG_SNM AS NM, AGENCY_CODE AS CD 
+						FROM TMT_AGENCY_INFO
+					)
+					WHERE CD = SUBSTR(PTNR_CD,6,4)
+				)
+			) AS PTNRNM,
+			TO_CHAR(TO_DATE(B.APLY_YMD,'YYYYMMDD'),'DD/MM/YYYY') AS APLYYMD,
+			NVL2(B.EXPR_YMD,TO_CHAR(TO_DATE(B.EXPR_YMD,'YYYYMMDD'),'DD/MM/YYYY'),B.EXPR_YMD) AS EXPRYMD,
+			B.PKG_TRF_NO AS PKGTRFNO,
+			B.PRC_TP_CD AS PRCTPCD,
+			DECODE(
+				INSTR(TO_CHAR(B.UNIT_PRC),'.')
+				,1, '0' || TO_CHAR(B.UNIT_PRC)
+				,TO_CHAR(B.UNIT_PRC)
+			) AS PTNRPRC,
+			(
+				SELECT MINRATE AS MINRATE
+		    	FROM (
+		        	SELECT 
+		        		C.UNIT_PRC 							AS UNITPRC,
+			            C.SUB_TRF_CD						AS SUBTRFCD,
+			            TO_DATE(C.APLY_YMD,'YYYYMMDD') 		AS APLYYMD,
+			            NVL2(C.EXPR_YMD,C.EXPR_YMD,'N/A') 	AS EXPRYMD,
+			            C.TRF_CD                          	AS TRFCD,
+			            C.MIN_RATE							AS MINRATE
+			        FROM TMT_B_TRF C
+			        WHERE C.PRC_TP_CD = 'P'
+			        ORDER BY APLYYMD
+		        )
+		    	WHERE rownum	= 1
+			    AND TRFCD		= A.TRF_CD
+			    AND SUBTRFCD	= A.SUB_TRF_CD
+			    AND (
+			    	EXPRYMD = 'N/A'
+		     		OR (
+		     		EXPRYMD <![CDATA[<>]]> 'N/A'
+		    		AND TO_DATE(EXPRYMD,'YYYYMMDD') >TO_DATE(B.APLY_YMD,'YYYYMMDD')
+		    		)
+		    	)
+		    ) AS MINRATE,
+			'' AS PKGPRC,
+			B.PKG_NM AS PKGNM,
+			B.RMK AS RMK,
+			(
+				SELECT DECODE(
+					INSTR(TO_CHAR(UNITPRC),'.')
+					,1, '0' || TO_CHAR(UNITPRC)
+					,TO_CHAR(UNITPRC)
+				) AS UNITPRC
+				FROM (
+					SELECT 
+						C.UNIT_PRC AS UNITPRC,C.SUB_TRF_CD AS SUBTRFCD,
+						TO_DATE(C.APLY_YMD,'YYYYMMDD') AS APLYYMD,
+						NVL2(C.EXPR_YMD,C.EXPR_YMD,'N/A') AS EXPRYMD
+						,C.TRF_CD AS TRFCD 
+					FROM TMT_B_TRF C 
+					WHERE c.PRC_TP_CD = 'S'
+					ORDER BY APLYYMD
+				)
+				WHERE rownum = 1 
+				AND TRFCD = A.TRF_CD 
+				AND SUBTRFCD = A.SUB_TRF_CD 
+				AND (
+					EXPRYMD = 'N/A' 
+					OR (
+					EXPRYMD <![CDATA[<>]]> 'N/A' 
+					AND TO_DATE(EXPRYMD,'YYYYMMDD') >TO_DATE(B.APLY_YMD,'YYYYMMDD')
+					)
+				)
+			) AS UNITPRC
+		FROM TMT_B_TRF B LEFT OUTER JOIN TMT_B_TRF_CD A
+		ON A.TRF_CD = B.TRF_CD AND A.SUB_TRF_CD = B.SUB_TRF_CD
+		WHERE  B.PRC_TP_CD = 'P' AND A.VLD_YN = 'Y'
+		AND B.PKG_TRF_NO IN ( SELECT DISTINCT D.PKG_TRF_NO FROM TMT_B_TRF D
+								LEFT OUTER JOIN TMT_B_TRF_CD E ON D.TRF_CD = E.TRF_CD 
+								AND D.SUB_TRF_CD = E.SUB_TRF_CD  
+								WHERE 1=1 
+			<if test="trfTp != null and trfTp != ''">
+	         		AND	E.TRF_TP_CD = #{trfTp}
+			</if>
+			<if test="trfCd != null and trfCd != ''">
+	         		AND	D.TRF_CD = #{trfCd}
+			</if>
+			<if test="pkgTrfNo != null and pkgTrfNo != ''">
+	         		AND	D.PKG_TRF_NO = #{pkgTrfNo}
+			</if>
+			<if test="ptnrCd != null and ptnrCd != ''">
+				AND	D.PTNR_CD = #{ptnrCd}
+			</if>
+		)
+		<if test="startDtm != null and startDtm != ''">
+    		AND	TO_DATE(B.APLY_YMD,'YYYYMMDD') BETWEEN TO_DATE(#{startDtm},'DD/MM/YYYY')
+			AND TO_DATE(#{endDtm},'DD/MM/YYYY') 
+		</if>
+	</select>
+	
+	<select id="selectCurrentPartnerTariffRate"  parameterType="partnerTariffRateItem" resultType="partnerTariffRateItem">
+		SELECT DISTINCT	/*partnerTariffRate.selectCurrentPartnerTariffRate*/
+			B.TRF_CD AS TRFCD,
+			B.TRF_REG_NO AS TRFREGNO,
+			'' AS CONSIG,
+			B.SUB_TRF_CD AS SUBTRFCD,
+	 	   	A.DESCR AS DESCR,
+		   	A.TRF_TP_CD AS TRFTPCD,
+		   	A.BILL_TP_CD AS BILLTPCD,
+		   	A.COST_CENT_CD AS COSTCNTCD,
+			A.IV_UNIT1 AS IVUNIT1,
+			A.IV_UNIT2 AS IVUNIT2,
+			A.IV_UNIT3 AS IVUNIT3,
+			A.PAYER AS PYRTPCD,
+			A.SSR_TP_CD AS SSRTPCD,
+			B.MIN_VAL1 AS MINVAL1,
+			B.MIN_VAL2 AS MINVAL2,
+			B.MIN_VAL3 AS MINVAL3,
+			B.VERSION AS VERSION,
+			B.STAFF_CD AS USERID,
+			TO_CHAR(B.UPDATE_TIME,'DD/MM/YYYY HH24:SS')	AS UPDTIME,  
+			B.PTNR_CD AS PTNRCD,
+			(
+				(
+					SELECT 
+						NM
+	                FROM (
+	                	SELECT 
+	                		ENG_SNM AS NM, PTNR_CODE AS CD 
+	                	FROM TMT_PTNR
+						UNION
+						SELECT 
+							ENG_SNM AS NM, AGENCY_CODE AS CD 
+						FROM TMT_AGENCY_INFO
+					)
+					WHERE CD = SUBSTR(PTNR_CD,1,4) 
+					AND ROWNUM = 1
+				) || ' - ' || (
+					SELECT 
+						NM
+                    FROM (
+                    	SELECT 
+                    		ENG_SNM AS NM, PTNR_CODE AS CD 
+                    	FROM TMT_PTNR
+						UNION
+						SELECT 
+							ENG_SNM AS NM, AGENCY_CODE AS CD 
+						FROM TMT_AGENCY_INFO
+					)
+					WHERE CD = SUBSTR(PTNR_CD,6,4)
+				)
+			) AS PTNRNM,
+			TO_CHAR(TO_DATE(b.APLY_YMD,'YYYYMMDD'),'DD/MM/YYYY') AS APLYYMD,
+			NVL2(B.EXPR_YMD,TO_CHAR(TO_DATE(B.EXPR_YMD,'YYYYMMDD'),'DD/MM/YYYY'),B.EXPR_YMD) AS EXPRYMD,
+			B.PKG_TRF_NO AS PKGTRFNO,
+			B.PRC_TP_CD AS PRCTPCD,
+			DECODE(INSTR(TO_CHAR(B.UNIT_PRC),'.')
+									,1, '0' || TO_CHAR(B.UNIT_PRC)
+									,TO_CHAR(B.UNIT_PRC)) AS PTNRPRC,
+			<!-- DECODE(INSTR(TO_CHAR(b.PKG_PRC),'.')
+									,1, '0' || TO_CHAR(b.PKG_PRC)
+									,TO_CHAR(b.PKG_PRC)) as pkgPrc, -->
+			'' AS PKGPRC,
+			B.PKG_NM AS PKGNM,
+			B.RMK AS RMK,
+			(
+				SELECT MINRATE AS MINRATE
+		    	FROM (
+		        	SELECT 
+		        		C.UNIT_PRC 							AS UNITPRC,
+			            C.SUB_TRF_CD						AS SUBTRFCD,
+			            TO_DATE(C.APLY_YMD,'YYYYMMDD') 		AS APLYYMD,
+			            NVL2(C.EXPR_YMD,C.EXPR_YMD,'N/A') 	AS EXPRYMD,
+			            C.TRF_CD                          	AS TRFCD,
+			            C.MIN_RATE							AS MINRATE
+			        FROM TMT_B_TRF C
+			        WHERE C.PRC_TP_CD = 'S'
+			        ORDER BY APLYYMD
+		        )
+		    	WHERE rownum	= 1
+			    AND TRFCD		= A.TRF_CD
+			    AND SUBTRFCD	= A.SUB_TRF_CD
+			    AND (
+			    	EXPRYMD = 'N/A'
+		     		OR (
+		     		EXPRYMD <![CDATA[<>]]> 'N/A'
+		    		AND TO_DATE(EXPRYMD,'YYYYMMDD') >TO_DATE(B.APLY_YMD,'YYYYMMDD')
+		    		)
+		    	)
+		    ) AS MINRATE,
+			(
+				SELECT 
+					DECODE(INSTR(TO_CHAR(UNITPRC),'.')
+						,1, '0' || TO_CHAR(UNITPRC)
+						,TO_CHAR(UNITPRC)
+					) AS UNITPRC
+				FROM (
+					SELECT 
+						C.UNIT_PRC AS UNITPRC,
+						C.SUB_TRF_CD AS SUBTRFCD,
+						TO_DATE(C.APLY_YMD,'YYYYMMDD') AS APLYYMD,
+						NVL2(C.EXPR_YMD,C.EXPR_YMD,'N/A') AS EXPRYMD,
+						C.TRF_CD AS TRFCD 
+					FROM TMT_B_TRF C 
+					WHERE C.PRC_TP_CD = 'S'
+					ORDER BY APLYYMD
+				)
+				WHERE rownum = 1  
+				AND TRFCD = A.TRF_CD 
+				AND SUBTRFCD = A.SUB_TRF_CD 
+				AND (
+					EXPRYMD = 'N/A' 
+					OR (
+						EXPRYMD <![CDATA[<>]]> 'N/A' 
+						AND TO_DATE(EXPRYMD,'YYYYMMDD') >TO_DATE(B.APLY_YMD,'YYYYMMDD')
+					)
+				)
+			) AS UNITPRC
+		FROM TMT_B_TRF B LEFT OUTER JOIN TMT_B_TRF_CD A
+			ON A.TRF_CD = B.TRF_CD 
+			AND A.SUB_TRF_CD = B.SUB_TRF_CD
+		WHERE B.PRC_TP_CD = 'P' AND A.VLD_YN = 'Y'
+		AND B.PKG_TRF_NO IN (
+			SELECT DISTINCT 
+				D.PKG_TRF_NO 
+			FROM TMT_B_TRF D LEFT OUTER JOIN TMT_B_TRF_CD E 
+				ON D.TRF_CD = E.TRF_CD 
+				AND D.SUB_TRF_CD = E.SUB_TRF_CD  
+			WHERE 1=1 
+			<if test="trfTp != null and trfTp != ''">
+	         	AND	E.TRF_TP_CD = #{trfTp}
+			</if>
+			<if test="trfCd != null and trfCd != ''">
+	         	AND	D.TRF_CD = #{trfCd}
+			</if>
+			<if test="pkgTrfNo != null and pkgTrfNo != ''">
+	         	AND	D.PKG_TRF_NO = #{pkgTrfNo}
+			</if>
+			<if test="ptnrCd != null and ptnrCd != ''">
+				AND	D.PTNR_CD = #{ptnrCd}
+			</if>
+		)
+		<if test="subTrfCd != null and subTrfCd != ''">
+   			AND	B.SUB_TRF_CD = #{subTrfCd}
+		</if>
+	</select>
+	
+	<select id="selectPartnerConditionList"  parameterType="partnerTariffRateParm" resultType="partnerConditionItem">
+		SELECT /*partnerTariffRate.selectPartnerConditionList*/ 
+			   A.AGRE_NO AS AGRENO,
+			   A.SEQ AS SEQ,
+			   A.PRPT_CD AS PRPTCD,
+			   A.OPR_IDT_CD AS OPRIDTCD,
+			   A.CHR_VAL AS CHRVAL,
+			   NVL2(A.NO_VAL, 
+					DECODE(INSTR(TO_CHAR(A.NO_VAL),'.')
+						,1, '0' || TO_CHAR(A.NO_VAL)
+						,TO_CHAR(A.NO_VAL)
+					)
+					,A.NO_VAL
+			   ) AS NOVAL,
+			   A.DT_VAL AS DTVAL,
+			   NVL2(A.TIER_VAL1,
+			   		DECODE(INSTR(TO_CHAR(A.TIER_VAL1),'.')
+						,1, '0' || TO_CHAR(A.TIER_VAL1)
+						,TO_CHAR(A.TIER_VAL1)
+					)
+					,A.TIER_VAL1
+			   ) AS TIERVAL1,
+			   NVL2(A.TIER_VAL2,
+			   		DECODE(INSTR(TO_CHAR(A.TIER_VAL2),'.')
+						,1, '0' || TO_CHAR(A.TIER_VAL2)
+						,TO_CHAR(A.TIER_VAL2)
+					)
+					,A.TIER_VAL2
+			   ) AS TIERVAL2,
+			   A.BND_VAL1 AS BNDVAL1,
+			   A.BND_VAL2 AS BNDVAL2,
+			   A.STAFF_CD AS USERID,
+			   TO_CHAR(A.UPDATE_TIME, 'DD/MM/YYYY HH24:SS') AS UPDTIME,
+			   A.VERSION AS VERSION,
+			   B.PRPT_NM AS PRPTNM,
+			   B.DATA_TP_CD AS DATATPCD,
+			   B.DATA_LEN AS DATALEN
+		FROM TMT_B_AGRE_COND A 
+		LEFT OUTER JOIN TMT_B_AGRE_COND_PRPT B
+			ON A.AGRE_NO = B.AGRE_NO 
+			AND A.PRPT_CD = B.PRPT_CD 
+		WHERE 
+		A.AGRE_NO IN (
+			SELECT 
+				PKG_TRF_NO 
+			FROM TMT_B_TRF d LEFT OUTER JOIN TMT_B_TRF_CD c 
+				ON C.TRF_CD = D.TRF_CD 
+				AND C.SUB_TRF_CD = D.SUB_TRF_CD
+			WHERE d.PRC_TP_CD = 'P' AND c.VLD_YN = 'Y'
+			<if test="trfTp != null and trfTp != ''">
+    			AND	c.TRF_TP_CD = #{trfTp}
+			</if>
+			<if test="trfCd != null and trfCd != ''">
+    			AND	d.TRF_CD = #{trfCd}
+			</if>
+		    <if test="startDtm != null and startDtm != ''">
+		        AND TO_DATE(d.APLY_YMD,'YYYYMMDD') BETWEEN TO_DATE(#{startDtm},'DD/MM/YYYY')
+			    AND TO_DATE(#{endDtm},'DD/MM/YYYY') 
+		    </if>
+		    <if test="pkgTrfNo != null and pkgTrfNo != ''">
+	        	AND	d.PKG_TRF_NO = #{pkgTrfNo}
+		    </if>
+ 	 	) 
+	</select>
+	
+	<select id="selectPartnerConditionPropertyList" parameterType="partnerTariffRateParm" resultType="partnerConditionPropertyItem">
+		SELECT /*partnerTariffRate.selectPartnerConditionPropertyList*/ 
+				'R' AS CRUD,
+				A.AGRE_NO AS AGRENO,
+				A.PRPT_CD AS PRPTCD,
+				A.PRPT_NM AS PRPTNM,
+				A.DATA_TP_CD AS DATATPCD,
+				A.DATA_LEN AS DATALEN,
+				A.COL_NM AS COLNM,
+				'' AS PRISEQ,
+				A.STAFF_CD AS USERID,
+				TO_CHAR(A.UPDATE_TIME, 'DD/MM/YYYY HH24:SS') AS UPDTIME,
+				A.VERSION AS VERSION
+		FROM TMT_B_AGRE_COND_PRPT A
+		WHERE A.PRC_TP_CD = 'P' 
+		AND A.AGRE_NO IN (
+			SELECT 
+				PKG_TRF_NO 
+			FROM TMT_B_TRF D LEFT OUTER JOIN TMT_B_TRF_CD C 
+				ON C.TRF_CD = D.TRF_CD 
+				AND C.SUB_TRF_CD = D.SUB_TRF_CD
+			WHERE D.PRC_TP_CD = 'P' AND c.VLD_YN = 'Y' 
+			<if test="trfTp != null and trfTp != ''">
+	        	AND	c.TRF_TP_CD = #{trfTp}
+			</if>
+			<if test="trfCd != null and trfCd != ''">
+	        	AND	d.TRF_CD = #{trfCd}
+			</if>
+			<if test="startDtm != null and startDtm != ''">
+		        AND	TO_DATE(d.APLY_YMD,'YYYYMMDD') BETWEEN TO_DATE(#{startDtm},'DD/MM/YYYY')
+				AND TO_DATE(#{endDtm},'DD/MM/YYYY') 
+			</if>
+			<if test="pkgTrfNo != null and pkgTrfNo != ''">
+	        	AND	d.PKG_TRF_NO = #{pkgTrfNo}
+			</if>
+		) 
+	</select>
+	
+	<select id="selectCurrentStandardRate" parameterType="partnerTariffRateParm" resultType="standardTariffRateItem">
+		SELECT /*partnerTariffRate.selectCurrentStandardRate*/ 
+			DECODE(INSTR(TO_CHAR(UNITPRC),'.')
+				,1, '0' || TO_CHAR(UNITPRC)
+				,TO_CHAR(UNITPRC)
+			) AS UNITPRC,
+			TO_CHAR(APLYYMD,'DD/MM/YYYY') AS APLYYMD,
+			EXPRYMD
+		FROM (
+			SELECT 
+				C.UNIT_PRC AS UNITPRC,
+				C.SUB_TRF_CD AS SUBTRFCD,
+				TO_DATE(C.APLY_YMD,'YYYYMMDD') AS APLYYMD,
+				NVL2(C.EXPR_YMD,C.EXPR_YMD,'N/A') AS EXPRYMD,
+				C.TRF_CD AS TRFCD 
+			FROM TMT_B_TRF c 
+			WHERE C.PRC_TP_CD = 'S' 
+			AND C.TRF_CD = #{trfCd} 
+			AND C.SUB_TRF_CD = #{subTrfCd}
+			AND TO_DATE(C.APLY_YMD,'YYYYMMDD') <![CDATA[<]]> = sysdate
+			ORDER BY APLYYMD
+		)
+		WHERE rownum = 1  
+		AND (
+			exprYmd = 'N/A' 
+			OR (
+				exprYmd <![CDATA[<>]]> 'N/A' 
+				AND TO_DATE(exprYmd,'YYYYMMDD') > sysdate
+			)
+		)
+	</select>
+	
+	<select id="selectPrptCDList" parameterType="partnerTariffRateParm" resultType="partnerConditionPropertyItem">
+		SELECT DISTINCT PRPT_CD as prptCd, PRPT_NM as prptNm, DATA_TP_CD as dataTpCd, DATA_LEN as dataLen FROM TMT_B_AGRE_COND_PRPT
+	</select>
+	<!--	################ Insert Statement Define ######################################### -->
+	<insert id="insertPartnerTariffRate"  parameterType="partnerTariffRateItem">
+		INSERT /*partnerTariffRate.insertPartnerTariffRate*/ 
+		INTO TMT_B_TRF(
+			TRF_REG_NO,
+			TRF_CD,
+			SUB_TRF_CD,
+			PTNR_CD,
+			APLY_YMD,
+			EXPR_YMD,
+			PKG_TRF_NO,
+			PRC_TP_CD,
+			UNIT_PRC,
+			VERSION,
+			STAFF_CD,
+			UPDATE_TIME,
+			MIN_VAL1,
+			MIN_VAL2,
+			MIN_VAL3,
+			RMK,
+			MIN_RATE
+		) VALUES (
+			#{trfRegNo},
+   			#{trfCd},
+   			#{subTrfCd},
+				<if test="ptnrCd == null or ptnrCd == ''">
+				'*',
+				</if>
+				<if test="ptnrCd != null and ptnrCd != ''">
+				#{ptnrCd},
+				</if>
+			TO_CHAR(TO_DATE(#{aplyYmd},'DD/MM/YYYY'),'YYYYMMDD'),
+			TO_CHAR(TO_DATE(#{exprYmd},'DD/MM/YYYY'),'YYYYMMDD'),
+			#{pkgTrfNo},
+			'P',
+			#{ptnrPrc},
+			#{newVersion},
+			#{userId},
+			systimestamp,
+			#{minVal1},
+			#{minVal2},
+			#{minVal3},
+			#{rmk},
+			#{minRate}
+		)
+	</insert>
+	
+	<insert id="insertPartnerCondition"  parameterType="partnerConditionItem">
+		INSERT /*partnerTariffRate.insertPartnerCondition*/ 
+		INTO TMT_B_AGRE_COND(
+			AGRE_NO,
+			SEQ,
+			PRPT_CD,
+			OPR_IDT_CD,
+			CHR_VAL,
+			NO_VAL,
+			DT_VAL,
+			TIER_VAL1,
+			TIER_VAL2,
+			BND_VAL1,
+			BND_VAL2,
+			STAFF_CD,
+			VERSION,
+			UPDATE_TIME
+		) VALUES (
+			#{agreNo},
+			#{seq},
+			#{prptCd},
+			#{oprIdtCd},
+			#{chrVal},
+			#{noVal},
+			#{dtVal},
+			#{tierVal1},
+			#{tierVal2},
+			#{bndVal1},
+			#{bndVal2},
+			#{userId},
+			#{newVersion},
+			systimestamp
+		)
+	</insert>
+	
+	<insert id="insertPartnerConditionProperty" parameterType="partnerConditionPropertyItem">
+		INSERT /*partnerTariffRate.insertPartnerConditionProperty*/ 
+		INTO TMT_B_AGRE_COND_PRPT(
+			AGRE_NO,
+			PRC_TP_CD,
+			PRPT_CD,
+			PRPT_NM,
+			DATA_TP_CD,
+			DATA_LEN,
+			COL_NM,
+			STAFF_CD,
+			UPDATE_TIME,
+			VERSION
+		) VALUES (
+			#{agreNo},
+			'P',
+			#{prptCd},
+			#{prptNm},
+			#{dataTpCd},
+			#{dataLen},
+			#{colNm},
+			#{priSeq},
+			#{userId},
+			systimestamp,
+			#{newVersion}
+		)
+	</insert>
+<!--	  ################ Update Statement Define ######################################### -->
+	<update id="updatePartnerTariffRate"  parameterType="partnerTariffRateItem">
+		UPDATE /*partnerTariffRate.updatePartnerTariffRate*/ 
+		TMT_B_TRF SET		
+			APLY_YMD = NVL2(#{aplyYmd},TO_CHAR(TO_DATE(#{aplyYmd},'DD/MM/YYYY'),'YYYYMMDD'),#{aplyYmd}),
+			EXPR_YMD = NVL2(#{exprYmd},TO_CHAR(TO_DATE(#{exprYmd},'DD/MM/YYYY'),'YYYYMMDD'),#{exprYmd}),
+			VERSION = #{newVersion},
+			STAFF_CD = #{userId},
+			UPDATE_TIME = systimestamp,
+			MIN_VAL1 = #{minVal1},
+			MIN_VAL2 = #{minVal2},
+			MIN_VAL3 = #{minVal3},
+			PKG_NM = #{pkgNm},
+			RMK = #{rmk},
+			UNIT_PRC   = #{ptnrPrc},
+			MIN_RATE = #{minRate},
+			<if test="ptnrCd == null or ptnrCd == ''">
+				PTNR_CD = '*'
+			</if>
+			<if test="ptnrCd != null and ptnrCd != ''">
+				PTNR_CD = #{ptnrCd}
+			</if>
+		WHERE TRF_REG_NO = #{trfRegNo}
+		<if test="version != null and version != ''">
+			AND VERSION =#{version}
+		</if>
+	</update>
+	
+	<update id="updatePartnerTariffRateCondition"  parameterType="partnerConditionItem">
+		UPDATE /*partnerTariffRate.updatePartnerTariffRateCondition*/ 
+		TMT_B_AGRE_COND SET	
+			PRPT_CD = #{prptCd},
+			OPR_IDT_CD =  #{oprIdtCd},
+			CHR_VAL =  #{chrVal},
+			NO_VAL =  #{noVal},
+			DT_VAL =  #{dtVal},
+			TIER_VAL1 =  #{tierVal1},
+			TIER_VAL2 =  #{tierVal2},
+			BND_VAL1 =  #{bndVal1},
+			BND_VAL2 =  #{bndVal2},
+			STAFF_CD =  #{userId},
+			VERSION =  #{newVersion},
+			UPDATE_TIME =  systimestamp
+		WHERE AGRE_NO = #{agreNo} AND SEQ=#{seq}
+	</update>
+<!--	  ################ Delete Tariff Code Statement Define ######################################### -->
+	<delete id="deletePartnerTariffRate"  parameterType="partnerTariffRateItem">
+		DELETE TMT_B_TRF
+		WHERE  PKG_TRF_NO = #{pkgTrfNo}
+		<if test="version != null and version != ''">
+  		AND	VERSION =#{version}
+		</if>
+	</delete>
+	
+	<delete id="deletePartnerCondition"  parameterType="partnerConditionItem">
+		DELETE TMT_B_AGRE_COND
+		WHERE AGRE_NO = #{agreNo} AND SEQ=#{seq}
+		<if test="version != null and version != ''">
+  			AND	VERSION =#{version}
+		</if>
+	</delete>
+	
+	<delete id="deletPartnerConditionProperty" parameterType="partnerConditionPropertyItem">
+		DELETE TMT_B_AGRE_COND_PRPT
+		WHERE AGRE_NO = #{agreNo}
+	</delete>
+	
+	<delete id="deletePartnerEmptyConditions"  parameterType="partnerConditionItem">
+		DELETE FROM TMT_B_AGRE_COND
+		WHERE CHR_VAL IS NULL 
+		AND NO_VAL IS NULL 
+		AND DT_VAL IS NULL
+		AND TIER_VAL1 IS NULL AND TIER_VAL2 IS NULL 
+		AND BND_VAL1 IS NULL AND BND_VAL2 IS NULL
+		<if test="agreNo != null and agreNo != ''">
+  			AND	AGRE_NO = #{agreNo}
+		</if>
+		<if test="prptCd != null and prptCd != ''"> 
+  			AND	PRPT_CD = #{prptCd}
+		</if>
+	</delete>
+	
+	<delete id="deleteAllPartnerCondition"  parameterType="partnerTariffRateItem">
+		DELETE TMT_B_AGRE_COND
+		WHERE AGRE_NO = #{pkgTrfNo}
+	</delete>
+	
+	<delete id="deleteAllPartnerConditionProperty"  parameterType="partnerTariffRateItem">
+		DELETE TMT_B_AGRE_COND_PRPT
+		WHERE AGRE_NO = #{pkgTrfNo}
+	</delete>
+	
+	<delete id="deletePartnerTariffDetailRates"  parameterType="partnerTariffRateItem">
+		DELETE TMT_B_TRF
+		WHERE TRF_REG_NO IN (SELECT
+							REGEXP_SUBSTR (#{trfRegNoAll}, '[^ ]+', 1, level)
+							FROM dual
+							CONNECT BY REGEXP_SUBSTR (#{trfRegNoAll}, '[^ ]+', 1, level) IS NOT NULL)  
+		AND PKG_TRF_NO = #{pkgTrfNo}
+	</delete>
+</mapper>
+	

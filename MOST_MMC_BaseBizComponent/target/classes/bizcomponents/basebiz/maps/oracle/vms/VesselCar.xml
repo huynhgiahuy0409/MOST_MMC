@@ -1,0 +1,557 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="VesselCar">
+    <!-- 선대현황 MJH2 ORA.PRC_DAILY_MON10 ~ TB_FLD_DATA ~. oracle PRC_DAILY_MON10('I_DATE IN VARCHAR2') 벌크선 선대현황 선박척수 표현 기준으로. ;  PRC_DAILY_MON09('I_DATE IN VARCHAR2');자동차선 선대현황.-->
+    <resultMap id="vesselList" type="vesselItem">
+        <result property = "teamCode"           column="CD_DEPT" />
+        <result property = "teamName"           column="NM_DEPT" />
+        <result property = "operatorId"         column="OPERATOR_ID" />
+        <result property = "operatorName"       column="OPERATOR_NM" />
+        <result property = "vesselCode"         column="CD_VESSEL" />
+        <result property = "vesselName"         column="NM_VESSEL1" />
+        <result property = "voyageNo"           column="VOY" />             
+        <result property = "callSign"           column="CALL_SIGN" />           
+        <result property = "vesselKind"         column="CD_VSLKND" />       <!-- 벌크, 자동차 -->
+        <result property = "vesselGroupCode"    column="WG_CD" />           <!-- 선형 -->
+        <result property = "vesselGroupName"    column="WG_NM" />           <!-- 선형 -->
+        <result property = "vesselType"         column="DIV_VOY_TYPE" />    <!-- 용선, 사선 -->
+        <result property = "vesselTypeName"     column="DIV_VOY_TYPE_NM" /> <!-- 용선, 사선 -->
+        <result property = "latitude"           column="LAT" />
+        <result property = "longitude"          column="LON" />
+        <result property = "heading"            column="ANGLE" />
+        <result property = "speed"              column="SPEED" />
+        <result property = "vesselStatus"       column="CD_PID" />
+        <result property = "vesselStatusName"   column="NM_PID" />
+        <result property = "routeCode"          column="CD_ROUTE" /> 
+        <result property = "flag"               column="COUNCODE" /> 
+        <result property = "flagName"           column="COUNTRY_NM" /> 
+        <result property = "buildYear"          column="DT_BUILD" /> 
+        <result property = "loa"                column="LOA" /> 
+        <result property = "width"              column="VSL_BEAM" /> 
+        <result property = "draft"              column="VSL_DRAFT" /> 
+        <result property = "speedLaden"         column="SPEED_LDN" /> 
+        <result property = "speedBallast"       column="SPEED_BST" /> 
+        <result property = "dwt"                column="DWT" /> 
+        <result property = "grt"                column="GRT" /> 
+        <result property = "imoNo"              column="NO_IMD" /> 
+        <result property = "arrivalTime"        column="ARR_DT"    javaType="java.util.Date"/>
+        <result property = "departureTime"      column="DEP_DT"    javaType="java.util.Date"/>
+        <result property = "speedContract"      column="CONTRACT_SPEED" />
+        <result property = "distance"           column="DIST" />
+        <result property = "progress"           column="PROGRESS" />
+        <result property = "continentName"      column="CONTINENT" />
+    </resultMap>
+    
+    <resultMap id="continentCarVesselList" type="vesselItem">
+        <result property = "regionCode"             column="CD_REGION" />
+        <result property = "regionName"             column="NM_REGION" />
+        <result property = "regionCount"            column="REGION_COUNT" />
+        <result property = "vesselCode"             column="CD_VESSEL" />
+        <result property = "vesselName"             column="NM_VESSEL" />
+        <result property = "voyageNo"              column="VOY" />
+        <result property = "routeCode"            column="CD_ROUTE" />
+        <result property = "vesselArrivalPortName"  column="PORT_NM"  />
+        <result property = "vesselArrivalTime"      column="ETA_TIME" />
+        <result property = "vesselBerthTime"        column="ETB_TIME" />
+        <result property = "vesselDepartureTime"    column="ETD_TIME" />
+        <result property = "vesselSeaday"           column="SEA_DAYS" />
+        <result property = "vesselPortday"          column="PORT_DAYS" />
+        <result property = "heading"                column="ANGLE" />
+        <result property = "latitude"               column="LAT" />
+        <result property = "longitude"              column="LON" />
+        <result property = "vesselStatus"       column="CD_PID" />
+    </resultMap>
+
+	<resultMap id="transitTimeList" type="transitTimeItem">
+		<result property = "vesselCode"      column="CD_VESSEL" />
+		<result property = "vesselName"      column="NM_VESSEL" />
+		<result property = "voyageNo"        column="VOY" />
+		<result property = "loa"             column="LOA" />
+		<result property = "width"           column="VSL_BEAM" />
+		<result property = "draft"           column="VSL_DRAFT" />
+		<result property = "speedLaden"      column="SPEED_LDN" />
+		<result property = "buildYear"       column="DT_BUILD" />
+		<result property = "speedBallast"    column="SPEED_BST" />
+		<result property = "dwt"             column="DWT" />
+		<result property = "grt"             column="GRT" />
+		<result property = "flag"            column="COUNCODE" />
+		<result property = "flagName"        column="COUNTRY_NM" />
+		<result property = "imoNo"           column="NO_IMD" />
+		<result property = "callSign"        column="CALLSIGN" />
+		<result property = "vesselKind"      column="CD_VSLKND" />
+		<result property = "vesselStatus"    column="CD_PID" />
+		<result property = "routeCode"       column="CD_ROUTE" />
+		<result property = "teamCode"        column="CD_DEPT" />
+		<result property = "teamName"        column="NM_DEPT" />
+		<result property = "latitude"        column="LAT" />
+		<result property = "longitude"       column="LON" />
+		<result property = "heading"         column="ANGLE" />
+		<result property = "speed"           column="SPEED" />
+		<result property = "continent"       column="CONTINENT" />
+		<result property = "customerCode"    column="CD_CUSTSHIPPER" />
+		<result property = "customerName"    column="NM_CUSTSHIPPER" />
+		<result property = "pol"             column="CD_L_PORT" />
+		<result property = "polName"         column="NM_L_PORT" />
+		<result property = "pod"             column="CD_D_PORT" />
+		<result property = "podName"         column="NM_D_PORT" />
+		<result property = "pvy"             column="CD_PVY_PORT" />
+		<result property = "pvyName"         column="NM_PVY_PORT" />
+		<result property = "unit"            column="UNIT" />
+		<result property = "onBoard"         column="DT_ONBOARD" />
+		<result property = "eta"             column="DT_ETA" />
+		<result property = "transitTime"     column="LEAD_TIME" />
+		<result property = "contractedtTime" column="C_T_TIME" />
+		<result property = "diff"            column="DIFF" />
+		<result property = "quantity"        column="TOTAL_QTY" />
+		
+		<result property = "krLastDptTime"   column="KR_LAST_DPT_TIME" />
+		<result property = "arvPod"       	 column="DT_ARV_POD" />
+    </resultMap>
+    
+    <resultMap id="performanceIndexList" type="performanceIndexItem">
+        <result property = "departmentCode"             column="CD_DEPT" />
+        <result property = "departmentName"             column="NM_DEPT" />
+        <result property = "delayedCount"               column="D_DELAY" />
+        <result property = "normalCount"                column="D_NORMAL" />
+        <result property = "totalCount"                 column="D_TOTAL" />
+    </resultMap>
+    
+    <resultMap id="customerAnnualAmountList" type="statisticsItem">
+        <result property = "customerAlias"             column="CUSTOMERALIAS" />
+        <result property = "customerCode"              column="CD_CUSTSHIPPER" />
+        <result property = "customerName"              column="NM_CUSTSHIPPER" />
+        <result property = "pol"                       column="CD_L_PORT" />
+        <result property = "polName"                   column="NM_L_PORT" />
+        <result property = "pod"                       column="CD_D_PORT" />
+        <result property = "month"                     column="MONTH" />
+        <result property = "amount"                    column="AMOUNT" />
+    </resultMap>
+    
+    <resultMap id="priorityList" type="priorityItem">
+        <result property = "priorityId"           column="UUID" />
+        <result property = "sequence"             column="SEQ" />
+        <result property = "customers"            column="CD_CUST" />
+        <result property = "customerAlias"        column="ALIAS_CUST" />
+        <result property = "thredhold"            column="THREAD_HOLD" />
+    </resultMap>
+    
+     <resultMap id="chartBaseSummary" type="chartBaseSummaryItem">
+	    <result property = "cargoQtyUnit"        column="QTY_SM_UNIT" />
+	    <result property = "cargoQtyCeu"        column="QTY_SM_CEU" />
+	    <result property = "durationTotal"        column="DAY_SM_DUR" />
+	    <result property = "durationNet"        column="DAY_SM_NET_DUR" />
+	    <result property = "freightAmt"        column="AMT_SM_FRT" />
+	    <result property = "oprCostAmt"        column="AMT_SM_OPR_COST" />
+	    <result property = "oprEaringAmt"        column="AMT_SM_OPR_EAR" />
+	    <result property = "dailyCBAmt"        column="AMT_SM_D_CB" />
+	    <result property = "dailyHBAmt"        column="AMT_SM_D_HB" />
+	    <result property = "hireAmt"        column="AMT_SM_HIRE" />
+	    <result property = "offHireAmt"        column="AMT_SM_OFFHIRE_TOT" />
+	    <result property = "plAmt"        column="AMT_SM_PL" />
+	    <result property = "plRate"        column="RATE_SM_PL" />
+	    <!-- Consumption -->
+	    <result property = "vesselCode"     column="CD_VESSEL" />
+	    <result property = "speedLdn"       column="SPEED_LDN" />
+	    <result property = "speedEco"       column="SPEED_ECO" />
+	    <result property = "laSeaFo"        column="LA_SEA_FO" />
+	    <result property = "laSeaDo"        column="LA_SEA_DO" />
+	    <result property = "laPortFo"       column="LA_PORT_FO" />
+	    <result property = "laPortDo"       column="LA_PORT_DO" />
+	    <result property = "ecSeaFo"        column="EC_SEA_FO" />
+	    <result property = "ecSeaDo"        column="EC_SEA_DO" />
+	    <result property = "ecPortFo"       column="EC_PORT_FO" />
+	    <result property = "ecPortDo"       column="EC_PORT_DO" />
+    </resultMap>
+    
+    <resultMap id="portList" type="portItem">
+       <result property = "portType"          column="CD_PID" />
+       <result property = "routeCode"          column="CD_ROUTE" />
+       <result property = "portCode"           column="CD_PORT" />
+       <result property = "portSeq"            column="NO_SEQ" />
+       <result property = "portName"           column="NM_PORT" />
+       <result property = "timeZone"           column="TIME_ZONE" />           
+       <result property = "areaCode"           column="CD_AREA" />             
+       <result property = "longitude"          column="LON" />
+       <result property = "latitude"           column="LAT" /> 
+    </resultMap>
+
+    <select id="selectCarVesselList" parameterType="vesselParm" resultMap="vesselList">
+           SELECT  /* VesselCar.selectCarVesselList */
+           		   A.CD_VESSEL, 
+                   B.NM_VESSEL1, 
+                   B.DT_BUILD, <!-- 건조연도 -->
+                   B.LOA,
+                   B.VSL_BEAM,
+                   B.VSL_DRAFT,
+                   B.SPEED_LDN,
+                   B.SPEED_BST,
+                   B.DWT,
+                   B.GRT,
+                   B.COUNCODE,     <!-- 국가코드 -->
+                   (SELECT CNTRYNAME FROM IF_MOST_VMS.ST_COUNTRY@VMT_LINK WHERE COUNCODE=B.COUNCODE) AS COUNTRY_NM,
+                   B.NO_IMD,
+                   B.CALLSIGN,
+                   B.CD_VSLKND,
+                   A.VOY,
+                   <!-- FNC_GET_VSL_STATUS(A.CD_VESSEL, A.VOY, SYSDATE) CD_PID, --> 
+                   (select '' from dual) CD_PID,                    
+                   A.CD_ROUTE, 
+                   A.CD_DEPT,
+                   <!-- IF_MOST_VMS.PKG_COM_NMCODE. -->
+                   <!--  fnc_get_nmdept(A.CD_DEPT) AS NM_DEPT, --> 
+                   (select '' from dual) NM_DEPT,                  
+                   C.LAT, 
+                   C.LON, 
+                   C.ANGLE,
+                   C.SPEED, 
+                   D.DESC_1    AS CONTINENT,
+                   A.WG_CD AS WG_CD,
+                   A.DIV_VOY_TYPE AS DIV_VOY_TYPE,
+                   B.CD_VSLKND AS CD_VSLKND
+           FROM (SELECT CD_VESSEL, VOY, CD_ROUTE, CD_DEPT, WG_CD, DIV_VOY, DIV_VOY_TYPE, DIV_VSLKND 
+           		FROM IF_MOST_VMS.MAR_VOY@VMT_LINK A1
+           		 WHERE VOY=(SELECT MAX(A2.VOY) FROM IF_MOST_VMS.MAR_VOY@VMT_LINK A2 where A1.CD_VESSEL=A2.CD_VESSEL)
+           		) A 
+           		LEFT OUTER JOIN IF_MOST_VMS.CM_CODE_DTL@VMT_LINK D ON (A.CD_ROUTE = D.CD_CODE AND D.CD_CLSS = 'CONT'), 
+           		IF_MOST_VMS.GIS_SHIP@VMT_LINK C LEFT OUTER JOIN IF_MOST_VMS.MAR_VESSEL@VMT_LINK B ON (c.cd_vessel = b.cd_vessel and c.CALL_SIGN = b.CALLSIGN) 
+           WHERE A.CD_VESSEL = C.CD_VESSEL
+               AND A.DIV_VOY_TYPE <![CDATA[<>]]> 'SC'
+               AND A.DIV_VSLKND <![CDATA[<>]]> 'CB'
+               AND A.DIV_VSLKND = 'CR'
+               AND B.CD_FLEET NOT IN ('SC','RT')
+               AND D.CD_CLSS = 'CONT'
+    </select>
+    
+    <select id="selectContinentCarVesselScheduleList" parameterType="vesselParm" resultMap="continentCarVesselList">
+        SELECT  /* VesselCar.selectContinentCarVesselScheduleList */
+               C.NM_PORT1 AS PORT_NM, 
+               A.DTM_ETA AS ETA_TIME, 
+               A.DTM_ETB AS ETB_TIME, 
+               A.DTM_ETD AS ETD_TIME, 
+               A.DAY_SEA AS SEA_DAYS, 
+               A.DAY_WAIT AS PORT_DAYS
+        FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK A, IF_MOST_VMS.MAR_VESSEL@VMT_LINK B, IF_MOST_VMS.MAR_PORT@VMT_LINK C
+        WHERE 1=1
+            AND A.CD_VESSEL = B.CD_VESSEL
+            AND A.CD_PORT = C.CD_PORT
+        <if test="vesselCode != null and vesselCode != ''">
+            AND A.CD_VESSEL=#{vesselCode}
+        </if>
+        <if test="voyageNo != null and voyageNo != ''">
+            AND A.VOY = #{voyageNo}
+        </if>
+        ORDER BY DTM_ETA
+    </select>
+    
+    <select id="selectTransitTimeVesselList" parameterType="vesselParm" resultMap="transitTimeList">   
+     SELECT /*VesselCar.selectTransitTimeVesselList*/
+            A.CD_CUSTSHIPPER,
+	        A.CD_VESSEL,
+	        (SELECT NVL (COMP_NM, COMP_EM) FROM ST_COMPANY@VMT_LINK X WHERE X.COMPANY_CD = A.CD_CUSTSHIPPER) AS NM_CUSTSHIPPER,
+	        A.NM_VESSEL NM_VESSEL,
+	        A.VOY VOY,
+	        D.CD_ROUTE,
+	        <!-- A.NO_BL, -->
+	        D.CD_DEPT,
+	        A.CD_L_PORT AS CD_L_PORT,
+	        A.CD_D_PORT AS CD_D_PORT,
+            A.CD_PVY_PORT AS CD_PVY_PORT,
+	        A.TOTAL_QTY,
+	        <!-- A.CLS_PC, -->
+	        TO_CHAR (A.DT_ONBOARD, 'YYYY.MM.DD') AS DT_ONBOARD,
+            (CASE WHEN F.COUNCODE = 'KR' AND A.CLS_PC = 'P' AND (SELECT NVL(X.CD_CODE, NULL)
+                                                                  FROM CM_CODE_DTL@VMT_LINK X
+                                                                  WHERE X.CD_CLSS = 'TTPCC'
+                                                                  	 AND A.CD_CUSTSHIPPER = X.CD_CODE) IS NOT NULL
+             THEN '' <!--  TO_CHAR(FN_GET_KRLL_ETD(A.CD_VESSEL, A.VOY),'YYYY-MM-DD') -->
+             END) AS KR_LAST_DPT_TIME@VMT_LINK,
+            TO_CHAR(NVL(DT_ACTARRIVAL, DT_ARRIVAL),'YYYY-MM-DD') AS DT_ARV_POD,
+            NVL(ROUND(NVL(DT_ACTARRIVAL, DT_ARRIVAL) - (CASE WHEN F.COUNCODE = 'KR' AND A.CLS_PC = 'P' AND (SELECT NVL(X.CD_CODE, NULL)
+                                                                                                            FROM CM_CODE_DTL@VMT_LINK X
+                                                                                                            WHERE X.CD_CLSS = 'TTPCC'
+                                                                                                            	AND A.CD_CUSTSHIPPER = X.CD_CODE) IS NOT NULL
+                                                        THEN sysdate <!-- FN_GET_KRLL_ETD(A.CD_VESSEL, A.VOY) --> ELSE A.DT_ONBOARD END), 0),0) AS LEAD_TIME,  
+            <!-- NVL(ROUND(NVL(DT_ACTARRIVAL, DT_ARRIVAL) - A.DT_ONBOARD, 0),0)  AS LEAD_TIME2, -->
+	        NVL(G.C_T_TIME, 0)  AS C_T_TIME,
+	        NVL(ROUND(NVL(DT_ACTARRIVAL, DT_ARRIVAL) - (CASE WHEN F.COUNCODE = 'KR' AND A.CLS_PC = 'P' AND (SELECT NVL(X.CD_CODE, NULL)
+                                                                                                            FROM CM_CODE_DTL@VMT_LINK X
+                                                                                                            WHERE X.CD_CLSS = 'TTPCC'
+                                                                                                            	AND A.CD_CUSTSHIPPER = X.CD_CODE) IS NOT NULL
+                                                        THEN sysdate <!-- FN_GET_KRLL_ETD(A.CD_VESSEL, A.VOY) --> ELSE A.DT_ONBOARD END), 0),0) - NVL(G.C_T_TIME, 0)  AS DIFF
+                                                           
+	  FROM IF_MOST_VMS.SD_BL@VMT_LINK A,
+	        IF_MOST_VMS.MAR_VOY@VMT_LINK D,
+	        IF_MOST_VMS.ST_COMPANY@VMT_LINK E, 
+	        IF_MOST_VMS.MAR_PORT@VMT_LINK F, 
+	        IF_MOST_VMS.PL_TRT_DTL@VMT_LINK G
+	  WHERE A.CD_VESSEL = D.CD_VESSEL
+        AND A.VOY= D.VOY
+   		AND D.DIV_VSLKND  ='CR'
+   		AND A.CD_CUSTSHIPPER = E.COMPANY_CD
+   		AND A.CD_L_PORT = F.CD_PORT
+   		AND A.CD_CUSTSHIPPER = G.CD_CUSTSHIPPER
+   		AND A.CD_L_PORT      = G.CD_L_PORT
+   		AND A.CD_PVY_PORT = G.CD_D_PORT
+   		AND A.DT_ONBOARD BETWEEN TO_DATE(G.C_FROM_DT, 'YYYYMMDDHH24MI') AND TO_DATE(G.C_TO_DT, 'YYYYMMDDHH24MI')
+        AND NVL (D.ATM_START, D.DTM_START) <![CDATA[ <= ]]> SYSDATE - 3 / 24
+        AND NVL (D.ATM_END, D.DTM_END) >=  SYSDATE - 3 / 24
+        AND A.DT_ONBOARD >= TRUNC(SYSDATE-180)
+        AND D.DTM_START  >= TRUNC(SYSDATE-180)
+    
+       <!-- 171124 HS MODIFY   
+       	SELECT /*VesselCar.selectTransitTimeVesselList*/
+            A.CD_CUSTSHIPPER,
+	        (SELECT NVL (COMP_NM, COMP_EM) FROM ST_COMPANY X WHERE X.COMPANY_CD = A.CD_CUSTSHIPPER) AS NM_CUSTSHIPPER,
+	        A.NM_VESSEL NM_VESSEL,
+	        A.CD_VESSEL,
+	        A.VOY VOY,
+	        D.CD_ROUTE,
+	        D.CD_DEPT,
+	        IF_MOST_VMS.PKG_COM_NMCODE.FNC_GET_NMDEPT (D.CD_DEPT) AS NM_DEPT,
+	        A.CD_L_PORT AS CD_L_PORT,
+	        IF_MOST_VMS.PKG_COM_NMCODE.FNC_GET_NMPORT(A.CD_L_PORT) AS NM_L_PORT,
+	        A.CD_D_PORT AS CD_D_PORT,
+	        IF_MOST_VMS.PKG_COM_NMCODE.FNC_GET_NMPORT(A.CD_D_PORT) AS NM_D_PORT,
+            A.CD_PVY_PORT AS CD_PVY_PORT,
+	        IF_MOST_VMS.PKG_COM_NMCODE.FNC_GET_NMPORT(A.CD_PVY_PORT) AS NM_PVY_PORT,
+	        A.TOTAL_QTY,
+	        TO_CHAR (A.DT_ONBOARD, 'YYYY.MM.DD') AS DT_ONBOARD,
+	        TO_CHAR (NVL (DT_ACTARRIVAL, DT_ARRIVAL),'YYYY.MM.DD') AS DT_ARV_POD,
+	        ROUND (NVL (DT_ACTARRIVAL, DT_ARRIVAL) - A.DT_ONBOARD,2) AS LEAD_TIME,
+	        NVL (
+	           (SELECT C.C_T_TIME
+	              FROM IF_MOST_VMS.PL_TRT_DTL C
+	             WHERE     1 = 1
+	                   AND C.C_T_TIME > 0
+	                   AND A.CD_CUSTSHIPPER = C.CD_CUSTSHIPPER
+	                   AND A.CD_L_PORT = C.CD_L_PORT
+	                   AND A.CD_D_PORT = C.CD_D_PORT
+	                   AND TO_CHAR (A.DT_ONBOARD, 'YYYYMMDD') BETWEEN C.C_FROM_DT
+	                                                              AND  C.C_TO_DT),
+	           0)
+	           AS C_T_TIME,
+	        (ROUND (NVL (DT_ACTARRIVAL, DT_ARRIVAL) - A.DT_ONBOARD, 2)
+	         - NVL (
+	              (SELECT C.C_T_TIME
+	                 FRO IF_MOST_VMS.PL_TRT_DTLL C
+	                WHERE     1 = 1
+	                      AND C.C_T_TIME > 0
+	                      AND A.CD_CUSTSHIPPER = C.CD_CUSTSHIPPER
+	                      AND A.CD_L_PORT = C.CD_L_PORT
+	                      AND A.CD_D_PORT = C.CD_D_PORT
+	                      AND TO_CHAR (A.DT_ONBOARD, 'YYYYMMDD') BETWEEN C.C_FROM_DT
+	                                                                 AND  C.C_TO_DT),
+	              0))
+	           AS DIFF
+	   FROM IF_MOST_VMS.SD_BL A,
+	        IF_MOST_VMS.MAR_VOY D,
+	        IF_MOST_VMS.MAR_VESSEL B
+	  WHERE     A.CD_VESSEL = D.CD_VESSEL
+	        AND A.CD_VESSEL = B.CD_VESSEL
+	        AND A.VOY = D.VOY
+	        AND D.DIV_VOY_TYPE != 'SC'
+	        AND D.DIV_VSLKND != 'CB'
+	        AND D.DIV_VSLKND = 'CR'
+	        AND B.CD_FLEET NOT IN ('SC', 'RT')
+	        AND NVL (D.ATM_START, D.DTM_START) <![CDATA[<=]]> SYSDATE - 3 / 24
+	        AND NVL (D.ATM_END, D.DTM_END) >= SYSDATE - 3 / 24
+	        AND A.DT_ONBOARD >=TRUNC(SYSDATE-180)
+            AND D.DTM_START  >=TRUNC(SYSDATE-180) -->
+    </select>    
+    
+    <select id="selectShipperList" parameterType="vesselParm" resultMap="transitTimeList">
+        select 
+            distinct
+            company_cd CD_CUSTSHIPPER,
+            comp_nm NM_CUSTSHIPPER 
+        from ST_COMPANY@VMT_LINK a, IF_MOST_VMS.SD_BL@VMT_LINK b
+        where 1=1
+        and  a.COMPANY_CD = b.CD_CUSTSHIPPER
+        order by a.comp_nm
+    </select>
+    
+    <select id="selectCustomerAnnualAmount" parameterType="vesselParm" resultMap="customerAnnualAmountList">
+		SELECT #{customerAlias} customerAlias, TO_CHAR(TO_DATE(MONTH,'YYYY-MM'),'YYYY-MM') AS MONTH, SUM(AMOUNT) AMOUNT  /* VesselCar.selectCustomerAnnualAmount */
+		FROM (
+	        SELECT 
+	            A.CD_CUSTSHIPPER
+	            ,to_char(A.DT_ONBOARD,'yyyymm') MONTH
+	            ,sum(A.TOTAL_QTY) AMOUNT
+	        from IF_MOST_VMS.SD_BL@VMT_LINK a
+	        where 1=1
+	                <!-- AND A.DT_ONBOARD BETWEEN TO_DATE(TO_CHAR(SYSDATE,'YYYY')||'0101', 'YYYYMMDD') AND TO_DATE(TO_CHAR(SYSDATE,'YYYY')||'1231', 'YYYYMMDD')+0.999990 -->
+	                AND TO_CHAR(A.DT_ONBOARD,'YYYYMMDD') BETWEEN TO_CHAR(ADD_MONTHS(SYSDATE,-11) + 1,'yyyymmdd') AND TO_CHAR(ADD_MONTHS(SYSDATE,-0),'yyyymmdd')
+					AND A.CD_CUSTSHIPPER IN 
+			  		<foreach item="item" index="index" collection="custList" open="(" separator="," close=")">
+			       		 #{item}
+			  		</foreach>
+	                
+	        GROUP BY A.CD_CUSTSHIPPER,  TO_CHAR(A.DT_ONBOARD,'yyyymm')
+	            ) A
+		GROUP BY MONTH
+		ORDER BY MONTH
+    </select>
+    
+    <select id="selectCustomerMonthlyAmountPerPort" parameterType="vesselParm" resultMap="customerAnnualAmountList">
+        SELECT  #{customerAlias} customerAlias, CD_L_PORT, MAX(NM_L_PORT) NM_L_PORT, SUM(AMOUNT) AMOUNT     /* VesselCar.selectCustomerMonthlyAmountPerPort */
+        FROM (
+	        select 
+	             A.CD_CUSTSHIPPER, 
+	             A.NM_CUSTSHIPPER,
+	             A.CD_L_PORT||'-' ||A.CD_PVY_PORT as CD_L_PORT,
+	             MAX(IF_MOST_VMS.PKG_COM_NMCODE.FNC_GET_NMPORT(A.CD_L_PORT) || '-' || IF_MOST_VMS.PKG_COM_NMCODE.FNC_GET_NMPORT(A.CD_PVY_PORT)) AS NM_L_PORT,
+	             A.CD_D_PORT||'-' ||A.CD_PVY_PORT as CD_D_PORT,
+	            <!-- IF_MOST_VMS.PKG_COM_NMCODE.FNC_GET_NMPORT(A.CD_D_PORT) || '-' || IF_MOST_VMS.PKG_COM_NMCODE.FNC_GET_NMPORT(A.CD_PVY_PORT) AS CD_D_PORT, -->
+	            count(*) AMOUNT
+	        from IF_MOST_VMS.SD_BL@VMT_LINK A, IF_MOST_VMS.PL_TRT_DTL@VMT_LINK C
+	        where 1=1
+	                AND A.CD_CUSTSHIPPER =C.CD_CUSTSHIPPER
+	                AND A.CD_L_PORT  = C.CD_L_PORT
+	                AND A.CD_PVY_PORT   = C.CD_D_PORT
+	                AND A.DT_ONBOARD BETWEEN TO_DATE(#{year}||#{month}||'01', 'YYYYMMDD') AND TO_DATE(#{year}||TO_CHAR(LAST_DAY(TO_DATE(#{year}||#{month}||'01','YYYYMMDD')),'MMDD') , 'YYYYMMDD')+0.999990
+					AND A.CD_CUSTSHIPPER IN 
+			  		<foreach item="item" index="index" collection="custList" open="(" separator="," close=")">
+			       		 #{item}
+			  		</foreach>
+	        group by A.CD_CUSTSHIPPER,A.NM_CUSTSHIPPER, A.CD_L_PORT||'-' ||A.CD_PVY_PORT, A.CD_D_PORT||'-' ||A.CD_PVY_PORT
+            ) A
+		 GROUP BY CD_L_PORT
+		 ORDER BY CD_L_PORT
+    </select>
+    
+ 
+	<select id="selectPriorityList"  parameterType="vesselParm" resultMap="priorityList">
+		SELECT /* VesselCar.selectPriorityList */
+			  C.UUID as priorityId
+			, C.SEQ as sequence
+			, C.CD_CUST as customers
+			, C.ALIAS_CUST as customerAlias
+			, C.THREAD_HOLD as thredhold
+		FROM IF_MOST_VMS.CM_VMS_CUST_CONFIG@VMT_LINK C
+		ORDER BY C.SEQ
+	</select>		    
+    
+    <insert id="insertPriority" parameterType="priorityItem">
+    INSERT /* VesselCar.selectPriorityList */
+    	INTO IF_MOST_VMS.CM_VMS_CUST_CONFIG@VMT_LINK (
+		   UUID, 
+		   SEQ, 
+		   CD_CUST, 
+		   ALIAS_CUST, 
+		   THREAD_HOLD, 
+		   ID_REG, 
+		   DT_REG		
+		) VALUES (
+            #{priorityId}, 
+            #{sequence}, 
+            #{customers}, 
+            #{customerAlias}, 
+            #{thredhold}, 
+            #{userId} ,
+            sysdate
+        )  
+		 
+    </insert>	
+    
+    <update id="updatePriority" parameterType="priorityItem">
+		
+		UPDATE /* VesselCar.updatePriority */
+			IF_MOST_VMS.CM_VMS_CUST_CONFIG@VMT_LINK
+			SET  SEQ = #{sequence},
+				 CD_CUST = #{customers}, 
+				 ALIAS_CUST = #{customerAlias}, 
+				 THREAD_HOLD = #{thredhold}, 
+				 ID_UPT = #{userId}, 
+				 DT_UPT = sysdate
+         WHERE UUID = #{priorityId}
+    </update>	   
+    
+    <delete id="deletePriority" parameterType="priorityItem">
+		DELETE FROM /* VesselCar.deletePriority */
+			IF_MOST_VMS.CM_VMS_CUST_CONFIG@VMT_LINK
+		 WHERE UUID = #{priorityId}
+    </delete>
+    
+ 	<!-- Group Summary SQL -->   
+	<select id="selectChartBaseSummary"  parameterType="vesselParm" resultMap="chartBaseSummary">
+		 SELECT /* VesselCar.selectChartBaseSummary */
+		 		  QTY_SM_UNIT
+		 		, QTY_SM_CEU
+				, DAY_SM_DUR
+				, DAY_SM_NET_DUR
+				, AMT_SM_FRT
+				, AMT_SM_OPR_COST
+				, AMT_SM_OPR_EAR
+				, AMT_SM_D_CB
+				, AMT_SM_D_HB
+				, AMT_SM_HIRE
+				, AMT_SM_OFFHIRE_TOT
+				, AMT_SM_PL, RATE_SM_PL
+		  FROM IF_MOST_VMS.MAR_CB@VMT_LINK A
+		 WHERE SEQ_CB = 0
+        <if test="vesselCode != null and vesselCode != ''">
+            AND CD_VESSEL=#{vesselCode}
+        </if>
+        <if test="voyageNo != null and voyageNo != ''">
+            AND VOY = #{voyageNo}
+        </if>		   
+  	</select>	    
+
+
+ 	<!-- Vessel Car Consumption SQL -->   
+	<select id="selectConsumptionSummary"  parameterType="vesselParm" resultMap="chartBaseSummary">
+		SELECT /* VesselCar.selectConsumptionSummary */
+			   A.CD_VESSEL, A.SPEED_LDN, A.SPEED_ECO,
+		       B.LA_SEA_FO, B.LA_SEA_DO, B.LA_PORT_FO, 
+		       B.LA_PORT_DO, B.EC_SEA_FO, B.EC_SEA_DO, 
+		       B.EC_PORT_FO, B.EC_PORT_DO
+		  FROM IF_MOST_VMS.MAR_VESSEL@VMT_LINK A,
+		       (SELECT CD_VESSEL
+		         , MAX(CASE WHEN DIV_OPRT = 'LA' AND DIV_FODO = 'FO' THEN QTY END) AS LA_SEA_FO
+		         , MAX(CASE WHEN DIV_OPRT = 'LA' AND DIV_FODO = 'DO' THEN QTY END) AS LA_SEA_DO
+		         , MAX(CASE WHEN DIV_OPRT = 'ID' AND DIV_FODO = 'FO' THEN QTY END) AS LA_PORT_FO
+		         , MAX(CASE WHEN DIV_OPRT = 'ID' AND DIV_FODO = 'DO' THEN QTY END) AS LA_PORT_DO
+		         , MAX(CASE WHEN DIV_OPRT = 'EC' AND DIV_FODO = 'FO' THEN QTY END) AS EC_SEA_FO
+		         , MAX(CASE WHEN DIV_OPRT = 'EC' AND DIV_FODO = 'DO' THEN QTY END) AS EC_SEA_DO
+		         , MAX(CASE WHEN DIV_OPRT = 'ID' AND DIV_FODO = 'FO' THEN QTY END) AS EC_PORT_FO
+		         , MAX(CASE WHEN DIV_OPRT = 'ID' AND DIV_FODO = 'DO' THEN QTY END) AS EC_PORT_DO
+		    FROM IF_MOST_VMS.MAR_VESSEL_CONSUMPT@VMT_LINK
+		    WHERE 1=1
+            AND CD_VESSEL=#{vesselCode}
+		  GROUP BY CD_VESSEL
+		  ) B
+		 WHERE A.CD_VESSEL = B.CD_VESSEL
+           AND B.CD_VESSEL=#{vesselCode}
+  	</select>	    
+        
+    
+	<select id="selectPortList"  parameterType="vesselParm" resultMap="portList">
+	   SELECT 
+		      T.CD_PID
+		    , T.CD_PORT
+		    , T.NM_PORT    
+		    , RB.LAT, RB.LON
+		FROM (
+			SELECT DISTINCT
+				 A.CD_PID CD_PID 
+				,A.CD_PORT  CD_PORT
+				,E.NM_PORT1 NM_PORT
+			FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK A, IF_MOST_VMS.MAR_VOY@VMT_LINK C, IF_MOST_VMS.MAR_VESSEL@VMT_LINK D, IF_MOST_VMS.MAR_PORT@VMT_LINK E
+			WHERE 1=1
+				AND A.CD_PORT= E.CD_PORT
+				AND C.CD_VESSEL=D.CD_VESSEL
+				AND A.CD_VESSEL=C.CD_VESSEL
+				AND A.VOY=C.VOY
+				AND C.DIV_VSLKND = 'CR'
+				AND  D.CD_FLEET NOT IN ('SC','RT')
+				AND  NVL(C.ATM_START_GMT,C.DTM_START_GMT) <![CDATA[<=]]> SYSDATE
+				AND  NVL(C.ATM_END_GMT,C.DTM_END_GMT) >= SYSDATE
+				AND C.DIV_VOY_TYPE <![CDATA[<>]]> 'SC'
+				AND C.DIV_VSLKND <![CDATA[<>]]> 'CB'
+		) T,  IF_MOST_VMS.GIS_PORT@VMT_LINK RB
+		WHERE 1=1
+		AND T.CD_PORT = RB.CD_PORT
+  	</select>	    
+    
+</mapper>

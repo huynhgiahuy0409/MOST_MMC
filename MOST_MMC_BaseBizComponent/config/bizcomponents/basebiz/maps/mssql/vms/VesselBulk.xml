@@ -1,0 +1,1212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="VesselBulk">
+    
+    <!-- 선대현황 DataItem기준. MJH 2 ORA.PRC_DAILY_MON10 ~ TB_FLD_DATA ~. oracle PRC_DAILY_MON10('I_DATE IN VARCHAR2') 벌크선 선대현황 선박척수 표현 기준으로.   PRC_DAILY_MON09('I_DATE IN VARCHAR2');자동차선 선대현황.-->
+    <resultMap id="vesselList" type="vesselItem">
+        <result property = "teamCode"           column="CD_DEPT" />
+        <result property = "teamName"           column="NM_DEPT" />
+        <result property = "operatorId"         column="OPERATOR_ID" />
+        <result property = "operatorName"       column="OPERATOR_NM" />
+        <result property = "vesselCode"         column="CD_VESSEL" />
+        <result property = "vesselName"         column="NM_VESSEL1" />
+        <result property = "voyageNo"           column="VOY" />             
+        <result property = "callSign"           column="CALL_SIGN" />           
+        <result property = "vesselKind"         column="CD_VSLKND" />       <!-- 벌크, 자동차 -->
+        <result property = "vesselGroupCode"    column="WG_CD" />           <!-- 선형 -->
+        <result property = "vesselGroupName"    column="WG_NM" />           <!-- 선형 -->
+        <result property = "vesselType"         column="DIV_VOY_TYPE" />    <!-- 용선, 사선 -->
+        <result property = "vesselTypeName"     column="DIV_VOY_TYPE_NM" /> <!-- 용선, 사선 -->
+        <result property = "latitude"           column="LAT" />
+        <result property = "longitude"          column="LON" />
+        <result property = "heading"            column="ANGLE" />
+        <result property = "speed"              column="SPEED" />
+        <result property = "vesselStatus"       column="CD_PID" />
+        <result property = "vesselStatusName"   column="NM_PID" />
+        <result property = "routeCode"          column="CD_ROUTE" /> 
+        <result property = "flag"               column="COUNCODE" /> 
+        <result property = "flagName"           column="COUNTRY_NM" /> 
+        <result property = "buildYear"          column="DT_BUILD" /> 
+        <result property = "loa"                column="LOA" /> 
+        <result property = "width"              column="VSL_BEAM" /> 
+        <result property = "draft"              column="VSL_DRAFT" /> 
+        <result property = "speedLaden"         column="SPEED_LDN" /> 
+        <result property = "speedBallast"       column="SPEED_BST" /> 
+        <result property = "dwt"                column="DWT" /> 
+        <result property = "grt"                column="GRT" /> 
+        <result property = "imoNo"              column="NO_IMD" /> 
+        <result property = "initialUnit"        column="INIT_UNIT" /> 
+        <result property = "lastUnit"           column="LAST_UNIT" /> 
+        <result property = "initialSalesAmount" column="INIT_AMT_SM_FRT" />
+        <result property = "lastSalesAmount"    column="LAST_AMT_SM_FRT" />
+        <result property = "initialProfitLoss"  column="INIT_AMT_SM_PL" />
+        <result property = "lastProfiltLoss"    column="LAST_AMT_SM_PL" />
+        <result property = "profitLossGap"      column="GAP_PL" />          
+        <result property = "signal"             column="SIGN" />
+        <result property = "signalLampOne"      column="ONE" />
+        <result property = "signalLampTwo"      column="TWO" />
+        <result property = "signalLampThree"    column="THREE" />
+        <result property = "arrivalTime"        column="ARR_DT"    javaType="java.util.Date"/>
+        <result property = "departureTime"      column="DEP_DT"    javaType="java.util.Date"/>
+        <result property = "eta"                column="DTM_ETA"    javaType="java.util.Date"/>
+        <result property = "etb"                column="DTM_ETB"    javaType="java.util.Date"/>
+        <result property = "etd"                column="DTM_ETD"    javaType="java.util.Date"/>
+        <result property = "speedContract"      column="CONTRACT_SPEED" />
+        <result property = "distance"           column="DIST" />
+        <result property = "progress"           column="PROGRESS" />  
+        <result property = "fleet"              column="NM_FLEET" />
+        <result property = "status"             column="STATUS" />
+        <result property = "colCons"            column="CAL_CONS" />
+        <result property = "qtyCbIni"           column="QTY_CB_INI" />
+        <result property = "revenueCbIni"       column="REVENUE_CB_INI" />
+        <result property = "plCbIni"            column="PL_CB_INI" />
+        <result property = "qtyCbCur"           column="QTY_CB_CUR" />
+        <result property = "revenueCbCur"       column="REVENUE_CB_CUR" />
+        <result property = "plCbCur"            column="PL_CB_CUR" />
+        <result property = "contractSpeed"      column="CNTR_SPEED" />
+        <result property = "contractCons"       column="CNTR_CONS" />
+
+
+        <result property = "cargoCode"          column="CD_CARGO" />
+        <result property = "cargoName"          column="NM_CARGO" />
+        <result property = "qty"                column="QTY" />
+        <result property = "companyName"        column="COMPANY_NM" />
+        <result property = "hire"               column="HIRE" />
+        <result property = "netHire"            column="NET_HIRE" />
+        <result property = "initialPl"          column="INITIAL_PL" />
+        <result property = "progressPl"         column="PROGRESS_PL" />
+        <result property = "initialCb"          column="INITIAL_CB" />
+        <result property = "progressCb"         column="PROGRESS_CB" />
+        <result property = "portLdg"            column="LDG_PORT" />
+        <result property = "portLdgName"        column="NM_LDG_PORT" />
+        <result property = "ataDtmPo"           column="PO_DTM_ATA" />
+        <result property = "atbDtmPo"           column="PO_DTM_ATB" />
+        <result property = "atdDtmPo"           column="PO_DTM_ATD" />
+        <result property = "ataDtmLl"           column="LL_DTM_ATA" />
+        <result property = "atbDtmLl"           column="LL_DTM_ATB" />
+        <result property = "atdDtmLl"           column="LL_DTM_ATD" />
+        <result property = "ataDtmDd"           column="DD_DTM_ATA" />        
+        <result property = "atbDtmDd"           column="DD_DTM_ATB" />        
+        <result property = "atdDtmDd"           column="DD_DTM_ATD" />        
+        <result property = "portDischarging"    column="DISCH_PORT" />        
+        <result property = "portDischargingName" column="NM_DISCH_PORT" />        
+        <result property = "deptCode"           column="CD_DEPT" />        
+        <result property = "rmkCb"              column="RMK_CB" />        
+        <result property = "vesselSizeCode"     column="VESSEL_SIZE_CD" />        
+        <result property = "vesselSizeName"     column="VESSEL_SIZE_NM" />  
+        <result property = "salesId"            column="SALES_ID" />        
+        <result property = "picName"            column="PIC_NM" />
+        
+        
+        <result property = "statusName"         column="NM_STATUS" />   
+        <result property = "speedCal"           column="CAL_SPEED" />   
+        <result property = "tag"                column="TAG" />
+        
+        
+        <result property = "speedPerf"          column="PERF_SPEED" />   
+        <result property = "vesselDelayDay"     column="VESSEL_DELAY_DAY" />   
+        <result property = "speedStatus"        column="SPEED_STATUS" />
+        
+        <result property = "statusTag"          column="STATUS_TAG" />
+        <result property = "portCode"           column="CD_PORT" />
+        <result property = "portName"           column="NM_PORT" />
+        <result property = "cargoQuantity"      column="CARGO_QTY" />
+        <result property = "statusTagTime"      column="TO_TIME" javaType="java.util.Date" />
+    </resultMap>
+    
+    <resultMap id="vesselScheduleList" type="vesselScheduleItem">
+        <result property = "portCode"           column="CD_PORT" />
+        <result property = "portName"           column="NM_PORT" />
+        <result property = "sequence"           column="SEQ_OPRT" />
+        <result property = "eta"                column="DTM_ETA"    javaType="java.util.Date"/>
+        <result property = "ata"                column="DTM_ATA"    javaType="java.util.Date"/>
+        <result property = "atd"                column="DTM_ATD"    javaType="java.util.Date"/>
+        <result property = "dischargeQuantity"  column="QTY_DISC" />
+        <result property = "loadQuantity"       column="QTY_DISC" />
+        <result property = "voyageNo"           column="VOY" />
+    </resultMap>
+    
+    <resultMap id="vesselCargoList" type="vesselCargoItem">
+        <result property = "customerName"       column="NM_CUST" />
+        <result property = "portName"           column="NM_PORT" />
+        <result property = "cargoName"          column="NM_CARGO" />
+        <result property = "dischargeQuantity"  column="QTY_DISC" />
+        <result property = "loadQuantity"       column="QTY_DISC" />
+        <result property = "currentQuantity"    column="QTY_NOW" />
+        <result property = "transportUnit"      column="QTY_TRANS" />
+    </resultMap>
+    
+    <resultMap id="marketIndexList" type="marketStatisticsItem">
+        <result property = "marketIndexDisplay" column="DISPLAY" />
+        <result property = "marketIndexValue"   column="VALUE" />
+    </resultMap>    
+
+    <resultMap id="marketIndexValueDataList" type="marketStatisticsItem">
+        <result property = "levelIndex"         column="LEVEL_IDX" />
+        <result property = "todate"             column="TODATE" />
+        <result property = "frequency"          column="FREQUENCY" />
+        <result property = "indexValue"         column="INDEX_VALUE" />
+    </resultMap>    
+
+    <resultMap id="vesselGroupList" type="vesselItem">
+        <result property = "vesselGroupCode"    column="CD_CODE" />
+        <result property = "vesselGroupName"    column="NM_CODE" />
+    </resultMap>
+
+    <resultMap id="positionDataList" type="positionStatisticsItem">
+        <result property = "className"      column="NM_CLS_01" />
+        <result property = "duration01"     column="DURATION_01" />
+        <result property = "duration02"     column="DURATION_02" />
+        <result property = "duration03"     column="DURATION_03" />
+        <result property = "duration04"     column="DURATION_04" />
+        <result property = "duration05"     column="DURATION_05" />
+        <result property = "duration06"     column="DURATION_06" />
+        <result property = "duration07"     column="DURATION_07" />
+        <result property = "duration08"     column="DURATION_08" />
+        <result property = "duration09"     column="DURATION_09" />
+        <result property = "duration10"     column="DURATION_10" />
+        <result property = "duration11"     column="DURATION_11" />
+        <result property = "duration12"     column="DURATION_12" />
+        <result property = "duration13"     column="DURATION_13" />
+        <result property = "duration14"     column="DURATION_14" />
+        <result property = "duration15"     column="DURATION_15" />
+        <result property = "totalDuration"  column="TTL_DURATION" />
+    </resultMap>
+    
+    <resultMap id="positionChartDataList" type="positionStatisticsItem">
+        <result property = "duration"       column="DURATION" />    
+        <result property = "todate"         column="TODATE" />  
+        <result property = "tonnageValue"   column="TONNAGE_VALUE" />   
+        <result property = "cargoValue"     column="CARGO_VALUE" /> 
+        <result property = "diffValue"      column="DIFF_VALUE" />  
+    </resultMap>    
+    
+    <resultMap id="bondStatistics" type="bondStatisticsItem">
+        <result property = "ltptReasonCode"     column="CD_LTPT_REASON" />  
+        <result property = "ltptReasonName"     column="NM_LTPT_REASON" />  
+        <result property = "balanceWon"         column="BALANCE_WON" /> 
+        <result property = "totalCount"         column="CNT" /> 
+        <result property = "sortSequence"       column="SEQ_SORT" />    
+    </resultMap>    
+    
+    <resultMap id="claimStatistics" type="claimStatisticsItem">
+        <result property = "totalCount"             column="TOT_CNT" /> 
+        <result property = "requestTotalCount"      column="REQ_TOT_CNT" /> 
+        <result property = "requestCount"           column="REQ_CNT" /> 
+        <result property = "requestConfirmCount"    column="REQ_CONFIRM_CNT" /> 
+        <result property = "requestLawCount"        column="REQ_LAW_CNT" /> 
+        <result property = "requestCompeleteCount"  column="REQ_COMPLETE_CNT" />    
+        <result property = "completeCount"          column="CON_COMPLETE_CNT" />    
+    </resultMap>    
+    
+    <resultMap id="contractStatistics" type="contractStatisticsItem">
+        <result property = "levelValue"         column="lv" />  
+        <result property = "summaryBulk1"       column="SUM_BK1" /> 
+        <result property = "summaryBulk2"       column="SUM_BK2" /> 
+        <result property = "summaryTank"        column="SUM_TK" />  
+    </resultMap>
+    
+    <resultMap id="portList" type="portItem">
+       <result property = "portType"          column="CD_PID" />
+       <result property = "routeCode"          column="CD_ROUTE" />
+       <result property = "portCode"           column="CD_PORT" />
+       <result property = "portSeq"            column="NO_SEQ" />
+       <result property = "portName"           column="NM_PORT" />
+       <result property = "timeZone"           column="TIME_ZONE" />           
+       <result property = "areaCode"           column="CD_AREA" />             
+       <result property = "longitude"          column="LON" />
+       <result property = "latitude"           column="LAT" /> 
+    </resultMap>
+            
+    
+    <select id="selectVesselList" parameterType="vesselParm" resultMap="vesselList">
+     SELECT DISTINCT * FROM (  
+       SELECT /* VesselBulk.selectVesselList */
+            t1.WG_CD,
+            t1.WG_NM,
+            t1.OPERATOR_ID,
+            t1.OPERATOR_NM,
+            t1.CD_DEPT,
+            t1.NM_DEPT,
+            t1.NM_VESSEL1,
+            t1.CD_VESSEL,
+            t1.DT_BUILD,    <!-- 건조연도 -->
+            t1.LOA,
+            t1.VSL_BEAM,
+            t1.VSL_DRAFT,
+            t1.SPEED_LDN,
+            t1.SPEED_BST,
+            t1.DWT,
+            t1.GRT,
+            t1.COUNCODE,    <!-- 국가코드 -->
+            t1.COUNTRY_NM,
+            t1.NO_IMD,
+            t1.VOY,
+            t1.CALLSIGN,
+            t1.CD_VSLKND,
+            t1.DIV_VOY_TYPE,
+            NVL(t1.DIV_VOY_TYPE_NM,'용선') as DIV_VOY_TYPE_NM,
+            t1.LAT,
+            t1.LON,
+            t1.SPEED,
+            t1.ANGLE,
+            t1.CD_PID,
+            <!-- 
+                PO: Ballast Start (Bulk only)
+                DL: Delivery Port (Bulk only)
+                LL: Loading Port
+                CN: Canal Transit
+                PS: Passing (Bulk only)
+                LD: Loading & Discharging
+                DD: Discharging Port
+                BK: Bunkering Port
+                RD: Redelivery Port (Bulk only)
+                RP: Reposition Port (Bulk only)
+                DR: Dry Docking
+                XX: Ballast Back (PCC only)
+             -->
+            t1.CD_ROUTE,
+            t1.INIT_UNIT,
+            t1.LAST_UNIT,
+            t1.INIT_AMT_SM_FRT INIT_AMT_SM_FRT, 
+            t1.LAST_AMT_SM_FRT LAST_AMT_SM_FRT,
+            t1.INIT_AMT_SM_PL INIT_AMT_SM_PL, 
+            t1.LAST_AMT_SM_PL LAST_AMT_SM_PL, 
+            t1.LAST_AMT_SM_PL-t1.INIT_AMT_SM_PL GAP_PL,
+            <!-- 
+                신호등 1: 초록, 2: 노랑, 3: 빨강 
+            -->
+            (case when NVL(t1.LAST_AMT_SM_PL,0) - NVL(t1.INIT_AMT_SM_PL,0) <![CDATA[ > ]]> 0 then 1
+                when NVL(t1.LAST_AMT_SM_PL,0) - NVL(t1.INIT_AMT_SM_PL,0) <![CDATA[ < ]]> -50000 then 3
+                else 2 end) SIGN,
+            t1.ARR_DT,
+            t1.DEP_DT,
+            <!-- t1.ETA,
+            t1.ETB,
+            t1.ETD, -->
+            <!-- t1.CONTRACT_SPEED, -->
+            <!-- DECODE(T1.CD_PID,'LADEN',T1.SPEED_LDN,'BALLAST',T1.SPEED_BST) AS CONTRACT_SPEED, -->
+            T1.CONTRACT_SPEED,
+            t1.DIST,
+            t1.PROGRESS,
+            T1.PERF_SPEED,
+            T1.VESSEL_DELAY_DAY,
+            (CASE 
+                WHEN (T1.CONTRACT_SPEED > T1.PERF_SPEED) THEN 'UNDER PERFORMANCE'
+              ELSE 'NORMAL PERFORMANCE' END) AS SPEED_STATUS,
+              
+            T1.STATUS_TAG, 
+            T1.CD_PORT,
+            <!--  FNC_GET_NMPORT(T1.CD_PORT) AS NM_PORT,-->
+            '' NM_PORT,            
+            T1.NM_CARGO,
+            T1.CARGO_QTY,
+            T1.TO_TIME
+        FROM
+            (
+            SELECT 
+                <!-- 선형 -->
+                A.WG_CD WG_CD, 
+                <!-- 선형명 -->   
+                (select nm_code
+                    from IF_MOST_VMS.cm_code_dtl@VMT_LINK
+                    where 1=1
+                    and (div_use='T' or div_use='Y')
+                    and cd_clss='SLWGC' 
+                    and cd_code = A.WG_CD) WG_NM,
+                
+                <!-- 선박코드 -->
+                B.CD_VESSEL CD_VESSEL, 
+                <!-- 선박명 -->
+                C.NM_VESSEL1 NM_VESSEL1,
+                C.DT_BUILD, <!-- 건조연도 -->
+                C.LOA,
+                C.VSL_BEAM,
+                C.VSL_DRAFT,
+                C.SPEED_LDN,
+                C.SPEED_BST,
+                C.DWT,
+                C.GRT,
+                C.COUNCODE,     <!-- 국가코드 -->
+                (SELECT CNTRYNAME FROM IF_MOST_VMS.ST_COUNTRY@VMT_LINK WHERE COUNCODE=C.COUNCODE) AS COUNTRY_NM,
+                C.NO_IMD,
+                <!-- 항차 -->
+                B.VOY VOY,
+                <!-- IMO번호 -->
+                <!-- 호출부호(Call Sign) -->
+                C.CALLSIGN CALLSIGN,
+                <!-- 자동차/벌크 구분 -->
+                C.CD_VSLKND CD_VSLKND,
+                <!-- 용선/사선  -->
+                A.DIV_VOY_TYPE DIV_VOY_TYPE,
+				NULL DIV_VOY_TYPE_NM,
+                 
+                <!-- 위도 -->
+                RD.LAT LAT,
+                <!-- 경도 -->
+                RD.LON LON,
+                <!-- 속도  -->
+                RD.SPEED SPEED,
+                <!-- 진행방향 -->
+                RD.ANGLE ANGLE,
+                <!-- 선박상태 -->
+                <!-- IF_MOST_VMS.FNC_GET_VESSEL_STATUS@VMT_LINK (A.CD_VESSEL, A.VOY) CD_PID, -->
+                '' CD_PID,                
+                <!-- 팀코드 -->
+                a.CD_DEPT,
+                <!-- 팀명 -->
+                <!--  IF_MOST_VMS.fnc_get_nmdept@VMT_LINK(A.CD_DEPT) AS NM_DEPT,  -->
+                '' NM_DEPT,                 
+                <!-- 담당자 -->
+                NVL(B.ID_UPT, B.ID_REG) AS OPERATOR_ID,
+                <!--  (SELECT CRYPTO_AES256.DEC_AES(LOGIN_NAME) LOGIN_NAME FROM IF_MOST_VMS.CM_USRMST@VMT_LINK WHERE LOGIN_ID = NVL(B.ID_UPT, B.ID_REG)) AS OPERATOR_NM,  -->
+                '' AS OPERATOR_NM,
+                                
+                <!-- 서비스 Lane(Route) -->
+                B.CD_ROUTE CD_ROUTE,
+                <!-- 초기 물량 -->
+NULL INIT_UNIT,
+                
+                <!-- 현행 물량 -->
+                B.QTY_SM_UNIT AS LAST_UNIT,   
+                
+                <!-- 초기매출 -->
+NULL INIT_AMT_SM_FRT
+                <!-- 현행매출 -->                             
+                <!-- ,(SELECT AMT_SM_FRT
+                    FROM IF_MOST_VMS.MAR_CB@VMT_LINK E
+                   WHERE E.CD_VESSEL = A.CD_VESSEL
+                     AND E.VOY = A.VOY
+                     AND E.SEQ_CB IN (SELECT MAX(SEQ_CB) FROM IF_MOST_VMS.MAR_CB@VMT_LINK F WHERE F.CD_VESSEL = A.CD_VESSEL AND F.VOY = A.VOY)
+                     ) AS LAST_AMT_SM_FRT -->
+                     
+                ,NULL LAST_AMT_SM_FRT
+                  
+                <!-- 초기P/L   -->                        
+                ,NULL INIT_AMT_SM_PL
+                <!-- 현재P/L -->
+                <!-- ,(SELECT AMT_SM_PL 
+                      FROM IF_MOST_VMS.MAR_CB@VMT_LINK E
+                     WHERE E.CD_VESSEL = A.CD_VESSEL
+                       AND E.VOY = A.VOY
+                       AND E.SEQ_CB IN (SELECT MAX(SEQ_CB) FROM IF_MOST_VMS.MAR_CB@VMT_LINK F WHERE F.CD_VESSEL = A.CD_VESSEL AND F.VOY = A.VOY)
+                       ) AS LAST_AMT_SM_PL -->
+               ,NULL LAST_AMT_SM_PL
+                  
+                 , (SELECT MAX(NVL(e.dtm_ata,e.dtm_eta)) 
+                        FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  E 
+                        WHERE E.CD_VESSEL = A.CD_VESSEL AND E.VOY = A.VOY 
+                                and TO_DATE('20171101','YYYYMMDD') between NVL(e.dtm_ata,e.dtm_eta) and NVL(e.dtm_atd,e.dtm_etd)) ARR_DT
+                                
+                , (SELECT MAX(NVL(e.dtm_atd,e.dtm_etd)) 
+                        FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  E 
+                        WHERE E.CD_VESSEL = A.CD_VESSEL AND E.VOY = A.VOY 
+                                and TO_DATE('20171101','YYYYMMDD') between NVL(e.dtm_ata,e.dtm_eta) and NVL(e.dtm_atd,e.dtm_etd)) DEP_DT
+                
+                , (SELECT MAX(E.DIST)
+                        FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  E 
+                        WHERE E.CD_VESSEL = A.CD_VESSEL AND E.VOY = A.VOY 
+                                and TO_DATE('20171101','YYYYMMDD') between NVL(e.dtm_ata,e.dtm_eta) and NVL(e.dtm_atd,e.dtm_etd)) DIST       
+                  <!-- 계약 속도 -->
+                 <!-- ,(SELECT SPEED_LDN 
+                     FROM IF_MOST_VMS.MAR_CB@VMT_LINK C
+                    WHERE C.CD_VESSEL = A.CD_VESSEL
+                      AND C.VOY = A.VOY
+                      AND C.SEQ_CB IN (SELECT MAX(SEQ_CB) FROM MAR_CB@VMT_LINK x WHERE x.CD_VESSEL = A.CD_VESSEL AND x.VOY = A.VOY AND x.DIV_CB_STEP = 'I')
+                      ) AS CONTRACT_SPEED -->
+                 
+                  <!-- 진행률 -->
+                 ,(SELECT CASE WHEN DTM_START - TO_DATE('20171101','YYYYMMDD')   <![CDATA[ <= ]]> 0 THEN 0
+                               WHEN  TO_DATE('20171101','YYYYMMDD') - DTM_END  <![CDATA[ <= ]]> 0 THEN 100 
+                               ELSE  (DTM_START - TO_DATE('20171101','YYYYMMDD')) / (DTM_END -  DTM_START) *100
+                               END as PROGRESS        
+                    FROM IF_MOST_VMS.MAR_VOY@VMT_LINK 
+                    WHERE CD_VESSEL = A.CD_VESSEL
+                    AND VOY = A.VOY) AS PROGRESS
+                    <!-- 
+                 , FNC_GET_VESSEL_SPEED(A.CD_VESSEL, A.VOY) AS PERF_SPEED
+                 , FNC_GET_VESSEL_DELAY(A.CD_VESSEL, A.VOY, X.SEQ_CALL, X.F_CD_PORT) AS VESSEL_DELAY_DAY
+                 , DECODE ((IF_MOST_VMS.FNC_GET_VESSEL_STATUS@VMT_LINK (A.CD_VESSEL, A.VOY)), 'LADEN', B.SPEED_LDN, 'BALLAST', B.SPEED_BST) AS CONTRACT_SPEED
+                 , FN_GET_VESSEL_STATUS2(A.CD_VESSEL, A.VOY, 'T') AS STATUS_TAG
+			     , FN_GET_VESSEL_STATUS2(A.CD_VESSEL, A.VOY, 'P') AS CD_PORT
+			     , FN_GET_VESSEL_STATUS2(A.CD_VESSEL, A.VOY, 'C') AS NM_CARGO
+			     , FN_GET_VESSEL_STATUS2(A.CD_VESSEL, A.VOY, 'Q') AS CARGO_QTY
+			     , TO_DATE(FN_GET_VESSEL_STATUS2(A.CD_VESSEL, A.VOY, 'T1'), 'YYYYMMDDHH24MI') AS TO_TIME  
+ 					-->
+                 , NULL PERF_SPEED
+                 , NULL VESSEL_DELAY_DAY
+                 , NULL CONTRACT_SPEED
+                 , NULL AS STATUS_TAG
+			     , NULL AS CD_PORT
+			     , NULL AS NM_CARGO
+			     , NULL AS CARGO_QTY
+			     , NULL AS TO_TIME  			     
+			     
+            FROM IF_MOST_VMS.MAR_VOY@VMT_LINK A
+                LEFT OUTER JOIN (SELECT CD_VESSEL, VOY, SEQ_CALL, F_CD_PORT
+                  FROM (
+                       SELECT A.CD_VESSEL, A.VOY, A.CD_PID,
+                                       NVL(A.DTM_ATA, A.DTM_ETA) AS FROM_DATE, NVL(A.DTM_ATB, A.DTM_ETB) AS TO_DATE,
+                                       A.SEQ_CALL,A.CD_PORT AS F_CD_PORT, LEAD(A.CD_PORT)OVER(ORDER BY A.SEQ_OPRT) AS T_CD_PORT, A.DIST, A.DAY_SEA,
+                                       <!-- FN_GET_LADBAL(A.CD_VESSEL, A.VOY) AS STATUS, -->
+                                       '' AS STATUS,                                       
+                                       B.SPEED_LDN, B.SPEED_BST,B.CD_FLEET,B.NM_VESSEL1,B.DWT,B.DT_BUILD,
+                                       (SELECT MAX(CASE WHEN DIV_OPRT = 'BA' AND DIV_FODO = 'FO' THEN QTY END) FROM IF_MOST_VMS.MAR_VESSEL_CONSUMPT@VMT_LINK X WHERE X.CD_VESSEL = B.CD_VESSEL) AS BAL_FO,
+                                       (SELECT MAX(CASE WHEN DIV_OPRT = 'LA' AND DIV_FODO = 'FO' THEN QTY END) FROM IF_MOST_VMS.MAR_VESSEL_CONSUMPT@VMT_LINK X WHERE X.CD_VESSEL = B.CD_VESSEL) AS LAD_FO,
+                                       C.DAY_HFO, 'ETB' AS TAG
+                                  FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK A LEFT OUTER JOIN IF_MOST_VMS.OP_BUNKSIMUL@VMT_LINK C 
+                                  		ON  ( A.CD_VESSEL = C.CD_VESSEL  AND A.VOY = C.VOY AND A.CD_PORT = C.CD_PORT AND A.SEQ_CALL = C.SEQ_CALL),
+                                  		IF_MOST_VMS.MAR_VESSEL@VMT_LINK B
+                                 WHERE A.CD_VESSEL = B.CD_VESSEL
+
+                      UNION ALL
+                       SELECT A.CD_VESSEL, A.VOY, A.CD_PID,
+                                       NVL(A.DTM_ATB, A.DTM_ETB) AS FROM_DATE, NVL(A.DTM_ATD, A.DTM_ETD) AS TO_DATE,
+                                       A.SEQ_CALL,A.CD_PORT AS F_CD_PORT, LEAD(A.CD_PORT)OVER(ORDER BY A.SEQ_OPRT) AS T_CD_PORT, A.DIST, A.DAY_SEA,
+                                       <!-- FN_GET_LADBAL(A.CD_VESSEL, A.VOY) AS STATUS, -->
+                                       '' AS STATUS,  
+                                       B.SPEED_LDN, B.SPEED_BST,B.CD_FLEET,B.NM_VESSEL1,B.DWT,B.DT_BUILD,
+                                       (SELECT MAX(CASE WHEN DIV_OPRT = 'BA' AND DIV_FODO = 'FO' THEN QTY END) FROM IF_MOST_VMS.MAR_VESSEL_CONSUMPT@VMT_LINK X WHERE X.CD_VESSEL = B.CD_VESSEL) AS BAL_FO,
+                                       (SELECT MAX(CASE WHEN DIV_OPRT = 'LA' AND DIV_FODO = 'FO' THEN QTY END) FROM IF_MOST_VMS.MAR_VESSEL_CONSUMPT@VMT_LINK X WHERE X.CD_VESSEL = B.CD_VESSEL) AS LAD_FO,
+                                       C.DAY_HFO , 'ETD' AS TAG
+                                  FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK A LEFT OUTER JOIN IF_MOST_VMS.OP_BUNKSIMUL@VMT_LINK C 
+                                  		ON  ( A.CD_VESSEL = C.CD_VESSEL  AND A.VOY = C.VOY AND A.CD_PORT = C.CD_PORT AND A.SEQ_CALL = C.SEQ_CALL),
+                                  		IF_MOST_VMS.MAR_VESSEL@VMT_LINK B
+                                 WHERE A.CD_VESSEL = B.CD_VESSEL
+                      UNION ALL
+                       SELECT A.CD_VESSEL, A.VOY, A.CD_PID,
+                                       NVL(A.DTM_ATD, A.DTM_ETD) AS FROM_DATE, LEAD(NVL(A.DTM_ATA, A.DTM_ETA))OVER(ORDER BY NVL(A.DTM_ATA, A.DTM_ETA)) AS TO_DATE,
+                                       A.SEQ_CALL,A.CD_PORT AS F_CD_PORT, LEAD(A.CD_PORT)OVER(ORDER BY A.SEQ_OPRT) AS T_CD_PORT, A.DIST, A.DAY_SEA,
+                                       <!-- FN_GET_LADBAL(A.CD_VESSEL, A.VOY) AS STATUS, -->
+                                       '' AS STATUS,  
+                                       B.SPEED_LDN, B.SPEED_BST,B.CD_FLEET,B.NM_VESSEL1,B.DWT,B.DT_BUILD,
+                                       (SELECT MAX(CASE WHEN DIV_OPRT = 'BA' AND DIV_FODO = 'FO' THEN QTY END) FROM IF_MOST_VMS.MAR_VESSEL_CONSUMPT@VMT_LINK X WHERE X.CD_VESSEL = B.CD_VESSEL) AS BAL_FO,
+                                       (SELECT MAX(CASE WHEN DIV_OPRT = 'LA' AND DIV_FODO = 'FO' THEN QTY END) FROM IF_MOST_VMS.MAR_VESSEL_CONSUMPT@VMT_LINK X WHERE X.CD_VESSEL = B.CD_VESSEL) AS LAD_FO,
+                                       C.DAY_HFO , 'ETA' AS TAG
+                                  FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK A LEFT OUTER JOIN IF_MOST_VMS.OP_BUNKSIMUL@VMT_LINK C 
+                                  		ON  ( A.CD_VESSEL = C.CD_VESSEL  AND A.VOY = C.VOY AND A.CD_PORT = C.CD_PORT AND A.SEQ_CALL = C.SEQ_CALL),
+                                  		IF_MOST_VMS.MAR_VESSEL@VMT_LINK B
+                                 WHERE A.CD_VESSEL = B.CD_VESSEL
+                                 
+                              ) A
+                     WHERE TO_DATE('20171101','YYYYMMDD') BETWEEN FROM_DATE AND TO_DATE
+                ) X  ON  ( A.CD_VESSEL = X.CD_VESSEL  AND     A.VOY = X.VOY)
+                , IF_MOST_VMS.MAR_CB@VMT_LINK B
+                , IF_MOST_VMS.MAR_VESSEL@VMT_LINK C LEFT OUTER JOIN IF_MOST_VMS.GIS_SHIP@VMT_LINK RD ON ( C.CALLSIGN=RD.CALL_SIGN and C.CD_VESSEL=RD.CD_VESSEL)   
+            WHERE 1=1
+                AND NVL(A.ATM_START_GMT, A.DTM_START_GMT) <![CDATA[ <= ]]> NVL(A.ATM_START_GMT, A.DTM_START_GMT) AND NVL(A.ATM_END_GMT, A.DTM_END_GMT) <![CDATA[ >= ]]> TO_DATE('20171101','YYYYMMDD')
+                    AND A.CD_VESSEL = B.CD_VESSEL
+                    AND A.VOY = B.VOY    
+                    AND A.DIV_VSLKND IN ('BK', 'DN')
+                    AND B.SEQ_CB = 0
+                    and A.CD_VESSEL=C.CD_VESSEL
+        ) t1                
+	)
+    </select>
+    
+    <select id="selectVesselMaster" parameterType="vesselParm" resultMap="vesselList">
+		SELECT  /* VesselBulk.selectVesselMaster */
+               A.CD_VESSEL,
+               A.NM_VESSEL1 AS NM_VESSEL1,
+               A.VOY,
+               A.DWT,
+               A.DT_BUILD,
+               DECODE(A.CD_FLEET,'TC','용선','OV','사선') AS NM_FLEET,
+               IF_MOST_VMS.FNC_GET_VESSEL_STATUS@VMT_LINK (A.CD_VESSEL, A.VOY) STATUS,
+               A.FROM_DATE AS DEP_DT,
+               A.TO_DATE AS ARR_DT,
+               A.DIST,
+               FNC_GET_VESSEL_SPEED (A.CD_VESSEL, A.VOY) AS CAL_SPEED,
+               DAY_HFO AS CAL_CONS,
+               --S수정
+               NVL( (SELECT (SELECT SUM(X.CARGO_QTY) FROM PRF_CBOBJ_CGO X WHERE X.CHARTERBASE_ID = Y.CHARTERBASE_ID)
+                             FROM IF_MOST_VMS.PRF_MONPL_CB_MST@VMT_LINK Y, IF_MOST_VMS.PRF_CBOBJ_PLS@VMT_LINK Z
+                            WHERE Y.CHARTERBASE_ID = Z.CHARTERBASE_ID
+                              AND A.CD_VESSEL = Y.VESSEL_CD
+                              AND A.VOY = Y.VOY_NO
+                              AND Y.VERSION_NO = '100'), 
+                              (SELECT X.QTY_SM_UNIT
+                                FROM IF_MOST_VMS.MAR_CB@VMT_LINK X
+                               WHERE (X.CD_VESSEL, X.VOY, X.SEQ_CB) IN (
+                                       SELECT MAX(Y.CD_VESSEL), MAX(Y.VOY), MAX(Y.SEQ_CB)
+                                         FROM IF_MOST_VMS.MAR_CB@VMT_LINK Y
+                                        WHERE A.CD_VESSEL = Y.CD_VESSEL
+                                          AND A.VOY = Y.VOY
+                                          AND Y.DIV_CB_STEP = 'I'
+                                       ) )  ) AS QTY_CB_INI,      -- C/B INITIAL 물량 -->
+               NVL( (SELECT Z.SUM_REVE_AMT
+                             FROM IF_MOST_VMS.PRF_MONPL_CB_MST@VMT_LINK Y, IF_MOST_VMS.PRF_CBOBJ_PLS@VMT_LINK Z
+                            WHERE Y.CHARTERBASE_ID = Z.CHARTERBASE_ID
+                              AND A.CD_VESSEL = Y.VESSEL_CD
+                              AND A.VOY = Y.VOY_NO
+                              AND Y.VERSION_NO = '100'), 
+                              (SELECT X.AMT_SM_FRT
+                                FROM IF_MOST_VMS.MAR_CB@VMT_LINK X
+                               WHERE (X.CD_VESSEL, X.VOY, X.SEQ_CB) IN (
+                                       SELECT MAX(Y.CD_VESSEL), MAX(Y.VOY), MAX(Y.SEQ_CB)
+                                         FROM IF_MOST_VMS.MAR_CB@VMT_LINK Y
+                                        WHERE A.CD_VESSEL = Y.CD_VESSEL
+                                          AND A.VOY = Y.VOY
+                                          AND Y.DIV_CB_STEP = 'I'
+                                       ) )  ) AS REVENUE_CB_INI,  -- C/B INITIAL 매출 -->
+               NVL( (SELECT Z.SUM_PL_AMT
+                             FROM IF_MOST_VMS.PRF_MONPL_CB_MST@VMT_LINK Y, IF_MOST_VMS.PRF_CBOBJ_PLS@VMT_LINK Z
+                            WHERE Y.CHARTERBASE_ID = Z.CHARTERBASE_ID
+                              AND A.CD_VESSEL = Y.VESSEL_CD
+                              AND A.VOY = Y.VOY_NO
+                              AND Y.VERSION_NO = '100'), 
+                              (SELECT X.AMT_SM_PL
+                                FROM IF_MOST_VMS.MAR_CB@VMT_LINK X
+                               WHERE (X.CD_VESSEL, X.VOY, X.SEQ_CB) IN (
+                                           SELECT MAX(Y.CD_VESSEL), MAX(Y.VOY), MAX(Y.SEQ_CB)
+                                             FROM IF_MOST_VMS.MAR_CB@VMT_LINK Y
+                                            WHERE A.CD_VESSEL = Y.CD_VESSEL
+                                              AND A.VOY = Y.VOY
+                                              AND Y.DIV_CB_STEP = 'I'
+                                           ) )  ) AS PL_CB_INI,      -- C/B INITIAL 운항이익 -->
+               (SELECT X.QTY_SM_UNIT
+                  FROM IF_MOST_VMS.MAR_CB@VMT_LINK X
+                 WHERE X.CD_VESSEL = A.CD_VESSEL
+                   AND X.VOY = A.VOY
+                   AND X.SEQ_CB = 0) AS QTY_CB_CUR,                                              -- C/B CURRENT 물량 -->
+               (SELECT X.AMT_SM_FRT
+                  FROM IF_MOST_VMS.MAR_CB@VMT_LINK X
+                 WHERE X.CD_VESSEL = A.CD_VESSEL
+                   AND X.VOY = A.VOY
+                   AND X.SEQ_CB = 0) AS REVENUE_CB_CUR,                                          -- C/B CURRENT 매출 -->
+               (SELECT X.AMT_SM_PL
+                  FROM IF_MOST_VMS.MAR_CB@VMT_LINK X
+                 WHERE X.CD_VESSEL = A.CD_VESSEL
+                   AND X.VOY = A.VOY
+                   AND X.SEQ_CB = 0) AS PL_CB_CUR,                                               -- C/B CURRENT 운항이익   -->
+                --E수정
+                DECODE(A.STATUS,'L',A.SPEED_LDN,'B',A.SPEED_BST) AS CNTR_SPEED,                                                          -- CONTRACT PERFORMANCE SPEED    -->
+                DECODE(A.STATUS,'L',A.LAD_FO,'B',A.BAL_FO) AS CNTR_CONS,                                                                 -- CONTRACT PERFORMANCE CONS -->
+                TAG
+          FROM  (
+                  SELECT A.CD_VESSEL,
+                         A.VOY,
+                         A.CD_PID,
+                         NVL(A.DTM_ATA, A.DTM_ETA) AS FROM_DATE,
+                         NVL(A.DTM_ATB, A.DTM_ETB) AS TO_DATE,
+                         A.SEQ_CALL AS SEQ_CALL,
+                         A.CD_PORT AS F_CD_PORT,
+                         --S수정
+                         LEAD(A.CD_PORT)OVER(PARTITION BY A.CD_VESSEL, A.VOY ORDER BY A.CD_VESSEL, A.VOY, A.SEQ_OPRT, NVL(A.DTM_ATA, A.DTM_ETA)) AS T_CD_PORT,
+                         --E수정
+                         A.DIST AS DIST,
+                         A.DAY_SEA AS DAY_SEA,
+                         IF_MOST_VMS.FN_GET_LADBAL@VMT_LINK(A.CD_VESSEL, A.VOY) AS STATUS,
+                         B.SPEED_LDN AS SPEED_LDN,
+                         B.SPEED_BST AS SPEED_BST,
+                         B.CD_FLEET AS CD_FLEET,
+                         B.NM_VESSEL1 AS NM_VESSEL1,
+                         B.DWT AS DWT,
+                         B.DT_BUILD AS DT_BUILD,
+                         (SELECT MAX(CASE WHEN DIV_OPRT = 'BA' AND DIV_FODO = 'FO' THEN QTY END) FROM IF_MOST_VMS.MAR_VESSEL_CONSUMPT@VMT_LINK X WHERE X.CD_VESSEL = B.CD_VESSEL) AS BAL_FO,
+                         (SELECT MAX(CASE WHEN DIV_OPRT = 'LA' AND DIV_FODO = 'FO' THEN QTY END) FROM IF_MOST_VMS.MAR_VESSEL_CONSUMPT@VMT_LINK X WHERE X.CD_VESSEL = B.CD_VESSEL) AS LAD_FO,
+                         C.DAY_HFO AS DAY_HFO,
+                         'ETB' AS TAG
+                   FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  A, IF_MOST_VMS.MAR_VESSEL@VMT_LINK B, IF_MOST_VMS.OP_BUNKSIMUL@VMT_LINK C
+                   WHERE A.CD_VESSEL = B.CD_VESSEL
+                     AND A.CD_VESSEL = C.CD_VESSEL(+)
+                     AND A.VOY = C.VOY(+)
+                     AND A.CD_PORT = C.CD_PORT(+)
+                     AND A.SEQ_CALL = C.SEQ_CALL(+)
+                     AND A.CD_VESSEL = #{vesselCode}
+                     AND A.VOY    = #{voyageNo}
+        UNION ALL
+           SELECT A.CD_VESSEL AS CD_VESSEL,
+                  A.VOY AS VOY,
+                  A.CD_PID AS CD_PID,
+                  NVL(A.DTM_ATB, A.DTM_ETB) AS FROM_DATE,
+                  NVL(A.DTM_ATD, A.DTM_ETD) AS TO_DATE,
+                  A.SEQ_CALL AS SEQ_CALL,
+                  A.CD_PORT AS F_CD_PORT,
+                  --S수정
+                  LEAD(A.CD_PORT)OVER(PARTITION BY A.CD_VESSEL, A.VOY ORDER BY A.CD_VESSEL, A.VOY, A.SEQ_OPRT, NVL(A.DTM_ATA, A.DTM_ETA)) AS T_CD_PORT,
+                  --E수정
+                  A.DIST AS DIST,
+                  A.DAY_SEA AS DAY_SEA,
+                  FN_GET_LADBAL(A.CD_VESSEL, A.VOY) AS STATUS,
+                  B.SPEED_LDN AS SPEED_LDN,
+                  B.SPEED_BST AS SPEED_BST,
+                  B.CD_FLEET AS CD_FLEET,
+                  B.NM_VESSEL1 AS NM_VESSEL1,
+                  B.DWT AS DWT,
+                  B.DT_BUILD AS DT_BUILD,
+                  (SELECT MAX(CASE WHEN DIV_OPRT = 'BA' AND DIV_FODO = 'FO' THEN QTY END) FROM IF_MOST_VMS.MAR_VESSEL_CONSUMPT@VMT_LINK X WHERE X.CD_VESSEL = B.CD_VESSEL) AS BAL_FO,
+                  (SELECT MAX(CASE WHEN DIV_OPRT = 'LA' AND DIV_FODO = 'FO' THEN QTY END) FROM IF_MOST_VMS.MAR_VESSEL_CONSUMPT@VMT_LINK X WHERE X.CD_VESSEL = B.CD_VESSEL) AS LAD_FO,
+                  C.DAY_HFO AS DAY_HFO,
+                  'ETD' AS TAG
+             FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  A, IF_MOST_VMS.MAR_VESSEL B@VMT_LINK, IF_MOST_VMS.OP_BUNKSIMUL@VMT_LINK C
+             WHERE A.CD_VESSEL = B.CD_VESSEL
+               AND A.CD_VESSEL = C.CD_VESSEL(+)
+               AND A.VOY = C.VOY(+)
+               AND A.CD_PORT = C.CD_PORT(+)
+               AND A.SEQ_CALL = C.SEQ_CALL(+)
+               AND A.CD_VESSEL = #{vesselCode}
+               AND A.VOY    = #{voyageNo}
+        UNION ALL
+            SELECT A.CD_VESSEL AS CD_VESSEL,
+                   A.VOY AS VOY,
+                   A.CD_PID AS CD_PID,
+                   NVL(A.DTM_ATD, A.DTM_ETD) AS FROM_DATE,
+                   --S수정
+                   LEAD(NVL(A.DTM_ATA, A.DTM_ETA))OVER(PARTITION BY A.CD_VESSEL, A.VOY ORDER BY A.CD_VESSEL, A.VOY, A.SEQ_OPRT, NVL(A.DTM_ATA, A.DTM_ETA)) AS TO_DATE,
+                   A.SEQ_CALL,A.CD_PORT AS F_CD_PORT, LEAD(A.CD_PORT)OVER(PARTITION BY A.CD_VESSEL, A.VOY ORDER BY A.CD_VESSEL, A.VOY, A.SEQ_OPRT, NVL(A.DTM_ATA, A.DTM_ETA)) AS T_CD_PORT,
+                   --E수정
+                   A.DIST AS DIST,
+                   A.DAY_SEA AS DAY_SEA,
+                   IF_MOST_VMS.FN_GET_LADBAL@VMT_LINK(A.CD_VESSEL, A.VOY) AS STATUS,
+                   B.SPEED_LDN AS SPEED_LDN,
+                   B.SPEED_BST AS SPEED_BST,
+                   B.CD_FLEET AS CD_FLEET,
+                   B.NM_VESSEL1 AS NM_VESSEL1,
+                   B.DWT AS DWT,
+                   B.DT_BUILD AS BT_BUILD,
+                   (SELECT MAX(CASE WHEN DIV_OPRT = 'BA' AND DIV_FODO = 'FO' THEN QTY END) FROM IF_MOST_VMS.MAR_VESSEL_CONSUMPT@VMT_LINK X WHERE X.CD_VESSEL = B.CD_VESSEL) AS BAL_FO,
+                   (SELECT MAX(CASE WHEN DIV_OPRT = 'LA' AND DIV_FODO = 'FO' THEN QTY END) FROM IF_MOST_VMS.MAR_VESSEL_CONSUMPT@VMT_LINK X WHERE X.CD_VESSEL = B.CD_VESSEL) AS LAD_FO,
+                   C.DAY_HFO,
+                   'ETA' AS TAG
+             FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  A, IF_MOST_VMS.MAR_VESSEL@VMT_LINK B, IF_MOST_VMS.OP_BUNKSIMUL@VMT_LINK C
+             WHERE A.CD_VESSEL = B.CD_VESSEL
+               AND A.CD_VESSEL = C.CD_VESSEL(+)
+               AND A.VOY = C.VOY(+)
+               AND A.CD_PORT = C.CD_PORT(+)
+               AND A.SEQ_CALL = C.SEQ_CALL(+)
+               AND A.CD_VESSEL = #{vesselCode}
+               AND A.VOY    = #{voyageNo}
+             ) A
+         WHERE TO_DATE('20171101','YYYYMMDD') BETWEEN FROM_DATE AND TO_DATE
+    </select>
+    
+    <select id="selectMarketIndex" parameterType="vesselParm" resultMap="marketIndexList">
+        SELECT A.NM_INDEX AS DISPLAY, A.NO_MARKET_INDEX AS VALUE
+        FROM IF_MOST_VMS.MAR_MI_INDEX_CODE@VMT_LINK A
+        <where>
+            <if test="category == 'BDI'">
+                AND A.INDEX_CATEGORY = 'S1'
+            </if>
+            <if test="category == 'FFA'">
+                AND A.INDEX_CATEGORY = 'S2'
+            </if>
+            <if test="category == 'FO'">
+                AND A.INDEX_CATEGORY = 'B1'
+            </if>
+            <if test="category == 'DO'">
+                AND A.INDEX_CATEGORY = 'B2'
+            </if>
+        </where>
+        ORDER BY A.SEQ_SORT, A.NM_INDEX
+    </select>
+    
+    <select id="selectMarketIndexValueDataList" parameterType="vesselParm" resultMap="marketIndexValueDataList">
+        SELECT /* VesselBulk.SLPL181.selectMarketIndexValueDateList */
+            B.LEVEL_IDX, A.TODATE, TO_CHAR(A.TODATE,'YYYY-MM-DD') AS FREQUENCY,
+            NVL(
+                    (   
+                        SELECT INDEX_VALUE
+                        FROM IF_MOST_VMS.MAR_MI_INDEX_MST@VMT_LINK
+                        WHERE NO_MARKET_INDEX = B.LEVEL_IDX
+                            AND FREQUENCY_VALUE = TO_CHAR(A.TODATE,'YYYYMMDD')
+                    ),
+                    (
+                        SELECT /*+ INDEX_DESC (MAR_MI_INDEX_MST PK_MAR_MI_INDEX_MST) */
+                            INDEX_VALUE
+                        FROM IF_MOST_VMS.MAR_MI_INDEX_MST@VMT_LINK
+                        WHERE NO_MARKET_INDEX = B.LEVEL_IDX
+                            AND FREQUENCY_VALUE <![CDATA[<]]>  TO_CHAR(A.TODATE,'YYYYMMDD')
+                            AND INDEX_VALUE <![CDATA[>]]> 0
+                            AND ROWNUM = 1
+                    )
+            ) AS INDEX_VALUE
+        FROM
+            (
+                SELECT  <!-- 요일 --> 
+                    TO_DATE(TO_CHAR(ADD_MONTHS(TO_DATE('20171101','YYYYMMDD'), -12), 'YYYYMMDD'), 'YYYYMMDD') + LEVEL - 1 AS TODATE,
+                    TO_CHAR(TO_DATE(TO_CHAR (ADD_MONTHS(TO_DATE('20171101','YYYYMMDD'), -12), 'YYYYMMDD'), 'YYYYMMDD') + LEVEL - 1, 'D') AS DAY
+                FROM DUAL CONNECT BY LEVEL  <![CDATA[<=]]>  (TO_DATE(TO_CHAR(TO_DATE('20171101','YYYYMMDD'), 'YYYYMMDD'), 'YYYYMMDD') - TO_DATE(TO_CHAR(ADD_MONTHS(TO_DATE('20171101','YYYYMMDD'), -12), 'YYYYMMDD'), 'YYYYMMDD') + 1)
+            ) A,
+            (
+                SELECT LEVEL AS LEVEL_IDX
+                FROM DUAL
+                WHERE
+                    <!-- Market Index No -->   
+                    LEVEL IN (TO_NUMBER(#{marketIndex})) CONNECT BY LEVEL <![CDATA[<=]]> GREATEST(TO_NUMBER(#{marketIndex}))
+            ) B
+        WHERE A.DAY BETWEEN 2 AND 6 <!-- 월요일부터 금요일 -->
+        ORDER BY B.LEVEL_IDX, A.TODATE
+    </select>       
+    
+    <select id="selectVesselGroup" parameterType="vesselParm" resultMap="vesselGroupList">
+        SELECT CD_CODE, NM_CODE 
+        FROM IF_MOST_VMS.CM_CODE_DTL@VMT_LINK A
+        WHERE 1=1
+            AND A.CD_CLSS='SLVSC'
+            AND A.DESC_3='BK'
+            AND DIV_USE = 'Y' AND SEQ_SORT > '0'
+    </select>
+    
+    <select id="selectPositionDataList" parameterType="vesselParm" resultMap="positionDataList">
+        SELECT /* vesselBulk.selectPositionDataList */ 
+            NM_CLS_01,
+            DURATION_01,
+            DURATION_02,
+            DURATION_03,
+            DURATION_04,
+            DURATION_05,
+            DURATION_06,
+            DURATION_07,
+            DURATION_08,
+            DURATION_09,
+            DURATION_10,
+            DURATION_11,
+            DURATION_12,
+            DURATION_13,
+            DURATION_14,
+            DURATION_15,
+            TTL_DURATION
+        FROM IF_MOST_VMS.VMS_POSITION_VIEW@VMT_LINK
+        <where> 
+            <if test="vesselGroupCode != null and vesselGroupCode != ''">
+                AND GTYPE = #{vesselGroupCode}
+            </if>       
+            <if test="vesselGroupCode == null or vesselGroupCode == ''">
+                AND GTYPE IS NULL
+            </if>       
+        </where>
+        ORDER BY NM_CLS_01 DESC
+    </select>
+
+    <select id="selectPositionChartDataList" parameterType="vesselParm" resultMap="positionChartDataList">
+        WITH
+        DATA_LIST AS (
+            SELECT NM_CLS_01 AS NAME,
+                LV AS DURATION,
+                DECODE(LV, 1, DURATION_01
+                                , 2, DURATION_02
+                                , 3, DURATION_02
+                                , 4, DURATION_02
+                                , 5, DURATION_02
+                                , 6, DURATION_02
+                                , 7, DURATION_02
+                                , 8, DURATION_02
+                                , 9, DURATION_02
+                                ,10, DURATION_02
+                                ,11, DURATION_02
+                                ,12, DURATION_02
+                                ,13, DURATION_02
+                                ,14, DURATION_02
+                                ,15, DURATION_02
+                ) AS VALUE                                                                                                                                                                                                                                                                    
+            FROM
+                (
+                    SELECT 
+                        NM_CLS_01, 
+                        DURATION_01, DURATION_02, DURATION_03, DURATION_04, DURATION_05, DURATION_06, DURATION_07, DURATION_08, 
+                        DURATION_09, DURATION_10, DURATION_11, DURATION_12, DURATION_13, DURATION_14, DURATION_15, TTL_DURATION
+                    FROM IF_MOST_VMS.VMS_POSITION_VIEW@VMT_LINK
+                    <where> 
+                        <if test="vesselGroupCode != null and vesselGroupCode != '' and vesselGroupCode != 'ALL'">
+                            AND GTYPE = #{vesselGroupCode}
+                        </if>       
+                        <if test="vesselGroupCode == null or vesselGroupCode == '' or vesselGroupCode == 'ALL'">
+                            AND GTYPE IS NULL
+                        </if>       
+                    </where>
+                    ORDER BY NM_CLS_01 DESC
+                ),
+                (
+                    SELECT LEVEL LV
+                    FROM DUAL CONNECT BY LEVEL <![CDATA[ <= ]]> 15
+                )
+            ORDER BY NM_CLS_01, LV
+        )
+        SELECT A.DURATION,
+            TO_CHAR(ADD_MONTHS(TO_DATE('20171101','YYYYMMDD'), TO_NUMBER(A.DURATION) - 1), 'YYYY-MM') AS TODATE, 
+            A.VALUE AS TONNAGE_VALUE, 
+            B.VALUE AS CARGO_VALUE, 
+            A.VALUE + B.VALUE AS DIFF_VALUE 
+        FROM (SELECT * FROM IF_MOST_VMS.DATA_LIST@VMT_LINK WHERE NAME = 'TONNAGE') A LEFT OUTER JOIN (SELECT * FROM IF_MOST_VMS.DATA_LIST@VMT_LINK WHERE NAME = 'CARGO') B ON A.DURATION = B.DURATION
+        ORDER BY A.DURATION
+    </select>
+    
+    <select id="selectBondStatistics" parameterType="vesselParm" resultMap="bondStatistics">
+         <!-- 연체채권 -->
+        SELECT DECODE(LV, 1,CD_LTPT_REASON,'') AS CD_LTPT_REASON, 
+               DECODE(LV, 1,NM_LTPT_REASON,'총계') AS NM_LTPT_REASON,
+               SUM(CASE WHEN LV = 2 THEN (CASE WHEN CD_LTPT_REASON IN ('SAIL','PRCP') THEN 0 ELSE BALANCE_WON END)   
+                   ELSE BALANCE_WON END) AS BALANCE_WON,
+               SUM(CASE WHEN LV <![CDATA[<>]]> 1 AND CD_LTPT_REASON IN ('SAIL','PRCP') THEN 0 ELSE CNT END) AS CNT,
+               MAX(DECODE(LV, 1,SEQ_SORT, SEQ_SORT-1.5)) AS SEQ_SORT
+        FROM (
+         SELECT LV, D.CD_CODE AS CD_LTPT_REASON, D.NM_CODE AS NM_LTPT_REASON, NVL(BALANCE_WON,0) AS BALANCE_WON, NVL(CNT,0) AS CNT , D.SEQ_SORT
+            FROM IF_MOST_VMS.CM_CODE_DTL@VMT_LINK D, ( SELECT A.CD_BOND_REASON
+                                     , SUM(A.FOR_BLC_AMT) AS BALANCE_WON 
+                                     , COUNT(1) AS CNT
+                                  FROM (
+                                        SELECT  
+                                               RANK() OVER (PARTITION BY CD_DEPT ORDER BY DT_WRITE DESC) RN
+                                             , A.CD_BOND_REASON
+                                             <!-- , A.FOR_BLC_AMT -->
+                                             , DECODE(A.FOR_CURR_TYPE,'USD',A.FOR_BLC_AMT,ROUND(A.STD_BLC_AMT/(SELECT STD_RATE FROM ST_EXCHRATE WHERE DIV_CURR = 'KRW' AND CURRCODE = 'USD' AND EXCHDATE = A.ACC_SLP_YMD),2)) AS FOR_BLC_AMT
+                                             , A.STD_BLC_AMT
+                                          FROM IF_MOST_VMS.SD_BOND_SUBMIT@VMT_LINK A) A
+                                 WHERE A.RN = 1
+                                 GROUP BY A.CD_BOND_REASON
+                            ) C,
+                            (SELECT LEVEL AS LV FROM DUAL CONNECT BY LEVEL <![CDATA[<]]> 3) B
+            WHERE CD_CLSS ='BONDR'
+            AND D.CD_CODE = C.CD_BOND_REASON(+)
+        )    
+        GROUP BY DECODE(LV, 1,CD_LTPT_REASON,''), DECODE(LV, 1,NM_LTPT_REASON,'총계')
+        ORDER BY 5
+    </select>
+    
+    <select id="selectClaimStatistics" parameterType="vesselParm" resultMap="claimStatistics">
+         SELECT COUNT(NO_CLAIM) AS IF_MOST_VMS.TOT_CNT@VMT_LINK
+             , NVL(SUM(CASE WHEN STATUS_SEQ IN ( '10', '20', '40') THEN 1 END ),0) AS REQ_TOT_CNT
+             , NVL(SUM(CASE WHEN STATUS_SEQ IN ( '10' ) THEN 1 END ),0) AS REQ_CNT 
+             , NVL(SUM(CASE WHEN STATUS_SEQ IN ( '20' ) THEN 1 END ),0) AS REQ_CONFIRM_CNT 
+             , NVL(SUM(CASE WHEN STATUS_SEQ IN ( '30' ) THEN 1 END ),0) AS REQ_LAW_CNT 
+             , NVL(SUM(CASE WHEN STATUS_SEQ IN ( '40' ) THEN 1 END ),0) AS REQ_COMPLETE_CNT 
+             , NVL(SUM(CASE WHEN STATUS_SEQ IN ( '50', '60' ) THEN 1 END ),0) AS CON_COMPLETE_CNT
+          FROM IF_MOST_VMS.IL_GC_MST@VMT_LINK
+         WHERE SUBSTR(DT_CLAIM,1,6) >= TO_CHAR(ADD_MONTHS( TRUNC(TO_DATE('20171101','YYYYMMDD')), -12*2 ),'YYYYMM') 
+           AND SUBSTR(DT_CLAIM,1,6) <![CDATA[<=]]> TO_CHAR(TO_DATE('20171101','YYYYMMDD'),'YYYYMM')
+    </select>
+    
+    <select id="selectContractStatistics" parameterType="vesselParm" resultMap="contractStatistics">
+        WITH t AS
+            (
+                SELECT SUM(CASE WHEN STATUS = 'P' AND CD_DEPT = '600690' THEN CNT
+                                ELSE 0
+                           END) AS STATUS_P_BK1 
+                     , SUM(CASE WHEN STATUS = 'P' AND CD_DEPT = '601030' THEN CNT
+                                ELSE 0
+                           END) AS STATUS_P_BK2     
+                     , SUM(CASE WHEN STATUS = 'P' AND CD_DEPT = '601140' THEN CNT
+                               ELSE 0
+                          END) AS STATUS_P_TK 
+                     , SUM(CASE WHEN STATUS = 'W' AND CD_DEPT = '600690' THEN CNT
+                                ELSE 0
+                           END) AS STATUS_W_BK1 
+                     , SUM(CASE WHEN STATUS = 'W' AND CD_DEPT = '601030' THEN CNT
+                                ELSE 0
+                           END) AS STATUS_W_BK2     
+                     , SUM(CASE WHEN STATUS = 'W' AND CD_DEPT = '601140' THEN CNT
+                                ELSE 0
+                           END) AS STATUS_W_TK 
+                     , SUM(CASE WHEN STATUS = 'F' AND CD_DEPT = '600690' THEN CNT
+                                ELSE 0
+                           END) AS STATUS_F_BK1 
+                     , SUM(CASE WHEN STATUS = 'F' AND CD_DEPT = '601030' THEN CNT
+                                ELSE 0
+                           END) AS STATUS_F_BK2     
+                     , SUM(CASE WHEN STATUS = 'F' AND CD_DEPT = '601140' THEN CNT
+                                ELSE 0
+                           END) AS STATUS_F_TK
+                     , SUM(CASE WHEN CD_DEPT = '600690' THEN CNT
+                                ELSE 0
+                          END) AS SUM_BK1   
+                     , SUM(CASE WHEN CD_DEPT = '601030' THEN CNT
+                               ELSE 0
+                           END) AS SUM_BK2 
+                     , SUM(CASE WHEN CD_DEPT = '601140' THEN CNT
+                               ELSE 0
+                           END) AS SUM_TK   
+                  FROM (           
+                        SELECT A.CD_DEPT
+                             , IF_MOST_VMS.FNC_GET_NMDEPT@VMT_LINK(A.CD_DEPT) AS NM_DEPT 
+                             , A.STATUS
+                             , COUNT(A.STATUS) AS CNT 
+                          FROM (
+                                SELECT 
+                                       MAX(A.CD_DEPT) AS CD_DEPT
+                                       , MAX(A.DOC_NO)
+                                     , (CASE WHEN MAX(C.DOC_NO) IS NOT NULL AND MAX(B.APPROVE_STAT) = 'Y' THEN 'F' 
+                                             WHEN MAX(C.DOC_NO) IS NOT NULL AND MAX(B.APPROVE_STAT) = 'N' THEN 'W' 
+                                             WHEN MAX(B.APP_DATE) IS NOT NULL THEN 'P'  
+                                       END) AS STATUS
+                                  FROM IF_MOST_VMS.MAR_CNTRCT_SUBMIT@VMT_LINK  A
+                                     , IF_MOST_VMS.IL_CC_STTLIF_WFLIST@VMT_LINK B
+                                     , (SELECT MST.DOC_NO, WFO.SEQ
+                                          FROM IF_MOST_VMS.MAR_CNTRCT_SUBMIT@VMT_LINK  MST     
+                                          JOIN IF_MOST_VMS.IL_CC_STTLIF_WFLIST@VMT_LINK         WFO
+                                            ON WFO.DOC_NO          =       MST.DOC_NO
+                                         WHERE (MST.DOC_NO, WFO.SEQ) IN (
+                                                SELECT MST.DOC_NO, MAX(SEQ)
+                                                  FROM IF_MOST_VMS.MAR_CNTRCT_SUBMIT@VMT_LINK  MST     
+                                                  JOIN IF_MOST_VMS.IL_CC_STTLIF_WFLIST@VMT_LINK        WFO
+                                                    ON WFO.DOC_NO          =       MST.DOC_NO
+                                                 WHERE 1=1
+                                                   AND WFO.HELPER_YN = 'N'
+                                                   AND TO_CHAR(MST.DT_WRITE,'YYYYMMDD') BETWEEN TO_CHAR(TO_DATE('20171101','YYYYMMDD')-6,'YYYYMMDD') AND TO_CHAR(TO_DATE('20171101','YYYYMMDD'),'YYYYMMDD')
+                                                 GROUP BY MST.DOC_NO)
+                                          AND APPROVE_STAT = 'Y' 
+                                          AND TO_CHAR(MST.DT_WRITE,'YYYYMMDD') BETWEEN TO_CHAR(TO_DATE('20171101','YYYYMMDD')-6,'YYYYMMDD') AND TO_CHAR(TO_DATE('20171101','YYYYMMDD'),'YYYYMMDD') 
+                                          ) C
+                                 WHERE A.DOC_NO = B.DOC_NO
+                                   AND B.DOC_NO = C.DOC_NO(+)
+                                   AND B.SEQ = C.SEQ(+)
+                                   AND B.HELPER_YN = 'N'
+                                   AND TO_CHAR(A.DT_WRITE,'YYYYMMDD') BETWEEN TO_CHAR(TO_DATE('20171101','YYYYMMDD')-6,'YYYYMMDD') AND TO_CHAR(TO_DATE('20171101','YYYYMMDD'),'YYYYMMDD')
+                                 GROUP BY A.DOC_NO) A
+                             WHERE A.STATUS IN ('F','W','P')
+                             GROUP BY A.CD_DEPT, A.STATUS
+                         )
+                     )
+                SELECT lv
+                     , DECODE(lv, 1, STATUS_P_BK1, 2, STATUS_W_BK1, 3, STATUS_F_BK1, 4, SUM_BK1) AS SUM_BK1
+                     , DECODE(lv, 1, STATUS_P_BK2, 2, STATUS_W_BK2, 3, STATUS_F_BK2, 4, SUM_BK2) AS SUM_BK2
+                     , DECODE(lv, 1, STATUS_P_TK,  2, STATUS_W_TK,  3, STATUS_F_TK,  4, SUM_TK)  AS SUM_TK
+                  FROM t
+                     , (SELECT LEVEL lv FROM dual CONNECT BY LEVEL  <![CDATA[<=]]> 4)
+                 ORDER BY lv     
+    </select>
+    
+    <select id="selectVesselSchedule" parameterType="vesselParm" resultMap="vesselScheduleList">
+        SELECT 
+            CD_PORT, NM_PORT, SEQ_OPRT, 
+            DTM_ETA,
+            DTM_ATA,
+            DTM_ATD,
+            QTY_LOAD, 
+            QTY_DISC, VOY
+        FROM IF_MOST_VMS.TB_GLV_GLCC_CARGO_SKD@VMT_LINK  
+        <!-- WHERE CD_VESSEL = 'ADF'
+            AND DT_BASIS = '20170628' -->
+        WHERE CD_VESSEL = #{vesselCode}
+            AND DT_BASIS = TO_CHAR(TO_DATE('20171101','YYYYMMDD') - 1, 'YYYYMMDD')
+        ORDER BY SEQ_OPRT ASC
+    </select>
+    
+    <select id="selectCargoByConsignee" parameterType="vesselParm" resultMap="vesselCargoList">
+        SELECT NM_CUST, NM_PORT 
+            , QTY_LOAD /*선적량    */
+            , QTY_DISC /*양하량    */
+            , CASE QTY_DISC WHEN 0 THEN QTY_LOAD ELSE 0 END as QTY_NOW /*현선적량   */
+            , CASE CD_SYS WHEN '1' THEN '대' WHEN '2' THEN 'FEU' WHEN '3' THEN '톤' WHEN '4' THEN '톤' END  AS QTY_TRANS /*선적단위    */
+        FROM IF_MOST_VMS.TB_GLV_GLCC_SUM_CUSTCARGO@VMT_LINK
+        <!-- WHERE CD_VESSEL = 'ADF'
+            AND DT_BASIS = '20170628' -->   
+        WHERE CD_VESSEL = #{vesselCode}
+            AND DT_BASIS = TO_CHAR(TO_DATE('20171101','YYYYMMDD') - 1, 'YYYYMMDD')
+        ORDER BY NM_CUST ASC, SEQ_OPRT ASC
+    </select>
+    
+    <select id="selectCargoByBrand" parameterType="vesselParm" resultMap="vesselCargoList">
+        SELECT NM_PORT /*양하항    */
+            , NM_CARGO /*차종 */
+            , CASE QTY_DISC WHEN 0 THEN QTY_LOAD ELSE 0 END as QTY_NOW /*대수 */
+            , CASE CD_SYS WHEN '1' THEN '대' WHEN '2' THEN 'FEU' WHEN '3' THEN '톤' WHEN '4' THEN '톤' END  AS QTY_TRANS /*선적단위    */
+        FROM IF_MOST_VMS.TB_GLV_GLCC_SUM_TYPECARGO@VMT_LINK 
+        <!-- WHERE CD_VESSEL = 'ADF'
+            AND DT_BASIS = '20170628' -->
+        WHERE CD_VESSEL = #{vesselCode}
+            AND DT_BASIS = TO_CHAR(TO_DATE('20171101','YYYYMMDD') - 1, 'YYYYMMDD')
+        ORDER BY SEQ_OPRT ASC
+    </select>
+    
+    <select id="selectPortList"  parameterType="vesselParm" resultMap="portList">
+       SELECT 
+            T.CD_PID
+            ,T.CD_PORT
+            ,T.NM_PORT
+            ,RB.LAT
+            ,RB.LON
+        FROM 
+            (SELECT DISTINCT
+                 A.CD_PID CD_PID 
+                ,A.CD_PORT CD_PORT
+                ,E.NM_PORT1 NM_PORT
+            FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  A, IF_MOST_VMS.MAR_VOY@VMT_LINK C, IF_MOST_VMS.MAR_PORT@VMT_LINK E
+            WHERE 1=1
+                AND A.CD_PORT= E.CD_PORT
+                AND A.CD_VESSEL=C.CD_VESSEL
+                AND A.VOY=C.VOY
+                AND C.DIV_VSLKND = 'BK'
+                AND  NVL(C.ATM_START_GMT,C.DTM_START_GMT) <![CDATA[<=]]> TO_DATE('20171101','YYYYMMDD')
+                AND  NVL(C.ATM_END_GMT,C.DTM_END_GMT) >= TO_DATE('20171101','YYYYMMDD')
+                <if test="portCodes != null">
+	                AND A.CD_PORT IN
+	                <foreach item="item" index="index" collection="portCodes" open="(" separator="," close=")">
+	                     #{item}
+	                </foreach>
+		        </if>
+        ) T, IF_MOST_VMS.GIS_PORT@VMT_LINK RB
+        WHERE 1=1
+        AND T.CD_PORT=RB.CD_PORT
+    </select>       
+    
+    <select id="selectVesselOperationList"  parameterType="vesselParm" resultMap="vesselList">
+		   SELECT /* VesselBulk.selectVesselOperationList */
+				   A.STATUS,           
+			       A.CD_VESSEL, <!--vessel code -->
+			       (SELECT NM_VESSEL1 FROM MAR_VESSEL X WHERE A.CD_VESSEL = X.CD_VESSEL) AS NM_VESSEL1,   <!--선명 -->
+			       A.VOY, <!--항차 -->
+			       A.DWT, <!--DWT -->
+			       A.DT_BUILD,             
+			       A.CD_CARGO,             
+			       (SELECT NM_CARGO1 FROM MAR_CARGO X WHERE A.CD_CARGO = X.CD_CARGO) AS NM_CARGO, <!--CGO -->
+			       A.QTY, <!--QTY -->
+			       <!--A.COMPANY_CD,  -->         
+			       (SELECT X.COMP_NM FROM ST_COMPANY X WHERE A.COMPANY_CD = X.COMPANY_CD) AS COMPANY_NM, <!--화주 -->
+			       A.DIV_VOY_TYPE,         
+			       A.HIRE, A.NET_HIRE,     
+			       A.INITIAL_PL,           
+			       A.PROGRESS_PL,          
+			       A.INITIAL_CB,           
+			       A.PROGRESS_CB,          
+			       (CASE WHEN (A.PROGRESS_PL - A.INITIAL_PL) > 0 THEN '1'          
+			             WHEN (A.PROGRESS_PL - A.INITIAL_PL) <![CDATA[<]]> -50000 THEN '3'     
+			             ELSE '2' END) AS SIGN, <!--이니셜 대비 -->
+			       A.LDG_PORT,             
+			       (SELECT X.NM_PORT1 FROM MAR_PORT X WHERE A.LDG_PORT = X.CD_PORT) AS NM_LDG_PORT, <!--선적항 -->
+			       A.PO_DTM_ATA,           
+			       A.PO_DTM_ATB,           
+			       A.PO_DTM_ATD,           
+			       A.LL_DTM_ATA, <!--선적지 ETA -->
+			       A.LL_DTM_ATB, <!--선적지 ETB -->
+			       A.LL_DTM_ATD, <!--선적지 ETD -->
+			       A.DD_DTM_ATA,           
+			       A.DD_DTM_ATB,           
+			       A.DD_DTM_ATD,           
+			       A.DISCH_PORT, <!--양하지 코드 -->
+			       (SELECT X.NM_PORT1 FROM MAR_PORT X WHERE A.DISCH_PORT = X.CD_PORT) AS NM_DISCH_PORT, <!--양하지 이름 -->
+			       A.NM_PID, <!--PIC -->
+			       A.CD_DEPT, <!--팀 -->
+			       A.RMK_CB,               
+			       A.VESSEL_SIZE_CD, <!--W/G CODE -->
+			       IF_MOST_VMS.FNC_GET_NMGROUPDTL@VMT_LINK ('SLVSC', A.VESSEL_SIZE_CD) AS VESSEL_SIZE_NM, <!--W/G NAME -->
+			       A.SALES_ID, IF_MOST_VMS.FNC_GET_NMUSER@VMT_LINK (A.SALES_ID) AS PIC_NM
+			  FROM
+			  (
+			  SELECT
+			         (CASE WHEN B.CD_OPRTYPE IN ('TCTO', 'OVTO') THEN '5. TC-OUT'
+			               WHEN FN_GET_NEXT_PID(A.CD_VESSEL, A.VOY, A.SEQ_OPRT) IN ('LL', 'LD') THEN '1. TO LOAD'
+			               WHEN A.CD_PID IN ('LL', 'LD') THEN '2. LOADING'
+			               WHEN FN_GET_NEXT_PID(A.CD_VESSEL, A.VOY, A.SEQ_OPRT) IN ('DD') THEN '3. TO DISCH'
+			               WHEN A.CD_PID IN ('DD') THEN '4. DISCHARGING'
+			               ELSE '99' END) AS STATUS
+			          , A.CD_VESSEL, (SELECT NM_VESSEL1 FROM MAR_VESSEL X WHERE A.CD_VESSEL = X.CD_VESSEL) AS NM_VESSEL1
+			          , A.VOY, (SELECT SUM (X.DWT) FROM MAR_VESSEL X WHERE A.CD_VESSEL = X.CD_VESSEL) AS DWT
+			          , (SELECT X.DT_BUILD FROM MAR_VESSEL X WHERE A.CD_VESSEL = X.CD_VESSEL) AS DT_BUILD
+			          , (CASE WHEN C.DIV_VOY_TYPE IN ('TC', 'RE') THEN (SELECT MAX(X.CD_CARGO) FROM IF_MOST_VMS.MAR_CB_SOA@VMT_LINK X WHERE C.CD_VESSEL = X.CD_VESSEL AND C.VOY = X.VOY AND C.SEQ_CB = X.SEQ_CB AND X.DIV_TC_INOUT = 'I')
+			                  ELSE (SELECT MAX(X.CD_CARGO) FROM IF_MOST_VMS.MAR_CB_REVENUE@VMT_LINK X WHERE C.CD_VESSEL = X.CD_VESSEL AND C.VOY = X.VOY AND C.SEQ_CB = X.SEQ_CB) END) AS CD_CARGO
+			          , '' AS NM_CARGO
+			          , (CASE WHEN C.DIV_VOY_TYPE IN ('TC') THEN 0
+			                  WHEN C.DIV_VOY_TYPE IN ('RE') THEN (SELECT MAX(X.QTY) FROM IF_MOST_VMS.MAR_CB_SOA@VMT_LINK X WHERE C.CD_VESSEL = X.CD_VESSEL AND C.VOY = X.VOY AND C.SEQ_CB = X.SEQ_CB AND X.DIV_TC_INOUT = 'I')
+			                  ELSE (SELECT MAX(X.QTY) FROM IF_MOST_VMS.MAR_CB_REVENUE@VMT_LINK X WHERE C.CD_VESSEL = X.CD_VESSEL AND C.VOY = X.VOY AND C.SEQ_CB = X.SEQ_CB) END) AS QTY
+			          , (CASE WHEN C.DIV_VOY_TYPE IN ('TC', 'RE') THEN (SELECT MAX(X.CD_CUSTOWN) FROM IF_MOST_VMS.MAR_CB@VMT_LINK_SOA X WHERE C.CD_VESSEL = X.CD_VESSEL AND C.VOY = X.VOY AND C.SEQ_CB = X.SEQ_CB AND X.DIV_TC_INOUT = 'O')
+			                  ELSE (SELECT MAX(X.CD_ACTUALSHIPPER) FROM IF_MOST_VMS.MAR_CB_REVENUE@VMT_LINK X WHERE C.CD_VESSEL = X.CD_VESSEL AND C.VOY = X.VOY AND C.SEQ_CB = X.SEQ_CB) END) AS COMPANY_CD
+			          , '' AS COMPANY_NM, C.DIV_VOY_TYPE
+			          , (SELECT MAX(X.AMT_DAILYHIRE) FROM IF_MOST_VMS.MAR_CB_SOA@VMT_LINK X WHERE C.CD_VESSEL = X.CD_VESSEL AND C.VOY = X.VOY AND C.SEQ_CB = X.SEQ_CB) AS HIRE
+			          , C.AMT_SM_D_HB AS NET_HIRE
+			          , NVL((SELECT X.AMT_SM_PL FROM IF_MOST_VMS.MAR_CB@VMT_LINK X WHERE (X.CD_VESSEL, X.VOY, X.SEQ_CB)
+			                                                 IN (SELECT MAX(Y.CD_VESSEL), MAX(Y.VOY), MAX(Y.SEQ_CB) FROM MAR_CB@VMT_LINK Y WHERE C.CD_VESSEL = Y.CD_VESSEL AND C.VOY = Y.VOY AND Y.DIV_CB_STEP = 'I')), 0) AS INITIAL_PL
+			          , NVL(C.AMT_SM_PL, 0) AS PROGRESS_PL
+			          , NVL((SELECT X.AMT_SM_D_CB FROM IF_MOST_VMS.MAR_CB@VMT_LINK X WHERE (X.CD_VESSEL, X.VOY, X.SEQ_CB)
+			                                                 IN (SELECT MAX(Y.CD_VESSEL), MAX(Y.VOY), MAX(Y.SEQ_CB) FROM MAR_CB@VMT_LINK Y WHERE C.CD_VESSEL = Y.CD_VESSEL AND C.VOY = Y.VOY AND Y.DIV_CB_STEP = 'I')), 0) AS INITIAL_CB
+			          , C.AMT_SM_D_CB AS PROGRESS_CB
+			          , '1' AS SIGN
+			          , (SELECT X.CD_PORT FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  X WHERE (X.CD_VESSEL, X.VOY, X.SEQ_OPRT)
+			                                                 IN (SELECT MAX(Y.CD_VESSEL), MAX(Y.VOY), MIN(Y.SEQ_OPRT) FROM MAR_VESSEL_SKD@VMT_LINK  Y WHERE A.CD_VESSEL = Y.CD_VESSEL AND A.VOY = Y.VOY AND Y.CD_PID IN ('LL', 'LD', 'DL'))) AS LDG_PORT
+			          , 'A' AS NM_LDG_PORT
+			          , (CASE WHEN C.DIV_VOY_TYPE IN ('TC') THEN TO_CHAR(NVL(B.ATM_START_GMT, B.DTM_START_GMT), 'YYYY-MM-DD HH24:MI')
+			                  ELSE TO_CHAR((SELECT NVL(Y.DTM_ATA, Y.DTM_ETA) FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  Y WHERE (Y.CD_VESSEL, Y.VOY, Y.SEQ_OPRT) IN
+			                                       (SELECT MAX(CD_VESSEL), MAX(VOY), MIN(X.SEQ_OPRT) FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  X WHERE A.CD_VESSEL = X.CD_VESSEL AND A.VOY = X.VOY AND X.CD_PID IN ('PO'))), 'YYYY-MM-DD HH24:MI') END) AS PO_DTM_ATA
+			          , (CASE WHEN C.DIV_VOY_TYPE IN ('TC') THEN ''
+			                  ELSE TO_CHAR((SELECT NVL(Y.DTM_ATB, Y.DTM_ETB) FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  Y WHERE (Y.CD_VESSEL, Y.VOY, Y.SEQ_OPRT) IN
+			                                       (SELECT MAX(CD_VESSEL), MAX(VOY), MIN(X.SEQ_OPRT) FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  X WHERE A.CD_VESSEL = X.CD_VESSEL AND A.VOY = X.VOY AND X.CD_PID IN ('PO'))), 'YYYY-MM-DD HH24:MI') END) AS PO_DTM_ATB
+			          , (CASE WHEN C.DIV_VOY_TYPE IN ('TC') THEN ''
+			                  ELSE TO_CHAR((SELECT NVL(Y.DTM_ATD, Y.DTM_ETD) FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  Y WHERE (Y.CD_VESSEL, Y.VOY, Y.SEQ_OPRT) IN
+			                                       (SELECT MAX(CD_VESSEL), MAX(VOY), MIN(X.SEQ_OPRT) FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  X WHERE A.CD_VESSEL = X.CD_VESSEL AND A.VOY = X.VOY AND X.CD_PID IN ('PO'))), 'YYYY-MM-DD HH24:MI') END) AS PO_DTM_ATD
+			          , (CASE WHEN C.DIV_VOY_TYPE IN ('TC') THEN ''
+			                  ELSE TO_CHAR((SELECT NVL(Y.DTM_ATA, Y.DTM_ETA) FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  Y WHERE (Y.CD_VESSEL, Y.VOY, Y.SEQ_OPRT) IN
+			                                       (SELECT MAX(CD_VESSEL), MAX(VOY), MIN(X.SEQ_OPRT) FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  X WHERE A.CD_VESSEL = X.CD_VESSEL AND A.VOY = X.VOY AND X.CD_PID IN ('LL', 'LD', 'DL'))), 'YYYY-MM-DD HH24:MI') END) AS LL_DTM_ATA
+			          , (CASE WHEN C.DIV_VOY_TYPE IN ('TC') THEN ''
+			                  ELSE TO_CHAR((SELECT NVL(Y.DTM_ATB, Y.DTM_ETB) FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  Y WHERE (Y.CD_VESSEL, Y.VOY, Y.SEQ_OPRT) IN
+			                                       (SELECT MAX(CD_VESSEL), MAX(VOY), MIN(X.SEQ_OPRT) FROM MAR_VESSEL_SKD@VMT_LINK  X WHERE A.CD_VESSEL = X.CD_VESSEL AND A.VOY = X.VOY AND X.CD_PID IN ('LL', 'LD', 'DL'))), 'YYYY-MM-DD HH24:MI') END) AS LL_DTM_ATB
+			          , (CASE WHEN C.DIV_VOY_TYPE IN ('TC') THEN ''
+			                  ELSE TO_CHAR((SELECT NVL(Y.DTM_ATD, Y.DTM_ETD) FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  Y WHERE (Y.CD_VESSEL, Y.VOY, Y.SEQ_OPRT) IN
+			                                       (SELECT MAX(CD_VESSEL), MAX(VOY), MIN(X.SEQ_OPRT) FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  X WHERE A.CD_VESSEL = X.CD_VESSEL AND A.VOY = X.VOY AND X.CD_PID IN ('LL', 'LD', 'DL'))), 'YYYY-MM-DD HH24:MI') END) AS LL_DTM_ATD
+			          , (CASE WHEN C.DIV_VOY_TYPE IN ('TC') THEN ''
+			                  ELSE TO_CHAR((SELECT NVL(Y.DTM_ATA, Y.DTM_ETA) FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  Y WHERE (Y.CD_VESSEL, Y.VOY, Y.SEQ_OPRT) IN
+			                                       (SELECT MAX(CD_VESSEL), MAX(VOY), MIN(X.SEQ_OPRT) FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  X WHERE A.CD_VESSEL = X.CD_VESSEL AND A.VOY = X.VOY AND X.CD_PID IN ('DD'))), 'YYYY-MM-DD HH24:MI') END) AS DD_DTM_ATA
+			          , (CASE WHEN C.DIV_VOY_TYPE IN ('TC') THEN ''
+			                  ELSE TO_CHAR((SELECT NVL(Y.DTM_ATB, Y.DTM_ETB) FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  Y WHERE (Y.CD_VESSEL, Y.VOY, Y.SEQ_OPRT) IN
+			                                       (SELECT MAX(CD_VESSEL), MAX(VOY), MIN(X.SEQ_OPRT) FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  X WHERE A.CD_VESSEL = X.CD_VESSEL AND A.VOY = X.VOY AND X.CD_PID IN ('DD'))), 'YYYY-MM-DD HH24:MI') END) AS DD_DTM_ATB
+			          , (CASE WHEN C.DIV_VOY_TYPE IN ('TC') THEN TO_CHAR(NVL(B.ATM_END_GMT, B.DTM_END_GMT), 'YYYY-MM-DD HH24:MI')
+			                  ELSE TO_CHAR((SELECT NVL(Y.DTM_ATD, Y.DTM_ETD) FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  Y WHERE (Y.CD_VESSEL, Y.VOY, Y.SEQ_OPRT) IN
+			                                       (SELECT MAX(CD_VESSEL), MAX(VOY), MIN(X.SEQ_OPRT) FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  X WHERE A.CD_VESSEL = X.CD_VESSEL AND A.VOY = X.VOY AND X.CD_PID IN ('DD'))), 'YYYY-MM-DD HH24:MI') END) AS DD_DTM_ATD
+			          , (SELECT X.CD_PORT FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  X WHERE (X.CD_VESSEL, X.VOY, X.SEQ_OPRT)
+			                                                 IN (SELECT MAX(Y.CD_VESSEL), MAX(Y.VOY), MIN(Y.SEQ_OPRT) FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  Y WHERE A.CD_VESSEL = Y.CD_VESSEL AND A.VOY = Y.VOY AND Y.CD_PID IN ('DD', 'RD'))) AS DISCH_PORT
+			          , 'A' AS NM_DISCH_PORT
+			          , (CASE WHEN C.ID_UPT IS NULL THEN IF_MOST_VMS.FNC_GET_NMUSER@VMT_LINK (C.ID_REG)
+			                  ELSE IF_MOST_VMS.FNC_GET_NMUSER@VMT_LINK (C.ID_UPT) END) AS NM_PID
+			          , B.CD_DEPT
+			          , (CASE WHEN (SELECT MAX(AA.RMK_CB) RMK_CB
+			                                 FROM IF_MOST_VMS.MAR_PRT_REMARK@VMT_LINK AA
+			                                WHERE AA.CD_VESSEL = A.CD_VESSEL
+			                                      AND AA.VOY = A.VOY
+			                                      AND R_SEQ = (SELECT MAX (R_SEQ)
+			                                                     FROM IF_MOST_VMS.MAR_PRT_REMARK@VMT_LINK AAA
+			                                                    WHERE AAA.CD_VESSEL = A.CD_VESSEL
+			                                                      AND AAA.VOY = A.VOY)) IS NOT NULL
+			                  THEN (SELECT MAX(AA.RMK_CB) RMK_CB
+			                                 FROM IF_MOST_VMS.MAR_PRT_REMARK@VMT_LINK AA
+			                                WHERE AA.CD_VESSEL = A.CD_VESSEL
+			                                      AND AA.VOY = A.VOY
+			                                      AND R_SEQ = (SELECT MAX (R_SEQ)
+			                                                     FROM IF_MOST_VMS.MAR_PRT_REMARK@VMT_LINK AAA
+			                                                    WHERE AAA.CD_VESSEL = A.CD_VESSEL
+			                                                      AND AAA.VOY = A.VOY) )  ELSE C.RMK_CB END) AS RMK_CB
+			          , C.VESSEL_SIZE_CD
+			          , 'A' AS VESSEL_SIZE_NM, C.SALES_ID
+			          , 'A' AS PIC_NM
+			    FROM
+			    (
+			    SELECT A.CD_VESSEL, A.VOY, A.CD_PID, A.SEQ_OPRT,
+			           A.CD_PORT,
+			           NVL(A.DTM_ATA, A.DTM_ETA) AS FROM_DATE, NVL(A.DTM_ATD, A.DTM_ETD) AS TO_DATE
+			      FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK  A
+			     WHERE (CD_VESSEL, VOY) IN (SELECT Y.CD_VESSEL, Y.VOY FROM IF_MOST_VMS.MAR_CB@VMT_LINK Y WHERE Y.DIV_VSLKND = 'BK')
+			    UNION ALL
+			    SELECT A.CD_VESSEL, A.VOY, 
+			           LEAD(A.CD_PID)OVER(PARTITION BY A.CD_VESSEL, A.VOY ORDER BY A.CD_VESSEL, A.VOY, A.SEQ_OPRT, NVL(A.DTM_ATA, A.DTM_ETA)) AS CD_PID, 
+			           A.SEQ_OPRT,
+			           LEAD(CD_PORT)OVER(PARTITION BY A.CD_VESSEL, A.VOY ORDER BY A.CD_VESSEL, A.VOY, A.SEQ_OPRT, NVL(A.DTM_ATA, A.DTM_ETA)) AS CD_PORT,
+			           NVL(A.DTM_ATD, A.DTM_ETD) AS FROM_DATE, LEAD(NVL(A.DTM_ATA, A.DTM_ETA))OVER(PARTITION BY A.CD_VESSEL, A.VOY ORDER BY A.CD_VESSEL, A.VOY, A.SEQ_OPRT, NVL(A.DTM_ATA, A.DTM_ETA)) AS TO_DATE
+			      FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK A
+			     WHERE (CD_VESSEL, VOY) IN (SELECT Y.CD_VESSEL, Y.VOY FROM IF_MOST_VMS.MAR_CB@VMT_LINK Y WHERE Y.DIV_VSLKND = 'BK')
+			    ) A, IF_MOST_VMS.MAR_VOY@VMT_LINK B, IF_MOST_VMS.MAR_CB@VMT_LINK C
+			   WHERE 1=1
+			     AND A.CD_VESSEL = B.CD_VESSEL
+			     AND A.CD_VESSEL = C.CD_VESSEL
+			     AND A.VOY = B.VOY
+			     AND A.VOY = C.VOY
+			     AND C.SEQ_CB = 0
+			     AND TO_DATE('20171101','YYYYMMDD') BETWEEN FROM_DATE AND TO_DATE
+			  ) A
+			ORDER BY STATUS, A.CD_VESSEL, A.VOY
+		   
+    </select>
+    
+    
+     <update id="updateVesselLocationModify" parameterType="vesselItem">
+        
+        UPDATE /* VesselBulk.updateVesselLocationModify */
+            IF_MOST_VMS.GIS_SHIP@VMT_LINK 
+            SET  LAT = #{latitude},
+                 LON = #{longitude},
+                 ANGLE = #{heading}
+         WHERE CALL_SIGN = #{callSign}
+           AND CD_VESSEL = #{vesselCode}
+         
+     </update>   
+    
+    
+</mapper>

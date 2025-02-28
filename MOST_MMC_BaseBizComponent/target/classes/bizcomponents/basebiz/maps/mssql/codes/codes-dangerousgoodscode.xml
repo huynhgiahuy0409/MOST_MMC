@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Thu Jun 18 08:43:11 ICT 2015-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="dangerousGoodsCode">
+
+	<select id="selectDangerousGoodsCode" parameterType="dangerousGoodsCodeParm" resultType="dangerousGoodsCodeItem">
+		<if test="pageNo != 0"> 
+        	SELECT  /* dangerousGoodsCode.selectDangerousGoodsCode */
+        		* 
+			FROM 
+				(SELECT 
+					inner_querry.*, ROW_NUMBER() OVER(ORDER BY UNNO) row_num 
+				FROM ( 
+		</if>
+				<include refid="getDangerousGoodsCode"/>
+		<if test="pageNo != 0"> 
+				)inner_querry 
+			)inner_querry 
+			WHERE 
+				inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<sql id="getDangerousGoodsCode">
+		SELECT /* dangerousGoodsCode.getDangerousGoodsCode */
+			UNNO 								AS unno, 
+			CLASS 								AS unnoClass, 
+			SUBSTANCE 							AS substance, 
+			PACKING_GRP 						AS packingGrp, 
+			PAGE_NO 							AS pageNo, 
+			PSA 								AS psa, 
+			EMS_NO 								AS emsNo, 
+			SUB_RISK_LABEL 						AS subRiskLabel, 
+			FLASH_POINT 						AS flashPoint, 
+	    	MFAG 								AS mfag, 
+	    	MARINE_POLU 						AS marinePolu, 
+	    	SPEC_REQ 							AS specReq,
+	    	SPEC_REQ_RMK 						AS specReqRmk,
+	    	LPK 								AS lpk, 
+	    	FIRE_CODE 							AS fireCode, 
+	    	PREMIUM_CD 							AS premiumCd, 
+	    	STAFF_CD 							AS staffCd, 
+			FORMAT(UPDATE_TIME, 'dd-MM-yyyy') 	AS updatedTime,
+	    	IMDG_DIV 							AS imdgDiv
+		FROM 
+			TMT_IMDGDATA
+		<where>
+			1=1 
+		  	<if test="unno != null and unno != ''">
+				AND UNNO  LIKE '%' + #{unno} + '%'
+		  	</if>
+		  	<if test="unnoClass != null and unnoClass != ''">
+				AND CLASS LIKE '%' + #{unnoClass} + '%' 
+		  	</if>
+		<!-- ORDER BY 
+			UNNO
+		OFFSET 
+			(CASE WHEN #{pageNo} = '0' THEN 0 ELSE CAST(#{pageNo} AS INT) - 1 END) * CAST(#{sizePerPage} AS INT) ROWS
+		FETCH 
+			NEXT CAST(#{sizePerPage} AS INT) ROWS ONLY -->
+		</where>
+	</sql>
+	
+	<select id="selectDangerousGoodsCodeCount" parameterType="dangerousGoodsCodeParm" resultType="java.lang.String" >
+    	SELECT /* dangerousGoodsCode.selectDangerousGoodsCodeCount */
+			COUNT(*)
+    	FROM 
+			(<include refid="getDangerousGoodsCode"/>) AS getDangerousGoodsCode
+	</select>
+	
+	<insert id="insertDangerousGoodsCode" parameterType="dangerousGoodsCodeItem">
+		INSERT /* dangerousGoodsCode.insertDangerousGoodsCode */
+		INTO TMT_IMDGDATA (
+			UNNO,
+        	CLASS,
+        	SUBSTANCE,
+        	PACKING_GRP,
+            PAGE_NO,
+            PSA,
+            EMS_NO,
+            SUB_RISK_LABEL,
+            FLASH_POINT,
+			MFAG,
+			MARINE_POLU,
+			SPEC_REQ,
+			SPEC_REQ_RMK,
+			LPK,
+			FIRE_CODE,
+			PREMIUM_CD,
+			STAFF_CD,
+			UPDATE_TIME,
+			IMDG_DIV
+		)VALUES(
+			#{unno},
+			#{unnoClass},
+			#{substance},
+			#{packingGrp},
+			#{pageNo},
+			#{psa},
+            #{emsNo},
+            #{subRiskLabel},
+            #{flashPoint},
+            #{mfag},
+            #{marinePolu},
+            #{specReq},
+            #{specReqRmk},
+            #{lpk},
+            #{fireCode},
+            #{premiumCd},
+            #{userId},
+            GETDATE(),
+            #{imdgDiv})
+	</insert>
+
+	<update id="updateDangerousGoodsCode" parameterType="dangerousGoodsCodeItem">
+		UPDATE /* dangerousGoodsCode.updateDangerousGoodsCode */
+			TMT_IMDGDATA 
+		SET 
+            PACKING_GRP 				= #{packingGrp},
+            PAGE_NO 					= #{pageNo},
+            PSA 						= #{psa},
+            EMS_NO 						= #{emsNo},
+            SUB_RISK_LABEL 				= #{subRiskLabel},
+            FLASH_POINT 				= #{flashPoint},
+            MFAG 						= #{mfag},
+            MARINE_POLU 				= #{marinePolu},
+            SPEC_REQ 					= #{specReq},
+            SPEC_REQ_RMK 				= #{specReqRmk},
+            LPK 						= #{lpk},
+            FIRE_CODE 					= #{fireCode},
+            PREMIUM_CD 					= #{premiumCd},
+            STAFF_CD 					= #{userId},
+            UPDATE_TIME 				= GETDATE(),
+            IMDG_DIV 					= #{imdgDiv}
+		WHERE 
+			UNNO  						= #{unno} 
+		    AND CLASS 					= #{unnoClass} 
+			AND SUBSTANCE 				= #{substance}
+	</update>
+
+	<delete id="deleteDangerousGoodsCode" parameterType="dangerousGoodsCodeItem">
+		DELETE  /* dangerousGoodsCode.deleteDangerousGoodsCode */
+		FROM 
+			TMT_IMDGDATA
+		WHERE 
+			UNNO 						= #{unno}
+			AND CLASS 					= #{unnoClass}
+			AND SUBSTANCE 				= #{substance}
+			<if test="packingGrp != null and packingGrp != ''">
+				AND PACKING_GRP 		= #{packingGrp}
+			</if>
+	</delete>
+	
+</mapper>

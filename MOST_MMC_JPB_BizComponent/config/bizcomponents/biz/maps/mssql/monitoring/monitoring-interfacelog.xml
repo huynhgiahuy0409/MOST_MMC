@@ -1,0 +1,875 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">    
+    
+<mapper namespace="interfaceLog">	
+	<resultMap  id="resultInterfaceLogItem" 					type="interfacelogItem">
+		<result property = "transactionId"  					column = "TRANSACTION_ID"/>
+		<result property = "msgId"		  						column = "MSG_ID"/>
+		<result property = "msgType"		  					column = "MSG_TYPE"/>
+		<result property = "transType"	  						column = "TRANS_TYPE"/>
+		<result property = "createTime"	  						column = "CREATE_TIME"/>
+		<result property = "applyStatus"	  					column = "APPLY_STATUS"/>
+		<result property = "applyDate"	  						column = "APPLY_DATE"/>
+		<result property = "errMsg"		  						column = "ERR_MSG"/>
+		<result property = "retry"		  						column = "RETRY"/>
+		<result property = "errDetailMsg"	  					column = "TEXT"/>
+		<result property = "requestMsg"	  						column = "REQUEST_MSG"/>
+		<result property = "responseMsg"	  					column = "RESPONSE_MSG"/>
+	</resultMap>
+	
+	<sql id="searchInterfaceLogItem">
+		SELECT DISTINCT /* interfaceLog.searchPeriod */ 
+			* 
+		FROM (
+			<if test='transType == null or transType == ""'>
+				<if test='sysType.equals("AG")'>
+					<if test='msgType.equals("TRKCHS")'>
+						<include refid = "searchTruckAndChassis" />
+					</if>
+					<if test='msgType.equals("DRI")'>
+						<include refid = "searchDriver" />
+					</if>
+					<if test='msgType.equals("TAM")'>
+						<include refid = "searchTruckAssignment" />
+					</if>
+					<if test='msgType.equals("COMOPR")'>
+						<include refid = "searchCompleteOperation" />
+					</if>
+					<if test='msgType.equals("GATEDT")'>
+						<include refid = "searchGateInOutRecive" />
+					</if>
+					<if test='msgType.equals("")'>
+						<include refid = "searchTruckAndChassis" />
+						UNION
+						<include refid = "searchDriver" />
+						UNION
+						<include refid = "searchTruckAssignment" />
+						UNION
+						<include refid = "searchCompleteOperation" />
+						UNION
+						<include refid = "searchGateInOutRecive" />
+					</if>
+				</if>
+				<if test='sysType.equals("HG")'>
+					<if test='msgType.equals("CGI")'>
+						<include refid = "searchCargoInformation" />
+					</if>
+					<if test='msgType.equals("CGWGT")'>
+						<include refid = "searchCargoWeightRecive" />
+					</if>
+					<if test='msgType.equals("")'>
+						<include refid = "searchCargoInformation" />
+						UNION
+						<include refid = "searchCargoWeightRecive" />
+					</if>
+				</if>
+				<if test='sysType.equals("FS")'>
+					<if test='msgType.equals("INV")'>
+						<include refid = "searchInvoice" />
+					</if>
+					<if test='msgType.equals("COM")'>
+						<include refid = "searchCompany" />
+					</if>
+					<if test='msgType.equals("")'>
+						<include refid = "searchInvoice" />
+						UNION
+						<include refid = "searchCompany" />
+					</if>
+				</if>
+				<if test='sysType.equals("WB")'>
+					<if test='msgType.equals("TAM")'>
+						<include refid = "searchWBTruckAssignment" />
+					</if>
+					<if test='msgType.equals("TRKCHS")'>
+						<include refid = "searchWBTruckAndChassic" />
+					</if>
+					<if test='msgType.equals("OPEWGT")'>
+						<include refid = "searchOperationWeightReceive" />
+					</if>
+					<if test='msgType.equals("")'>
+						<include refid = "searchWBTruckAssignment" />
+						UNION
+						<include refid = "searchWBTruckAndChassic" />
+						UNION
+						<include refid = "searchOperationWeightReceive" />
+					</if>
+				</if>
+				<if test='sysType.equals("")'>
+					<include refid = "searchTruckAndChassis" />
+					UNION
+					<include refid = "searchDriver" />
+					UNION
+					<include refid = "searchTruckAssignment" />
+					UNION
+					<include refid = "searchCompleteOperation" />
+					UNION
+					<include refid = "searchCargoInformation" />
+					UNION
+					<include refid = "searchInvoice" />
+					UNION
+					<include refid = "searchCompany" />
+					UNION
+					<include refid = "searchWBTruckAssignment" />
+					UNION
+					<include refid = "searchWBTruckAndChassic" />
+					UNION
+					<include refid = "searchGateInOutRecive" />
+					UNION
+					<include refid = "searchCargoWeightRecive" />
+					UNION
+					<include refid = "searchOperationWeightReceive" />
+				</if>
+			</if>
+			
+			<if test='transType != null or transType != "" '>
+				<choose>
+					<when test='transType.equals("S")'>
+						<if test='sysType.equals("AG")'>
+							<if test='msgType.equals("TRKCHS")'>
+								<include refid = "searchTruckAndChassis" />
+							</if>
+							<if test='msgType.equals("DRI")'>
+								<include refid = "searchDriver" />
+							</if>
+							<if test='msgType.equals("TAM")'>
+								<include refid = "searchTruckAssignment" />
+							</if>
+							<if test='msgType.equals("COMOPR")'>
+								<include refid = "searchCompleteOperation" />
+							</if>
+							<if test='msgType.equals("")'>
+								<include refid = "searchTruckAndChassis" />
+								UNION
+								<include refid = "searchDriver" />
+								UNION
+								<include refid = "searchTruckAssignment" />
+								UNION
+								<include refid = "searchCompleteOperation" />
+							</if>
+						</if>
+						<if test='sysType.equals("HG")'>
+							<if test='msgType.equals("CGI")'>
+								<include refid = "searchCargoInformation" />
+							</if>
+							<if test='msgType.equals("")'>
+								<include refid = "searchCargoInformation" />
+							</if>
+						</if>
+						<if test='sysType.equals("FS")'>
+							<if test='msgType.equals("INV")'>
+								<include refid = "searchInvoice" />
+							</if>
+							<if test='msgType.equals("COM")'>
+								<include refid = "searchCompany" />
+							</if>
+							<if test='msgType.equals("")'>
+								<include refid = "searchInvoice" />
+								UNION
+								<include refid = "searchCompany" />
+							</if>
+						</if>
+						<if test='sysType.equals("WB")'>
+							<if test='msgType.equals("TAM")'>
+								<include refid = "searchWBTruckAssignment" />
+							</if>
+							<if test='msgType.equals("TRKCHS")'>
+								<include refid = "searchWBTruckAndChassic" />
+							</if>
+							<if test='msgType.equals("")'>
+								<include refid = "searchWBTruckAssignment" />
+								UNION
+								<include refid = "searchWBTruckAndChassic" />
+							</if>
+						</if>
+						<if test='sysType.equals("")'>
+							<include refid = "searchTruckAndChassis" />
+							UNION
+							<include refid = "searchDriver" />
+							UNION
+							<include refid = "searchTruckAssignment" />
+							UNION
+							<include refid = "searchCompleteOperation" />
+							UNION
+							<include refid = "searchCargoInformation" />
+							UNION
+							<include refid = "searchInvoice" />
+							UNION
+							<include refid = "searchCompany" />
+							UNION
+							<include refid = "searchWBTruckAssignment" />
+							UNION
+							<include refid = "searchWBTruckAndChassic" />
+						</if>
+					</when>
+
+					<when test='transType.equals("R")'>
+						<if test='sysType.equals("AG")'>
+							<if test='msgType.equals("GATEDT")'>
+								<include refid = "searchGateInOutRecive" />
+							</if>
+							<if test='msgType.equals("")'>
+								<include refid = "searchGateInOutRecive" />
+							</if>
+						</if>
+						<if test='sysType.equals("HG")'>
+							<if test='msgType.equals("CGWGT")'>
+								<include refid = "searchCargoWeightRecive" />
+							</if>
+							<if test='msgType.equals("")'>
+								<include refid = "searchCargoWeightRecive" />
+							</if>
+						</if>
+						<if test='sysType.equals("WB")'>
+							<if test='msgType.equals("OPEWGT")'>
+								<include refid = "searchOperationWeightReceive" />
+							</if>
+							<if test='msgType.equals("")'>
+								<include refid = "searchOperationWeightReceive" />
+							</if>
+						</if>
+						<if test='sysType.equals("")'>
+							<include refid = "searchGateInOutRecive" />
+							UNION
+							<include refid = "searchCargoWeightRecive" />
+							UNION
+							<include refid = "searchOperationWeightReceive" />
+						</if>
+					</when>
+				</choose>
+			</if>
+		) AS sub_query
+	</sql>
+	
+	
+	<sql id="searchPeriod">
+		/* interfaceLog.searchPeriod */
+			AND CONVERT(DATETIME, FORMAT(S.APPLY_DATE, 'dd/MM/yyyy HH:mm'),103)
+				BETWEEN CONVERT(DATETIME, #{fromDate}, 103) 
+					AND CONVERT(DATETIME, #{toDate}, 103)
+	</sql>
+
+	<sql id="searchMsgType">
+		/* interfaceLog.searchMsgType */
+		<if test="msgType != null and msgType != '' ">
+			AND S.MSG_TYPE 										= #{msgType}
+		</if>
+	</sql>
+
+	<sql id="searchStatus">
+		/* interfaceLog.searchStatus */
+		<if test="status != null and status != '' ">
+			AND S.APPLY_STATUS 									= #{status}
+		</if>
+	</sql>
+
+	<sql id="searchMsgLog">
+		/* interfaceLog.searchMsgLog */
+		<if test="request != null and request != '' ">
+			AND L.REQUEST_MSG 									LIKE '%' + #{request} + '%'
+		</if>
+		<if test="response != null and response != '' ">
+			AND L.RESPONSE_MSG 									LIKE '%' + #{response} + '%'
+		</if>
+	</sql>
+	
+	
+	<select id="searchInterfaceLogItems" resultMap="resultInterfaceLogItem" parameterType="interfacelogParm" >
+		<if test="pageNo != 0">
+			SELECT /* interfaceLog.searchInterfaceLogItems */
+				* 
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY APPLY_DATE DESC) AS ROW_NUM,
+					innerTable.*
+				FROM ( 
+		</if>
+		<include refid="searchInterfaceLogItem" />
+		<if test="pageNo != 0">
+				) AS innerTable 
+			) AS innerTable
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<select id="searchInterfaceLogItemsCount" resultType="java.lang.String" parameterType="interfacelogParm" >
+		SELECT /* interfaceLog.searchInterfaceLogItemsCount */
+			COUNT(*) 
+		FROM 
+			(<include refid = "searchInterfaceLogItem" />)		AS TEMPTABLE
+	</select>
+	
+	<!-- SEND -->
+	<sql id="searchTruckAndChassis">
+		SELECT /* interfaceLog.searchTruckAndChassis */
+	        S.TRANSACTION_ID, 
+	        S.MSG_ID, 
+	        S.MSG_TYPE, 
+	        S.CREATE_TIME, 
+			CASE S.APPLY_STATUS
+				WHEN 'Y' THEN 'Success'
+				WHEN 'N' THEN 'Not Send'
+				WHEN 'E' THEN 'Error'
+				WHEN 'F' THEN 'Fail'
+				ELSE S.APPLY_STATUS
+			END 												AS APPLY_STATUS,
+	        S.APPLY_DATE, 
+	        S.ERR_MSG, 
+			ISNULL(S.RETRY, 0) 									AS RETRY,
+	        E.TEXT,
+	        L.REQUEST_MSG,
+	        L.RESPONSE_MSG,
+	        'Send' 												AS TRANS_TYPE
+	    FROM 
+			IF_AG_SEND_MASTER 									S
+		LEFT OUTER JOIN 
+			IF_AG_SEND_TRUCK_CHASSIS 							T 
+		ON 
+			S.MSG_ID 											= T.MESSAGE_ID 
+			AND S.TRANSACTION_ID 								= T.TRANSACTION_ID 
+		LEFT OUTER JOIN 
+			IF_AG_MSG_LOG 										L 
+		ON 
+			S.MSG_ID 											= L.MSG_ID
+		LEFT OUTER JOIN 
+			IF_AG_ERR_LOG 										E 
+		ON
+		 	S.TRANSACTION_ID 									= E.TRANSACTION_ID 
+			AND FORMAT(L.UPDATE_TIME, 'yyyyMMddHHmm') 			= FORMAT(E.ERROR_TIME, 'yyyyMMddHHmm')
+		WHERE 
+			1 = 1
+			AND S.MSG_TYPE IN ('TRK', 'CHS')
+			<include refid = "searchPeriod"/>
+			<include refid = "searchStatus"/>
+			<include refid = "searchMsgLog"/>
+	</sql>
+	
+	<sql id="searchDriver">
+		SELECT /* interfaceLog.searchDriver */
+	        S.TRANSACTION_ID, 
+	        S.MSG_ID, 
+	        S.MSG_TYPE, 
+	        S.CREATE_TIME, 
+			CASE S.APPLY_STATUS
+				WHEN 'Y' THEN 'Success'
+				WHEN 'N' THEN 'Not Send'
+				WHEN 'E' THEN 'Error'
+				WHEN 'F' THEN 'Fail'
+				ELSE S.APPLY_STATUS
+			END 												AS APPLY_STATUS,
+	        S.APPLY_DATE, 
+	        S.ERR_MSG, 
+			ISNULL(S.RETRY, 0) 									AS RETRY,
+	        E.TEXT,
+	        L.REQUEST_MSG,
+	        L.RESPONSE_MSG,
+	        'Send' 												AS TRANS_TYPE
+	    FROM 
+			IF_AG_SEND_MASTER 									S
+		LEFT OUTER JOIN 
+			IF_AG_SEND_DRIVER 									D 
+		ON 
+			S.MSG_ID 											= D.MESSAGE_ID 
+			AND S.TRANSACTION_ID 								= D.TRANSACTION_ID 
+		LEFT OUTER JOIN 
+			IF_AG_MSG_LOG 										L 
+		ON 
+			S.MSG_ID 											= L.MSG_ID
+		LEFT OUTER JOIN 
+			IF_AG_ERR_LOG 										E 
+		ON 
+			S.TRANSACTION_ID 									= E.TRANSACTION_ID 
+			AND FORMAT(L.UPDATE_TIME, 'yyyyMMddHHmm') 			= FORMAT(E.ERROR_TIME, 'yyyyMMddHHmm')
+		WHERE 
+			1 = 1  
+			AND S.MSG_TYPE 										= 'DRI'
+			<include refid = "searchPeriod"/>
+			<include refid = "searchStatus"/>
+			<include refid = "searchMsgLog"/>
+	</sql>
+
+	<sql id="searchTruckAssignment">
+		SELECT /* interfaceLog.searchTruckAssignment */
+			S.TRANSACTION_ID,
+	        S.MSG_ID, 
+	        S.MSG_TYPE, 
+	        S.CREATE_TIME, 
+			CASE S.APPLY_STATUS
+				WHEN 'Y' THEN 'Success'
+				WHEN 'N' THEN 'Not Send'
+				WHEN 'E' THEN 'Error'
+				WHEN 'F' THEN 'Fail'
+				ELSE S.APPLY_STATUS
+			END 												AS APPLY_STATUS,
+	        S.APPLY_DATE, 
+	        S.ERR_MSG, 
+			ISNULL(S.RETRY, 0) 									AS RETRY,
+	        E.TEXT,
+	        L.REQUEST_MSG,
+	        L.RESPONSE_MSG,
+	        'Send' 												AS TRANS_TYPE
+		FROM 
+			IF_AG_SEND_MASTER 									S
+	    LEFT OUTER JOIN 
+			IF_AG_SEND_TRUCK_ASSIGNMENT 						D 
+		ON 
+			S.MSG_ID 											= D.MESSAGE_ID 
+			AND S.TRANSACTION_ID 								= D.TRANSACTION_ID 
+	    LEFT OUTER JOIN 
+			IF_AG_MSG_LOG 										L 
+		ON 
+			S.MSG_ID 											= L.MSG_ID
+	    LEFT OUTER JOIN 
+			IF_AG_ERR_LOG 										E 
+		ON
+			S.TRANSACTION_ID 									= E.TRANSACTION_ID 
+			AND FORMAT(L.UPDATE_TIME, 'yyyyMMddHHmm') 			= FORMAT(E.ERROR_TIME, 'yyyyMMddHHmm')
+		WHERE 
+			1 = 1
+			AND S.MSG_TYPE 										= 'TAM'
+			<include refid = "searchPeriod"/>
+			<include refid = "searchStatus"/>
+			<include refid = "searchMsgLog"/>
+	</sql>
+	<sql id="searchCompleteOperation">
+		SELECT /* interfaceLog.searchCompleteOperation */
+	        S.TRANSACTION_ID, 
+	        S.MSG_ID 											AS msgId, 
+	        S.MSG_TYPE, 
+	        S.CREATE_TIME, 
+	        CASE S.APPLY_STATUS
+				WHEN 'Y' THEN 'Success'
+				WHEN 'N' THEN 'Not Send'
+				WHEN 'E' THEN 'Error'
+				WHEN 'F' THEN 'Fail'
+				ELSE S.APPLY_STATUS
+			END 												AS APPLY_STATUS,
+	        S.APPLY_DATE, 
+	        S.ERR_MSG, 
+			ISNULL(S.RETRY, 0) 									AS RETRY,
+	        E.TEXT,
+	        L.REQUEST_MSG,
+	        L.RESPONSE_MSG,
+	        'Send' 												AS TRANS_TYPE
+		FROM 
+			IF_AG_SEND_MASTER 									S
+		LEFT OUTER JOIN 
+			IF_AG_SEND_COMPLETE_OPE 							D 
+		ON 
+			S.MSG_ID 											= D.MESSAGE_ID 
+		LEFT OUTER JOIN 
+			IF_AG_MSG_LOG 										L 
+		ON 
+			S.MSG_ID 											= L.MSG_ID
+		LEFT OUTER JOIN 
+			IF_AG_ERR_LOG 										E 
+		ON 
+			S.TRANSACTION_ID 									= E.TRANSACTION_ID 
+			AND FORMAT(L.UPDATE_TIME, 'yyyyMMddHHmm') 			= FORMAT(E.ERROR_TIME, 'yyyyMMddHHmm')
+		WHERE 
+			1 = 1
+			AND S.MSG_TYPE 										= 'COP'
+			<include refid = "searchPeriod"/>
+			<include refid = "searchStatus"/>
+			<include refid = "searchMsgLog"/>
+	</sql>
+	
+	<sql id="searchCargoInformation">
+		SELECT /* interfaceLog.searchCargoInformation */
+	        S.TRANSACTION_ID, 
+	        S.MSG_ID, 
+	        S.MSG_TYPE, 
+	        S.CREATE_TIME, 
+	        CASE S.APPLY_STATUS
+				WHEN 'Y' THEN 'Success'
+				WHEN 'N' THEN 'Not Send'
+				WHEN 'E' THEN 'Error'
+				WHEN 'F' THEN 'Fail'
+				ELSE S.APPLY_STATUS
+			END 												AS APPLY_STATUS,
+	        S.APPLY_DATE,
+	        S.ERR_MSG, 
+			ISNULL(S.RETRY, 0) 									AS RETRY,
+	        E.TEXT,
+	        L.REQUEST_MSG,
+	        L.RESPONSE_MSG,
+	        'Send' 												AS TRANS_TYPE
+		FROM 
+			IF_HG_SEND_MASTER 									S
+	    LEFT OUTER JOIN 
+			IF_HG_SEND_CG_INFO 									C 
+		ON
+		 	S.MSG_ID 											= C.MESSAGE_ID 
+			AND S.TRANSACTION_ID 								= C.TRANSACTION_ID
+	    LEFT OUTER JOIN 
+			IF_HG_MSG_LOG 										L 
+				ON S.MSG_ID 									= L.MSG_ID
+	    LEFT OUTER JOIN 
+			IF_HG_ERR_LOG 										E 
+		ON 
+			S.TRANSACTION_ID 									= E.TRANSACTION_ID
+			AND FORMAT(L.UPDATE_TIME, 'yyyyMMddHHmm') 			= FORMAT(E.ERROR_TIME, 'yyyyMMddHHmm')
+		WHERE 1 = 1
+			AND S.MSG_TYPE 										IN ('CGI')
+			<include refid = "searchPeriod"/>
+			<include refid = "searchStatus"/>
+			<include refid = "searchMsgLog"/>
+	</sql>
+	
+	<sql id="searchInvoice">
+		SELECT /* interfaceLog.searchInvoice */
+			S.TRANSACTION_ID, 
+			S.MSG_ID, 
+			S.MSG_TYPE, 
+			S.CREATE_TIME, 
+			CASE S.APPLY_STATUS
+				WHEN 'Y' THEN 'Success'
+				WHEN 'N' THEN 'Not Send'
+				WHEN 'E' THEN 'Error'
+				WHEN 'F' THEN 'Fail'
+				ELSE S.APPLY_STATUS
+			END 												AS APPLY_STATUS,
+			S.APPLY_DATE, 
+			S.ERR_MSG, 
+			ISNULL(S.RETRY, 0) 									AS RETRY,
+			E.TEXT,
+			L.REQUEST_MSG,
+			L.RESPONSE_MSG,
+			'Send' 												AS TRANS_TYPE
+		FROM 
+			IF_FAST_SEND_MASTER 									S
+	    LEFT OUTER JOIN 
+			IF_FAST_SEND_INVOICE 								I 
+				ON S.MSG_ID 									= I.MESSAGE_ID 
+				AND S.TRANSACTION_ID 							= I.TRANSACTION_ID
+	    LEFT OUTER JOIN 
+			IF_FAST_MSG_LOG 									L 
+				ON S.MSG_ID 									= L.MSG_ID
+	    LEFT OUTER JOIN 
+			IF_FAST_ERR_LOG 									E 
+				ON S.TRANSACTION_ID 							= E.TRANSACTION_ID 
+				AND FORMAT(L.UPDATE_TIME, 'yyyyMMddHHmm') 		= FORMAT(E.ERROR_TIME, 'yyyyMMddHHmm')
+		WHERE 
+			1 = 1
+			AND S.MSG_TYPE 										IN ('INV')
+			<include refid = "searchPeriod"/>
+			<include refid = "searchStatus"/>
+			<include refid = "searchMsgLog"/>
+	</sql>
+
+	<sql id="searchCompany">
+		SELECT /* interfaceLog.searchCompany */
+			S.TRANSACTION_ID, 
+			S.MSG_ID, 
+			S.MSG_TYPE, 
+			S.CREATE_TIME, 
+			CASE S.APPLY_STATUS
+				WHEN 'Y' THEN 'Success'
+				WHEN 'N' THEN 'Not Send'
+				WHEN 'E' THEN 'Error'
+				WHEN 'F' THEN 'Fail'
+				ELSE S.APPLY_STATUS
+			END 												AS APPLY_STATUS,
+			S.APPLY_DATE, 
+			S.ERR_MSG, 
+			ISNULL(S.RETRY, 0) 									AS RETRY,
+			E.TEXT,
+			L.REQUEST_MSG,
+			L.RESPONSE_MSG,
+			'Send' 												AS TRANS_TYPE
+		FROM 
+			IF_FAST_SEND_MASTER 								S
+	    LEFT OUTER JOIN 
+			IF_FAST_SEND_COMPANY 								C 
+		ON 
+			S.MSG_ID 											= C.MESSAGE_ID 
+			AND S.TRANSACTION_ID 								= C.TRANSACTION_ID
+	    LEFT OUTER JOIN 
+			IF_FAST_MSG_LOG 									L 
+		ON 
+			S.MSG_ID	 										= L.MSG_ID
+	    LEFT OUTER JOIN 
+			IF_FAST_ERR_LOG 									E 
+		ON
+				S.TRANSACTION_ID 								= E.TRANSACTION_ID 
+				AND FORMAT(L.UPDATE_TIME, 'yyyyMMddHHmm') 		= FORMAT(E.ERROR_TIME, 'yyyyMMddHHmm')
+		WHERE 1=1
+			AND S.MSG_TYPE 										IN ('COM')
+			<include refid = "searchPeriod"/>
+			<include refid = "searchStatus"/>
+			<include refid = "searchMsgLog"/>
+	</sql>
+	
+	<sql id="searchWBTruckAssignment">
+		SELECT /* interfaceLog.searchWBTruckAssignment */
+			S.TRANSACTION_ID, 
+			S.MSG_ID, 
+			S.MSG_TYPE, 
+			S.CREATE_TIME, 
+			CASE S.APPLY_STATUS
+				WHEN 'Y' THEN 'Success'
+				WHEN 'N' THEN 'Not Send'
+				WHEN 'E' THEN 'Error'
+				WHEN 'F' THEN 'Fail'
+				ELSE S.APPLY_STATUS
+			END 												AS APPLY_STATUS,
+			S.APPLY_DATE, 
+			S.ERR_MSG, 
+			ISNULL(S.RETRY, 0) 									AS RETRY,
+			E.TEXT,
+			L.REQUEST_MSG,
+			L.RESPONSE_MSG,
+			'Send' 												AS TRANS_TYPE
+		FROM 
+			IF_WB_SEND_MASTER 									S
+	    LEFT OUTER JOIN 
+			IF_WB_SEND_TRUCK_ASSIGNMENT							D 
+		ON 
+			S.MSG_ID 											= D.MESSAGE_ID 
+			AND S.TRANSACTION_ID 								= D.TRANSACTION_ID
+	    LEFT OUTER JOIN 
+			IF_WB_MSG_LOG 										L 
+		ON 
+			S.MSG_ID 											= L.MSG_ID
+	    LEFT OUTER JOIN 
+			IF_WB_ERR_LOG 										E 
+		ON 
+			S.TRANSACTION_ID 									= E.TRANSACTION_ID 
+			AND FORMAT(L.UPDATE_TIME, 'yyyyMMddHHmm') 			= FORMAT(E.ERROR_TIME, 'yyyyMMddHHmm')
+		WHERE
+			1 = 1
+	        AND S.MSG_TYPE 										= 'TAM'
+			<include refid = "searchPeriod"/>
+			<include refid = "searchStatus"/>
+			<include refid = "searchMsgLog"/>
+	</sql>
+	<sql id="searchWBTruckAndChassic">
+		SELECT /* interfaceLog.searchWBTruckAndChassic */
+			S.TRANSACTION_ID, 
+			S.MSG_ID, 
+			S.MSG_TYPE, 
+			S.CREATE_TIME, 
+			CASE S.APPLY_STATUS
+				WHEN 'Y' THEN 'Success'
+				WHEN 'N' THEN 'Not Send'
+				WHEN 'E' THEN 'Error'
+				WHEN 'F' THEN 'Fail'
+				ELSE S.APPLY_STATUS
+			END 												AS APPLY_STATUS,
+			S.APPLY_DATE, 
+			S.ERR_MSG, 
+			ISNULL(S.RETRY, 0) 									AS RETRY,
+			E.TEXT,
+			L.REQUEST_MSG,
+			L.RESPONSE_MSG,
+			'Send' 												AS TRANS_TYPE
+		FROM 
+			IF_WB_SEND_MASTER 									S
+		LEFT OUTER JOIN 
+			IF_WB_SEND_TRUCK_CHASSIS 							T 
+		ON 
+			S.MSG_ID 											= T.MESSAGE_ID 
+			AND S.TRANSACTION_ID 								= T.TRANSACTION_ID
+		LEFT OUTER JOIN 
+			IF_WB_MSG_LOG										L 
+				ON S.MSG_ID 									= L.MSG_ID
+		LEFT OUTER JOIN 
+			IF_WB_ERR_LOG 										E 
+				ON S.TRANSACTION_ID 							= E.TRANSACTION_ID 
+				AND FORMAT(L.UPDATE_TIME, 'yyyyMMddHHmm') 		= FORMAT(E.ERROR_TIME, 'yyyyMMddHHmm')
+		WHERE 
+			1 = 1
+	        AND S.MSG_TYPE 										IN ('TRK', 'CHS')
+			<include refid = "searchPeriod"/>
+			<include refid = "searchStatus"/>
+			<include refid = "searchMsgLog"/>
+	</sql>
+	
+	<!-- RECEIVE -->
+	<sql id="searchCargoWeightRecive">
+		SELECT /* interfaceLog.searchCargoWeightRecive */
+	        S.TRANSACTION_ID, 
+	        S.MSG_ID, 
+	        S.MSG_TYPE, 
+	        S.CREATE_TIME, 
+			CASE S.APPLY_STATUS
+				WHEN 'S' THEN 'Success'
+				WHEN 'E' THEN 'Error'
+				ELSE S.APPLY_STATUS
+			END													AS APPLY_STATUS,
+	        S.APPLY_DATE, 
+	        S.ERR_MSG, 
+			ISNULL(S.RETRY, 0) 									AS RETRY,
+	        E.TEXT,
+	        L.REQUEST_MSG,
+	        L.RESPONSE_MSG,
+	        'Received' 											AS TRANS_TYPE
+		FROM 
+			IF_HG_RECV_MASTER 									S
+		LEFT OUTER JOIN 
+			IF_HG_SEND_CG_INFO 									C 
+				ON S.MSG_ID 									= C.MESSAGE_ID 
+				AND S.TRANSACTION_ID 							= C.TRANSACTION_ID
+		LEFT OUTER JOIN 
+			IF_HG_MSG_LOG 										L 
+				ON S.MSG_ID 									= L.MSG_ID
+		LEFT OUTER JOIN 
+			IF_HG_ERR_LOG 										E 
+				ON S.TRANSACTION_ID 							= E.TRANSACTION_ID
+		WHERE 
+			1 = 1
+			AND S.MSG_TYPE 										IN ('WGT')
+			<include refid = "searchPeriod"/>
+			<include refid = "searchStatus"/>
+			<include refid = "searchMsgLog"/>
+	</sql>
+	
+	<sql id="searchOperationWeightReceive">
+		SELECT /* interfaceLog.searchOperationWeightReceive */
+			S.TRANSACTION_ID,
+			S.MSG_ID,
+			S.MSG_TYPE,
+			S.CREATE_TIME,
+			CASE S.APPLY_STATUS
+				WHEN 'S' THEN 'Success'
+				WHEN 'E' THEN 'Error'
+				ELSE S.APPLY_STATUS
+			END													AS APPLY_STATUS,
+			S.APPLY_DATE,
+			S.ERR_MSG,
+			S.RETRY,
+			E.TEXT,
+			L.REQUEST_MSG,
+			L.RESPONSE_MSG,
+			'Received' 											AS TRANS_TYPE
+		FROM 
+			IF_WB_RECV_MASTER 									S
+		LEFT OUTER JOIN 
+			IF_WB_ERR_LOG E 
+				ON S.TRANSACTION_ID 							= E.TRANSACTION_ID
+		LEFT OUTER JOIN 
+			IF_WB_MSG_LOG L 
+				ON S.MSG_ID 									= L.MSG_ID
+		WHERE 
+			1 = 1
+			<include refid = "searchPeriod"/>
+			<include refid = "searchStatus"/>
+			<include refid = "searchMsgLog"/>
+	</sql>
+	
+	<sql id="searchGateInOutRecive">
+		SELECT /* interfaceLog.searchGateInOutRecive */
+			S.TRANSACTION_ID,
+			S.MSG_ID,
+			S.MSG_TYPE,
+			S.CREATE_TIME,
+			CASE S.APPLY_STATUS
+				WHEN 'S' THEN 'Success'
+				WHEN 'E' THEN 'Error'
+				ELSE S.APPLY_STATUS
+			END													AS APPLY_STATUS,
+			S.APPLY_DATE,
+			S.ERR_MSG,
+			S.RETRY,
+			E.TEXT,
+			L.REQUEST_MSG,
+			L.RESPONSE_MSG,
+			'Received' 											AS TRANS_TYPE
+		FROM 
+			IF_AG_RECV_MASTER 									S
+		LEFT OUTER JOIN 
+			IF_AG_ERR_LOG E 
+				ON S.TRANSACTION_ID 							= E.TRANSACTION_ID
+		LEFT OUTER JOIN 
+			IF_AG_MSG_LOG 										L 
+				ON S.MSG_ID 									= L.MSG_ID
+		WHERE 
+			1 = 1
+			<include refid = "searchPeriod"/>
+			<include refid = "searchStatus"/>
+			<include refid = "searchMsgLog"/>
+	</sql>
+	
+	<update id="updateInterfaceLogAGItems" parameterType="interfacelogItem">
+		BEGIN /* interfaceLog.updateInterfaceLogAGItems */
+			DELETE 
+			FROM 
+				IF_AG_MSG_LOG 
+			WHERE	
+				MSG_ID 											= #{msgId};
+			
+			UPDATE 
+				IF_AG_SEND_MASTER 
+			SET 
+				APPLY_STATUS 									= 'N',
+				ERR_MSG 										= NULL,
+				RETRY 											= '0'
+			WHERE 
+				TRANSACTION_ID 									= #{transactionId} 
+				AND MSG_ID 										= #{msgId};
+		END;
+	</update>
+	
+	<update id="updateInterfaceLogWBItems" parameterType="interfacelogItem">
+		BEGIN /* interfaceLog.updateInterfaceLogAGItems */
+			DELETE 
+			FROM 
+				IF_WB_MSG_LOG 
+			WHERE	
+				MSG_ID 											= #{msgId};
+			
+			UPDATE 
+				IF_WB_SEND_MASTER 
+			SET 
+				APPLY_STATUS 									= 'N',
+				ERR_MSG 										= NULL,
+				RETRY 											= '0'
+			WHERE 
+				TRANSACTION_ID 									= #{transactionId} 
+				AND MSG_ID 										= #{msgId};
+		END;
+	</update>
+	
+	<update id="updateInterfaceLogHGItems" parameterType="interfacelogItem">
+		BEGIN /* interfaceLog.updateInterfaceLogAGItems */
+			DELETE 
+			FROM 
+				IF_HG_MSG_LOG 
+			WHERE	
+				MSG_ID 											= #{msgId};
+			
+			UPDATE 
+				IF_HG_SEND_MASTER 
+			SET 
+				APPLY_STATUS 									= 'N',
+				ERR_MSG 										= NULL,
+				RETRY 											= '0'
+			WHERE 
+				TRANSACTION_ID 									= #{transactionId} 
+				AND MSG_ID 										= #{msgId};
+		END;
+	</update>
+	
+	<update id="updateInterfaceLogFASTItems" parameterType="interfacelogItem">
+		BEGIN /* interfaceLog.updateInterfaceLogAGItems */
+			DELETE 
+			FROM 
+				IF_FAST_MSG_LOG 
+			WHERE 
+				MSG_ID 											= #{msgId};
+			
+			UPDATE 
+				IF_FAST_SEND_MASTER 
+			SET 
+				APPLY_STATUS 									= 'N',
+				ERR_MSG 										= NULL,
+				RETRY 											= '0'
+			WHERE 
+				TRANSACTION_ID 									= #{transactionId} 
+				AND MSG_ID 										= #{msgId};
+		END;
+	</update>
+	
+</mapper>

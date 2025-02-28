@@ -1,0 +1,239 @@
+Ext.define('MOST.view.planning.SpaceMovementPlanModel', {
+	extend: 'MOST.view.foundation.BaseViewModel',
+
+	alias: 'viewmodel.spacemovementplan',
+
+	requires: [
+		'Ext.data.proxy.Rest',
+		'MOST.model.planning.SpaceMovementPlan'
+	],
+
+	stores: {
+		spaceMovementPlan: {
+			model: 'MOST.model.planning.SpaceMovementPlan',
+			storeId: 'spaceMovementPlanStore',
+			pageSize:CommonConstants.PAGE_SIZE,
+			proxy: {
+				type: 'rest',
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/spacemovementplan/list'
+			}
+		},
+		
+		spaceMovementPlanDetail: {
+			model: 'MOST.model.planning.SpaceMovementPlan',
+			storeId: 'spaceMovementPlanDetailStore',
+			proxy: {
+				type: 'rest',
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/spacemovementplan/spcmovementplandetail'
+			}
+		},
+
+		roroYardPlanCargoItems: {
+			model: 'MOST.model.planning.RoRoYardPlan',
+			storeId: 'roroYardPlanUnitItemsStore',
+			proxy: {
+				type: 'rest',
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/roroyardplan/unitlist'
+			}
+		},
+		
+		warehouseDefinitionList: {
+			model: 'MOST.model.configuration.WarehouseDefinition',
+			storeId: 'warehouseDefinitionGridStore',
+			pageSize: CommonConstants.PAGE_SIZE,
+			autoLoad: true,
+			proxy: {
+				type: 'rest',
+				extraParams: {
+					locDivCd: CodeConstants.MT_LOCDIV1_WHO
+				},
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/warehouse/list'
+			}
+		},
+		
+		unitNosList: {
+			model: 'MOST.model.planning.RoRoYardPlan',
+			id: 'unitNosListStore',
+			pageSize:CommonConstants.PAGE_SIZE,
+			autoLoad:false,
+			proxy : {
+				type : 'rest',
+				url : MOST.config.Locale.getRestApiDestUrl() + '/v1/roroyardplan/unitlist'
+			}
+		},
+		
+		// ======================================================
+		// Combo Start
+		spaceMovementRequestTypeCombo : {},
+		
+		spaceMovementRequestTypeExtraCombo : {},
+		
+		locationCombo:{
+			storeId: 'locationComboStore',
+			proxy:{
+				type: 'rest',
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/combobox/codeMaster',
+				extraParams:{
+					searchType: ComboboxServiceConstants.COMBO_WAREHOUSE_LOC,
+					locDivCd: CodeConstants.MT_LOCDIV1_WHO
+				}
+			}
+		},
+
+		masterBLCombo: {
+			model: 'MOST.model.combobox.ComboBoxService',
+			storeId: 'masterBLComboStore',
+			proxy: {
+				type: 'rest',
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/combobox/codeMaster',
+				extraParams:{
+					searchType: ComboboxServiceConstants.COMBO_MBL_NO
+				}
+			}
+		},
+
+		bookingNoCombo: {
+			model: 'MOST.model.combobox.ComboBoxService',
+			storeId: 'bookingNoComboStore',
+			proxy: {
+				type: 'rest',
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/combobox/codeMaster',
+				extraParams:{
+					searchType: ComboboxServiceConstants.COMBO_BOOKING_NO
+				}
+			}
+		},
+
+		commodityGroupCombo: {
+			model: 'MOST.model.planning.SpaceMovementPlan',
+			storeId: 'commodityGroupComboStore',
+			proxy: {
+				type: 'rest',
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/spacemovementplan/multiplesearchfiltercombo'
+			}
+		},
+
+		podCombo: {
+			model: 'MOST.model.planning.SpaceMovementPlan',
+			storeId: 'podComboStore',
+			proxy: {
+				type: 'rest',
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/spacemovementplan/multiplesearchfiltercombo'
+			}
+		},
+
+		cngShpCombo: {
+			model: 'MOST.model.planning.SpaceMovementPlan',
+			storeId: 'cngShpComboStore',
+			proxy: {
+				type: 'rest',
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/spacemovementplan/multiplesearchfiltercombo'
+			}
+		},
+		
+		blCombo: {
+			model: 'MOST.model.combobox.ComboBoxService',
+			storeId: 'blComboStore',
+			proxy: {
+				type: 'rest',
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/combobox/codeMaster',
+				extraParams:{
+					searchType: ComboboxServiceConstants.COMBO_BL_NO
+				}				
+			}
+		},
+		
+		snCombo: {
+			model: 'MOST.model.combobox.ComboBoxService',
+			storeId: 'snComboStore',
+			proxy: {
+				type: 'rest',
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/combobox/codeMaster',
+				extraParams:{
+					searchType: ComboboxServiceConstants.COMBO_SN_NO
+				}
+			}
+		},
+		
+		grJpvcCombo: {
+			model: 'MOST.model.planning.SpaceMovementPlan',
+			storeId: 'grJpvcComboStore',
+			proxy: {
+				type: 'rest',
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/spacemovementplan/gr'
+			}
+		},
+		
+		grNonJpvcCombo: {
+			model: 'MOST.model.planning.SpaceMovementPlan',
+			storeId: 'grNonJpvcComboStore',
+			proxy: {
+				type: 'rest',
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/spacemovementplan/gr'
+			}
+		},
+		// Combo End
+		cargoInformationStore: {
+			model: 'MOST.model.planning.SpaceMovementPlan',
+			storeId: 'cargoInformationStore',
+			proxy: {
+				type: 'rest',
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/spacemovementplan/cargoinfo'
+			}
+		},
+		// ======================================================
+		
+		// ======================================================
+		// Combo Start
+		spaceMovementPlanForReqTypeCombo : {},
+		
+		spaceMovementPlanForStatusCombo : {},
+		
+		warehouseViewCombo: {
+			model: 'MOST.model.combobox.ComboBoxService',
+			storeId: 'warehouseViewComboStore',
+			proxy: {
+				type: 'rest',
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/combobox/codeMaster',
+				extraParams:{
+					searchType: ComboboxServiceConstants.COMBO_WAREHOUSE_LOC,
+					locDivCd: CodeConstants.MT_LOCDIV1_WHO
+				}				
+			}
+		},
+		
+		planLocationCombo: {
+			model: 'MOST.model.combobox.ComboBoxService',
+			storeId: 'planLocationComboStore',
+			proxy: {
+				type: 'rest',
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/combobox/codeMaster',
+				extraParams:{
+					searchType: ComboboxServiceConstants.COMBO_PLAN_LOC_ID
+				}				
+			}
+		},
+		
+		
+		goodsReceiptCombo: {
+			model: 'MOST.model.combobox.ComboBoxService',
+			storeId: 'goodsReceiptComboStore',
+			proxy: {
+				type: 'rest',
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/combobox/codeMaster'
+			}
+		},
+		
+		subDoCombo: {
+			model: 'MOST.model.combobox.ComboBoxService',
+			storeId: 'subDoComboStore',
+			proxy: {
+				type: 'rest',
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/combobox/codeMaster'
+			}
+		}
+	
+		// Combo End
+		// ======================================================
+	}
+});

@@ -1,0 +1,486 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="shiftRequest">
+	<select id="selectShiftRequestList" parameterType="SearchShiftRequestParm" resultType="ShiftRequestItem">
+		SELECT /* shiftrequest.selectShiftRequestList */
+			A.VSL_CALL_ID										AS vslCallId,
+			A.SEQ												AS seq,
+			ISNULL(A.NX_BERTH_NO,' ')							AS nxBerthNo,
+			(SELECT 
+				BERTH_NM 
+			FROM 
+				TMT_BERTH_LOC 
+			WHERE 
+				BERTH_CD 					= A.NX_BERTH_NO
+			) 													AS nxBerthNm,
+			ISNULL(A.PREV_BERTH_NO, B.BERTH_LOC)              	AS prevBerthNo,
+			(SELECT 
+				BERTH_NM 
+			FROM 
+				TMT_BERTH_LOC 
+			WHERE 
+				BERTH_CD = ISNULL(A.PREV_BERTH_NO, B.BERTH_LOC)
+			) 													AS prevBerthNm,
+			A.ETB_DT											AS etbDt,
+			A.ETU_DT											AS etuDt,
+			ISNULL(
+				FORMAT(A.PREV_ATB_DT, 'dd/MM/yyy HH:mm'),
+				FORMAT(
+					dbo.F_GET_CUR_ATB(A.VSL_CALL_ID), 
+					'dd/MM/yyy HH:mm'
+				)
+			)            										AS atbDt,
+			A.ATU_DT											AS atuDt,
+			A.WHARF_MARK_FM										AS wharfMarkFm,
+			A.WHARF_MARK_TO										AS wharfMarkTo,
+			ISNULL(A.REQR,' ')									AS reqr,
+			ISNULL(A.RSN_CD,' ')								AS rsnCd,
+			ISNULL(A.SHFT_TP_CD,' ')							AS shftTpCd,
+			ISNULL(A.SHFT_STAT_CD,' ')							AS shftStatCd,
+			ISNULL(A.RMK,' ')									AS rmk,
+			FORMAT(A.SUMIT_DT, 'dd/MM/yyy HH:mm')       		AS submitDt,
+			A.SUMIT_BY                                    		AS submitBy,
+			FORMAT(A.APPRV_DT, 'dd/MM/yyy HH:mm')   			AS apprvDt,
+			A.APPRV_BY                        					AS apprvBy,
+			FORMAT(A.REQ_DT, 'dd/MM/yyy HH:mm')            		AS reqDt,    
+			B.ETA                            					AS eta,
+			ISNULL(B.ARRV_SA_ID,B.DEPR_SA_ID)     				AS sa, 
+			CASE A.BERTH_ALONGSIDE
+				WHEN 'P' THEN 'PS'
+				WHEN 'S' THEN 'SB'
+				ELSE A.BERTH_ALONGSIDE
+			END 												AS berthAlongSide , 
+			dbo.F_CM_CODE_NM(
+				'MT', 
+				'SHFPST', 
+				CASE A.BERTH_ALONGSIDE
+					WHEN 'P' THEN 'PS'
+					WHEN 'S' THEN 'SB'
+					ELSE A.BERTH_ALONGSIDE
+				END 
+			)     												AS berthAlongSideNm ,           
+			CASE
+				WHEN 
+					A.NX_BERTH_NO IS NOT NULL 
+					AND A.NX_BERTH_NO <![CDATA[<>]]> ''
+						THEN C.PST_STA
+				ELSE D.PST_STA
+			END 												AS markStart,
+			CASE
+				WHEN 
+					A.NX_BERTH_NO IS NOT NULL 
+					AND A.NX_BERTH_NO <![CDATA[<>]]> ''
+						THEN C.PST_END
+				ELSE D.PST_END
+			END 												AS markEnd ,
+			A.STAT_CD 											AS statCd
+		FROM 
+			TMT_VSL_SHFT 										A 
+		LEFT OUTER JOIN
+			TMT_BERTH_LOC 										C
+				ON A.NX_BERTH_NO								= C.BERTH_CD,
+			TMT_VSL_SCH 										B
+		LEFT OUTER JOIN
+			TMT_BERTH_LOC 										D
+				ON B.BERTH_LOC 									= D.BERTH_CD, 	
+			TMT_VSL_PART 										E
+		WHERE 
+			A.VSL_CALL_ID 										= B.VSL_CALL_ID		 		
+			AND B.VSL_CD 										= E.VSL_CD
+			AND C.LOC_CD 										= 'BBT'
+			AND A.MSS_STAT_CD 									= 'AP'
+			<if  test="alertYn eq 'Y'.toString()">
+			   AND A.STAT_CD 									IS NULL
+			   AND DATEDIFF(DAY, SYSDATETIME(), A.REQ_DT) 		<![CDATA[<=]]> 180
+			</if>
+			<if test="scn != null and scn != ''">
+				AND A.SHIP_CALL_NO 								= #{scn}
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+				AND A.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test="dtType == 'ATB'">
+				<if test="fromDt != null and fromDt != ''">
+					AND <![CDATA[ B.ATB 						>=  CONVERT(DATETIME, #{fromDt}, 103)]]>
+				</if>
+				<if test="toDt != null and toDt != ''">	
+					AND <![CDATA[ B.ATB 						<= DATEADD(DAY, 1, CONVERT(DATETIME, #{toDt}, 103))]]>
+				</if>
+			</if>
+			<if test="dtType == 'ETB'">
+				<if test="fromDt != null and fromDt != ''">
+					AND <![CDATA[ B.ETB 						>= CONVERT(DATETIME, #{fromDt}, 103)]]>
+				</if>
+				<if test="toDt != null and toDt != ''">	
+					AND <![CDATA[ B.ETB 						<= DATEADD(DAY, 1, CONVERT(DATETIME, #{toDt}, 103))]]>
+				</if>
+			</if>
+			<if test="ptnrCd != null and ptnrCd != ''"> 	
+					<if test="authority == 'SHA'">
+						AND E.SA_CORP_ID 						= #{ptnrCd}
+					</if>
+			</if>
+ 		ORDER BY 
+			A.VSL_CALL_ID,
+			FORMAT(B.ETA, 'yyyyMMdd'),
+			ISNULL(B.ARRV_SA_ID, B.DEPR_SA_ID),
+			FORMAT(A.REQ_DT, 'yyyyMMdd')
+	</select>
+
+	<insert id="insertShiftRequestItems"  parameterType="ShiftRequestItem">
+		INSERT /* shiftrequest.insertShiftRequestItems */
+		INTO TMT_VSL_SHFT (  
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			VSL_CALL_ID,
+			SEQ,
+			NX_BERTH_NO,
+			PREV_BERTH_NO,
+			ETB_DT,
+			ETU_DT,
+			ATB_DT,
+			ATU_DT,			
+			WHARF_MARK_FM,
+			WHARF_MARK_TO,
+			REQR,
+			RSN_CD,
+			SHFT_TP_CD,
+			SHFT_STAT_CD,
+			RMK,
+			SUMIT_DT,
+			SUMIT_BY,
+			APPRV_DT,
+			APPRV_BY,			
+			STAFF_CD,
+			UPDATE_TIME,
+			VERSION,
+			REQ_DT,
+			BERTH_ALONGSIDE
+		) VALUES (
+			#{vslCd},
+			#{callYear},
+			#{callSeq}.
+			#{vslCallId},
+			(SELECT 
+				(ISNULL(MAX(SEQ), 0) + 1) 
+			FROM 
+				TMT_VSL_SHFT 				A  
+			WHERE 
+				A.VSL_CALL_ID 				= #{vslCallId}
+			) 
+			#{nxBerthNo},
+			#{prevBerthNo},
+			CASE
+				WHEN #{etbDt} = '' OR #{etbDt} IS NULL THEN NULL
+				ELSE CONVERT(DATETIME, #{etbDt}, 103)
+			END,
+			CASE
+				WHEN #{etuDt} = '' OR #{etuDt} IS NULL THEN NULL
+				ELSE CONVERT(DATETIME, #{etuDt}, 103)
+			END,
+			CASE
+				WHEN #{atbDt} = '' OR #{atbDt} IS NULL THEN NULL
+				ELSE CONVERT(DATETIME, #{atbDt}, 103)
+			END,
+			CASE
+				WHEN #{atuDt} = '' OR #{atuDt} IS NULL THEN NULL
+				ELSE CONVERT(DATETIME, #{atuDt}, 103)
+			END,
+			CASE
+				WHEN #{wharfMarkFm} = '' OR #{wharfMarkFm} IS NULL THEN NULL
+				ELSE TRY_CONVERT(NUMERIC(15, 3) , #{wharfMarkFm})
+			END,
+			CASE
+				WHEN #{wharfMarkTo} = '' OR #{wharfMarkTo} IS NULL THEN NULL
+				ELSE TRY_CONVERT(NUMERIC(15, 3) , #{wharfMarkTo})
+			END,
+			#{reqr},
+			#{rsnCd},
+			#{shftTpCd},
+			#{shftStatCd},
+			#{rmk},
+			CASE
+				WHEN #{submitDt} = '' OR #{submitDt} IS NULL THEN NULL
+				ELSE CONVERT(DATETIME, #{submitDt}, 103)
+			END,
+			CASE
+				WHEN #{apprvDt} = '' OR #{apprvDt} IS NULL THEN NULL
+				ELSE CONVERT(DATETIME, #{apprvDt}, 103)
+			END,
+			
+			#{userId},
+			SYSDATETIME(), 
+			#{version},
+			CASE
+				WHEN #{reqDt} = '' OR #{reqDt} IS NULL THEN NULL
+				ELSE CONVERT(DATETIME, #{reqDt}, 103)
+			END,
+			#{berthAlongSide}
+		)
+	</insert>			
+	<update id="updateShiftRequestItems"  parameterType="ShiftRequestItem">
+		UPDATE /* shiftrequest."updateShiftRequestItems" */
+			TMT_VSL_SHFT 
+		SET 	
+			STAFF_CD  											= #{userId},	
+			REQR												= #{reqr},
+			REQ_DT												= 	(CASE
+																		WHEN #{reqDt} IS NULL OR #{reqDt} = ''
+																			THEN NULL 
+																		ELSE CONVERT(DATETIME, #{reqDt}, 103)
+																	END),
+			RMK													= #{rmk},
+			RSN_CD 												= #{rsnCd},
+			PREV_BERTH_NO										= #{prevBerthNo},
+			NX_BERTH_NO											= #{nxBerthNo},
+			BERTH_ALONGSIDE										= #{berthAlongSide},
+<!--			WHARF_MARK_FM										= #{wharfMarkFm},-->
+<!--			WHARF_MARK_TO										= #{wharfMarkTo},-->
+			SUMIT_BY											= #{submitBy},
+			<if test="statCd != null and statCd != ''">
+				STAT_CD											= #{statCd},
+				APPRV_DT										=  SYSDATETIME(),
+				APPRV_BY										=  #{apprvBy},		
+			</if>
+			UPDATE_TIME  										= SYSDATETIME()
+		WHERE	
+			VSL_CALL_ID 										= #{vslCallId} 
+			AND SEQ												= #{seq}
+	</update>
+
+	<update id="deleteShiftRequestItems"  parameterType="ShiftRequestItem">
+		DELETE /* shiftrequest.deleteShiftRequestItems */
+		FROM	
+			TMT_VSL_SHFT		   
+		WHERE	
+			VSL_CALL_ID 										= #{vslCallId} 
+			AND SEQ												= #{seq}
+	</update>	
+	
+	<select id="selectVesselShiftingNoticeItemForReport" parameterType="SearchShiftRequestParm" resultType="ShiftRequestItem">
+		SELECT /* shiftrequest.selectVesselShiftingNoticeItemForReport */
+			A.VSL_CALL_ID										AS vslCallId,
+			A.SEQ												AS seq,
+			ISNULL(A.NX_BERTH_NO,' ')							AS nxBerthNo,
+			(SELECT 
+				BERTH_NM 
+			FROM 
+				TMT_BERTH_LOC 
+			WHERE 
+				BERTH_CD 					= A.NX_BERTH_NO
+			) 													AS nxBerthNm,
+			ISNULL(A.PREV_BERTH_NO, B.BERTH_LOC)              	AS prevBerthNo,
+			(SELECT 
+				BERTH_NM 
+			FROM 
+				TMT_BERTH_LOC 
+			WHERE 
+				BERTH_CD = ISNULL(A.PREV_BERTH_NO, B.BERTH_LOC)
+			) 													AS prevBerthNm,
+			A.ETB_DT											AS etbDt,
+			A.ETU_DT											AS etuDt,
+			ISNULL(
+				FORMAT(A.PREV_ATB_DT, 'dd/MM/yyy HH:mm'),
+				FORMAT(
+					dbo.F_GET_CUR_ATB(A.VSL_CALL_ID), 
+					'dd/MM/yyy HH:mm'
+				)
+			)            										AS atbDt,
+			A.ATU_DT											AS atuDt,
+			A.WHARF_MARK_FM										AS wharfMarkFm,
+			A.WHARF_MARK_TO										AS wharfMarkTo,
+			ISNULL(A.REQR,' ')									AS reqr,
+			ISNULL(A.RSN_CD,' ')								AS rsnCd,
+			ISNULL(A.SHFT_TP_CD,' ')							AS shftTpCd,
+			ISNULL(A.SHFT_STAT_CD,' ')							AS shftStatCd,
+			ISNULL(A.RMK,' ')									AS rmk,
+			FORMAT(A.SUMIT_DT, 'dd/MM/yyy HH:mm')       		AS submitDt,
+			A.SUMIT_BY                                    		AS submitBy,
+			FORMAT(A.APPRV_DT, 'dd/MM/yyy HH:mm')   			AS apprvDt,
+			A.APPRV_BY                        					AS apprvBy,
+			FORMAT(A.REQ_DT, 'dd/MM/yyy HH:mm')            		AS reqDt,    
+			B.ETA                            					AS eta,
+			ISNULL(B.ARRV_SA_ID,B.DEPR_SA_ID)     				AS sa, 
+			CASE A.BERTH_ALONGSIDE
+				WHEN 'P' THEN 'PS'
+				WHEN 'S' THEN 'SB'
+				ELSE A.BERTH_ALONGSIDE
+			END 												AS berthAlongSide , 
+			dbo.F_CM_CODE_NM(
+				'MT', 
+				'SHFPST', 
+				CASE A.BERTH_ALONGSIDE
+					WHEN 'P' THEN 'PS'
+					WHEN 'S' THEN 'SB'
+					ELSE A.BERTH_ALONGSIDE
+				END 
+			)     												AS berthAlongSideNm ,           
+			CASE
+				WHEN 
+					A.NX_BERTH_NO IS NOT NULL 
+					AND A.NX_BERTH_NO <![CDATA[<>]]> ''
+						THEN C.PST_STA
+				ELSE D.PST_STA
+			END 												AS markStart,
+			CASE
+				WHEN 
+					A.NX_BERTH_NO IS NOT NULL 
+					AND A.NX_BERTH_NO <![CDATA[<>]]> ''
+						THEN C.PST_END
+				ELSE D.PST_END
+			END 												AS markEnd ,
+			A.STAT_CD 											AS statCd
+		FROM 
+			TMT_VSL_SHFT 										A 
+		LEFT OUTER JOIN
+			TMT_BERTH_LOC 										C
+				ON A.NX_BERTH_NO								= C.BERTH_CD,
+			TMT_VSL_SCH 										B
+		LEFT OUTER JOIN
+			TMT_BERTH_LOC 										D
+				ON B.BERTH_LOC 									= D.BERTH_CD, 	
+			TMT_VSL_PART 										E
+		WHERE 
+			A.VSL_CALL_ID 										= B.VSL_CALL_ID		 		
+			AND B.VSL_CD 										= E.VSL_CD
+			AND C.LOC_CD 										= 'BBT'	 	   
+			<if test="vslCallId != null and vslCallId != ''">
+				AND A.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test="seq != null and seq != ''"> 	
+				AND A.SEQ 										= #{seq}
+			</if>
+ 		ORDER BY 
+			A.VSL_CALL_ID,
+			FORMAT(B.ETA, 'yyyyMMdd'),
+			ISNULL(B.ARRV_SA_ID, B.DEPR_SA_ID),
+			FORMAT(A.REQ_DT, 'yyyyMMdd')
+	</select>
+	
+	<select id="selectShiftRequestItemsForReport" parameterType="SearchShiftRequestParm" resultType="ShiftRequestItem">
+		SELECT /* shiftrequest.selectShiftRequestItemsForReport */
+			A.VSL_CALL_ID										AS vslCallId,
+			A.SEQ												AS seq,
+			ISNULL(A.NX_BERTH_NO,' ')							AS nxBerthNo,
+			(SELECT 
+				BERTH_NM 
+			FROM 
+				TMT_BERTH_LOC 
+			WHERE 
+				BERTH_CD 					= A.NX_BERTH_NO
+			) 													AS nxBerthNm,
+			ISNULL(A.PREV_BERTH_NO, B.BERTH_LOC)              	AS prevBerthNo,
+			(SELECT 
+				BERTH_NM 
+			FROM 
+				TMT_BERTH_LOC 
+			WHERE 
+				BERTH_CD = ISNULL(A.PREV_BERTH_NO, B.BERTH_LOC)
+			) 													AS prevBerthNm,
+			A.ETB_DT											AS etbDt,
+			A.ETU_DT											AS etuDt,
+			ISNULL(
+				FORMAT(A.PREV_ATB_DT, 'dd/MM/yyy HH:mm'),
+				FORMAT(
+					dbo.F_GET_CUR_ATB(A.VSL_CALL_ID), 
+					'dd/MM/yyy HH:mm'
+				)
+			)            										AS atbDt,
+			A.ATU_DT											AS atuDt,
+			A.WHARF_MARK_FM										AS wharfMarkFm,
+			A.WHARF_MARK_TO										AS wharfMarkTo,
+			ISNULL(A.REQR,' ')									AS reqr,
+			ISNULL(A.RSN_CD,' ')								AS rsnCd,
+			ISNULL(A.SHFT_TP_CD,' ')							AS shftTpCd,
+			ISNULL(A.SHFT_STAT_CD,' ')							AS shftStatCd,
+			ISNULL(A.RMK,' ')									AS rmk,
+			FORMAT(A.SUMIT_DT, 'dd/MM/yyy HH:mm')       		AS submitDt,
+			A.SUMIT_BY                                    		AS submitBy,
+			FORMAT(A.APPRV_DT, 'dd/MM/yyy HH:mm')   			AS apprvDt,
+			A.APPRV_BY                        					AS apprvBy,
+			FORMAT(A.REQ_DT, 'dd/MM/yyy HH:mm')            		AS reqDt,    
+			B.ETA                            					AS eta,
+			ISNULL(B.ARRV_SA_ID,B.DEPR_SA_ID)     				AS sa, 
+			CASE A.BERTH_ALONGSIDE
+				WHEN 'P' THEN 'PS'
+				WHEN 'S' THEN 'SB'
+				ELSE A.BERTH_ALONGSIDE
+			END 												AS berthAlongSide , 
+			dbo.F_CM_CODE_NM(
+				'MT', 
+				'SHFPST', 
+				CASE A.BERTH_ALONGSIDE
+					WHEN 'P' THEN 'PS'
+					WHEN 'S' THEN 'SB'
+					ELSE A.BERTH_ALONGSIDE
+				END 
+			)     												AS berthAlongSideNm ,           
+			CASE
+				WHEN 
+					A.NX_BERTH_NO IS NOT NULL 
+					AND A.NX_BERTH_NO <![CDATA[<>]]> ''
+						THEN C.PST_STA
+				ELSE D.PST_STA
+			END 												AS markStart,
+			CASE
+				WHEN 
+					A.NX_BERTH_NO IS NOT NULL 
+					AND A.NX_BERTH_NO <![CDATA[<>]]> ''
+						THEN C.PST_END
+				ELSE D.PST_END
+			END 												AS markEnd ,
+			A.STAT_CD 											AS statCd
+		FROM 
+			TMT_VSL_SHFT 										A 
+		LEFT OUTER JOIN
+			TMT_BERTH_LOC 										C
+				ON A.NX_BERTH_NO								= C.BERTH_CD,
+			TMT_VSL_SCH 										B
+		LEFT OUTER JOIN
+			TMT_BERTH_LOC 										D
+				ON B.BERTH_LOC 									= D.BERTH_CD, 	
+			TMT_VSL_PART 										E
+		WHERE 
+			A.VSL_CALL_ID 										= B.VSL_CALL_ID		 		
+			AND B.VSL_CD 										= E.VSL_CD
+			AND C.LOC_CD 										= 'BBT'	 	   
+			<if  test="alertYn eq 'Y'.toString()">
+			   AND A.STAT_CD 									IS NULL
+			   AND DATEDIFF(DAY, SYSDATETIME(), A.REQ_DT) 		<![CDATA[<=]]> 180
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+				AND A.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test="dtType == 'ATB'">
+				<if test="fromDt != null and fromDt != ''">
+					AND <![CDATA[ B.ATB 						>=  CONVERT(DATETIME, #{fromDt}, 103)]]>
+				</if>
+				<if test="toDt != null and toDt != ''">	
+					AND <![CDATA[ B.ATB 						<= DATEADD(DAY, 1, CONVERT(DATETIME, #{toDt}, 103))]]>
+				</if>
+			</if>
+			<if test="dtType == 'ETB'">
+				<if test="fromDt != null and fromDt != ''">
+					AND <![CDATA[ B.ETB 						>= CONVERT(DATETIME, #{fromDt}, 103)]]>
+				</if>
+				<if test="toDt != null and toDt != ''">	
+					AND <![CDATA[ B.ETB 						<= DATEADD(DAY, 1, CONVERT(DATETIME, #{toDt}, 103))]]>
+				</if>
+			</if>
+			<if test="ptnrCd != null and ptnrCd != ''"> 	
+					<if test="authority == 'SHA'">
+						AND E.SA_CORP_ID 						= #{ptnrCd}
+					</if>
+			</if>
+ 		ORDER BY 
+			A.VSL_CALL_ID,
+			FORMAT(B.ETA, 'yyyyMMdd'),
+			ISNULL(B.ARRV_SA_ID, B.DEPR_SA_ID),
+			FORMAT(A.REQ_DT, 'yyyyMMdd')
+	</select>
+	
+</mapper>

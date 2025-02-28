@@ -1,0 +1,41 @@
+Ext.define('MOST.model.monitoring.SearchGateInParm',{
+	extend: 'MOST.model.foundation.parm.BizParm',
+	fields:[
+        {
+            name:'lorryNo',
+            type:'string'
+        },
+        {
+            name:'shipgNoteNo',
+            type:'string'
+        },
+        {
+            name:'gatePassNo',
+            type:'string'
+        },
+        {
+            name:'blNo',
+            type:'string'
+        },
+        {
+            name: 'vslCallId',
+            type: 'string'
+        },
+        {
+            name:'grNo',
+            type:'string'
+        },
+        {
+            name:'fwrAgnt',
+            type:'string'
+        },
+        {
+            name:'lorryNo',
+            type:'string'
+        },
+        {
+            name:'whLoc',
+            type:'string'
+        }
+    ]
+});

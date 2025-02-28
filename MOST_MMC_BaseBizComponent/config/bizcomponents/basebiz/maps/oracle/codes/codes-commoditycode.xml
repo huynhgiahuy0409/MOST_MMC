@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="commodityCode">
+	
+	<resultMap id="CodeMasterList" type="CodeMasterItem">
+        <result property = "mcd"	 			column = "M_CD"/>
+        <result property = "scd"	 			column = "S_CD"/>
+        <result property = "scdNm"		 		column = "S_CD_NM"/>    
+        <result property = "scdLgv"		 		column = "S_CD_LGV"/> 
+        <result property = "scdVal"		 		column = "S_CD_VAL"/>
+        <result property = "scdDesc"		 	column = "S_CD_DESC"/>
+        <result property = "cgTp"		 		column = "CG_TP_CD"/>
+    </resultMap>
+    
+    <resultMap id="IMDGList" type="CommodityCodeItem">
+        <result property = "unno"	 			column = "UNNO"/>
+        <result property = "classes"	 		column = "CLASS"/>
+        <result property = "imdgDiv"	 		column = "IMDG_DIV"/>
+        <result property = "substance" 			column = "SUBSTANCE"/>
+   </resultMap>
+    
+	<select id="selectCommodityCodeList" parameterType="commodityCodeParm" resultType="CommodityCodeItem">
+	 	<if test="pageNo != 0"> 
+             SELECT /*commodityCode.selectCommodityCode*/
+             	* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getCommodityCode"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	
+	<sql id="getCommodityCode">
+		SELECT 
+	 		NVL(CMDT_CD,' ')  					AS CMDTCD,
+	 		NVL(CMDT_DESC,' ')  				AS DESCR,
+	 		NVL(MIN_TEMP,' ')  					AS MINTEMP,
+	 		NVL(MAX_TEMP,' ')  					AS MAXTEMP,
+  	 		NVL(IMDG,' ')  						AS IMDG,
+	 		NVL(UNNO,' ')  						AS UNNO,
+	 		NVL(HS_CD,' ')  					AS HS_CD,
+	 		NVL(HS_AHTN_CD,' ')  				AS HSTHTNCD,
+	 		NVL(STAFF_CD,' ')  					AS USERID,
+	 		UPDATE_TIME							AS UPDDT,
+	 		TO_CHAR(UPDATE_TIME, 'DD/MM/YYYY HH24:MI') 					AS UPDATEDT,
+	 		TO_CHAR(CREATED_TIME, 'DD/MM/YYYY HH24:MI')                 AS CREATEDDT,
+	 		NVL(IMDG || '/' || UNNO,' ') 		AS IMDGUNNO,
+	 		NVL(CG_TP_CD,' ')				 	AS CGTP,
+	 		NVL(CMDT_GRP_DESC,' ')				AS cmdtGrp,
+	 		NVL(CMDT_GRP_CD,' ')				AS cmdtGrpCd,
+	 		NVL(TONNAGE_CD, ' ') 				AS TONNAGECD,
+	 		VERSION 							AS VERSION
+		FROM TMT_CMDT
+		<where>
+			1=1
+			<if test="cmdtGrpCd != null and cmdtGrpCd != ''">
+   				AND CMDT_GRP_CD = #{cmdtGrpCd}
+			</if>
+			<if test="cmdtCd != null and cmdtCd != ''">
+   				AND CMDT_CD = #{cmdtCd}
+			</if>
+			<if test="descr != null and descr != ''">
+   				AND CMDT_DESC like #{descr} || '%'
+			</if>		
+			<if test="cgTp != null and cgTp != ''">
+   				AND CG_TP_CD = #{cgTp}
+			</if>		
+		</where>
+		ORDER BY CMDT_CD 
+	</sql>
+	
+	<select id="selectCommodityGroup" parameterType="commodityCodeParm" resultType="CommodityCodeItem">
+	 	<if test="pageNo != 0"> 
+             SELECT /*commodityPackageType.selectCommodityGroup*/
+             	* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getCommodityGroup"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num > (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	
+	<sql id="getCommodityGroup">
+		SELECT 
+	 		STAFF_CD  					AS USERID,
+	 		TO_CHAR(UPDATE_TIME, 'DD/MM/YYYY HH24:MI')				AS UPDATEDT,
+	 		TO_CHAR(CREATED_TIME, 'DD/MM/YYYY HH24:MI')				AS CREATEDDT,
+	 		CG_TP_CD				 	AS CGTP,
+	 		CMDT_GRP_DESC				AS cmdtGrpDes,
+	 		CMDT_GRP_CD					AS cmdtGrpCd,
+	 		VERSION 					AS VERSION
+		FROM TMT_CMDT_GRP
+		WHERE 1=1
+			<if test="cmdtGrpCd != null and cmdtGrpCd != ''">
+   				AND CMDT_GRP_CD = #{cmdtGrpCd}
+			</if>
+			<if test="cgTp != null and cgTp != ''">
+   				AND CG_TP_CD = #{cgTp}
+			</if>		
+
+		ORDER BY CMDT_GRP_CD 
+	</sql>
+	
+	<select id="selectCommodityCodeListCount" parameterType="commodityCodeParm" resultType="java.lang.String" >
+    	SELECT COUNT(*)
+        	FROM (<include refid="getCommodityCode"/>)
+	</select>
+	
+	<select id="selectCommodityGroupCodeCount" parameterType="commodityCodeParm" resultType="java.lang.String" >
+    	SELECT COUNT(*)
+        	FROM (<include refid="getCommodityCode"/>)
+	</select>
+	
+	<select id="selectCommodityGroupCount" parameterType="commodityCodeParm" resultType="java.lang.String" >
+    	SELECT COUNT(*)
+        	FROM (<include refid="getCommodityGroup"/>)
+	</select>
+	
+	<insert id = "insertCommodityCodeItem"  parameterType = "CommodityCodeItem">
+		INSERT /*commodityCode.insertCommodityCodeItem*/
+		INTO TMT_CMDT(
+			CMDT_CD,
+			CMDT_DESC,
+			MIN_TEMP,
+			MAX_TEMP,
+			IMDG,
+			UNNO,
+			HS_CD,
+			HS_AHTN_CD,
+			STAFF_CD,
+			UPDATE_TIME,
+			CREATED_TIME,
+			CG_TP_CD,
+			CMDT_GRP_DESC,
+			CMDT_GRP_CD,
+			VERSION,
+			TONNAGE_CD
+		) VALUES (
+			#{cmdtCd},
+			UPPER(#{descr}),
+			#{minTemp},
+			#{maxTemp},
+			UPPER(#{imdg}),
+			#{unno},
+			UPPER(#{hsCd}),
+			UPPER(#{hsAhtnCd}),
+			UPPER(#{userId}),
+			SYSDATE,
+			SYSDATE,
+			UPPER(#{cgTp}),
+			UPPER(#{cmdtGrp}),
+			UPPER(#{cmdtGrpCd}),
+			#{newVersion},
+			UPPER(#{tonnageCd})
+		)
+	</insert>  
+	
+	<insert id = "insertCommodityGroupItem"  parameterType = "CommodityCodeItem">
+		INSERT /*commodityPackageType.insertCommodityGroupItem*/
+		INTO TMT_CMDT_GRP(	
+			CMDT_GRP_CD,
+			CMDT_GRP_DESC,				
+			STAFF_CD,
+			CREATED_TIME,
+			UPDATE_TIME,			
+			VERSION,
+			CG_TP_CD								
+		) VALUES (	
+			UPPER(#{cmdtGrpCd}),
+			UPPER(#{cmdtGrpDes}),		
+			UPPER(#{userId}),
+			SYSDATE,
+			SYSDATE,			
+			#{newVersion},
+			UPPER(#{cgTp})
+		)
+	</insert>  
+	
+	<update id = "updateCommodityCodeItem"  parameterType = "CommodityCodeItem">
+		UPDATE /*commodityCode.updateCommodityCodeItem*/
+		TMT_CMDT SET 
+			CMDT_CD =#{cmdtCd},
+			CMDT_DESC = #{descr},
+			MIN_TEMP=#{minTemp},
+			MAX_TEMP=#{maxTemp},
+			IMDG=#{imdg},
+			UNNO=#{unno},
+			HS_CD=#{hsCd},
+			HS_AHTN_CD=#{hsAhtnCd},
+			STAFF_CD=#{userId},
+			UPDATE_TIME =SYSDATE,
+			CG_TP_CD =#{cgTp},
+			CMDT_GRP_DESC = #{cmdtGrp},
+			CMDT_GRP_CD	= #{cmdtGrpCd},
+			VERSION = #{newVersion},
+			TONNAGE_CD = #{tonnageCd}
+		WHERE CMDT_CD =#{cmdtCd}
+		<if test="checkVersionFlag == true">
+			<if test="version != '' and version != null">
+				AND VERSION = #{version}
+			</if>
+        </if>
+	</update> 
+	
+	<update id = "updateCommodityGroupItem"  parameterType = "CommodityCodeItem">
+		UPDATE /*commodityCode.updateCommodityGroupItem*/
+		TMT_CMDT_GRP SET 			
+			STAFF_CD=#{userId},
+			UPDATE_TIME =SYSDATE,
+			CG_TP_CD =#{cgTp},
+			CMDT_GRP_DESC = #{cmdtGrpDes},			
+			VERSION = #{newVersion}
+		WHERE CMDT_GRP_CD = #{cmdtGrpCd}
+	</update> 
+	
+	<delete id = "deleteCommodityCodeItem"  parameterType = "CommodityCodeItem">
+		DELETE /*commodityCode.deleteCommodityCodeItem*/
+		FROM TMT_CMDT 
+		WHERE CMDT_CD = #{cmdtCd}
+		<if test="checkVersionFlag == true"> 
+        	<if test="version != '' and version != null">
+				AND VERSION = #{version}
+			</if>
+        </if>
+	</delete> 
+	
+	<delete id = "deleteCommodityGroupItem"  parameterType = "CommodityCodeItem">
+		DELETE /*commodityCode.deleteCommodityGroupItem*/
+		FROM TMT_CMDT_GRP
+		WHERE CMDT_GRP_CD = #{cmdtGrpCd}
+	</delete>
+	
+	<insert id = "insertPackageTypeCodeItem"  parameterType = "CommodityCodeItem">
+		INSERT INTO (SELECT * FROM TMT_CMDT_PKGTP where CMDT_CD = #{cmdtCd})(
+			CMDT_CD,
+			PKGTP_CD,
+			STAFF_CD,
+			UPDATE_TIME,
+			VERSION		
+		) VALUES (
+			#{cmdtCd},
+			#{pkgTpCd},
+			#{userId},
+			TO_DATE(SYSDATE, 'DD/MM/YYYY'),			
+			#{version}				
+		)
+	</insert> 
+	
+	<select id = "selectPackageTypeCodeItem"  parameterType = "CommodityCodeParm" resultType="CommodityCodeItem">
+		SELECT PKGTP_CD AS pkgTpCd FROM TMT_CMDT_PKGTP PKG WHERE PKG.CMDT_CD = #{cmdtCd}
+	</select>
+	
+	<delete id = "deletePackageTypeCodeItem"  parameterType = "CommodityCodeItem">
+		DELETE FROM TMT_CMDT_PKGTP 
+		WHERE CMDT_CD = #{cmdtCd}
+	</delete>
+	
+</mapper>

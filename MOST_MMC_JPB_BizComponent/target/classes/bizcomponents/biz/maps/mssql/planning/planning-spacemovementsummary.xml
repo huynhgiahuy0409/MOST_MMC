@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="spaceMovementSummary">
+	
+    <select id="selectSpaceMovementSummaryList"  parameterType="spaceMovementSummaryParm" resultType="spaceMovementSummaryItem">
+		<if test="pageNo != 0"> 
+        	SELECT /*spaceMovementSummary.selectSpaceMovementSummaryList*/
+        		*
+			FROM (
+					SELECT
+						inner_query.*, ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num
+					FROM (
+		</if>
+				<include refid="getselectSpaceMovementSummaryList"/>
+		<if test="pageNo != 0"> 
+				) inner_query
+			) inner_query
+			WHERE
+				inner_query.row_num <![CDATA[>]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT) - 1) * CAST(#{sizePerPage} AS INT)
+		  		AND inner_query.row_num <![CDATA[<=]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT)) * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	 
+	<select id="selectSpaceMovementSummaryListCount" parameterType="spaceMovementSummaryParm" resultType="java.lang.String">
+		SELECT /*spaceMovementSummary.selectSpaceMovementSummaryListCount*/
+			COUNT(*)
+        FROM
+			(<include refid="getselectSpaceMovementSummaryList"/>)
+	</select>
+	 
+	<sql id="getselectSpaceMovementSummaryList">
+		<if  test="masterBL == null or masterBL == '' ">
+			SELECT /*spaceMovementSummary.getselectSpaceMovementSummaryList*/
+				SN.VSL_CALL_ID 						AS VSLCALLID,
+			    REQ_NO            					AS REQNO,
+			    SEQ               					AS SEQ,
+			    SEQ               					AS REQSEQ,
+			    SN.MF_DOC_ID      					AS MFDOCID,
+			    NULL              					AS BLNO,
+			    SN.SHIPG_NOTE_NO  					AS SHIPGNOTENO,
+			    SN.SHIPG_NOTE_NO  					AS BLSN,
+			    REQ_POS           					AS REQPOS,
+			    PLAN_LOC_ID       					AS PLANLOCID,
+			    PREV_LOC_ID       					AS PREVLOCID,
+			    SN.CG_WGT         					AS REQWGT,
+			    SN.PKG_QTY        					AS REQQTY,
+			    SN.CATG_CD        					AS CATGCD,
+			    (
+			    	SELECT TOP 1
+						S_CD_NM
+				    FROM
+						TMT_CD_MSTD 				MSTD
+				    WHERE
+						L_CD     					= 'MT'
+				    	AND M_CD       				= 'CATGTP'
+				    	AND SN.CATG_CD 				= MSTD.S_CD
+			    )           						AS CATGNM,
+			    SN.CG_TP_CD 						AS CGTPCD,
+			    (
+			    	SELECT TOP 1
+						S_CD_NM
+				    FROM
+						TMT_CD_MSTD
+				    WHERE
+						L_CD   						= 'MT'
+				    	AND M_CD     				= 'CGTP'
+				    	AND S_CD_USE 				= 'Y'
+				    	AND S_CD     				= SN.CG_TP_CD
+			    )                    				AS CGTPNM,
+			    SN.CMDT_CD                      	AS CMDTCD,
+			    SN.PKG_TP_CD						AS PKGTPCD,
+			    (
+			    	SELECT TOP 1
+						S_CD_NM
+				    FROM
+						TMT_CD_MSTD
+				    WHERE
+						L_CD   						= 'MT'
+				    	AND M_CD     				= 'PKGTP'
+				    	AND S_CD_USE 				= 'Y'
+				    	AND S_CD     				= SN.PKG_TP_CD
+			    ) 									AS PKGTPNM,
+			    SN.IMDG                         	AS IMDGCLASS,
+			    SN.UNNO                         	AS UNNO,
+			    PAYER                           	AS PAYER,
+			    REQ_TP_CD                       	AS REQTPCD,
+			    MV_TP                           	AS MVTP,
+				(CASE REQ_TP_CD
+					WHEN 'SPA' THEN 'Space'
+					WHEN 'MOV' THEN 'Movement'
+					ELSE 'Space'
+				END)								AS REQTPNM,
+			    FORMAT(REQ_DT,'dd/MM/yyyy HH:mm') 	AS REQDT,
+				FORMAT(PLAN_DT,'dd/MM/yyyy HH:mm') 	AS PLANDT,
+			    REQR                            	AS REQR,
+			    CG_REF_NO                       	AS CGREFNO,
+			    ISNULL(REQ.RMK,' ')                AS RMK,
+			    REQ.STAT_CD                     	AS STATCD,
+				(CASE REQ.STAT_CD
+					WHEN 'SAV' THEN 'Saved'
+					WHEN 'REQ' THEN 'Requested'
+					WHEN 'CNF' THEN 'Planned'
+					WHEN 'REJ' THEN 'Rejected'
+					ELSE 'Saved'
+				END)								AS STATNM,
+			    OPE_CLASS_CD                    	AS OPECLASSCD,
+			    ETA                             	AS ETA,
+			    SVC_DT                          	AS SVCDT,
+			    PERIOD                          	AS PERIOD,
+			    REQ_M2                          	AS REQM2,
+			    REQ_MT                          	AS REQMT,
+			    PLAN_LOCS                       	AS LOCID,
+			    SN.FWRD                         	AS FWDAGNT,
+			    SN.SHPR                         	AS CNGSHP,
+				(CASE
+					WHEN (REQ_NO IS NOT NULL AND REQ_NO <![CDATA[<>]]> '') THEN 'U'
+					ELSE 'C'
+				END) 								AS WORKINGSTATUS
+			FROM
+				TMT_SHIPG_NOTE SN
+				LEFT OUTER JOIN TMT_SPC_REQ REQ
+					ON (SN.VSL_CALL_ID 				= REQ.VSL_CALL_ID
+					AND SN.SHIPG_NOTE_NO 			= REQ.SHIPG_NOTE_NO)
+				LEFT OUTER JOIN (
+					SELECT
+						VSL_CALL_ID,
+						REQ_SEQ,
+						STRING_AGG(LOC_ID, ',') WITHIN GROUP (ORDER BY LOC_ID) AS PLAN_LOCS
+			    	FROM
+						TMT_SPC_PLAN
+			    	GROUP BY
+						VSL_CALL_ID,
+						REQ_SEQ
+				) B
+					ON (REQ.VSL_CALL_ID = B.VSL_CALL_ID AND REQ.SEQ = B.REQ_SEQ)
+			WHERE
+				1 = 1
+			<if test="vslCallId != null and vslCallId != ''">
+				AND SN.VSL_CALL_ID 					= #{vslCallId}
+			</if>
+			<if test="bookingNo != null and bookingNo != ''">
+				AND	SN.MF_DOC_ID 					= #{bookingNo}
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				AND SN.SHIPG_NOTE_NO 				= #{shipgNoteNo}
+			</if>
+			<if test="cmdtGrpCd != null and cmdtGrpCd != ''">
+				AND SN.CMDT_GRP_CD 					= #{cmdtGrpCd}
+			</if>
+			<if test="cngShp != null and cngShp != ''">
+            	AND SN.SHPR 						= #{cngShp}
+            </if>
+			<if test="pod != null and pod != ''">
+            	AND SN.POD 							= #{pod}
+            </if>
+			<if test="isNotPlanned">
+				AND (REQ_NO IS NULL OR REQ_NO = '')
+			</if>
+			<if test=" searchType == 'SpaceMovementSummary' ">
+				AND (REQ_NO IS NOT NULL AND REQ_NO <![CDATA[<>]]> '')
+			</if>
+			<if test="reqTpCd != null and reqTpCd != ''">
+	   			AND REQ_TP_CD 						= #{reqTpCd}
+			</if>
+			<if test="reqStDt != null and reqStDt != ''">
+   				AND <![CDATA[ REQ_DT >= CONVERT(DATE, (#{reqStDt}, 103) ]]>
+			</if>
+			<if test="reqEndDt != null and reqEndDt != ''">
+   				AND <![CDATA[ REQ_DT <= DATEADD(DAY, 1, CONVERT(DATE, #{reqEndDt}, 103)) ]]>
+			</if>
+			<if test="reqPos != null and reqPos != ''">
+				AND PLAN_LOC_ID LIKE '${reqPos}%'
+			</if>
+		</if>
+		<if test="bookingNo == null or bookingNo == ''   ">
+			<if test=" masterBL == null or masterBL == '' ">
+		 		UNION
+		 	</if>
+		</if>
+		<if test="bookingNo == null or bookingNo == ''">
+			SELECT /*spaceMovementSummary.getselectSpaceMovementSummaryList*/
+				BL.VSL_CALL_ID 						AS VSLCALLID,
+			    REQ_NO            					AS REQNO,
+			    SEQ               					AS SEQ,
+			    SEQ               					AS REQSEQ,
+			    BL.MF_DOC_ID      					AS MFDOCID,
+			    BL.BL_NO          					AS BLNO,
+			    NULL              					AS SHIPGNOTENO,
+			    BL.BL_NO         					AS BLSN,
+			    REQ_POS           					AS REQPOS,
+			    PLAN_LOC_ID       					AS PLANLOCID,
+			    PREV_LOC_ID       					AS PREVLOCID,
+			    BL.CG_WGT            				AS REQWGT,
+			    BL.PKG_QTY        					AS REQQTY,
+			    BL.CATG_CD        					AS CATGCD,
+			    (
+				    SELECT TOP 1
+						S_CD_NM
+				    FROM
+						TMT_CD_MSTD 				MSTD
+				    WHERE
+						L_CD     					= 'MT'
+				    	AND M_CD       				= 'CATGTP'
+				    	AND BL.CATG_CD 				= MSTD.S_CD
+			    )           						AS CATGNM,
+			    BL.CG_TP_CD 						AS CGTPCD,
+			    (
+				    SELECT TOP 1
+						S_CD_NM
+				    FROM
+						TMT_CD_MSTD
+				    WHERE
+						L_CD   						= 'MT'
+				    	AND M_CD     				= 'CGTP'
+				    	AND S_CD_USE 				= 'Y'
+				    	AND S_CD     				= BL.CG_TP_CD
+			    ) 									AS CGTPNM,
+			    BL.CMDT_CD 							AS CMDTCD,
+			    BL.PKG_TP_CD 						AS PKGTPCD,
+			    (
+				    SELECT TOP 1
+						S_CD_NM
+				    FROM
+						TMT_CD_MSTD
+				    WHERE
+						L_CD   						= 'MT'
+				    	AND M_CD     				= 'PKGTP'
+				    	AND S_CD_USE 				= 'Y'
+				    	AND S_CD     				= BL.PKG_TP_CD
+			    ) 									AS PKGTPNM,
+			    BL.IMDG_CLASS                   	AS IMDGCLASS,
+			    BL.UNNO                         	AS UNNO,
+			    PAYER                           	AS PAYER,
+			    REQ_TP_CD                       	AS REQTPCD,
+			    MV_TP                           	AS MVTP,
+				(CASE REQ_TP_CD
+					WHEN 'SPC' THEN 'Space'
+					WHEN 'MOV' THEN 'Movement'
+					ELSE NULL
+				END)								AS REQTPNM,
+			    FORMAT(REQ_DT,'dd/MM/yyyy HH:mm') 	AS REQDT,
+				FORMAT(PLAN_DT,'dd/MM/yyyy HH:mm') 	AS PLANDT,
+			    REQR                            	AS REQR,
+			    CG_REF_NO                       	AS CGREFNO,
+			    ISNULL(REQ.RMK,' ')                 AS RMK,			-- CHANGE TO REQ.RMK, ORIGINAL IS RMK (Ambiguous column reference)
+			    REQ.STAT_CD                     	AS STATCD,
+				(CASE REQ.STAT_CD
+					WHEN 'SAV' THEN 'Saved'
+					WHEN 'REQ' THEN 'Requested'
+					WHEN 'CNF' THEN 'Planned'
+					WHEN 'REJ' THEN 'Rejected'
+					ELSE 'Saved'
+				END)								AS STATNM,
+			    OPE_CLASS_CD                    	AS OPECLASSCD,
+			    ETA                             	AS ETA,
+			    SVC_DT                          	AS SVCDT,
+			    PERIOD                          	AS PERIOD,
+			    REQ_M2                          	AS REQM2,
+			    REQ_MT                          	AS REQMT,
+			    PLAN_LOCS                       	AS LOCID,
+			    BL.FWRD                         	AS FWDAGNT,
+			    BL.CNSNE                        	AS CNGSHP,
+				(CASE
+					WHEN (REQ_NO IS NOT NULL AND REQ_NO <![CDATA[<>]]> '') THEN 'U'
+					ELSE 'C'
+				END)								AS WORKINGSTATUS
+			FROM
+				TMT_BL BL
+			LEFT OUTER JOIN TMT_DO DO
+				ON (BL.VSL_CALL_ID 					= DO.VSL_CALL_ID
+					AND BL.BL_NO 					= DO.BL_NO)
+			LEFT OUTER JOIN TMT_SPC_REQ REQ
+				ON (BL.VSL_CALL_ID 					= REQ.VSL_CALL_ID
+					AND BL.BL_NO 					= REQ.BL_NO)
+			LEFT OUTER JOIN (
+				SELECT 
+					VSL_CALL_ID,
+			        REQ_SEQ,
+					STRING_AGG(LOC_ID, ',') WITHIN GROUP (ORDER BY LOC_ID) AS PLAN_LOCS
+			    FROM
+					TMT_SPC_PLAN
+			    GROUP BY
+					VSL_CALL_ID,
+					REQ_SEQ
+			) B
+			ON (REQ.VSL_CALL_ID = B.VSL_CALL_ID AND REQ.SEQ = B.REQ_SEQ)
+			WHERE
+				1 = 1
+			<if test="vslCallId != null and vslCallId != ''">
+				AND BL.VSL_CALL_ID 					= #{vslCallId}
+			</if>
+			<if test='jpvcTp == "CallId"'>
+				AND BL.VSL_CALL_ID <![CDATA[<>]]> '' 'STRG'
+			</if>
+			<if test="masterBL != null and masterBL != ''">
+				AND BL.MF_DOC_ID 					= #{masterBL}
+			</if>
+			<if test="blNo != null and blNo != ''">
+				AND BL.BL_NO 						= #{blNo}
+			</if>
+			<if test="cngShp != null and cngShp != ''">
+            	AND BL.CNSNE 						= #{cngShp}
+            </if>
+			<if test="pod != null and pod != ''">
+            	AND BL.POD 							= #{pod}
+            </if>
+			<if test="isNotPlanned">
+				AND (REQ_NO IS NULL OR REQ_NO = '')
+			</if>
+			<if test=" searchType == 'SpaceMovementSummary' ">
+				AND (REQ_NO IS NOT NULL AND REQ_NO <![CDATA[<>]]> '')
+			</if>
+			<if test="reqTpCd != null and reqTpCd != ''">
+   				AND REQ_TP_CD 						= #{reqTpCd}
+			</if>
+			<if test="reqStDt != null and reqStDt != ''">
+   				AND <![CDATA[ REQ_DT >= CONVERT(DATE, #{reqStDt},103) ]]>
+			</if>
+			<if test="reqEndDt != null and reqEndDt != ''">
+   				AND <![CDATA[ REQ_DT <= DATEADD(DAY, 1, CONVERT(DATE, #{reqEndDt},103))]]>
+			</if>
+			<if test="reqPos != null and reqPos != ''">
+				AND PLAN_LOC_ID LIKE '${reqPos}%'
+			</if>
+		</if>
+	</sql>
+
+</mapper>

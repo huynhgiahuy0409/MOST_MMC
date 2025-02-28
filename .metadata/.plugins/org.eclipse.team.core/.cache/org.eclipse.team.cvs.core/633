@@ -1,0 +1,332 @@
+Ext.define('MOST.view.billing.StandardTariffRate', {
+	extend: 'Ext.panel.Panel',
+	alias: 'widget.app-standardtariffrate',
+	requires: [
+		'MOST.view.billing.StandardTariffRateModel',
+		'MOST.view.billing.StandardTariffRateController',
+		'Ext.grid.plugin.RowEditing',
+		'Ext.grid.plugin.Exporter',
+		'Ext.grid.plugin.Clipboard',
+		'Ext.grid.filters.Filters',
+		'Ext.grid.selection.SpreadsheetModel'
+	],
+
+	detailViewAlias: 'app-tariffcodesdetail',
+
+	controller: 'standardtariffrate',
+
+	viewModel: {
+		type: 'standardtariffrate'
+	},
+
+	listeners: {
+		afterrender: 'onLoad'
+	},
+
+	layout: { type: 'vbox', align: 'stretch' },
+
+	/**
+	 * =========================================================================================================================
+	 * CONSTANT START
+	 */
+	MAIN_GRID_REF_NAME: 'refstandardtariffrateGrid',				// Main Grid Name 
+	MAIN_STORE_NAME: 'standardtariffrateList',
+	/**
+	 * CONSTANT END
+	 * =========================================================================================================================
+	 */
+
+	initComponent: function () {
+		var me = this;
+		var rowEditing = Ext.create('Ext.grid.plugin.CellEditing', {
+			ptype: 'cellediting',
+			clicksToEdit: 2,
+			pluginId: 'standardtariffrateEditor',
+			listeners: {
+				edit: 'onEdit'
+			}
+		});
+
+		Ext.apply(me, {
+			layout: {
+				type: 'vbox',
+				align: 'stretch'
+			},
+			items: [{
+				xtype: 'tsb-datagrid',
+				reference: me.MAIN_GRID_REF_NAME,
+				flex: 1,
+				plugins: [
+					rowEditing,
+					'gridexporter',
+					'gridfilters',
+					'clipboard'
+				],
+				bind: {
+					store: '{' + me.MAIN_STORE_NAME + '}'
+				},
+				selModel: {
+					type: 'spreadsheet',
+					rowSelect: true,
+					cellSelect: false,
+				},
+				listeners: {
+					// cellDblClick: 'onDblClick',
+					pagingSearch: 'onSearch'
+				},
+				columns: {
+					defaults: {
+						style: 'text-align:center',
+						align: 'center'
+					},
+					items: GridUtil.getGridColumns('StandardTariffRate')
+				}
+			}
+			],
+			dockedItems: [{
+				xtype: 'container',
+				style: { "background-color": "white" },
+				layout: {
+					type: 'hbox',
+				},
+				defaults: {
+					margin: '1 1 1 1'
+				},
+				items: [{
+					xtype: 'tbfill'
+				},
+				{
+					xtype: 'button',
+					text: ViewUtil.getLabel('search'),
+					iconCls: 'x-fa fa-search',
+					cls: 'search-button',
+					listeners: {
+						click: 'onSearch'
+					}
+				},
+				{
+					xtype: 'button',
+					itemId: 'btnAdd',
+					reference: 'refBtnCreate',
+					text: ViewUtil.getLabel('add'),
+					iconCls: 'x-fa fa-plus',
+					listeners: {
+						click: 'onAdd'
+					}
+				},
+				{
+					xtype: 'button',
+					itemId: 'btnDelete',
+					reference: 'refBtnDelete',
+					text: ViewUtil.getLabel('remove'),
+					ui: 'delete-button',
+					iconCls: 'x-fa fa-minus',
+					listeners: {
+						click: 'onRemove'
+					}
+				},
+				{
+
+					xtype: 'button',
+					itemId: 'saveItemId',
+					text: 'Save',
+					ui: 'update-button',
+					iconCls: 'fa fa-pencil-square-o',
+					reference: 'refBtnSave',
+					listeners: {
+						click: 'onUpdate'
+					}
+				},
+				{
+					xtype: 'button',
+					itemId: 'exportToExcelButton',
+					text: ViewUtil.getLabel('exportToExcel'),
+					iconCls: 'excel-button-image',
+					cls: 'excel-button',
+					listeners: {
+						click: {
+							fn: 'onExportExcelPdfWithServer',
+							args: [me.MAIN_GRID_REF_NAME, true]
+						}
+					}
+				},
+				{
+					xtype: 'button',
+					itemId: 'exportToPdfButton',
+					text: ViewUtil.getLabel('exportToPdf'),
+					iconCls: 'x-fa fa-file-pdf-o',
+					cls: 'excel-button',
+					listeners: {
+						click: {
+							fn: 'onExportExcelPdfWithServer',
+							args: [me.MAIN_GRID_REF_NAME, false]
+						}
+					}
+				},
+				{
+					xtype: 'button',
+					cls: 'column-setting-button',
+					iconCls: 'x-fa fa-columns',
+					text: ViewUtil.getLabel('column'),
+					listeners: {
+						click: 'onColumnSettingPopup',
+						args: [me.MAIN_GRID_REF_NAME]
+					}
+
+				}
+				]
+			},
+			{
+				xtype: 'toolbar',
+				enableOverflow: true,
+				padding: '0 0 0 0',
+				defaults: {
+					labelAlign: 'right',
+				},
+				layout: {
+					type: 'vbox',
+					align: 'stretch'
+				},
+				items: [{
+					xtype: 'searchfieldset',
+					title: ViewUtil.getLabel('search'),
+					autoScroll: true,
+					collapsible: true,
+					flex: 1,
+					layout: {
+						type: 'hbox',
+						align: 'stretch'
+					},
+					defaults: {
+						margin: '0 0 5 0'
+					},
+					items: [{
+						xtype: 'container',
+						flex: 1,
+						layout: {
+							type: 'hbox',
+							align: 'stretch'
+						},
+						defaults: {
+							labelAlign: 'right',
+							margin: '0 0 0 0'
+						},
+						items: [
+							{
+								xtype: 'combo',
+								reference: 'refApplyDateCombo',
+								labelWidth: 70,
+								width: 300,
+								fieldLabel: ViewUtil.getLabel('applyDate'),
+								queryMode: 'local',
+								bind: {
+									store: '{applyDateCombo}'
+								},
+								displayField: 'exprYmd',
+								valueField: 'aplyYmd',
+								editable: false,
+								allowBlank: true,
+								listeners: {
+									select: 'onCboApplyDtSelect'
+								}
+							},
+							{
+								reference: 'refsearchTariffCodeCombo',
+								xtype: 'combo',
+								labelWidth: 70,
+								width: 300,
+								fieldLabel: ViewUtil.getLabel('trfTpCd'),
+								queryMode: 'local',
+								bind: {
+									store: '{tariffCodeCombo}',
+									value: 'MGM'
+
+								},
+								displayField: 'scdNm',
+								valueField: 'scd',
+								value: '',
+								editable: false,
+								disabled: true
+								//allowBlank: true,
+								//forceSelection: true
+							},
+							{
+								xtype: 'datefield',
+								reference: 'refApplyDateDt',
+								labelWidth: 80,
+								width: 250,
+								fieldLabel: ViewUtil.getLabel('applyDate'),
+								format: MOST.config.Locale.getShortDate(),
+								// bind: '{theSearch.aplyYmd}',
+								allowBlank: false,
+								disabled: true,
+
+							},
+							{
+								xtype: 'datefield',
+								reference: 'refExpireDateDt',
+								labelWidth: 80,
+								width: 250,
+								fieldLabel: ViewUtil.getLabel('expireDate'),
+								format: MOST.config.Locale.getShortDate(),
+								// bind: '{theSearch.exprYmd}',
+								allowBlank: false,
+								disabled: true,
+
+							}
+						]
+					}
+					]
+				},
+				{
+					xtype: 'fieldset',
+					height: 48,
+					layout: {
+						type: 'hbox',
+						align: 'stretch'
+					},
+					defaults: {
+						margin: '0 0 0 0',
+						labelAlign: 'right'
+					},
+					items: [{
+						reference: 'refCopyRateApplyDateCombo',
+						xtype: 'combo',
+						margin: '5 0 0 0',
+						labelWidth: 70,
+						width: 300,
+						fieldLabel: ViewUtil.getLabel('applyDate'),
+						queryMode: 'local',
+						bind: {
+							store: '{applyDateCombo}'
+						},
+						displayField: 'exprYmd',
+						valueField: 'aplyYmd',
+						editable: false,
+						allowBlank: true,
+						disabled: true
+					},
+					{
+						reference: 'refBtnCopyRate',
+						xtype: 'button',
+						margin: '5 0 0 18',
+						text: ViewUtil.getLabel('applyDate'),
+						ui: 'update-button',
+						iconCls: 'fa fa-check-square-o',
+						disabled: true,
+						listeners: {
+							click: 'onCopyRate'
+						}
+					}
+					]
+
+				}
+				]
+			}
+			]
+		});
+
+		me.callParent();
+	}
+});
+

@@ -1,0 +1,751 @@
+Ext.define('MOST.view.planning.berth.VesselSchduleInfoTab', {
+	extend: 'Ext.panel.Panel',
+
+	alias: 'widget.app-vesselschduleinfotab',
+
+	requires: [
+		'MOST.config.Locale',
+		'TSB.ux.form.field.DateTimeField',
+		'TSB.ux.form.field.DateTimePicker',
+		'MOST.view.planning.berth.BerthExplorerController',
+	],
+
+	layout: { type: 'vbox', align: 'stretch' },
+
+	/**
+	 * =========================================================================================================================
+	 * CONSTANT START
+	 */
+	VSL_GRID_REF_NAME: 'refVesselSchduleListGrid',
+	VSL_STORE_NAME: 'plans',
+	VSL_SFT_GRID_REF_NAME: 'refVesselSftSchduleListGrid',
+	VSL_SFT_STORE_NAME: 'sftPlans',
+	/**
+	 * CONSTANT END
+	 * =========================================================================================================================
+	 */
+
+	initComponent: function () {
+		var me = this;
+
+		Ext.apply(me, {
+			items: [
+				{
+					xtype: 'tabpanel',
+					width: '100%',
+					activeTab: 0,
+					items: [
+						{
+							xtype: 'panel',
+							title: ViewUtil.getLabel('vesselschdule'),
+							collapsible: true,
+							layout: {
+								type: 'hbox',
+								align: 'stretch',
+							},
+							padding: '5 5 5 5',
+							height: 275,
+							scrollable: 'both',
+							items: [
+								{
+									xtype: 'grid',
+									reference: me.VSL_GRID_REF_NAME,
+									usePagingToolbar: false,
+									width: 300,
+									stateful: true,
+									stateId: 'stateVesselSchduleListGrid',
+									bind: {
+										store: '{' + me.VSL_STORE_NAME + '}',
+									},
+									listeners: {
+										select: 'onClickVesselSchduleList',
+									},
+									layout: 'fit',
+									viewConfig: {
+										stripeRows: true,
+										enableTextSelection: true,
+										getRowClass: function (rec, index) {
+											var vslBackcolor;
+
+											if (rec.get('vslStat')) {
+												if (rec.get('vslStat') === 'BBN') {
+													vslBackcolor = 'berth-status-notconfirmed';
+												} else if (rec.get('vslStat') === 'BBY') {
+													vslBackcolor = 'berth-status-confirmed';
+												} else if (rec.get('vslStat') === 'ONB') {
+													vslBackcolor = 'berth-status-atberth';
+												} else if (rec.get('vslStat') === 'DPV') {
+													vslBackcolor = 'berth-status-departed';
+												}
+											}
+
+											return vslBackcolor;
+										},
+									},
+									columns: {
+										defaults: {
+											style: 'text-align:center',
+											align: 'center',
+										},
+										items: GridUtil.getGridColumns('VslSchduleList'),
+									},
+								},
+								{
+									xtype: 'container',
+									flex: 1,
+									autoScroll: true,
+									scrollable: 'both',
+									layout: {
+										type: 'hbox',
+										align: 'stretch',
+									},
+									items: [
+										{
+											xtype: 'container',
+											flex: 1,
+											layout: {
+												type: 'vbox',
+												align: 'stretch',
+											},
+											defaults: {
+												labelAlign: 'right',
+												margin: '5 0 0 0',
+												labelWidth: 80,
+												width: '100%',
+												fieldStyle: 'background-color: #ddd;',
+											},
+											items: [
+												{
+													fieldLabel: ViewUtil.getLabel('vesselname'),
+													bind: '{selectedBerthPlan.vesselName}',
+													xtype: 'textfield',
+													margin: '0 0 0 0',
+													editable: false,
+												},
+												{
+													fieldLabel: ViewUtil.getLabel('callsign'),
+													bind: '{selectedBerthPlan.callSign}',
+													xtype: 'textfield',
+													editable: false,
+												},
+												{
+													fieldLabel: ViewUtil.getLabel('scn'),
+													bind: '{selectedBerthPlan.shipCallNo}',
+													xtype: 'textfield',
+													editable: false,
+												},
+												{
+													fieldLabel: ViewUtil.getLabel('voyage'),
+													bind: '{selectedBerthPlan.inVoy}',
+													xtype: 'textfield',
+													editable: false,
+												},
+												{
+													fieldLabel: ViewUtil.getLabel('sagency'),
+													bind: '{selectedBerthPlan.arrvSaId}',
+													xtype: 'textfield',
+													editable: false,
+												},
+												{
+													fieldLabel: ViewUtil.getLabel('vslschBerthLabel'),
+													bind: '{selectedBerthPlan.berthLabel}',
+													xtype: 'textfield',
+													editable: false,
+												},
+												{
+													xtype: 'checkboxfield',
+													margin: '5 0 0 85',
+													boxLabel: ViewUtil.getLabel('doublebanking'),
+													listeners: {
+														change: 'onDblBnkChkboxChange',
+													},
+												},
+											],
+										},
+										{
+											xtype: 'container',
+											flex: 1,
+											scrollable: true,
+											defaults: {
+												labelAlign: 'right',
+												margin: '5 0 0 0',
+												labelWidth: 80,
+												xtype: 'datetimefield',
+												format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+											},
+											layout: {
+												type: 'vbox',
+												align: 'stretch',
+											},
+											items: [
+												{
+													xtype: 'datetimefield',
+													margin: '0 0 0 0',
+													format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+													fieldLabel: ViewUtil.getLabel('eta'),
+													editable: false,
+													allowBlank: true,
+													readOnly: true,
+													bind: {
+														value: '{selectedBerthPlan.eta}',
+													},
+												},
+												{
+													xtype: 'datetimefield',
+													fieldLabel: ViewUtil.getLabel('etb'),
+													format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+													bind: {
+														readOnly: '{disable}',
+														value: '{selectedBerthPlan.etb}',
+													},
+													editable: false,
+													allowBlank: true,
+												},
+												{
+													xtype: 'datetimefield',
+													fieldLabel: ViewUtil.getLabel('etw'),
+													format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+													bind: {
+														readOnly: '{disable}',
+														value: '{selectedBerthPlan.etw}',
+													},
+													editable: false,
+													allowBlank: true,
+													fieldStyle: 'background-color:#ebd1ea;',
+												},
+												{
+													xtype: 'datetimefield',
+													fieldLabel: ViewUtil.getLabel('etc'),
+													format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+													editable: false,
+													allowBlank: true,
+													bind: {
+														readOnly: '{disable}',
+														value: '{selectedBerthPlan.etc}',
+													},
+													fieldStyle: 'background-color:#ebd1ea;',
+												},
+												{
+													xtype: 'datetimefield',
+													fieldLabel: ViewUtil.getLabel('etu'),
+													format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+													bind: {
+														readOnly: '{disable}',
+														value: '{selectedBerthPlan.etu}',
+													},
+													editable: false,
+													allowBlank: true,
+												},
+												{
+													xtype: 'datetimefield',
+													fieldLabel: ViewUtil.getLabel('etd'),
+													format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+													bind: {
+														readOnly: '{disable}',
+														value: '{selectedBerthPlan.etd}',
+													},
+													editable: false,
+													allowBlank: true,
+													fieldStyle: 'background-color:lightblue;',
+												},
+												{
+													xtype: 'label',
+													text: ViewUtil.getLabel('drfArrv'),
+													padding: '0 5 0 25',
+												},
+												{
+													xtype: 'textfield',
+													reference: 'refArrvFwdDraft',
+													fieldLabel: ViewUtil.getLabel('fowardDraft'),
+													maxLength: 30,
+													enforceMaxLength: true,
+													bind: {
+														value: '{selectedBerthPlan.arrvFwdDrf}',
+													},
+												},
+												{
+													xtype: 'textfield',
+													reference: 'refArrvAfterDraft',
+													fieldLabel: ViewUtil.getLabel('afterDraft'),
+													maxLength: 30,
+													enforceMaxLength: true,
+													bind: {
+														value: '{selectedBerthPlan.arrvAfterDrf}',
+													},
+												},
+											],
+										},
+										{
+											xtype: 'container',
+											flex: 1,
+											defaults: {
+												labelAlign: 'right',
+												margin: '5 0 0 0',
+												labelWidth: 90,
+												xtype: 'datetimefield',
+												format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+											},
+											layout: {
+												type: 'vbox',
+												align: 'stretch',
+											},
+											items: [
+												{
+													xtype: 'combobox',
+													margin: '0 0 0 0',
+													fieldLabel: ViewUtil.getLabel('berthlocation'),
+													queryMode: 'local',
+													bind: {
+														store: '{berths}',
+														value: '{selectedBerthPlan.berthCd}',
+														readOnly: '{disable}',
+													},
+													displayField: 'berthCd',
+													valueField: 'berthCd',
+													editable: false,
+													allowBlank: true,
+													fieldStyle: 'background-color:lightblue;',
+													listeners: {
+														select: 'onChangeBerthLocation',
+													},
+												},
+												{
+													xtype: 'datetimefield',
+													fieldLabel: ViewUtil.getLabel('atb'),
+													format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+													bind: {
+														readOnly: '{disable}',
+														value: '{selectedBerthPlan.atb}',
+													},
+													editable: false,
+													allowBlank: true,
+													fieldStyle: 'background-color:#faff91;',
+												},
+												{
+													xtype: 'datetimefield',
+													fieldLabel: ViewUtil.getLabel('atw'),
+													format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+													bind: {
+														readOnly: true,
+														value: '{selectedBerthPlan.atw}',
+													},
+													editable: false,
+													allowBlank: true,
+													fieldStyle: 'background-color:#ebd1ea;',
+												},
+												{
+													xtype: 'datetimefield',
+													fieldLabel: ViewUtil.getLabel('atc'),
+													format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+													bind: {
+														readOnly: true,
+														value: '{selectedBerthPlan.atc}',
+													},
+													editable: false,
+													allowBlank: true,
+													fieldStyle: 'background-color:#ebd1ea;',
+												},
+												{
+													xtype: 'datetimefield',
+													fieldLabel: ViewUtil.getLabel('atu'),
+													format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+													bind: {
+														readOnly: '{disable}',
+														value: '{selectedBerthPlan.atu}',
+													},
+													editable: false,
+													allowBlank: true,
+													fieldStyle: 'background-color:#faff91;',
+												},
+												{
+													xtype: 'container',
+													layout: {
+														flex: 1,
+														type: 'hbox',
+														align: 'stretch',
+													},
+													defaults: {
+														labelAlign: 'right',
+														labelWidth: 90,
+													},
+													items: [
+														{
+															xtype: 'label',
+															text: ViewUtil.getLabel('wharfmark'),
+															margin: '5 5 0 0',
+															width: 90,
+															style: {
+																'text-align': 'right',
+															},
+														},
+														{
+															xtype: 'numberfield',
+															reference: 'refStartPos',
+															flex: 1,
+															bind: {
+																readOnly: '{disable}',
+																value: '{selectedBerthPlan.startPos}',
+															},
+															listeners: {
+																change: 'onStartPos',
+															},
+															fieldStyle: 'background-color:#faff91;',
+														},
+														{
+															xtype: 'textfield',
+															reference: 'refEndPos',
+															flex: 1,
+															margin: '0 0 0 5',
+															bind: {
+																value: '{selectedBerthPlan.endPos1}',
+															},
+															fieldLabel: '',
+															editable: false,
+															fieldStyle: 'background-color:#faff91;',
+														},
+													],
+												},
+												{
+													xtype: 'label',
+													text: ViewUtil.getLabel('drfDeptr'),
+													padding: '0 0 0 15',
+												},
+												{
+													xtype: 'textfield',
+													reference: 'refDeptFwrdDraft',
+													fieldLabel: ViewUtil.getLabel('fowardDraft'),
+													maxLength: 30,
+													enforceMaxLength: true,
+													bind: {
+														value: '{selectedBerthPlan.depFwdDrf}',
+													},
+												},
+												{
+													xtype: 'textfield',
+													reference: 'refDeptAfterDraft',
+													fieldLabel: ViewUtil.getLabel('afterDraft'),
+													maxLength: 30,
+													enforceMaxLength: true,
+													bind: {
+														value: '{selectedBerthPlan.depAfterDrf}',
+													},
+												},
+											],
+										},
+										{
+											xtype: 'container',
+											flex: 1,
+											defaults: {
+												labelAlign: 'right',
+												margin: '5 0 0 0',
+												labelWidth: 90,
+											},
+											layout: {
+												type: 'vbox',
+												align: 'stretch',
+											},
+											items: [
+												{
+													xtype: 'combobox',
+													margin: '0 0 0 0',
+													fieldLabel: ViewUtil.getLabel('position'),
+													queryMode: 'local',
+													bind: {
+														store: '{berthAlongSideCombo}',
+														value: '{selectedBerthPlan.berthAlongside}',
+														readOnly: '{disable}',
+													},
+													displayField: 'berthAlongSideNm',
+													valueField: 'berthAlongSide',
+													editable: false,
+													value: 'P',
+												},
+												{
+													xtype: 'textfield',
+													reference: 'refLoa',
+													fieldLabel: ViewUtil.getLabel('loa'),
+													bind: '{selectedBerthPlan.loa}',
+													editable: false,
+													readOnly: true,
+													fieldStyle: 'background-color: #ddd;',
+												},
+												{
+													xtype: 'textfield',
+													fieldLabel: ViewUtil.getLabel('piloton'),
+													bind: '{selectedBerthPlan.pilotOnboard}',
+													editable: false,
+													readOnly: true,
+													fieldStyle: 'background-color: #ddd;',
+													hidden: true,
+												},
+												{
+													xtype: 'textfield',
+													fieldLabel: ViewUtil.getLabel('pilotoff'),
+													bind: '{selectedBerthPlan.pilotDisembark}',
+													editable: false,
+													readOnly: true,
+													fieldStyle: 'background-color: #ddd;',
+													hidden: true,
+												},
+												{
+													xtype: 'combobox',
+													fieldLabel: ViewUtil.getLabel('priority'),
+													queryMode: 'local',
+													bind: {
+														store: '{priorityCombo}',
+														value: '{selectedBerthPlan.priorityYn}',
+														readOnly: '{disable}',
+													},
+													displayField: 'codeName',
+													valueField: 'code',
+													editable: false,
+												},
+												{
+													xtype: 'textfield',
+													reference: 'refSurveyWgt',
+													margin: '40 0 0 0',
+													fieldLabel: ViewUtil.getLabel('draftSurveyWgt'),
+													maskRe: /[0-9]/,
+													bind: {
+														value: '{selectedBerthPlan.drfWgt}',
+													},
+													hidden: true,
+												},
+												{
+													xtype: 'datetimefield',
+													fieldLabel: ViewUtil.getLabel('ata'),
+													format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+													bind: {
+														value: '{selectedBerthPlan.ata}',
+													},
+													readOnly: true,
+													editable: false,
+													allowBlank: true,
+													fieldStyle: 'background-color:#ebd1ea;',
+												},
+												{
+													xtype: 'datetimefield',
+													fieldLabel: ViewUtil.getLabel('atd'),
+													format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+													bind: {
+														value: '{selectedBerthPlan.atd}',
+													},
+													readOnly: true,
+													editable: false,
+													allowBlank: true,
+													fieldStyle: 'background-color:#ebd1ea;',
+												},
+												{
+													xtype: 'textareafield',
+													bind: '{selectedBerthPlan.remarks}',
+													fieldLabel: ViewUtil.getLabel('remark'),
+													readOnly: true,
+													flex: 1,
+													fieldStyle: 'word-wrap: break-word;',
+												},
+											],
+										},
+									],
+								},
+							],
+						},
+						{
+							xtype: 'panel',
+							title: ViewUtil.getLabel('vesselshiftingplan'),
+							layout: {
+								type: 'hbox',
+								align: 'stretch',
+							},
+							padding: '5 5 5 5',
+							items: [
+								{
+									xtype: 'container',
+									layout: 'fit',
+									items: [
+										{
+											xtype: 'tsb-datagrid',
+											reference: me.VSL_SFT_GRID_REF_NAME,
+											usePagingToolbar: false,
+											stateful: true,
+											stateId: 'stateVesselSftSchduleListGrid',
+											bind: {
+												store: '{' + me.VSL_SFT_STORE_NAME + '}',
+											},
+											listeners: {
+												select: 'onClickVesselSchduleList',
+											},
+											layout: 'fit',
+											width: 300,
+											viewConfig: {
+												stripeRows: true,
+												enableTextSelection: true,
+												getRowClass: function (rec, index) {
+													var vslBackcolor;
+
+													if (rec.get('vslStat')) {
+														if (rec.get('vslStat') === 'BBN') {
+															vslBackcolor = 'berth-status-notconfirmed';
+														} else if (rec.get('vslStat') === 'BBY') {
+															vslBackcolor = 'berth-status-confirmed';
+														} else if (rec.get('vslStat') === 'ONB') {
+															vslBackcolor = 'berth-status-atberth';
+														} else if (rec.get('vslStat') === 'DPV') {
+															vslBackcolor = 'berth-status-departed';
+														}
+													}
+
+													return vslBackcolor;
+												},
+											},
+											columns: {
+												defaults: {
+													style: 'text-align:center',
+													align: 'center',
+												},
+												items: GridUtil.getGridColumns('VesselSftSchduleList'),
+											},
+										},
+									],
+								},
+								{
+									xtype: 'container',
+									flex: 1,
+									layout: {
+										type: 'hbox',
+										align: 'stretch',
+									},
+									items: [
+										{
+											xtype: 'container',
+											width: 300,
+											defaults: {
+												labelAlign: 'right',
+												margin: '5 0 0 0',
+												labelWidth: 100,
+												width: '100%'
+											},
+											layout: {
+												type: 'vbox',
+												align: 'stretch',
+											},
+											items: [
+												{
+													xtype: 'combobox',
+													fieldLabel: ViewUtil.getLabel('plannedlocation'),
+													margin: '0 0 0 0',
+													queryMode: 'local',
+													bind: {
+														store: '{berths}',
+														value: '{selectedSftBerthPlan.berthCd}',
+													},
+													displayField: 'berthCd',
+													valueField: 'berthCd',
+													readOnly: true,
+												},
+												{
+													xtype: 'combobox',
+													fieldLabel: ViewUtil.getLabel('position'),
+													queryMode: 'local',
+													bind: {
+														store: '{shftBerthAlongSideCombo}',
+														value: '{selectedSftBerthPlan.berthAlongside}',
+													},
+													displayField: 'berthAlongSideNm',
+													valueField: 'berthAlongSide',
+													readOnly: true,
+												},
+												{
+													xtype: 'datetimefield',
+													bind: '{selectedSftBerthPlan.etb}',
+													fieldLabel: ViewUtil.getLabel('etb'),
+													fieldStyle: 'background-color:lightblue;',
+													format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+													readOnly: true,
+												},
+												{
+													xtype: 'datetimefield',
+													bind: '{selectedSftBerthPlan.etu}',
+													fieldLabel: ViewUtil.getLabel('etu'),
+													fieldStyle: 'background-color:lightblue;',
+													format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+													readOnly: true,
+												},
+												{
+													xtype: 'container',
+													layout: {
+														flex: 1,
+														type: 'hbox',
+														align: 'stretch',
+													},
+													items: [
+														{
+															xtype: 'label',
+															text: ViewUtil.getLabel('wharfmark'),
+															margin: '5 5 0 0',
+															width: 100,
+															style: {
+																'text-align': 'right',
+															},
+														},
+														{
+															xtype: 'numberfield',
+															bind: '{selectedSftBerthPlan.startPos}',
+															flex: 1,
+															fieldStyle: 'background-color:#faff91;',
+															readOnly: true,
+														},
+														{
+															xtype: 'numberfield',
+															bind: '{selectedSftBerthPlan.endPos}',
+															fieldLabel: '',
+															flex: 1,
+															margin: '0 0 0 5',
+															fieldStyle: 'background-color:#faff91;',
+															readOnly: true,
+														},
+													],
+												},
+											],
+										},
+										{
+											xtype: 'container',
+											width: 300,
+											defaults: {
+												labelAlign: 'right',
+												margin: '5 0 0 0',
+												labelWidth: 100,
+												width: '100%'
+											},
+											layout: {
+												type: 'vbox',
+											},
+											items: [
+												{
+													xtype: 'datetimefield',
+													margin: '0 0 0 0',
+													bind: '{selectedSftBerthPlan.shfAtb}',
+													fieldLabel: ViewUtil.getLabel('atb'),
+													format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+													readOnly: true,
+												},
+												{
+													xtype: 'datetimefield',
+													bind: '{selectedSftBerthPlan.shfAtu}',
+													fieldLabel: ViewUtil.getLabel('atu'),
+													format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+													readOnly: true,
+												},
+											],
+										},
+									],
+								},
+							],
+						},
+					],
+				},
+			],
+		});
+
+		me.callParent();
+	},
+});

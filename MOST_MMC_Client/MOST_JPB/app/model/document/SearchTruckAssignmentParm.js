@@ -1,0 +1,50 @@
+Ext.define('MOST.model.document.SearchTruckAssignmentParm', {
+	extend : 'MOST.model.foundation.parm.BizParm',
+	fields: [
+		{
+			name:'searchType',
+			type:'string'
+		},
+		{
+			name:'vslCallId',
+			type:'string'
+		},
+		{
+			name:'shipgNoteNo',
+			type:'string'
+		},
+		{
+			name:'grNo',
+			type:'string'
+		},
+		{
+			name:'blNo',
+			type:'string'
+		},
+		{
+			name:'doNo',
+			type:'string'
+		},
+		{
+			name:'subDoNo',
+			type:'string'
+		},
+		{
+			name:'pgmId',
+			type:'string'
+		},
+		{
+			name:'catgCd',
+			type:'string'
+		},
+		{
+			name:'truckMode',
+			type:'string'
+		},
+		{
+			name:'mfDocId',
+			type:'string'
+		}
+	]
+
+});

@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="handlingIn">
+	
+	<!--  ################ Query Statement Define ######################################### -->
+	<sql id="sqlHandlingInAuth">
+		<if test='userType == "E"'>
+		  AND
+				(
+					EXISTS (SELECT '1' FROM TMT_SHIPG_NOTE SN
+							 WHERE SN.VSL_CALL_ID = M.VSL_CALL_ID 
+							   AND SN.SHIPG_NOTE_NO = M.SHIPG_NOTE_NO 
+							   AND SN.FWRD = #{ptnrCode})
+					OR EXISTS (SELECT '1' FROM TMT_SHIPG_NOTE SN
+								WHERE SN.VSL_CALL_ID = M.VSL_CALL_ID 
+								  AND SN.SHIPG_NOTE_NO = M.SHIPG_NOTE_NO 
+								  AND SN.SHIPG_AGNCY = #{ptnrCode})
+					OR EXISTS (SELECT '1' FROM TMT_BL BL
+								WHERE BL.VSL_CALL_ID = M.VSL_CALL_ID 
+								  AND BL.BL_NO = M.CG_NO 
+								  AND BL.TSPTR = #{ptnrCode})
+					OR EXISTS (SELECT '1' FROM TMT_SHIPG_NOTE SN, TMT_GR GR 
+								WHERE SN.TSPT_COMP = #{ptnrCode}
+								  AND SN.VSL_CALL_ID = GR.VSL_CALL_ID 
+								  AND SN.SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO
+								  AND GR.VSL_CALL_ID = M.VSL_CALL_ID
+								  AND GR.GR_NO = M.CG_NO)
+				)
+		</if>
+	</sql>
+	<select id="selectHandlingInList" parameterType="HandlingInParm" resultType="HandlingInItem">
+		SELECT
+		    M.OPE_CLASS_CD AS CATGCD,
+		    (SELECT TCM.S_CD_NM 
+		     FROM TMT_CD_MSTD TCM 
+		     WHERE TCM.L_CD = 'MT' 
+		       AND TCM.M_CD = 'CATGTP' 
+		       AND TCM.S_CD = M.OPE_CLASS_CD) AS CATGNM,
+		    P.SHIPG_NOTE_NO AS BLSN,
+		    M.BL_NO AS BL_NO,
+		    M.SHIPG_NOTE_NO AS SHIPGNOTENO,
+		    M.VSL_CALL_ID AS VSLCALLID,
+		    M.CG_NO AS CGNO,
+		    M.CG_NO AS GRDO,
+		    D.GATE_PASS_NO AS GRGP,
+		    S.CURRLOCID AS CURRLOCID,
+		    M.SHIPG_AGNT AS SHPGAGENT, 
+		    M.FWR_AGNT AS FWRAGNT,
+		    CASE 
+		        WHEN P.SHPR + '/' + P.CNSNE = '/' THEN '' 
+		        ELSE P.SHPR + '/' + P.CNSNE 
+		    END AS SHPCNG,
+		    M.CMDT_CD AS CARGO,
+		    (SELECT TOP 1 C.CMDT_DESC
+		     FROM TMT_CMDT C
+		     WHERE C.CMDT_CD = M.CMDT_CD) AS CARGO, 
+		    M.PKG_TP_CD AS PKGTPCD,
+		    M.HDL_IN_ST_DT AS HDLINSTDT,
+		    CASE 
+		        WHEN M.HDL_IN_END_DT IS NULL THEN FORMAT(M.HDL_IN_ST_DT, 'dd/MM/yyyy HH:mm') 
+		        ELSE FORMAT(M.HDL_IN_END_DT, 'dd/MM/yyyy HH:mm') 
+		    END AS HDLINDT,
+		    FORMAT(M.LOAD_ST_DT, 'dd/MM/yyyy HH:mm') AS LOADSTDT, 
+		    FORMAT(ISNULL(M.LOAD_END_DT, M.HDL_OUT_END_DT), 'dd/MM/yyyy HH:mm') AS whstartdt,
+		    (DATEDIFF(DAY, ISNULL(M.HDL_IN_END_DT, M.HDL_IN_ST_DT), ISNULL(M.LOAD_END_DT, M.HDL_OUT_END_DT)) + 1) AS inWhDtNo,
+		    G.PKG_QTY AS DOCQTY,
+		    G.CG_WGT AS DOCMT,
+		    G.CG_VOL AS DOCM3,
+		    S.MSRMT AS MSRMT, 
+		    S.WGT AS WGT, 
+		    S.PKG_QTY AS PKGQTY,
+		    CASE 
+		        WHEN M.LOAD_ST_DT IS NULL THEN S.JOB_PURP_CD 
+		        ELSE 'WV' 
+		    END AS JOBPURPCD,
+		    (SELECT TCM.S_CD_NM 
+		     FROM TMT_CD_MSTD TCM 
+		     WHERE TCM.L_CD = 'MT' 
+		       AND TCM.M_CD = 'JOBPURP'
+		       AND TCM.S_CD = CASE 
+		                        WHEN M.LOAD_ST_DT IS NULL THEN S.JOB_PURP_CD 
+		                        ELSE 'WV' 
+		                      END) AS JOBPURPNM,
+		    S.DMGYN AS DMGYN,
+		    S.SHUYN AS SHUYN,
+		    S.RHDLYN AS RHDLYN,
+		    (SELECT TOP 1 CASE 
+		                     WHEN DG_CHK IS NULL THEN 'N' 
+		                     WHEN DG_CHK = '' THEN 'N' 
+		                     WHEN DG_CHK = 'Y' THEN 'Y' 
+		                     WHEN DG_CHK = 'N' THEN 'N' 
+		                     WHEN DG_CHK = 'C' THEN 'C' 
+		                 END 
+		     FROM TMT_GR G,
+		          (SELECT S.VSL_CALL_ID AS VSL_CALL_ID, 
+		                  F.CG_NO AS BL_SN, 
+		                  F.DG_CHK AS DG_CHK, 
+		                  F.STAT_CD AS DG_STAT_CD 
+		           FROM TMT_VSL_SCH S, TMT_DG F 
+		           WHERE F.VSL_CD = S.VSL_CD 
+		             AND F.CALL_SEQ = S.CALL_SEQ 
+		             AND F.CALL_YEAR = S.CALL_YEAR) D
+		     WHERE D.VSL_CALL_ID = G.VSL_CALL_ID 
+		       AND D.BL_SN = G.SHIPG_NOTE_NO
+		       AND G.VSL_CALL_ID = M.VSL_CALL_ID
+		       AND G.GR_NO = M.CG_NO) AS DGYN,
+		    (SELECT CASE 
+		                WHEN D.DG_STAT_CD IS NULL THEN 'N' 
+		                WHEN D.DG_STAT_CD = '' THEN 'N' 
+		                WHEN D.DG_STAT_CD = 'SU' THEN 'Submit' 
+		                WHEN D.DG_STAT_CD = 'Y' THEN 'Approval' 
+		                WHEN D.DG_STAT_CD = 'C' THEN 'Cancel' 
+		            END 
+		     FROM TMT_GR G,
+		          (SELECT TOP 1 S.VSL_CALL_ID AS VSL_CALL_ID, 
+		                       F.CG_NO AS BL_SN, 
+		                       F.DG_CHK AS DG_CHK, 
+		                       F.STAT_CD AS DG_STAT_CD 
+		           FROM TMT_VSL_SCH S, TMT_DG F 
+		           WHERE F.VSL_CD = S.VSL_CD 
+		             AND F.CALL_SEQ = S.CALL_SEQ 
+		             AND F.CALL_YEAR = S.CALL_YEAR) D
+		     WHERE D.VSL_CALL_ID = G.VSL_CALL_ID 
+		       AND D.BL_SN = G.SHIPG_NOTE_NO
+		       AND G.VSL_CALL_ID = M.VSL_CALL_ID
+		       AND G.GR_NO = M.CG_NO) AS DGSTATCD,
+		    ISNULL(WBR.TRK_GRS_WGT, 0) AS SCALEAMT,
+		    S_RC.RCYN AS RCYN,
+		    S.SHFT_ID AS SHFTID,
+		    (SELECT TOP 1 A.SHFT_NM 
+		     FROM TMT_SHFT A 
+		     WHERE A.SHFT_ID = S.SHFT_ID) AS SHFTNM
+		FROM TMT_GR G
+		JOIN TMT_SHIPG_NOTE P ON G.VSL_CALL_ID = P.VSL_CALL_ID AND G.SHIPG_NOTE_NO = P.SHIPG_NOTE_NO
+		LEFT JOIN TMT_WEIGHTBRIDGE WBR ON G.VSL_CALL_ID = WBR.VSL_CALL_ID 
+		                              AND G.SHIPG_NOTE_NO = WBR.SHIPG_NOTE_NO 
+		                              AND G.GR_NO = WBR.GR_NO
+		JOIN (SELECT SUM(J.CG_VOL) AS MSRMT, 
+		             SUM(J.CG_WGT) AS WGT,
+		             SUM(J.PKG_QTY) AS PKG_QTY,
+		             MAX(CASE 
+		                   WHEN J.JOB_CO_CD = 'G' AND J.RHDL_MODE IS NULL THEN J.TO_LOC_ID 
+		                   ELSE '' 
+		                 END) AS currlocid,
+		             CASE 
+		               WHEN SUM(CASE WHEN J.JOB_CO_CD = 'D' THEN 1 ELSE 0 END) = 0 THEN 'N' 
+		               ELSE 'Y' 
+		             END AS dmgyn,
+		             CASE 
+		               WHEN SUM(CASE WHEN J.JOB_CO_CD = 'S' THEN 1 ELSE 0 END) = 0 THEN 'N' 
+		               ELSE 'Y' 
+		             END AS shuyn,
+		             CASE 
+		               WHEN SUM(CASE WHEN J.RHDL_MODE IS NOT NULL THEN 1 ELSE 0 END) = 0 THEN 'N' 
+		               ELSE 'Y' 
+		             END AS rhdlyn,
+		             J.VSL_CALL_ID,
+		             J.JOB_PURP_CD,
+		             J.JOB_TP_CD,
+		             J.CG_NO,
+		             J.OPE_CLASS_CD,
+		             J.SHFT_ID
+		      FROM TMT_JOB J
+		      WHERE 1=1
+		      	<if test="locId != null and locId != ''">
+				    <![CDATA[
+				    AND (
+							(CHARINDEX('(', J.TO_LOC_ID) != 0 AND J.TO_LOC_ID IS NOT NULL AND SUBSTRING(J.TO_LOC_ID, 1, CHARINDEX('(', J.TO_LOC_ID) - 1) = #{locId})
+							OR
+							(CHARINDEX('-', J.TO_LOC_ID) != 0 AND J.TO_LOC_ID IS NOT NULL AND SUBSTRING(J.TO_LOC_ID, 1, CHARINDEX('-', J.TO_LOC_ID) - 1) = #{locId})
+					)
+				    ]]>
+				</if>
+            	<if test="vslCallId != null and vslCallId != ''">
+                 AND J.VSL_CALL_ID = #{vslCallId}
+             	</if>
+		        <if test="cgNo != null and cgNo != ''">
+                 AND J.CG_NO= #{cgNo}
+             	</if>
+		      GROUP BY J.VSL_CALL_ID, J.CG_NO, J.JOB_PURP_CD, J.JOB_TP_CD, J.OPE_CLASS_CD, J.SHFT_ID) S ON G.VSL_CALL_ID = S.VSL_CALL_ID 
+		                                                         AND G.GR_NO = S.CG_NO
+		LEFT JOIN (SELECT j.cg_no, j.vsl_call_id, 'Y' AS rcyn
+		           FROM TMT_JOB j
+		           WHERE j.RC_CO_CD IS NOT NULL
+		             <if test="vslCallId != null and vslCallId != ''">
+		                 AND J.VSL_CALL_ID = #{vslCallId}
+		             </if>
+		             <if test="cgNo != null and cgNo != ''">
+		                 AND J.CG_NO=#{cgNo}
+		             </if>
+		           GROUP BY j.cg_no, j.vsl_call_id) S_RC ON S.CG_NO = S_RC.CG_NO 
+		                                                 AND S.VSL_CALL_ID = S_RC.VSL_CALL_ID
+		JOIN TMT_CG_MST M ON G.VSL_CALL_ID = M.VSL_CALL_ID 
+		                  AND G.GR_NO = M.CG_NO
+		LEFT JOIN (SELECT l.vsl_call_id, l.cg_no, MAX(l.gate_pass_no) AS gate_pass_no
+		           FROM TMT_CG_ARRV_DELV l
+		           WHERE 1=1 
+		           		<if test="vslCallId != null and vslCallId != ''">
+			                 AND L.VSL_CALL_ID = #{vslCallId}
+			           	</if>
+			           	<if test="cgNo != null and cgNo != ''">
+			                 AND L.CG_NO= #{cgNo}
+			            </if>
+		           GROUP BY l.vsl_call_id, l.cg_no) AS D ON M.VSL_CALL_ID = D.VSL_CALL_ID 
+		                                              AND M.CG_NO = D.CG_NO
+		WHERE S.JOB_PURP_CD = 'GW'
+		  AND S.JOB_TP_CD = 'LF'
+		  AND M.HDL_IN_ST_DT IS NOT NULL
+		  <if test="vslCallId != null and vslCallId != ''">
+	            AND M.VSL_CALL_ID = #{vslCallId}
+	      </if>
+		  <if test="cgNo != null and cgNo != ''">
+			    AND G.GR_NO = #{cgNo}
+		  </if>
+		  <if test="shipgNoteNo != null and shipgNoteNo != ''">
+			    AND P.SHIPG_NOTE_NO = #{shipgNoteNo}
+		  </if>
+		  <if test="startDt != null and startDt != ''">
+			  AND
+			  <if test="endDt != null and endDt != ''">
+			    M.HDL_IN_ST_DT BETWEEN CONVERT(DATETIME, #{startDt} + ' 00:00', 103) 
+			    AND CONVERT(DATETIME, #{endDt} + ' 23:59', 103)
+			  </if>
+			  <if test="endDt == null or endDt == ''">
+			    M.HDL_IN_ST_DT <![CDATA[>]]> CONVERT(DATETIME, #{startDt}, 103)
+			  </if>
+			</if>
+		 <if test="startDt == null or startDt == ''">
+	 	 <if test="endDt != null and endDt != ''">
+			    AND M.HDL_IN_ST_DT <![CDATA[<]]> CONVERT(DATETIME, #{endDt}, 103)
+			  </if>
+			  <if test="endDt == null or endDt == ''">
+			    <if test="workDT != null and workDT != ''">
+			      AND M.HDL_IN_ST_DT BETWEEN CONVERT(DATETIME, #{workDT} + ' 00:00', 103) 
+			      AND CONVERT(DATETIME, #{workDT} + ' 23:59', 103)
+			    </if>
+			  </if>
+		 </if>
+		<if test="catgCd != null and catgCd != ''">
+		    AND M.OPE_CLASS_CD = #{catgCd}
+		</if>
+		<if test="fwrAgnt != null and fwrAgnt != ''">
+		    AND M.FWR_AGNT = #{fwrAgnt}
+		</if>
+		<if test='hhtFnlChk == "Y"'>
+		    AND M.HDL_IN_END_DT IS NULL
+		</if>
+		<if test='hhtFnlChk == "true"'>
+		    AND M.HDL_IN_END_DT IS NULL
+		</if>
+		<if test="shftId != null and shftId != ''">
+		    AND S.SHFT_ID = #{shftId}
+		</if>
+		<include refid="sqlHandlingInAuth"/>
+		ORDER BY BLSN;
+	</select>
+	
+	
+</mapper>

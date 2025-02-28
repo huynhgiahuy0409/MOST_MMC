@@ -1,0 +1,1020 @@
+package com.tsb.most.biz.dataitem.planning;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import com.tsb.most.framework.dataitem.DataItem;
+
+public class BerthPlanItem extends DataItem {
+
+	private String vslCallId;
+    private String jpvcNo;
+    private String shipCallNo;
+    private String callSeq;
+    private String inVoy;
+    private String outVoy;
+    private String berthCd;
+    private String berthNm;
+    private String berthTp;
+    private String locCd;
+    private String docStatus;
+    private Date eta;
+    private Date etb;
+    private Date etw;
+    private Date etc;
+    private Date etu;
+    private Date etd;
+    private Date ata;
+    private Date readinessAta;
+    private Date atb;	
+    private Date atw;
+    private Date atc;
+    private Date atu;
+    private Date atd;
+    private Date shfAtb;
+    private Date shfAtu;
+    private String inLane;
+    private String outLane;
+    private String arrvSaId;
+    private String pilotOnboard;
+    private String pilotDisembark; 
+    private String berthAlongside;
+    private String berthDiv;
+    private float startPos;
+    private float endPos;
+    private String vesselName;
+    private float loa;
+    private float width;
+    private float length;
+    private String callSign;
+    private String remarks;
+    private float pstSta;    
+    
+	private String vslStat;
+    private String planYn;
+    private String priorityYn;
+    private String planType;
+    private String dblBnkYn;
+    
+    private String drfWgt;
+    private String depFwdDrf;
+    private String depAfterDrf;
+    private String arrvFwdDrf;
+    private String arrvAfterDrf;
+    
+    //research param
+    private Date etaFrom;
+    private Date etaTo;
+    private String berthStatus;
+    private String viewType;
+    private String colColor;
+    private String referenceNo;
+    
+    private float loading;
+    private float discharging;
+    private String loadingCmdt;
+    private String dischargingCmdt;
+    
+    private String shipgNoteNo;
+    private double cgWgt;
+    private String shpr;
+    private String snComodityCode;
+    private String snComodityName;
+    private String cnsneecd;
+    private String fnComodityCode;
+    private String fnComodityName;
+    private String eqTpCd;
+    private String megaNo;			//Mega No
+    private String stvdComp;
+    private String trmgComp;
+    private String jobNo;
+    private String blNo;
+    private double wgt;
+    
+    private String hatchNo;
+    private String D_Bloading;
+    private String D_Bdischarging;
+    private String berthLabel;
+    
+    //berth info
+    private String terminalCd;
+    private String pstEnd;       
+	private double displacement;
+	private double maxDraft;
+	private int drawable;
+	private String berthDept;
+	private String equipments;
+	private String grpCd;
+	
+	//bitt
+    private String bittCd;
+    private String xPos;
+    private String yPos;
+	
+    //vessel agency
+    private String engSnm; 			// Partner Name
+    private String agencyCode; 		// Partner Code
+    private String companyStatus; 	// Company Status
+    private String contactPerson; 	// Contact Person
+    private String ptnrType; 		// Partner Type Check Box
+    private String addr;			// Office Address
+    private String telNo; 			// Telephone No
+    private String faxNo; 			// Fax No
+    private String homepage; 		// Homepage
+    private String email; 			// E-mail
+    private String licNo; 			// NRIC No.
+    private String paymentType; 	// Payment Type
+    private String creditLimit; 	// Credit Limit
+    private String outstanding; 	// Outstanding
+    private String balance; 		// Balance
+    private String bankName; 		// Bank Name
+    private String accNo; 			// Account No
+    private String remark; 			// Remark
+	private List<Object> collection = new ArrayList<Object>(); 
+
+    private String billTp; 			// Billing Type
+    private String jpvc; 			// JPVC 
+    private String handlingType; 	// Handling Type
+    private String cargoType; 		// Cargo Type
+    private String amount; 			// Amount
+    private String status; 			// Status
+    private String pamentDt; 		// Payment Date
+    
+    // Vessel Information of Estimated Charges
+    private String vslNm;   	// Name of Vessel
+    private String hndTp;		// Handing Type
+    private String cgTp;		// Cargo Type
+    private String cgNm; 		// Cargo Name
+    private String tonnage; 	// Tonnage
+    private String opeTp;
+    private String loadCargo;
+    private String dischargeCargo;
+    private String billTpCd;
+    private String cargoTypeCd;
+    
+ // -Berth Maintenance 
+    private String repBerthCd;
+    private String repFromBitt;
+    private String repToBitt;
+    private String repFromMeter;
+    private String repToMeter;
+    private Date repStopStime;
+    private Date repStopEtime;
+    private String repStopRsn;
+    private String repStopRsnNm;
+    private String repRemark;
+    private String drawType;
+    private String opeStat;
+    private String vslDlRsn;
+    
+    
+    public String getVslDlRsn() {
+		return vslDlRsn;
+	}
+	public void setVslDlRsn(String vslDlRsn) {
+		this.vslDlRsn = vslDlRsn;
+	}
+	public String getVslCallId() {
+		return vslCallId;
+	}
+	public void setVslCallId(String vslCallId) {
+		this.vslCallId = vslCallId;
+	}
+	public float getPstSta() {
+		return pstSta;
+	}
+	public void setPstSta(float pstSta) {
+		this.pstSta = pstSta;
+	}
+    public String getReferenceNo() {
+		return referenceNo;
+	}
+	public void setReferenceNo(String referenceNo) {
+		this.referenceNo = referenceNo;
+	}
+	public String getJpvcNo() {
+		return jpvcNo;
+	}
+	public void setJpvcNo(String jpvcNo) {
+		this.jpvcNo = jpvcNo;
+	}
+	public String getShipCallNo() {
+		return shipCallNo;
+	}
+	public void setShipCallNo(String shipCallNo) {
+		this.shipCallNo = shipCallNo;
+	}
+	public String getInVoy() {
+		return inVoy;
+	}
+	public void setInVoy(String inVoy) {
+		this.inVoy = inVoy;
+	}
+	public String getOutVoy() {
+		return outVoy;
+	}
+	public void setOutVoy(String outVoy) {
+		this.outVoy = outVoy;
+	}
+	public String getBerthCd() {
+		return berthCd;
+	}
+	public void setBerthCd(String berthCd) {
+		this.berthCd = berthCd;
+	}
+	public String getDocStatus() {
+		return docStatus;
+	}
+	public void setDocStatus(String docStatus) {
+		this.docStatus = docStatus;
+	}
+	public Date getEta() {
+		return eta;
+	}
+	public void setEta(Date eta) {
+		this.eta = eta;
+	}
+	public Date getEtb() {
+		return etb;
+	}
+	public void setEtb(Date etb) {
+		this.etb = etb;
+	}
+	public Date getEtw() {
+		return etw;
+	}
+	public void setEtw(Date etw) {
+		this.etw = etw;
+	}
+	public Date getEtc() {
+		return etc;
+	}
+	public void setEtc(Date etc) {
+		this.etc = etc;
+	}
+	public Date getEtu() {
+		return etu;
+	}
+	public void setEtu(Date etu) {
+		this.etu = etu;
+	}
+	public Date getEtd() {
+		return etd;
+	}
+	public void setEtd(Date etd) {
+		this.etd = etd;
+	}
+	public Date getAta() {
+		return ata;
+	}
+	public void setAta(Date ata) {
+		this.ata = ata;
+	}
+	public Date getAtb() {
+		return atb;
+	}
+	public void setAtb(Date atb) {
+		this.atb = atb;
+	}
+	public Date getAtw() {
+		return atw;
+	}
+	public void setAtw(Date atw) {
+		this.atw = atw;
+	}
+	public Date getAtc() {
+		return atc;
+	}
+	public void setAtc(Date atc) {
+		this.atc = atc;
+	}
+	public Date getAtu() {
+		return atu;
+	}
+	public void setAtu(Date atu) {
+		this.atu = atu;
+	}
+	public Date getAtd() {
+		return atd;
+	}
+	public void setAtd(Date atd) {
+		this.atd = atd;
+	}
+	public Date getShfAtb() {
+		return shfAtb;
+	}
+	public void setShfAtb(Date shfAtb) {
+		this.shfAtb = shfAtb;
+	}
+	public Date getShfAtu() {
+		return shfAtu;
+	}
+	public void setShfAtu(Date shfAtu) {
+		this.shfAtu = shfAtu;
+	}
+	public String getInLane() {
+		return inLane;
+	}
+	public void setInLane(String inLane) {
+		this.inLane = inLane;
+	}
+	public String getOutLane() {
+		return outLane;
+	}
+	public void setOutLane(String outLane) {
+		this.outLane = outLane;
+	}
+	public String getArrvSaId() {
+		return arrvSaId;
+	}
+	public void setArrvSaId(String arrvSaId) {
+		this.arrvSaId = arrvSaId;
+	}
+	public String getPilotOnboard() {
+		return pilotOnboard;
+	}
+	public void setPilotOnboard(String pilotOnboard) {
+		this.pilotOnboard = pilotOnboard;
+	}
+	public String getPilotDisembark() {
+		return pilotDisembark;
+	}
+	public void setPilotDisembark(String pilotDisembark) {
+		this.pilotDisembark = pilotDisembark;
+	}
+	public String getBerthAlongside() {
+		return berthAlongside;
+	}
+	public void setBerthAlongside(String berthAlongside) {
+		this.berthAlongside = berthAlongside;
+	}
+	public String getBerthDiv() {
+		return berthDiv;
+	}
+	public void setBerthDiv(String berthDiv) {
+		this.berthDiv = berthDiv;
+	}
+	public String getVesselName() {
+		return vesselName;
+	}
+	public void setVesselName(String vesselName) {
+		this.vesselName = vesselName;
+	}
+	public float getLoa() {
+		return loa;
+	}
+	public void setLoa(float loa) {
+		this.loa = loa;
+	}
+	public float getWidth() {
+		return width;
+	}
+	public void setWidth(float width) {
+		this.width = width;
+	}
+	public float getLength() {
+		return length;
+	}
+	public void setLength(float length) {
+		this.length = length;
+	}
+	public String getCallSign() {
+		return callSign;
+	}
+	public void setCallSign(String callSign) {
+		this.callSign = callSign;
+	}
+	public String getRemarks() {
+		return remarks;
+	}
+	public void setRemarks(String remarks) {
+		this.remarks = remarks;
+	}
+	public String getVslStat() {
+		return vslStat;
+	}
+	public void setVslStat(String vslStat) {
+		this.vslStat = vslStat;
+	}
+	public String getPlanYn() {
+		return planYn;
+	}
+	public void setPlanYn(String planYn) {
+		this.planYn = planYn;
+	}
+	public String getPriorityYn() {
+		return priorityYn;
+	}
+	public void setPriorityYn(String priorityYn) {
+		this.priorityYn = priorityYn;
+	}
+	public String getPlanType() {
+		return planType;
+	}
+	public void setPlanType(String planType) {
+		this.planType = planType;
+	}
+	public String getDblBnkYn() {
+		return dblBnkYn;
+	}
+	public void setDblBnkYn(String dblBnkYn) {
+		this.dblBnkYn = dblBnkYn;
+	}
+	public String getBerthStatus() {
+		return berthStatus;
+	}
+	public void setBerthStatus(String berthStatus) {
+		this.berthStatus = berthStatus;
+	}
+	public String getViewType() {
+		return viewType;
+	}
+	public void setViewType(String viewType) {
+		this.viewType = viewType;
+	}
+	public String getColColor() {
+		return colColor;
+	}
+	public void setColColor(String colColor) {
+		this.colColor = colColor;
+	}
+	public Date getEtaFrom() {
+		return etaFrom;
+	}
+	public void setEtaFrom(Date etaFrom) {
+		this.etaFrom = etaFrom;
+	}
+	public Date getEtaTo() {
+		return etaTo;
+	}
+	public void setEtaTo(Date etaTo) {
+		this.etaTo = etaTo;
+	}
+	public String getBerthTp() {
+		return berthTp;
+	}
+	public void setBerthTp(String berthTp) {
+		this.berthTp = berthTp;
+	}
+	public float getStartPos() {
+		return startPos;
+	}
+	public void setStartPos(float startPos) {
+		this.startPos = startPos;
+	}
+	public float getEndPos() {
+		return endPos;
+	}
+	public void setEndPos(float endPos) {
+		this.endPos = endPos;
+	}
+	public float getLoading() {
+		return loading;
+	}
+	public void setLoading(float loading) {
+		this.loading = loading;
+	}
+	public float getDischarging() {
+		return discharging;
+	}
+	public void setDischarging(float discharging) {
+		this.discharging = discharging;
+	}
+	public String getLoadingCmdt() {
+		return loadingCmdt;
+	}
+	public void setLoadingCmdt(String loadingCmdt) {
+		this.loadingCmdt = loadingCmdt;
+	}
+	public String getDischargingCmdt() {
+		return dischargingCmdt;
+	}
+	public void setDischargingCmdt(String dischargingCmdt) {
+		this.dischargingCmdt = dischargingCmdt;
+	}
+	public String getShipgNoteNo() {
+		return shipgNoteNo;
+	}
+	public void setShipgNoteNo(String shipgNoteNo) {
+		this.shipgNoteNo = shipgNoteNo;
+	}
+	public double getCgWgt() {
+		return cgWgt;
+	}
+	public void setCgWgt(double cgWgt) {
+		this.cgWgt = cgWgt;
+	}
+	public String getShpr() {
+		return shpr;
+	}
+	public void setShpr(String shpr) {
+		this.shpr = shpr;
+	}
+	public String getSnComodityCode() {
+		return snComodityCode;
+	}
+	public void setSnComodityCode(String snComodityCode) {
+		this.snComodityCode = snComodityCode;
+	}
+	public String getSnComodityName() {
+		return snComodityName;
+	}
+	public void setSnComodityName(String snComodityName) {
+		this.snComodityName = snComodityName;
+	}
+	public String getCnsneecd() {
+		return cnsneecd;
+	}
+	public void setCnsneecd(String cnsneecd) {
+		this.cnsneecd = cnsneecd;
+	}
+	public String getFnComodityCode() {
+		return fnComodityCode;
+	}
+	public void setFnComodityCode(String fnComodityCode) {
+		this.fnComodityCode = fnComodityCode;
+	}
+	
+	public String getFnComodityName() {
+		return fnComodityName;
+	}
+	public void setFnComodityName(String fnComodityName) {
+		this.fnComodityName = fnComodityName;
+	}
+	public String getEqTpCd() {
+		return eqTpCd;
+	}
+	public void setEqTpCd(String eqTpCd) {
+		this.eqTpCd = eqTpCd;
+	}
+	public String getMegaNo() {
+		return megaNo;
+	}
+	public void setMegaNo(String megaNo) {
+		this.megaNo = megaNo;
+	}
+	public String getStvdComp() {
+		return stvdComp;
+	}
+	public void setStvdComp(String stvdComp) {
+		this.stvdComp = stvdComp;
+	}
+	public String getTrmgComp() {
+		return trmgComp;
+	}
+	public void setTrmgComp(String trmgComp) {
+		this.trmgComp = trmgComp;
+	}
+	public String getJobNo() {
+		return jobNo;
+	}
+	public void setJobNo(String jobNo) {
+		this.jobNo = jobNo;
+	}
+	public String getBlNo() {
+		return blNo;
+	}
+	public void setBlNo(String blNo) {
+		this.blNo = blNo;
+	}
+	public double getWgt() {
+		return wgt;
+	}
+	public void setWgt(double wgt) {
+		this.wgt = wgt;
+	}
+	public String getHatchNo() {
+		return hatchNo;
+	}
+	public void setHatchNo(String hatchNo) {
+		this.hatchNo = hatchNo;
+	}
+	public String getD_Bloading() {
+		return D_Bloading;
+	}
+	public void setD_Bloading(String d_Bloading) {
+		D_Bloading = d_Bloading;
+	}
+	public String getD_Bdischarging() {
+		return D_Bdischarging;
+	}
+	public void setD_Bdischarging(String d_Bdischarging) {
+		D_Bdischarging = d_Bdischarging;
+	}
+	public String getBerthLabel() {
+		return berthLabel;
+	}
+	public void setBerthLabel(String berthLabel) {
+		this.berthLabel = berthLabel;
+	}
+	public String getTerminalCd() {
+		return terminalCd;
+	}
+	public void setTerminalCd(String terminalCd) {
+		this.terminalCd = terminalCd;
+	}
+	public String getPstEnd() {
+		return pstEnd;
+	}
+	public void setPstEnd(String pstEnd) {
+		this.pstEnd = pstEnd;
+	}
+	public double getDisplacement() {
+		return displacement;
+	}
+	public void setDisplacement(double displacement) {
+		this.displacement = displacement;
+	}
+	public double getMaxDraft() {
+		return maxDraft;
+	}
+	public void setMaxDraft(double maxDraft) {
+		this.maxDraft = maxDraft;
+	}
+	public String getBittCd() {
+		return bittCd;
+	}
+	public void setBittCd(String bittCd) {
+		this.bittCd = bittCd;
+	}
+	public String getxPos() {
+		return xPos;
+	}
+	public void setxPos(String xPos) {
+		this.xPos = xPos;
+	}
+	public String getyPos() {
+		return yPos;
+	}
+	public void setyPos(String yPos) {
+		this.yPos = yPos;
+	}
+	public String getEngSnm() {
+		return engSnm;
+	}
+	public void setEngSnm(String engSnm) {
+		this.engSnm = engSnm;
+	}
+	public String getAgencyCode() {
+		return agencyCode;
+	}
+	public void setAgencyCode(String agencyCode) {
+		this.agencyCode = agencyCode;
+	}
+	public String getCompanyStatus() {
+		return companyStatus;
+	}
+	public void setCompanyStatus(String companyStatus) {
+		this.companyStatus = companyStatus;
+	}
+	public String getContactPerson() {
+		return contactPerson;
+	}
+	public void setContactPerson(String contactPerson) {
+		this.contactPerson = contactPerson;
+	}
+	public String getPtnrType() {
+		return ptnrType;
+	}
+	public void setPtnrType(String ptnrType) {
+		this.ptnrType = ptnrType;
+	}
+	public String getAddr() {
+		return addr;
+	}
+	public void setAddr(String addr) {
+		this.addr = addr;
+	}
+	public String getTelNo() {
+		return telNo;
+	}
+	public void setTelNo(String telNo) {
+		this.telNo = telNo;
+	}
+	public String getFaxNo() {
+		return faxNo;
+	}
+	public void setFaxNo(String faxNo) {
+		this.faxNo = faxNo;
+	}
+	public String getHomepage() {
+		return homepage;
+	}
+	public void setHomepage(String homepage) {
+		this.homepage = homepage;
+	}
+	public String getEmail() {
+		return email;
+	}
+	public void setEmail(String email) {
+		this.email = email;
+	}
+	public String getLicNo() {
+		return licNo;
+	}
+	public void setLicNo(String licNo) {
+		this.licNo = licNo;
+	}
+	public String getPaymentType() {
+		return paymentType;
+	}
+	public void setPaymentType(String paymentType) {
+		this.paymentType = paymentType;
+	}
+	public String getCreditLimit() {
+		return creditLimit;
+	}
+	public void setCreditLimit(String creditLimit) {
+		this.creditLimit = creditLimit;
+	}
+	public String getOutstanding() {
+		return outstanding;
+	}
+	public void setOutstanding(String outstanding) {
+		this.outstanding = outstanding;
+	}
+	public String getBalance() {
+		return balance;
+	}
+	public void setBalance(String balance) {
+		this.balance = balance;
+	}
+	public String getBankName() {
+		return bankName;
+	}
+	public void setBankName(String bankName) {
+		this.bankName = bankName;
+	}
+	public String getAccNo() {
+		return accNo;
+	}
+	public void setAccNo(String accNo) {
+		this.accNo = accNo;
+	}
+	public String getRemark() {
+		return remark;
+	}
+	public void setRemark(String remark) {
+		this.remark = remark;
+	}
+	public List<Object> getCollection() {
+		return collection;
+	}
+	public void setCollection(List<Object> collection) {
+		this.collection = collection;
+	}
+	public String getBillTp() {
+		return billTp;
+	}
+	public void setBillTp(String billTp) {
+		this.billTp = billTp;
+	}
+	public String getJpvc() {
+		return jpvc;
+	}
+	public void setJpvc(String jpvc) {
+		this.jpvc = jpvc;
+	}
+	public String getHandlingType() {
+		return handlingType;
+	}
+	public void setHandlingType(String handlingType) {
+		this.handlingType = handlingType;
+	}
+	public String getCargoType() {
+		return cargoType;
+	}
+	public void setCargoType(String cargoType) {
+		this.cargoType = cargoType;
+	}
+	public String getAmount() {
+		return amount;
+	}
+	public void setAmount(String amount) {
+		this.amount = amount;
+	}
+	public String getStatus() {
+		return status;
+	}
+	public void setStatus(String status) {
+		this.status = status;
+	}
+	public String getPamentDt() {
+		return pamentDt;
+	}
+	public void setPamentDt(String pamentDt) {
+		this.pamentDt = pamentDt;
+	}
+	public String getVslNm() {
+		return vslNm;
+	}
+	public void setVslNm(String vslNm) {
+		this.vslNm = vslNm;
+	}
+	public String getHndTp() {
+		return hndTp;
+	}
+	public void setHndTp(String hndTp) {
+		this.hndTp = hndTp;
+	}
+	public String getCgTp() {
+		return cgTp;
+	}
+	public void setCgTp(String cgTp) {
+		this.cgTp = cgTp;
+	}
+	public String getCgNm() {
+		return cgNm;
+	}
+	public void setCgNm(String cgNm) {
+		this.cgNm = cgNm;
+	}
+	public String getTonnage() {
+		return tonnage;
+	}
+	public void setTonnage(String tonnage) {
+		this.tonnage = tonnage;
+	}
+	public String getOpeTp() {
+		return opeTp;
+	}
+	public void setOpeTp(String opeTp) {
+		this.opeTp = opeTp;
+	}
+	public String getLoadCargo() {
+		return loadCargo;
+	}
+	public void setLoadCargo(String loadCargo) {
+		this.loadCargo = loadCargo;
+	}
+	public String getDischargeCargo() {
+		return dischargeCargo;
+	}
+	public void setDischargeCargo(String dischargeCargo) {
+		this.dischargeCargo = dischargeCargo;
+	}
+	public String getBillTpCd() {
+		return billTpCd;
+	}
+	public void setBillTpCd(String billTpCd) {
+		this.billTpCd = billTpCd;
+	}
+	public String getCargoTypeCd() {
+		return cargoTypeCd;
+	}
+	public void setCargoTypeCd(String cargoTypeCd) {
+		this.cargoTypeCd = cargoTypeCd;
+	}
+	public int getDrawable() {
+		return drawable;
+	}
+	public void setDrawable(int drawable) {
+		this.drawable = drawable;
+	}
+	public String getDepFwdDrf() {
+		return depFwdDrf;
+	}
+	public void setDepFwdDrf(String depFwdDrf) {
+		this.depFwdDrf = depFwdDrf;
+	}
+	public String getDepAfterDrf() {
+		return depAfterDrf;
+	}
+	public void setDepAfterDrf(String depAfterDrf) {
+		this.depAfterDrf = depAfterDrf;
+	}
+	public String getArrvFwdDrf() {
+		return arrvFwdDrf;
+	}
+	public void setArrvFwdDrf(String arrvFwdDrf) {
+		this.arrvFwdDrf = arrvFwdDrf;
+	}
+	public String getArrvAfterDrf() {
+		return arrvAfterDrf;
+	}
+	public void setArrvAfterDrf(String arrvAfterDrf) {
+		this.arrvAfterDrf = arrvAfterDrf;
+	}
+	public String getDrfWgt() {
+		return drfWgt;
+	}
+	public void setDrfWgt(String drfWgt) {
+		this.drfWgt = drfWgt;
+	}
+	public String getOpeStat() {
+		return opeStat;
+	}
+	public void setOpeStat(String opeStat) {
+		this.opeStat = opeStat;
+	}
+	public String getRepBerthCd() {
+		return repBerthCd;
+	}
+	public void setRepBerthCd(String repBerthCd) {
+		this.repBerthCd = repBerthCd;
+	}
+	public String getRepFromBitt() {
+		return repFromBitt;
+	}
+	public void setRepFromBitt(String repFromBitt) {
+		this.repFromBitt = repFromBitt;
+	}
+	public String getRepToBitt() {
+		return repToBitt;
+	}
+	public void setRepToBitt(String repToBitt) {
+		this.repToBitt = repToBitt;
+	}
+	public String getRepFromMeter() {
+		return repFromMeter;
+	}
+	public void setRepFromMeter(String repFromMeter) {
+		this.repFromMeter = repFromMeter;
+	}
+	public String getRepToMeter() {
+		return repToMeter;
+	}
+	public void setRepToMeter(String repToMeter) {
+		this.repToMeter = repToMeter;
+	}
+	public Date getRepStopStime() {
+		return repStopStime;
+	}
+	public void setRepStopStime(Date repStopStime) {
+		this.repStopStime = repStopStime;
+	}
+	public Date getRepStopEtime() {
+		return repStopEtime;
+	}
+	public void setRepStopEtime(Date repStopEtime) {
+		this.repStopEtime = repStopEtime;
+	}
+	public String getRepStopRsn() {
+		return repStopRsn;
+	}
+	public void setRepStopRsn(String repStopRsn) {
+		this.repStopRsn = repStopRsn;
+	}
+	public String getRepStopRsnNm() {
+		return repStopRsnNm;
+	}
+	public void setRepStopRsnNm(String repStopRsnNm) {
+		this.repStopRsnNm = repStopRsnNm;
+	}
+	public String getRepRemark() {
+		return repRemark;
+	}
+	public void setRepRemark(String repRemark) {
+		this.repRemark = repRemark;
+	}
+	public String getDrawType() {
+		return drawType;
+	}
+	public void setDrawType(String drawType) {
+		this.drawType = drawType;
+	}
+	public String getBerthDept() {
+		return berthDept;
+	}
+	public void setBerthDept(String berthDept) {
+		this.berthDept = berthDept;
+	}
+	public String getEquipments() {
+		return equipments;
+	}
+	public void setEquipments(String equipments) {
+		this.equipments = equipments;
+	}
+	public String getBerthNm() {
+		return berthNm;
+	}
+	public void setBerthNm(String berthNm) {
+		this.berthNm = berthNm;
+	}
+	public String getLocCd() {
+		return locCd;
+	}
+	public void setLocCd(String locCd) {
+		this.locCd = locCd;
+	}
+	public String getGrpCd() {
+		return grpCd;
+	}
+	public void setGrpCd(String grpCd) {
+		this.grpCd = grpCd;
+	}
+	public Date getReadinessAta() {
+		return readinessAta;
+	}
+	public void setReadinessAta(Date readinessAta) {
+		this.readinessAta = readinessAta;
+	}
+	public String getCallSeq() {
+		return callSeq;
+	}
+	public void setCallSeq(String callSeq) {
+		this.callSeq = callSeq;
+	}
+	
+}

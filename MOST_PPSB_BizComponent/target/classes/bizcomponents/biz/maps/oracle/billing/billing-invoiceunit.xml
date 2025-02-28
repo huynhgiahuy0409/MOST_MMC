@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="invoiceUnit">
+	
+	<!--  ################ Result Map Define ######################################### -->
+
+	<!--  ################ Query Statement Define ######################################### -->
+	
+	<select id="selectInvoiceUnitCount" parameterType="InvoiceUnitParm" resultType="java.lang.String">
+	 	 SELECT COUNT(*)
+          FROM (<include refid="getInvoiceUnit"/>)
+	</select>
+	<select id="selectInvoiceUnit"  parameterType="InvoiceUnitParm" resultType="InvoiceUnitItem">
+  		<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getInvoiceUnit"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+    </select>
+    <sql id="getInvoiceUnit">
+    	SELECT 	UNIT_CD as unitCd,
+		 	   	UNIT_TP_CD as unitTpCd,
+		 	   	(SELECT S_CD_NM FROM TMT_CD_MSTD WHERE L_CD = 'MT' AND M_CD = 'INVUNITTP' AND S_CD = UNIT_TP_CD) as unitTpNm,
+			   	DESCR as Descr,
+			   	STAFF_CD as userId,
+			   	UPDATE_TIME as updateTimeField,  	
+				VERSION as version
+		FROM   	TMT_B_IV_UNIT
+		WHERE 1=1
+		<if test="unitCd != null and unitCd != ''">
+  				AND UPPER(UNIT_CD)  like '%'|| UPPER(#{unitCd})|| '%'
+		</if>
+		<if test="unitTpCd != null and unitTpCd != '' and unitTpCd != 'All' ">
+  				AND UNIT_TP_CD = #{unitTpCd}
+		</if>
+    </sql> 
+	
+	<select id="isItemExisted" parameterType="InvoiceUnitItem" resultType="java.lang.Integer">
+		SELECT count(1) FROM TMT_B_IV_UNIT
+		WHERE rownum = 1 
+		<if test="unitCd != null and unitCd != ''">
+   		AND UNIT_CD = #{unitCd}
+		</if>
+	</select>
+	<select id="isUnitInUsed" parameterType="InvoiceUnitParm" resultType="TariffCodeItem">
+		SELECT IV_UNIT1  FROM TMT_B_TRF_CD
+		WHERE rownum = 1 AND (IV_UNIT1 = #{unitCd} OR IV_UNIT2 = #{unitCd} OR IV_UNIT3 = #{unitCd})
+	</select>
+	<!--  ################ Insert Statement Define ######################################### -->			
+	<insert id="insertInvoiceUnit"  parameterType="InvoiceUnitItem">
+			INSERT INTO TMT_B_IV_UNIT(
+				UNIT_CD,
+		 	   	UNIT_TP_CD,
+			   	DESCR,
+			   	STAFF_CD,
+			   	UPDATE_TIME,
+			   	VERSION
+			)
+			VALUES(
+    			#{unitCd},
+				#{unitTpCd},
+				#{descr},
+				#{userId},
+				systimestamp,
+				#{newVersion}
+			)
+	</insert>
+	<!--  ################ Update Statement Define ######################################### -->
+	<update id="updateInvoiceUnit"  parameterType="InvoiceUnitItem">
+		UPDATE 	TMT_B_IV_UNIT
+		SET		UNIT_TP_CD = #{unitTpCd},
+				DESCR = #{descr},
+				STAFF_CD = #{userId},
+				VERSION = #{newVersion},
+				UPDATE_TIME = systimestamp
+		WHERE	UNIT_CD = #{unitCd}
+		<!--AND		VERSION = #{version} -->
+	</update>
+	<!--  ################ Delete Statement Define ######################################### -->
+	<update id="deleteInvoiceUnit"  parameterType="InvoiceUnitItem">
+		DELETE TMT_B_IV_UNIT
+		WHERE  UNIT_CD = #{unitCd}
+<!--		AND	   VERSION = #{version} -->
+	</update>
+	
+</mapper>

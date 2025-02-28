@@ -1,0 +1,1903 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+<mapper namespace="handlingInOutList">
+
+	<select id="selectCargoHIList" parameterType="cargoHandlingInParm" resultType="cargoHandlingInItem">
+		<if test="pageNo != 0"> 
+			SELECT /* handlinginoutlist.selectCargoHIList */
+             	*
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) 			AS ROW_NUM,
+					innerTable.*
+				FROM ( 
+		</if>
+				<include refid="getCargoHIList"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT)) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<select id="selectCargoHIListCount" parameterType="cargoHandlingInParm" resultType="java.lang.String">
+	 	SELECT /* handlinginoutlist.selectCargoHIListCount */
+			COUNT(*)
+        FROM 
+			(<include refid = "getCargoHIList"/>) 				AS TEMPTABLE
+	</select>
+	 
+	<sql id="getCargoHIList">
+		SELECT DISTINCT /* handlinginoutlist.getCargoHIList */
+			M.OPE_CLASS_CD 										AS CATGCD,
+			(SELECT 
+				TCM.S_CD_NM 
+			FROM 
+				TMT_CD_MSTD 				TCM 
+			WHERE 
+				TCM.L_CD 					= 'MT' 
+				AND TCM.M_CD 				= 'CATGTP' 
+				AND TCM.S_CD 				= M.OPE_CLASS_CD
+			) 													AS CATGNM,
+			P.SHIPG_NOTE_NO 									AS BLSN,
+			P.LOT_NO 											AS LOTNO,
+			CASE P.DOMESTIC_CHK
+				WHEN 'Y' THEN 'Domestic Cargo'
+				ELSE ''
+			END 												AS DOMESTICCHK,
+			M.BL_NO 											AS BL_NO,
+			M.SHIPG_NOTE_NO 									AS SHIPGNOTENO,
+			M.VSL_CALL_ID 										AS VSLCALLID,
+			PART.VSL_NM											AS VSLNM,
+			M.CG_NO 											AS CGNO,
+			M.CG_NO 											AS GRDO,
+			''		   											AS SDONO,
+			D.GATE_PASS_NO 										AS GRGP,
+			S.CURRLOCID 										AS CURRLOCID,
+			M.SHIPG_AGNT 										AS SHPGAGENT, 
+			M.FWR_AGNT 											AS FWRAGNT,
+			CASE P.SHPR + '/' + P.CNSNE
+				WHEN '/' THEN ''
+				ELSE P.SHPR + '/' + P.CNSNE
+			END 												AS SHPCNG,
+			(SELECT TOP(1)
+				C.CMDT_DESC 
+			FROM 
+				TMT_CMDT 					C 
+			WHERE 
+				C.CMDT_CD 					= M.CMDT_CD 
+			) 													AS CARGO, 
+			M.PKG_TP_CD 										AS PKGTPCD,
+			M.HDL_IN_ST_DT										AS HDLINSTDT,
+			CASE
+				WHEN M.HDL_IN_END_DT IS NULL
+					THEN 
+						FORMAT(
+							M.HDL_IN_ST_DT, 
+							'dd/MM/yyyy HH:mm'
+						)
+					ELSE 
+						FORMAT(
+							M.HDL_IN_END_DT, 
+							'dd/MM/yyyy HH:mm'
+						)
+					
+			END 												AS HDLINDT,
+			FORMAT(M.LOAD_ST_DT, 'dd/MM/yyyy HH:mm') 			AS LOADSTDT, 
+			FORMAT(
+				ISNULL(M.LOAD_END_DT, M.HDL_OUT_END_DT), 
+				'dd/MM/yyyy HH:mm'
+			) 													AS whstartdt,
+			DATEDIFF(
+				DAY, 
+				ISNULL(M.HDL_IN_END_DT, M.HDL_IN_ST_DT), 
+				ISNULL(
+					ISNULL(M.LOAD_END_DT, M.HDL_OUT_END_DT), 
+					SYSDATETIME()
+				) 
+			) + 1												AS inWhDtNo,
+			G.PKG_QTY 											AS DOCQTY,
+			G.CG_WGT 											AS DOCMT,
+			G.CG_VOL 											AS DOCM3,
+			S.MSRMT 											AS MSRMT, 
+			S.WGT 												AS WGT, 
+			S.PKG_QTY 											AS PKGQTY,
+			CASE
+				WHEN (M.LOAD_ST_DT IS NULL OR M.LOAD_ST_DT = '') 
+					THEN S.JOB_PURP_CD
+				ELSE 'WV'
+			END 												AS JOBPURPCD,
+			(SELECT 
+				TCM.S_CD_NM 
+			FROM 
+				TMT_CD_MSTD TCM 
+			WHERE 
+				TCM.L_CD     = 'MT' 
+				AND TCM.M_CD ='JOBPURP'
+				AND TCM.S_CD = 
+						CASE
+							WHEN 
+								(M.LOAD_ST_DT IS NULL
+								OR M.LOAD_ST_DT = '')
+									THEN S.JOB_PURP_CD
+								ELSE 'WV'
+						END 
+			) 													AS JOBPURPNM,
+			S.DMGYN 											AS DMGYN,
+			S.SHUYN											 	AS SHUYN,
+			S.RHDLYN 											AS RHDLYN,
+			(SELECT TOP(1)
+				CASE
+					WHEN DG_CHK IS NULL THEN 'N'
+					WHEN DG_CHK = '' 	THEN 'N'
+					WHEN DG_CHK = 'Y'	THEN 'Y'
+					WHEN DG_CHK = 'N'	THEN 'N'
+					WHEN DG_CHK = 'C'	THEN 'C'
+				END
+			FROM 
+				TMT_GR 						G,
+				(SELECT 
+					S.VSL_CALL_ID 		AS VSL_CALL_ID, 
+					F.CG_NO 			AS BL_SN, 
+					F.DG_CHK 			AS DG_CHK, 
+					F.STAT_CD 			AS DG_STAT_CD 
+				FROM 
+					TMT_VSL_SCH 		S, 
+					TMT_DG 				F 
+				WHERE 
+					F.VSL_CD 			= S.VSL_CD 
+					AND F.CALL_SEQ 		= S.CALL_SEQ 
+					AND F.CALL_YEAR 	= S.CALL_YEAR
+				) 							D
+			WHERE 
+				D.VSL_CALL_ID 				= G.VSL_CALL_ID 
+				AND D.BL_SN 				= G.SHIPG_NOTE_NO
+				AND G.VSL_CALL_ID 			= M.VSL_CALL_ID
+				AND G.GR_NO 				= M.CG_NO 
+			) 													AS DGYN,
+			(SELECT TOP(1)
+				CASE
+					WHEN D.DG_STAT_CD IS NULL 	THEN 'N'
+					WHEN D.DG_STAT_CD = ''   	THEN 'N'
+					WHEN D.DG_STAT_CD = 'SU'	THEN 'Submit'
+					WHEN D.DG_STAT_CD = 'Y'		THEN 'Approval'
+					WHEN D.DG_STAT_CD = 'N'		THEN 'Submit'
+					WHEN D.DG_STAT_CD = 'C'		THEN 'Cancel'
+				END
+			FROM 
+				TMT_GR 						G,
+				(SELECT 
+					S.VSL_CALL_ID 		AS VSL_CALL_ID, 
+					F.CG_NO 			AS BL_SN, 
+					F.DG_CHK 			AS DG_CHK, 
+					F.STAT_CD 			AS DG_STAT_CD 
+				FROM 
+					TMT_VSL_SCH 		S, 
+					TMT_DG 				F 
+				WHERE 
+					F.VSL_CD 			= S.VSL_CD 
+					AND F.CALL_SEQ 		= S.CALL_SEQ 
+					AND F.CALL_YEAR 	= S.CALL_YEAR
+				) 							D
+			WHERE 
+				D.VSL_CALL_ID 			= G.VSL_CALL_ID 
+				AND D.BL_SN 			= G.SHIPG_NOTE_NO
+				AND G.VSL_CALL_ID 		= M.VSL_CALL_ID
+				AND G.GR_NO 			= M.CG_NO 
+			) 													AS DGSTATCD,
+			<!-- 
+			ISNULL(WBR.TRK_GRS_WGT, '') 						AS SCALEAMT,
+			-->
+			S_RC.RCYN 											AS RCYN,
+			S.SHFT_ID											AS SHFTID,
+			(SELECT TOP(1)
+				A.SHFT_NM 
+			FROM 
+				TMT_SHFT 					A 
+			WHERE 
+				A.SHFT_ID 					= S.SHFT_ID
+			) 													AS SHFTNM,
+			S.LORRY_NO 											AS LORRYNO,
+			(SELECT TOP(1)
+				CHASSIS_NO 
+			FROM 
+				TMT_ASSIGN_TRANSPORT 
+			WHERE 
+				SHIPG_NOTE_NO 				= P.SHIPG_NOTE_NO 
+				AND LORRY_NO 				= S.LORRY_NO 
+			) 													AS CHASSISNO,
+			<!-- 
+			(SELECT 
+				FIRST_WGT 
+			FROM 
+				TMT_WEIGHTBRIDGE 
+			WHERE 
+				VSL_CALL_ID 				= S.VSL_CALL_ID 
+				AND SHIPG_NOTE_NO 			= P.SHIPG_NOTE_NO 
+				AND GATE_TICKET_NO 			= S.GATE_TXN_NO 
+			) 													AS FIRSTWGT,
+			(SELECT 
+				SECOND_WGT 
+			FROM 
+				TMT_WEIGHTBRIDGE 
+			WHERE 
+				VSL_CALL_ID 				= S.VSL_CALL_ID 
+				AND SHIPG_NOTE_NO 			= P.SHIPG_NOTE_NO 
+				AND GATE_TICKET_NO 			= S.GATE_TXN_NO 
+			) 													AS SECONDWGT,
+			(SELECT 
+				FIRST_WGT_DT 
+			FROM 
+				TMT_WEIGHTBRIDGE 
+			WHERE 
+				VSL_CALL_ID 				= S.VSL_CALL_ID 
+				AND SHIPG_NOTE_NO 			= P.SHIPG_NOTE_NO 
+				AND GATE_TICKET_NO 			= S.GATE_TXN_NO 
+			) 													AS FIRSTWGTDT,
+			(SELECT TOP(1)
+				SECOND_WGT_DT 
+			FROM 
+				TMT_WEIGHTBRIDGE 
+			WHERE 
+				VSL_CALL_ID 				= S.VSL_CALL_ID 
+				AND SHIPG_NOTE_NO 			= P.SHIPG_NOTE_NO 
+				AND GATE_TICKET_NO 			= S.GATE_TXN_NO 
+			) 													AS SECONDWGTDT,
+			-->
+			dbo.F_GET_PTNR_SNM(P.CNSNE) 						AS CNSNENM,
+			(SELECT TOP(1)
+				S_CD_NM 
+			FROM 
+				TMT_CD_MSTD 
+			WHERE 
+				M_CD = 'WHTP' 
+				AND S_CD = 	(SELECT TOP(1)
+								LOC_TP_CD 
+							FROM 
+								TMT_LOC_DEF
+							WHERE 
+								LOC_ID = 	
+									(SELECT TOP(1)
+										LOC_ID 
+									FROM 
+										TMT_INV_LOC
+									WHERE 
+										JOB_NO = S.JOB_NO
+									) 
+							) 
+			) 													AS WHTPCD,
+			P.CG_TP_CD 											AS CGTPCD,
+			dbo.F_CM_CODE_NM('MT', 'CGTP', P.CG_TP_CD) 			AS CGTPNM		
+		FROM 	 
+			TMT_SHIPG_NOTE 										P, 
+
+			TMT_VSL_PART 										PART,
+
+			TMT_GR 												G,
+		<!--  
+		LEFT OUTER JOIN
+			TMT_WEIGHTBRIDGE 									WBR
+		ON 	
+			G.VSL_CALL_ID				= WBR.VSL_CALL_ID 
+			AND G.SHIPG_NOTE_NO 		= WBR.SHIPG_NOTE_NO 
+			AND G.GR_NO					= WBR.GR_NO,
+		-->
+			(SELECT	
+				SUM(J.CG_VOL) 									AS MSRMT, 
+				SUM(J.CG_WGT) 									AS WGT,
+				SUM(J.PKG_QTY) 									AS PKG_QTY,
+				MAX(
+					CASE
+						WHEN 
+							(J.JOB_CO_CD = 'G' 
+							AND 
+								(J.RHDL_MODE IS NULL
+								OR J.RHDL_MODE = '')
+							)
+								THEN J.TO_LOC_ID
+						ELSE ''
+					END
+				) 												AS currlocid,
+				CASE
+					SUM(
+						CASE J.JOB_CO_CD
+							WHEN 'D' THEN 1
+							ELSE 0
+						END 
+					)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS dmgyn,
+				CASE
+					SUM(
+						CASE J.JOB_CO_CD 
+							WHEN  'S' THEN 1
+							ELSE 0
+						END
+					)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS shuyn,
+				CASE
+					SUM(
+						CASE
+							WHEN 
+								(J.RHDL_MODE IS NOT NULL
+								AND J.RHDL_MODE <![CDATA[<>]]> '')
+								THEN 1
+							ELSE 0
+						END
+					)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS rhdlyn,
+				J.VSL_CALL_ID,
+				J.JOB_PURP_CD,
+				J.JOB_TP_CD,
+				J.CG_NO,
+				J.OPE_CLASS_CD,
+				J.SHFT_ID,
+				J.GATE_TXN_NO,
+				J.JOB_NO,
+				J.LORRY_NO
+			FROM 	
+				TMT_JOB 										J
+			WHERE 	
+				1 = 1 
+				<if test="locId != null and locId != ''">
+					<!-- AND SUBSTRING(
+						J.TO_LOC_ID, 
+						1, 
+						CHARINDEX('(', J.TO_LOC_ID) -	1
+					) 											= #{locId} -->
+					
+					AND SUBSTRING(
+					    J.TO_LOC_ID,
+					    1,
+					    CASE 
+					    	WHEN CHARINDEX('(', J.TO_LOC_ID) > 0
+				         		THEN CHARINDEX('(', J.TO_LOC_ID) - 1
+				         	ELSE LEN(J.TO_LOC_ID)
+					    END
+					)											= #{locId}
+				</if>
+				<if test="vslCallId != null and vslCallId != ''">
+					AND J.VSL_CALL_ID 							= #{vslCallId}
+				</if>
+				<if test="scn != null and scn != ''">
+					AND J.SHIP_CALL_NO 							= #{scn}
+				</if>
+				<if test="cgNo != null and cgNo != ''">
+					AND J.CG_NO									= #{cgNo}
+				</if>
+			GROUP BY 
+				J.VSL_CALL_ID, 
+				J.CG_NO,J
+				.JOB_PURP_CD, 
+				J.JOB_TP_CD, 
+				J.OPE_CLASS_CD, 
+				J.SHFT_ID, 
+				J.GATE_TXN_NO, 
+				J.JOB_NO, 
+				J.LORRY_NO
+			) 													S
+
+		LEFT OUTER JOIN
+
+			(SELECT	
+				J.CG_NO,
+				J.VSL_CALL_ID,
+				'Y' 						AS RCYN
+			FROM 	
+				TMT_JOB 					J
+			WHERE 	
+				J.RC_CO_CD 					IS NOT NULL
+				AND J.RC_CO_CD 				<![CDATA[<>]]> ''
+				<if test="vslCallId != null and vslCallId != ''">
+					AND J.VSL_CALL_ID 		= #{vslCallId}
+				</if>
+				<if test="scn != null and scn != ''">
+					AND J.SHIP_CALL_NO 		= #{scn}
+				</if>
+				<if test="cgNo != null and cgNo != ''">
+					AND J.CG_NO				= #{cgNo}
+				</if>
+			GROUP BY  
+				J.CG_NO, 
+				J.VSL_CALL_ID
+			) 													S_RC
+				ON 	S.CG_NO 				= S_RC.CG_NO
+				AND S.VSL_CALL_ID 			= S_RC.VSL_CALL_ID,
+
+			TMT_CG_MST 											M
+
+		LEFT OUTER JOIN
+
+			(SELECT	
+				L.VSL_CALL_ID,
+				L.CG_NO,
+				MAX(L.GATE_PASS_NO) 		AS GATE_PASS_NO
+			FROM	
+				TMT_CG_ARRV_DELV 			L
+			WHERE 	
+				1 = 1
+				<if test="vslCallId != null and vslCallId != ''">
+					AND L.VSL_CALL_ID 		= #{vslCallId}
+				</if>
+				<if test="scn != null and scn != ''">
+					AND L.SHIP_CALL_NO 		= #{scn}
+				</if>
+				<if test="cgNo != null and cgNo != ''">
+					AND 					L.CG_NO=#{cgNo}
+				</if>
+			GROUP BY  
+				L.VSL_CALL_ID, 
+				L.CG_NO
+			) 													D
+				ON 	M.VSL_CALL_ID 			= D.VSL_CALL_ID
+				AND M.CG_NO 				= D.CG_NO
+		WHERE 	
+		 	G.VSL_CALL_ID 										= P.VSL_CALL_ID
+			AND G.SHIPG_NOTE_NO 								= P.SHIPG_NOTE_NO
+			AND G.VSL_CALL_ID 									= S.VSL_CALL_ID
+			AND G.VSL_CD 										= PART.VSL_CD
+			AND G.GR_NO 										= S.CG_NO
+			AND S.JOB_PURP_CD 									= 'GW'
+			AND S.JOB_TP_CD 									= 'LF'
+			AND  (G.RHDL_MODE IS NULL							OR G.RHDL_MODE = '')
+			<if test="cmdtCd != null and cmdtCd != ''">
+				AND M.CMDT_CD 									= #{cmdtCd}
+			</if>
+			<if test="cnsneCd != null and cnsneCd != ''">
+				AND P.CNSNE 									= #{cnsneCd}
+			</if>
+			<if test="locTpCd != null and locTpCd != ''">
+				AND (SELECT TOP(1)
+						LOC_TP_CD 
+					FROM 
+						TMT_LOC_DEF
+					WHERE 
+						LOC_ID = 
+							(SELECT TOP(1)
+								LOC_ID 
+							FROM 
+								TMT_INV_LOC
+							WHERE 
+								JOB_NO 	= S.JOB_NO
+							)
+					) 											= #{locTpCd}
+			</if>
+			<if test="cgNo != null and cgNo != ''">
+				AND G.GR_NO 									= #{cgNo}
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				AND P.SHIPG_NOTE_NO 							= #{shipgNoteNo}
+			</if>
+			AND G.VSL_CALL_ID 									= M.VSL_CALL_ID
+			AND G.GR_NO 										= M.CG_NO
+			AND (M.HDL_IN_ST_DT IS NOT NULL						AND M.HDL_IN_ST_DT <![CDATA[<>]]> '')
+			<if test="startDt != null and startDt != ''">
+				AND
+				<if test="endDt != null and endDt != ''">
+					M.HDL_IN_ST_DT 
+						BETWEEN CONVERT(DATETIME, #{startDt} + ' 00:00', 103) 
+							AND CONVERT(DATETIME, #{endDt}   + ' 23:59', 103)
+				</if>
+				<if test="endDt == null or endDt == ''">
+					M.HDL_IN_ST_DT 								> CONVERT(DATETIME, #{startDt}, 103)
+				</if>
+			</if>
+			<if test="startDt == null or startDt == ''"> 
+				<if test="endDt != null and endDt != ''">
+					AND	M.HDL_IN_ST_DT 							<![CDATA[<]]> CONVERT(DATETIME, #{endDt}, 103)
+				</if>
+				<if test="endDt == null or endDt == ''">
+					<if test="workDT != null and workDT != ''">
+						M.HDL_IN_ST_DT 
+							BETWEEN CONVERT(DATETIME, #{workDT} +' 00:00', 103) 
+								AND CONVERT(DATETIME, #{workDT} +' 23:59', 103)
+					</if>
+				</if>
+			</if>
+			<if test="catgCd != null and catgCd != ''">
+				AND M.OPE_CLASS_CD 								= #{catgCd}
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+				AND M.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test="scn != null and scn != ''">
+				AND M.SHIP_CALL_NO 								= #{scn}
+			</if>
+			<if test="lotNo != null and lotNo != ''">
+				AND P.LOT_NO 									LIKE '%' + #{lotNo} + '%'
+			</if>
+			<if test="fwrAgnt != null and fwrAgnt != ''">
+				AND M.FWR_AGNT 									= #{fwrAgnt}
+			</if>
+			<if test='hhtFnlChk == "Y"'>
+				AND (M.HDL_IN_END_DT IS NULL					OR M.HDL_IN_END_DT = '')
+			</if>
+			<if test='hhtFnlChk == "true"'>
+				AND (M.HDL_IN_END_DT IS NULL					OR M.HDL_IN_END_DT = '')
+			</if>
+			<if test="shftId != null and shftId != ''">
+				AND S.SHFT_ID 									= #{shftId}
+			</if>
+			<if test="cargoTp != null and cargoTp != ''">
+				AND P.CG_TP_CD 									= #{cargoTp}
+			</if>
+			<if test="unitNo != null and unitNo != ''">
+				AND '1' 										= '2'
+			</if>
+			AND G.VSL_CALL_ID 									= S.VSL_CALL_ID
+			AND G.GR_NO 										= S.CG_NO
+			AND S.OPE_CLASS_CD 									= M.OPE_CLASS_CD
+			<include refid = "sqlHandlingInAuth"/>
+			
+		UNION ALL
+		
+		SELECT DISTINCT
+			M.CATG_CD 											AS CATGCD,
+			(SELECT 
+				TCM.S_CD_NM 
+			FROM 
+				TMT_CD_MSTD TCM 
+			WHERE 
+				TCM.L_CD 					= 'MT' 
+				AND TCM.M_CD				= 'CATGTP' 
+				AND TCM.S_CD 				= M.CATG_CD
+			) 													AS CATGNM,
+			P.SHIPG_NOTE_NO 									AS BLSN,
+			P.LOT_NO 											AS LOTNO,
+			CASE P.DOMESTIC_CHK
+				WHEN 'Y' THEN 'Domestic Cargo'
+				ELSE ''
+			END													AS DOMESTICCHK,
+			'' 													AS BL_NO,
+			M.CG_NO 											AS SHIPGNOTENO,
+			M.VSL_CALL_ID 										AS VSLCALLID,
+			PART.VSL_NM											AS VSLNM,
+			M.CG_NO 											AS CGNO,
+			M.GR_NO 											AS GRDO,
+			''		   											AS SDONO,
+			D.GATE_PASS_NO 										AS GRGP,
+			S.CURRLOCID 										AS CURRLOCID,
+			P.SHIPG_AGNCY 										AS SHPGAGENT, 
+			P.FWRD 												AS FWRAGNT,
+			CASE P.SHPR + '/' + P.CNSNE
+				WHEN '/' THEN ''
+				ELSE P.SHPR + '/' + P.CNSNE
+			END 												AS SHPCNG,
+			(SELECT TOP(1)
+				C.CMDT_DESC 
+			FROM 
+				TMT_CMDT C 
+			WHERE 
+				C.CMDT_CD 					= P.CMDT_CD 
+			) 													AS CARGO, 
+			P.PKG_TP_CD 										AS PKGTPCD,
+			M.IN_DTM 											AS HDLINSTDT,
+			FORMAT(M.IN_DTM, 'dd/MM/yyyy HH:mm') 				AS HDLINDT,
+			FORMAT(M.LOADING_DTM, 'dd/MM/yyyy HH:mm') 			AS LOADSTDT, 
+			NULL 												AS whstartdt,
+			NULL 												AS inWhDtNo,
+			G.PKG_QTY 											AS DOCQTY,
+			G.CG_WGT 											AS DOCMT,
+			G.CG_VOL 											AS DOCM3,
+			S.MSRMT 											AS MSRMT, 
+			S.WGT 												AS WGT, 
+			S.PKG_QTY 											AS PKGQTY,
+			CASE
+				WHEN 
+					(M.LOADING_DTM IS NULL 
+					OR M.LOADING_DTM = '')
+						THEN S.JOB_PURP_CD
+				ELSE 'WV'
+			END 												AS JOBPURPCD,
+			(SELECT 
+				TCM.S_CD_NM 
+			FROM 
+				TMT_CD_MSTD 				TCM 
+			WHERE 
+				TCM.L_CD 					= 'MT' 
+				AND TCM.M_CD 				='JOBPURP'
+				AND TCM.S_CD = 
+					CASE
+						WHEN 
+							(M.LOADING_DTM IS NULL 
+							OR M.LOADING_DTM = '')
+								THEN S.JOB_PURP_CD
+						ELSE 'WV'
+					END 
+			) 													AS JOBPURPNM,
+			S.DMGYN 											AS DMGYN,
+			S.SHUYN 											AS SHUYN,
+			S.RHDLYN 											AS RHDLYN,
+			(SELECT TOP(1)
+				CASE
+					WHEN DG_CHK IS NULL THEN 'N'
+					WHEN DG_CHK = ''	THEN 'N'
+					WHEN DG_CHK = 'Y'	THEN 'Y'
+					WHEN DG_CHK = 'N'	THEN 'N'
+					WHEN DG_CHK = 'C'	THEN 'C'
+				END
+			FROM 
+				TMT_GR 						G,
+				(SELECT 
+					S.VSL_CALL_ID			AS VSL_CALL_ID, 
+					F.CG_NO 				AS BL_SN, 
+					F.DG_CHK 				AS DG_CHK, 
+					F.STAT_CD 				AS DG_STAT_CD 
+				FROM 
+					TMT_VSL_SCH 			S, 
+					TMT_DG 					F 
+				WHERE 
+					F.VSL_CD 				= S.VSL_CD 
+					AND F.CALL_SEQ 			= S.CALL_SEQ 
+					AND F.CALL_YEAR 		= S.CALL_YEAR
+				) 							D
+			WHERE 
+				D.VSL_CALL_ID 				= G.VSL_CALL_ID 
+				AND D.BL_SN 				= G.SHIPG_NOTE_NO
+				AND G.VSL_CALL_ID 			= M.VSL_CALL_ID
+				AND G.GR_NO 				= M.CG_NO 
+			) 													AS DGYN,
+			(SELECT 
+				CASE
+					WHEN D.DG_STAT_CD IS NULL 	THEN 'N'
+					WHEN D.DG_STAT_CD = ''		THEN 'N'
+					WHEN D.DG_STAT_CD = 'SU'	THEN 'Submit'
+					WHEN D.DG_STAT_CD = 'Y'		THEN 'Approval'
+					WHEN D.DG_STAT_CD = 'N'		THEN 'Submit'
+					WHEN D.DG_STAT_CD = 'C'		THEN 'Cancel'
+				END 
+			FROM 
+				TMT_GR 						G,
+				(SELECT 
+					S.VSL_CALL_ID 		AS VSL_CALL_ID, 
+					F.CG_NO 			AS BL_SN, 
+					F.DG_CHK 			AS DG_CHK, 
+					F.STAT_CD 			AS DG_STAT_CD 
+				FROM 
+					TMT_VSL_SCH 		S, 
+					TMT_DG 				F 
+				WHERE 
+					F.VSL_CD 			= S.VSL_CD 
+					AND F.CALL_SEQ 		= S.CALL_SEQ 
+					AND F.CALL_YEAR 	= S.CALL_YEAR
+				) 							D
+			WHERE 
+				D.VSL_CALL_ID 				= G.VSL_CALL_ID 
+				AND D.BL_SN 				= G.SHIPG_NOTE_NO
+				AND G.VSL_CALL_ID 			= M.VSL_CALL_ID
+				AND G.GR_NO 				= M.GR_NO 
+			) 													AS DGSTATCD,
+			<!-- 
+			NULL 												AS SCALEAMT,
+			 -->
+			S_RC.RCYN 											AS RCYN,
+			S.SHFT_ID											AS SHFTID,
+			(SELECT TOP(1)
+				A.SHFT_NM 
+			FROM 
+				TMT_SHFT 					A 
+			WHERE 
+				A.SHFT_ID 					= S.SHFT_ID 
+			) 													AS SHFTNM,
+			S.LORRY_NO 											AS LORRYNO,
+			(SELECT TOP(1)
+				CHASSIS_NO 
+			FROM 
+				TMT_ASSIGN_TRANSPORT 
+			WHERE 
+				SHIPG_NOTE_NO 				= P.SHIPG_NOTE_NO 
+				AND LORRY_NO 				= S.LORRY_NO 
+			) 													AS CHASSISNO,
+			<!--  
+			(SELECT TOP(1)
+				FIRST_WGT 
+			FROM 
+				TMT_WEIGHTBRIDGE 
+			WHERE 
+				VSL_CALL_ID 				= S.VSL_CALL_ID 
+				AND SHIPG_NOTE_NO 			= P.SHIPG_NOTE_NO 
+				AND GATE_TICKET_NO 			= S.GATE_TXN_NO 
+			) 													AS FIRSTWGT,
+			(SELECT TOP(1)
+				SECOND_WGT 
+			FROM 
+				TMT_WEIGHTBRIDGE 
+			WHERE 
+				VSL_CALL_ID 				= S.VSL_CALL_ID 
+				AND SHIPG_NOTE_NO 			= P.SHIPG_NOTE_NO 
+				AND GATE_TICKET_NO 			= S.GATE_TXN_NO 
+			) 													AS SECONDWGT,
+			(SELECT TOP(1)
+				FIRST_WGT_DT 
+			FROM 
+				TMT_WEIGHTBRIDGE 
+			WHERE 
+				VSL_CALL_ID 				= S.VSL_CALL_ID 
+				AND SHIPG_NOTE_NO 			= P.SHIPG_NOTE_NO 
+				AND GATE_TICKET_NO 			= S.GATE_TXN_NO 
+			) 													AS FIRSTWGTDT,
+			(SELECT TOP(1)
+				SECOND_WGT_DT 
+			FROM 
+				TMT_WEIGHTBRIDGE 
+			WHERE 
+				VSL_CALL_ID 				= S.VSL_CALL_ID 
+				AND SHIPG_NOTE_NO 			= P.SHIPG_NOTE_NO 
+				AND GATE_TICKET_NO 			= S.GATE_TXN_NO 
+			) 													AS SECONDWGTDT,
+			-->
+			DBO.F_GET_PTNR_SNM(P.CNSNE) 						AS CNSNENM,
+			(SELECT TOP(1)
+				S_CD_NM 
+			FROM 
+				TMT_CD_MSTD 
+			WHERE 
+				M_CD = 'WHTP' 
+				AND S_CD = 
+					(SELECT TOP(1)
+						LOC_TP_CD 
+					FROM 
+						TMT_LOC_DEF
+					WHERE 
+						LOC_ID = 
+							(SELECT TOP(1)
+								LOC_ID 
+							FROM 
+								TMT_INV_LOC
+							WHERE 
+								JOB_NO = S.JOB_NO
+							)
+					)
+			) 													AS WHTPCD,
+			P.CG_TP_CD 											AS CGTPCD,
+			dbo.F_CM_CODE_NM ('MT', 'CGTP', P.CG_TP_CD) 		AS CGTPNM
+				
+		FROM 	
+			TMT_GR 												G, 
+
+			TMT_SHIPG_NOTE 										P, 
+
+			TMT_VSL_PART 										PART,
+
+			(SELECT	
+				SUM(J.CG_VOL) 				AS MSRMT, 
+				SUM(J.CG_WGT) 				AS WGT,
+				SUM(J.PKG_QTY) 				AS PKG_QTY,
+				MAX(
+					CASE
+						WHEN 
+							(J.JOB_CO_CD = 'G' 
+							AND (J.RHDL_MODE IS NULL 
+								OR J.RHDL_MODE = '')
+							)
+								THEN J.TO_LOC_ID
+						ELSE ''
+					END) 					AS currlocid,
+				CASE
+					SUM(
+						CASE
+							WHEN J.JOB_CO_CD = 'D' 
+								THEN 1
+							ELSE 0
+						END 
+					)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 						AS dmgyn,
+				CASE
+					SUM(
+						CASE
+							WHEN J.JOB_CO_CD = 'S' 
+								THEN 1
+							ELSE 0
+						END 
+					)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 						AS shuyn,
+				CASE
+					SUM(
+						CASE
+							WHEN 
+								(J.RHDL_MODE IS NOT NULL 
+								AND J.RHDL_MODE <![CDATA[<>]]> '')
+									THEN 1
+							ELSE 0
+						END
+					)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 						AS rhdlyn,
+				J.VSL_CALL_ID,
+				J.JOB_PURP_CD,
+				J.JOB_TP_CD,
+				J.CG_NO,
+				J.OPE_CLASS_CD,
+				J.SHFT_ID,
+				J.GATE_TXN_NO,
+				J.JOB_NO,
+				J.LORRY_NO
+			FROM 	
+				TMT_JOB 					J
+			WHERE 	
+				1 = 1 
+				<if test="locId != null and locId != ''">
+					<!-- AND SUBSTRING(
+							J.TO_LOC_ID, 
+							1, 
+							CHARINDEX('(', J.TO_LOC_ID) - 1
+						) 				= #{locId} -->
+						
+					AND SUBSTRING(
+					    J.TO_LOC_ID,
+					    1,
+					    CASE 
+					    	WHEN CHARINDEX('(', J.TO_LOC_ID) > 0
+				         		THEN CHARINDEX('(', J.TO_LOC_ID) - 1
+				         	ELSE LEN(J.TO_LOC_ID)
+					    END
+					)						= #{locId}
+				</if>
+				<if test="vslCallId != null and vslCallId != ''">
+					AND J.VSL_CALL_ID 	= #{vslCallId}
+				</if>
+				<if test="scn != null and scn != ''">
+					AND J.SHIP_CALL_NO 	= #{scn}
+				</if>
+				<if test="cgNo != null and cgNo != ''">
+					AND J.CG_NO = #{cgNo}
+				</if>
+			GROUP BY 
+				J.VSL_CALL_ID, 
+				J.CG_NO,J
+				.JOB_PURP_CD, 
+				J.JOB_TP_CD, 
+				J.OPE_CLASS_CD, 
+				J.SHFT_ID, 
+				J.GATE_TXN_NO, 
+				J.JOB_NO, 
+				J.LORRY_NO
+			) 													S
+		LEFT OUTER JOIN
+			(SELECT	
+				J.CG_NO,
+				J.VSL_CALL_ID,
+				'Y' 					AS RCYN
+			FROM 	
+				TMT_JOB 				J
+			WHERE 	
+				J.RC_CO_CD IS NOT NULL
+				<if test="vslCallId != null and vslCallId != ''">
+					AND J.VSL_CALL_ID 	= #{vslCallId}
+				</if>
+				<if test="scn != null and scn != ''">
+					AND J.SHIP_CALL_NO 	= #{scn}
+				</if>
+				<if test="cgNo != null and cgNo != ''">
+					AND J.CG_NO			= #{cgNo}
+				</if>
+			GROUP BY  
+				J.CG_NO, 
+				J.VSL_CALL_ID
+			) 													S_RC
+				ON S.CG_NO 										= S_RC.CG_NO
+				AND S.VSL_CALL_ID 								= S_RC.VSL_CALL_ID,
+
+			TMT_RORO_MST 										M
+
+		LEFT OUTER JOIN
+			(SELECT	
+				L.VSL_CALL_ID,
+				L.CG_NO,
+				MAX(L.GATE_PASS_NO) 	AS GATE_PASS_NO
+			FROM	
+				TMT_CG_ARRV_DELV 		L
+			WHERE 	
+				1 = 1
+				<if test="vslCallId != null and vslCallId != ''">
+					AND L.VSL_CALL_ID 	= #{vslCallId}
+				</if>
+				<if test="scn != null and scn != ''">
+					AND L.SHIP_CALL_NO 	= #{scn}
+				</if>
+				<if test="cgNo != null and cgNo != ''">
+					AND L.CG_NO			= #{cgNo}
+				</if>
+			GROUP BY  
+				L.VSL_CALL_ID, 
+				L.CG_NO
+			) 													D
+				ON	M.VSL_CALL_ID 								= D.VSL_CALL_ID
+				AND M.CG_NO 									= D.CG_NO
+		WHERE 	
+			G.VSL_CALL_ID 										= P.VSL_CALL_ID
+			AND G.SHIPG_NOTE_NO 								= P.SHIPG_NOTE_NO
+			AND G.VSL_CALL_ID 									= S.VSL_CALL_ID
+			AND G.VSL_CD 										= PART.VSL_CD
+			AND G.GR_NO 										= S.CG_NO
+			AND S.JOB_PURP_CD 									= 'GW'
+			AND S.JOB_TP_CD 									= 'LF'
+			AND (G.RHDL_MODE IS NULL							OR G.RHDL_MODE = '')
+			<if test="cmdtCd != null and cmdtCd != ''">
+				AND P.CMDT_CD 									= #{cmdtCd}
+			</if>
+			<if test="cnsneCd != null and cnsneCd != ''">
+				AND P.CNSNE 									= #{cnsneCd}
+			</if>
+			<if test="locTpCd != null and locTpCd != ''">
+				AND (SELECT TOP(1)
+						LOC_TP_CD 
+					FROM 
+						TMT_LOC_DEF
+					WHERE LOC_ID = 
+							(SELECT TOP(1)
+								LOC_ID 
+							FROM 
+								TMT_INV_LOC
+							WHERE 
+								JOB_NO 	= S.JOB_NO
+							) 
+					) 											= #{locTpCd}
+			</if>
+			<if test="cgNo != null and cgNo != ''">
+				AND G.GR_NO 									= #{cgNo}
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				AND P.SHIPG_NOTE_NO 							= #{shipgNoteNo}
+			</if>
+			AND G.VSL_CALL_ID 									= M.VSL_CALL_ID
+			AND G.GR_NO 										= M.GR_NO
+			AND (M.IN_DTM IS NOT NULL							AND M.IN_DTM <![CDATA[<>]]> '')
+			<if test="startDt != null and startDt != ''">
+				AND
+			<if test="endDt != null and endDt != ''">
+				M.IN_DTM 
+					BETWEEN CONVERT(DATETIME, #{startDt} + ' 00:00', 103) 
+						AND CONVERT(DATETIME, #{endDt}   + ' 23:59', 103)
+			</if>
+			<if test="endDt == null or endDt == ''">
+				M.IN_DTM 										> CONVERT(DATETIME, #{startDt}, 103)
+			</if>
+			</if>
+			<if test="startDt == null or startDt == ''"> 
+				<if test="endDt != null and endDt != ''">
+					AND	M.IN_DTM 								<![CDATA[<]]> CONVERT(DATETIME, #{endDt}, 103)
+				</if>
+				<if test="endDt == null or endDt == ''">
+					<if test="workDT != null and workDT != ''">
+						M.IN_DTM 
+							BETWEEN CONVERT(DATETIME, #{workDT} + ' 00:00', 103) 
+								AND CONVERT(DATETIME, #{workDT} + ' 23:59', 103)
+					</if>
+				</if>
+			</if>
+			<if test="catgCd != null and catgCd != ''">
+				AND M.CATG_CD 									= #{catgCd}
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+				AND M.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test="scn != null and scn != ''">
+				AND M.SHIP_CALL_NO 								= #{scn}
+			</if>
+			<if test="lotNo != null and lotNo != ''">
+				AND P.LOT_NO 									LIKE '%' + #{lotNo} + '%'
+			</if>
+			<if test="fwrAgnt != null and fwrAgnt != ''">
+				AND P.FWRD 										= #{fwrAgnt}
+			</if>
+			<if test='hhtFnlChk == "Y"'>
+				AND (M.IN_DTM IS NULL							OR M.IN_DTM = '')
+			</if>
+			<if test='hhtFnlChk == "true"'>
+				AND (M.IN_DTM IS NULL							OR M.IN_DTM = '')
+			</if>
+			<if test="shftId != null and shftId != ''">
+				AND S.SHFT_ID 									= #{shftId}
+			</if>
+			<if test="cargoTp != null and cargoTp != ''">
+				AND P.CG_TP_CD 									= #{cargoTp}
+			</if>
+			<if test="unitNo != null and unitNo != ''">
+				AND M.CHASSIS_NO 								LIKE '%' + #{unitNo} + '%'
+			</if>
+			AND G.VSL_CALL_ID 									= S.VSL_CALL_ID
+			AND G.GR_NO 										= S.CG_NO
+			AND S.OPE_CLASS_CD 									= M.CATG_CD
+	</sql>
+	
+	<sql id="sqlHandlingInAuth">
+		/* handlinginoutlist.sqlHandlingInAuth */
+		<if test='userType == "E"'>
+	  		AND (
+				EXISTS (
+					SELECT '1' 
+					FROM 
+						TMT_SHIPG_NOTE 							SN
+					WHERE 
+						SN.VSL_CALL_ID 							= M.VSL_CALL_ID 
+						AND SN.SHIPG_NOTE_NO 					= M.SHIPG_NOTE_NO 
+						AND SN.FWRD 							= #{ptnrCode}
+				)
+				OR EXISTS (
+					SELECT 
+						'1' 
+					FROM 
+						TMT_SHIPG_NOTE 							SN
+					WHERE 
+						SN.VSL_CALL_ID 							= M.VSL_CALL_ID 
+						AND SN.SHIPG_NOTE_NO 					= M.SHIPG_NOTE_NO 
+						AND SN.SHIPG_AGNCY 						= #{ptnrCode}
+				)
+				OR EXISTS (
+					SELECT 
+						'1' 
+					FROM 
+						TMT_BL 									BL
+					WHERE 
+						BL.VSL_CALL_ID 							= M.VSL_CALL_ID 
+						AND BL.BL_NO 							= M.CG_NO 
+						AND BL.TSPTR 							= #{ptnrCode}
+				)
+				OR EXISTS (
+					SELECT 
+						'1' 
+					FROM 
+						TMT_SHIPG_NOTE 							SN, 
+						TMT_GR 									GR 
+					WHERE 
+						SN.TSPT_COMP 							= #{ptnrCode}
+						AND SN.VSL_CALL_ID 						= GR.VSL_CALL_ID 
+						AND SN.SHIPG_NOTE_NO 					= GR.SHIPG_NOTE_NO
+						AND GR.VSL_CALL_ID 						= M.VSL_CALL_ID
+						AND GR.GR_NO 							= M.CG_NO
+				)
+			)
+		</if>
+	</sql>
+	
+	<!-- ****************************** HANDLING OUT ****************************** -->
+	<select id="selectCargoHOList"  parameterType="cargoHandlingOutParm" resultType="cargoHandlingOutItem">
+		<if test="pageNo != 0"> 
+            SELECT /* handlinginoutlist.selectCargoHOList */
+             	*
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) AS ROW_NUM,
+					innerTable.*
+				FROM ( 
+		</if>
+				<include refid="getCargoHOList"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<select id="selectCargoHOListCount" parameterType="CargoHandlingOutParm" resultType="java.lang.String">
+	 	SELECT 
+			COUNT(*)
+        FROM 
+			(<include refid="getCargoHOList"/>)					AS TEMPTABLE
+	 </select>
+	 
+	<sql id="getCargoHOList"  >
+		SELECT DISTINCT /* handlinginoutlist.getCargoHOList */
+			S.CG_VOL 											AS MSRMT,
+			S.CG_WGT 											AS WGT,
+			S.PKG_QTY 											AS PKGQTY,
+			M.OPE_CLASS_CD 										AS CATGCD,
+			ISNULL(M.SHIPG_NOTE_NO, M.BL_NO) 					AS BLSN,
+			CASE 
+				WHEN 
+					(SN.SHIPG_NOTE_NO IS NOT NULL
+					AND SN.SHIPG_NOTE_NO <![CDATA[<>]]> '') 
+						THEN SN.LOT_NO
+				WHEN 
+					(BL.BL_NO IS NOT NULL 
+					AND BL.BL_NO <![CDATA[<>]]> '')
+						THEN BL.LOT_NO
+				ELSE ''
+			END 												AS LOTNO,
+			<!-- S.SDO_NO 											AS SDONO, -->
+			M.BL_NO 											AS BL_NO,
+			M.SHIPG_NOTE_NO 									AS SHIPGNOTENO,
+			M.VSL_CALL_ID 										AS VSLCALLID,
+			PART.VSL_NM 										AS VSLNM,
+			M.CG_NO 											AS CGNO,												
+			CASE
+				WHEN 
+					(M.SHIPG_NOTE_NO IS NULL 
+					OR M.SHIPG_NOTE_NO = '')
+						THEN 
+							(SELECT 
+								D.DO_NO
+							FROM 
+								TMT_BL 			  B, 
+								TMT_DO 			  D
+							WHERE     
+								B.VSL_CALL_ID 	  = M.VSL_CALL_ID
+								AND B.BL_NO 	  = M.CG_NO
+								AND B.VSL_CALL_ID = D.VSL_CALL_ID
+								AND B.BL_NO 	  = D.BL_NO
+							)
+				ELSE M.CG_NO
+			END 												AS GRDO,
+			S.TO_LOC_ID 										AS CURRLOCID,
+			M.SHIPG_AGNT 										AS SHPGAGENT,
+			M.FWR_AGNT 											AS FWRAGNT,
+			CASE M.SHPR + '/' + M.CNSNE
+				WHEN '/' THEN ''
+				ELSE M.SHPR + '/' + M.CNSNE
+			END 												AS SHPCNG,
+			(SELECT 
+				C.CMDT_DESC
+			FROM 
+				TMT_CMDT C
+			WHERE 
+				C.CMDT_CD = 
+					(CASE 
+						WHEN 
+							(SN.SHIPG_NOTE_NO IS NOT NULL
+							AND SN.SHIPG_NOTE_NO <![CDATA[<>]]> '') 
+								THEN SN.CMDT_CD
+						WHEN 
+							(BL.BL_NO IS NOT NULL 
+							AND BL.BL_NO <![CDATA[<>]]> '') 
+								THEN BL.CMDT_CD
+						ELSE ''
+					END)
+			) 													AS CARGO,
+			M.PKG_TP_CD 										AS PKGTPCD,
+			CASE
+				WHEN 
+					(M.BL_NO IS NOT NULL 
+					AND M.BL_NO <![CDATA[<>]]> '') 
+						THEN ISNULL(BL.PKG_QTY, 0)
+				ELSE ISNULL(GR.PKG_QTY, 0)
+			END 												AS DOCQTY,
+			CASE
+				WHEN 
+					(M.BL_NO IS NOT NULL 
+					AND M.BL_NO <![CDATA[<>]]> '') 
+						THEN ISNULL(ROUND (BL.CG_WGT, 3), 0)
+				ELSE ISNULL(GR.CG_WGT, 0)
+			END 												AS DOCMT,
+			CASE
+				WHEN 
+					(M.BL_NO IS NOT NULL 
+					AND M.BL_NO <![CDATA[<>]]> '') 
+						THEN ISNULL(ROUND(BL.CG_VOL, 3, 1), 0)
+				ELSE ISNULL(GR.CG_VOL, 0)
+			END 												AS DOCM3,
+			FORMAT(M.DIS_ST_DT, 'dd/MM/yyyy HH:mm') 			AS DISSTDT,
+			FORMAT(M.HDL_OUT_ST_DT, 'dd/MM/yyyy HH:mm') 		AS HDLOUTSTDT,
+			CASE
+				WHEN 
+					(S.WORK_END_DT IS NULL 
+					OR S.WORK_END_DT = '')
+						THEN 
+							CASE
+								WHEN 
+									(M.HDL_OUT_END_DT IS NULL 
+									OR M.HDL_OUT_END_DT = '')
+										THEN 
+											FORMAT(
+												M.HDL_OUT_ST_DT, 
+												'dd/MM/yyyy HH:mm'
+											)
+								ELSE 
+									FORMAT(
+										M.HDL_OUT_END_DT, 
+										'dd/MM/yyyy HH:mm'
+									)
+							END 
+				ELSE 
+					FORMAT(
+						S.WORK_END_DT, 
+						'dd/MM/yyyy HH:mm'
+					)
+			END 												AS HDLOUTDT,
+			FORMAT(
+				ISNULL(M.DIS_ST_DT, M.HDL_IN_ST_DT), 
+				'dd/MM/yyyy HH:mm'
+			) 													AS WHSTARTDT,
+			DATEDIFF(
+				DAY, 
+				ISNULL(M.DIS_ST_DT, M.HDL_IN_ST_DT), 
+				COALESCE(
+					S.WORK_END_DT, 
+					M.HDL_OUT_END_DT, 
+					M.HDL_OUT_ST_DT
+				)
+			) + 1												AS inWhDtNo,
+			S.JOB_PURP_CD 										AS JOBPURPCD,
+			CASE S.JOB_CO_CD
+				WHEN 'D' THEN 'Y'
+				ELSE 'N'
+			END 												AS DMGYN,
+			CASE S.JOB_CO_CD
+				WHEN 'S' THEN 'Y'
+				ELSE 'N'
+			END 												AS SHUYN,
+			dbo.F_CM_CODE_NM(
+				'MT', 
+				'JOBPURP', 
+				S.JOB_PURP_CD
+			) 													AS JOBPURPNM,
+			S.SHFT_ID 											AS SHFTID,
+			(SELECT TOP(1)
+				A.SHFT_NM
+			FROM 
+				TMT_SHFT 					A
+			WHERE A.SHFT_ID 				= S.SHFT_ID
+			) 													AS SHFTNM,
+			ISNULL(BL.CMDT_GRP_CD, SN.CMDT_GRP_CD) 				AS CMDTGRPCD,
+			CASE BL.DOMESTIC_CHK
+				WHEN 'Y' THEN 'Domestic Cargo'
+				ELSE ' '
+			END 												AS domesticChk,
+			ISNULL(BL.MF_DOC_ID, SN.MF_DOC_ID) 					AS MFDOCID,
+			S.LORRY_NO 											AS LORRYNO,
+			<!-- CASE
+				WHEN 
+					(S.SDO_NO IS NOT NULL 
+					AND S.SDO_NO <![CDATA[<>]]> '')
+						THEN
+							(SELECT TOP(1)
+								CHASSIS_NO
+							FROM 
+								TMT_ASSIGN_TRANSPORT
+							WHERE     
+								BL_NO 		 = BL.BL_NO
+								AND LORRY_NO = S.LORRY_NO
+								AND SDO_NO 	 = S.SDO_NO
+							)
+				ELSE
+					(SELECT TOP(1)
+						CHASSIS_NO
+					FROM 
+						TMT_ASSIGN_TRANSPORT
+					WHERE     
+						SHIPG_NOTE_NO 		= GR.SHIPG_NOTE_NO
+						AND LORRY_NO 		= S.LORRY_NO
+						AND GR_NO 			= GR.GR_NO
+					)
+			END 												AS CHASSISNO, -->
+			<!--  
+			W.FIRST_WGT 										AS FIRSTWGT,
+			W.SECOND_WGT 										AS SECONDWGT,
+			FORMAT(W.FIRST_WGT_DT, 'dd/MM/yyyy HH:mm') 			AS FIRSTWGTDT,
+			FORMAT(W.SECOND_WGT_DT, 'dd/MM/yyyy HH:mm') 		AS SECONDWGTDT,
+			-->
+			dbo.F_GET_PTNR_SNM (ISNULL(BL.CNSNE, SN.CNSNE)) 	AS CNSNENM,
+			(SELECT TOP(1)
+				S_CD_NM
+			FROM 
+				TMT_CD_MSTD
+			WHERE     
+				M_CD = 'WHTP'
+				AND S_CD =
+						(SELECT TOP(1)
+							LOC_TP_CD
+						FROM 
+							TMT_LOC_DEF
+						WHERE     
+							LOC_ID =
+									(SELECT TOP(1)
+										LOC_ID
+									FROM 
+										TMT_INV_LOC
+									WHERE 
+										JOB_NO 	= S.JOB_NO
+									)
+						)
+			) 													AS WHTPCD,
+			M.CG_TP_CD AS CGTPCD,
+			dbo.F_CM_CODE_NM('MT', 'CGTP', M.CG_TP_CD) 			AS CGTPNM,
+			'' 													AS UNITNO
+		FROM 	
+			TMT_JOB 											S
+		INNER JOIN 
+			TMT_CG_MST 											M
+			ON S.VSL_CALL_ID 									= M.VSL_CALL_ID 
+			AND S.CG_NO 										= M.CG_NO
+		LEFT OUTER JOIN 
+			TMT_CG_ARRV_DELV 									D
+			ON	S.VSL_CALL_ID 									= D.VSL_CALL_ID
+			AND S.CG_NO 										= D.CG_NO
+			AND S.GATE_TXN_NO 									= D.GATE_TXN_NO
+		<!--  	
+		LEFT OUTER JOIN 
+			TMT_WEIGHTBRIDGE 									W
+			ON	S.VSL_CALL_ID 									= W.VSL_CALL_ID
+			AND S.WB_TRANSACTION_NO 							= W.TRANSACTION_NO
+			AND D.GATE_TXN_NO 									= W.GATE_TICKET_NO
+		-->
+		LEFT OUTER JOIN 
+			TMT_GR 												GR
+			ON S.VSL_CALL_ID 									= GR.VSL_CALL_ID 
+			AND S.CG_NO 										= GR.GR_NO
+		LEFT OUTER JOIN 
+			TMT_SHIPG_NOTE 										SN
+			ON	GR.VSL_CALL_ID 									= SN.VSL_CALL_ID
+			AND SN.SHIPG_NOTE_NO 								= GR.SHIPG_NOTE_NO
+		LEFT OUTER JOIN 
+			TMT_BL 												BL
+			ON S.VSL_CALL_ID 									= BL.VSL_CALL_ID 
+			AND S.CG_NO 										= BL.BL_NO
+		LEFT OUTER JOIN 
+			TMT_VSL_SCH 										VS 
+			ON S.VSL_CALL_ID 									= VS.VSL_CALL_ID
+		LEFT OUTER JOIN 
+			TMT_VSL_PART 										PART 
+			ON VS.VSL_CD 										= PART.VSL_CD
+		WHERE  	
+			M.HDL_OUT_ST_DT  									IS NOT NULL
+			AND M.HDL_OUT_ST_DT  								<![CDATA[<>]]> ''
+			AND S.JOB_PURP_CD 									IN ('WG')
+			AND S.JOB_TP_CD 									IN ('LO')
+			<if test="cmdtCd != null and cmdtCd != ''">
+				AND M.CMDT_CD 									= #{cmdtCd}
+			</if>
+			<if test="cnsneCd != null and cnsneCd != ''">
+				AND BL.CNSNE 									= #{cnsneCd}
+			</if>
+			<if test="locTpCd != null and locTpCd != ''">
+				AND (
+					SELECT TOP(1)
+						LOC_TP_CD 
+					FROM 
+						TMT_LOC_DEF
+					WHERE LOC_ID = 
+							(SELECT TOP(1)
+								LOC_ID 
+							FROM 
+								TMT_INV_LOC
+							WHERE 
+								JOB_NO = S.JOB_NO
+							)
+				) 												= #{locTpCd}
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+				AND S.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test="scn != null and scn != ''">
+				AND S.SHIP_CALL_NO 								= #{scn}
+			</if>
+			<if test="mfDocId != null and mfDocId != ''">
+				AND BL.MF_DOC_ID 								= #{mfDocId}
+			</if>
+			<if test="startDt != null and startDt != ''">
+				AND S.WORK_END_DT  								>= CONVERT(DATETIME, #{startDt}, 103)
+			</if>
+			<if test="endDt != null and endDt != ''">
+				AND S.WORK_END_DT 								<![CDATA[<]]> DATEADD(MINUTE, 1439, CONVERT(DATETIME, #{endDt}, 103))
+			</if>
+			<if test="startDt == null or startDt == ''">
+				<if test="endDt == null or endDt == ''">
+					<if test="workDT != null and workDT != ''">
+						AND M.HDL_OUT_ST_DT 					= CONVERT(DATE, #{workDT}, 103)
+					</if>
+				</if>
+			</if>
+			<if test="catgCd != null and catgCd != ''">
+				AND M.OPE_CLASS_CD  =  #{catgCd}
+			</if>
+			<if test="locId != null and locId != ''">
+				<!-- AND SUBSTRING(
+					S.TO_LOC_ID, 
+					1, 
+					CHARINDEX(S.TO_LOC_ID, '(') - 1
+				) 												=  #{locId} -->
+				
+				AND SUBSTRING(
+				    S.TO_LOC_ID,
+				    1,
+				    CASE 
+				    	WHEN CHARINDEX('(', S.TO_LOC_ID) > 0
+			         		THEN CHARINDEX('(', S.TO_LOC_ID) - 1
+			         	ELSE LEN(S.TO_LOC_ID)
+				    END
+				)												=  #{locId}
+			</if>
+			<if test="fwrAgnt != null and fwrAgnt != ''">
+				AND M.FWR_AGNT 									= #{fwrAgnt}
+			</if>
+			<if test="blNo != null and blNo != ''">
+				<if test="shipgNoteNo != null and shipgNoteNo != ''">
+					AND (M.CG_NO 								= #{blNo} 
+					OR  M.SHIPG_NOTE_NO 						= #{shipgNoteNo})
+				</if>
+				<if test="shipgNoteNo == null or shipgNoteNo == ''">
+					AND M.CG_NO 								= #{blNo}
+				</if>			
+			</if>
+			<if test='hhtFnlChk == "Y"'>
+				AND (M.HDL_OUT_END_DT IS NULL					OR M.HDL_OUT_END_DT = '')
+			</if>
+			<if test='hhtFnlChk == "true"'>
+				AND (M.HDL_OUT_END_DT IS NULL					OR M.HDL_OUT_END_DT = '')
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				<if test="blNo != null and blNo != ''">
+					AND (M.CG_NO 								= #{blNo} 
+					OR  M.SHIPG_NOTE_NO 						= #{shipgNoteNo})
+				</if>
+				<if test="blNo == null or blNo == ''">
+					AND M.SHIPG_NOTE_NO 						= #{shipgNoteNo}
+				</if>			
+			</if>
+			<if test="lotNo != null and lotNo != ''">
+				AND BL.LOT_NO 									LIKE '%' + #{lotNo} + '%'
+			</if>
+			<if test="shftId != null and shftId != ''">
+				AND S.SHFT_ID 									= #{shftId}
+			</if>
+			<if test="cargoTp != null and cargoTp != ''">
+				AND BL.CG_TP_CD 								= #{cargoTp}
+			</if>
+			<if test="unitNo != null and unitNo != ''">
+				AND '1' 										= '2'
+			</if>
+			<include refid = "sqlHandlingOutAuth"/>
+			
+		UNION ALL
+			
+		SELECT DISTINCT
+			S.CG_VOL 											AS MSRMT,
+			S.CG_WGT 											AS WGT,
+			S.PKG_QTY 											AS PKGQTY,
+			M.CATG_CD 											AS CATGCD,
+			ISNULL(SN.SHIPG_NOTE_NO, BL.BL_NO) 					AS BLSN,
+			CASE 
+				WHEN	
+					(SN.SHIPG_NOTE_NO IS NOT NULL 
+					AND SN.SHIPG_NOTE_NO <![CDATA[<>]]> '')
+					THEN SN.LOT_NO
+				WHEN 
+					(BL.BL_NO IS NOT NULL
+					AND BL.BL_NO <![CDATA[<>]]> '')
+					THEN BL.LOT_NO
+				ELSE ''
+			END 												AS LOTNO,
+			<!-- S.SDO_NO 											AS SDONO, -->
+			BL.BL_NO 											AS BL_NO,
+			SN.SHIPG_NOTE_NO 									AS SHIPGNOTENO,
+			M.VSL_CALL_ID 										AS VSLCALLID,
+			PART.VSL_NM 										AS VSLNM,
+			M.CG_NO 											AS CGNO,											
+			CASE
+				WHEN 
+					(SN.SHIPG_NOTE_NO IS NULL 
+					OR SN.SHIPG_NOTE_NO = '')
+						THEN 
+							(SELECT 
+								D.DO_NO
+							FROM 
+								TMT_BL 			  B, 
+								TMT_DO 			  D
+							WHERE     
+								B.VSL_CALL_ID 	  = M.VSL_CALL_ID
+								AND B.BL_NO 	  = M.CG_NO
+								AND B.VSL_CALL_ID = D.VSL_CALL_ID
+								AND B.BL_NO 	  = D.BL_NO
+							)
+				ELSE M.GR_NO
+			END 												AS GRDO,
+			S.TO_LOC_ID 										AS CURRLOCID,
+			ISNULL(SN.SHIPG_AGNCY, '') 							AS SHPGAGENT,
+			ISNULL(SN.FWRD, BL.FWRD) 							AS FWRAGNT,
+			CASE 
+				(ISNULL(SN.SHPR, BL.SHPR) 
+				+ '/' + 
+				ISNULL(SN.CNSNE, BL.CNSNE))
+				WHEN '/' THEN ''
+				ELSE 
+					ISNULL(SN.SHPR, BL.SHPR) 
+					+ '/' + 
+					ISNULL(SN.CNSNE, BL.CNSNE)
+			END 												AS SHPCNG,
+			(SELECT 
+				C.CMDT_DESC
+			FROM 
+				TMT_CMDT C
+			WHERE 
+				C.CMDT_CD = 
+						(CASE 
+							WHEN 
+								(SN.SHIPG_NOTE_NO IS NOT NULL
+								AND SN.SHIPG_NOTE_NO <![CDATA[<>]]> '') 
+									THEN SN.CMDT_CD
+							WHEN 
+								(BL.BL_NO IS NOT NULL 
+								AND BL.BL_NO <![CDATA[<>]]> '') 
+									THEN BL.CMDT_CD
+							ELSE ''
+						END)
+			) 													AS CARGO,
+			ISNULL(SN.PKG_TP_CD, BL.PKG_TP_CD) 					AS PKGTPCD,
+			CASE
+				WHEN 
+					(BL.BL_NO IS NOT NULL 
+					AND BL.BL_NO <![CDATA[<>]]> '') 
+						THEN ISNULL(BL.PKG_QTY, 0)
+				ELSE ISNULL(GR.PKG_QTY, 0)
+			END 												AS DOCQTY,
+			CASE
+				WHEN 
+					(BL.BL_NO IS NOT NULL 
+					AND BL.BL_NO <![CDATA[<>]]> '') 
+						THEN ISNULL(ROUND(BL.CG_WGT, 3, 1), 0)
+				ELSE ISNULL(GR.CG_WGT, 0)
+			END 												AS DOCMT,
+			CASE
+				WHEN 
+					(BL.BL_NO IS NOT NULL 
+					AND BL.BL_NO <![CDATA[<>]]> '') 
+						THEN ISNULL(ROUND(BL.CG_VOL, 3, 1), 0)
+				ELSE ISNULL(GR.CG_VOL, 0)
+			END 												AS DOCM3,
+			FORMAT(
+				M.DISCHARGING_DTM, 
+				'dd/MM/yyyy HH:mm'
+			) 													AS DISSTDT,
+			FORMAT(M.OUT_DTM, 'dd/MM/yyyy HH:mm') 				AS HDLOUTSTDT,
+			CASE
+				WHEN 
+					(S.WORK_END_DT IS NULL 
+					OR S.WORK_END_DT = '')
+						THEN 
+							CASE
+								WHEN	
+									(M.OUT_DTM IS NULL 
+									OR M.OUT_DTM = '')
+										THEN 
+											FORMAT(
+												M.OUT_DTM, 
+												'dd/MM/yyyy HH:mm'
+											)
+								ELSE 
+									FORMAT(
+										M.OUT_DTM, 
+										'dd/MM/yyyy HH:mm'
+									)
+							END
+				ELSE 
+					FORMAT(
+						S.WORK_END_DT, 
+						'dd/MM/yyyy HH:mm'
+					)
+			END 												AS HDLOUTDT,
+			FORMAT(
+				ISNULL(M.DISCHARGING_DTM, M.IN_DTM), 
+				'dd/MM/yyyy HH:mm'
+			) 													AS WHSTARTDT,
+			DATEDIFF(
+				DAY,
+				ISNULL(M.DISCHARGING_DTM, M.IN_DTM),
+				COALESCE(S.WORK_END_DT, M.OUT_DTM, M.OUT_DTM)
+			) + 1 												AS inWhDtNo,
+			S.JOB_PURP_CD 										AS JOBPURPCD,
+			CASE S.JOB_CO_CD
+				WHEN 'D' THEN 'Y'
+				ELSE 'N'
+			END 												AS DMGYN,
+			CASE S.JOB_CO_CD
+				WHEN 'S' THEN 'Y'
+				ELSE 'N'
+			END 												AS SHUYN,
+			dbo.F_CM_CODE_NM('MT', 'JOBPURP', S.JOB_PURP_CD)	AS JOBPURPNM,
+			S.SHFT_ID 											AS SHFTID,
+			(SELECT TOP(1)
+				A.SHFT_NM
+			FROM 
+				TMT_SHFT 					A
+			WHERE 
+				A.SHFT_ID 					= S.SHFT_ID
+			) 													AS SHFTNM,
+			ISNULL(BL.CMDT_GRP_CD, SN.CMDT_GRP_CD) 				AS CMDTGRPCD,
+			CASE BL.DOMESTIC_CHK
+				WHEN 'Y' THEN 'Domestic Cargo'
+				ELSE ' '
+			END 												AS domesticChk,
+			ISNULL(BL.MF_DOC_ID, SN.MF_DOC_ID) 					AS MFDOCID,
+			S.LORRY_NO 											AS LORRYNO,
+			<!-- CASE
+				WHEN 
+					(S.SDO_NO IS NOT NULL
+					AND S.SDO_NO <![CDATA[<>]]> '')
+					THEN
+						(SELECT TOP(1)
+							CHASSIS_NO
+						FROM 
+							TMT_ASSIGN_TRANSPORT
+						WHERE     
+							BL_NO = BL.BL_NO
+							AND LORRY_NO = S.LORRY_NO
+							AND SDO_NO = S.SDO_NO
+						)
+				ELSE
+					(SELECT TOP(1)
+						CHASSIS_NO
+					FROM 
+						TMT_ASSIGN_TRANSPORT
+					WHERE     
+						SHIPG_NOTE_NO 		= GR.SHIPG_NOTE_NO
+						AND LORRY_NO 		= S.LORRY_NO
+						AND GR_NO 			= GR.GR_NO
+					)
+			END 												AS CHASSISNO, -->
+			<!--  
+			NULL 												AS FIRSTWGT,
+			NULL 												AS SECONDWGT,
+			NULL 												AS FIRSTWGTDT,
+			NULL 												AS SECONDWGTDT,
+			-->
+			dbo.F_GET_PTNR_SNM(ISNULL(BL.CNSNE, SN.CNSNE)) 		AS CNSNENM,
+			(SELECT TOP(1)
+				S_CD_NM
+			FROM 
+				TMT_CD_MSTD
+			WHERE     
+				M_CD 	 = 'WHTP'
+				AND S_CD =
+						(SELECT TOP(1)
+							LOC_TP_CD
+						FROM 
+							TMT_LOC_DEF
+						WHERE     
+							LOC_ID =
+									(SELECT TOP(1)
+										LOC_ID
+									FROM 
+										TMT_INV_LOC
+									WHERE 
+										JOB_NO 	= S.JOB_NO
+									)
+						)
+			) 													AS WHTPCD,
+			ISNULL(SN.CG_TP_CD, BL.CG_TP_CD) 					AS CGTPCD,
+			dbo.F_CM_CODE_NM(
+				'MT', 
+				'CGTP', 
+				ISNULL(SN.CG_TP_CD, BL.CG_TP_CD)
+			) 													AS CGTPNM,
+			CASE 
+				WHEN BL.CG_TP_CD = 'RCV' AND S.CG_NO NOT LIKE 'RTS' + '%' 
+					THEN
+						(SELECT 
+							STRING_AGG(CHASSIS_NO, ', ') 
+								WITHIN GROUP(ORDER BY CHASSIS_NO ASC)
+						FROM 
+							TMT_RORO_MST
+						WHERE 
+							VSL_CALL_ID	= BL.VSL_CALL_ID 
+							AND CG_NO 	= BL.BL_NO 
+							AND SDO_NO 	= S.SDO_NO
+						GROUP BY 
+							VSL_CALL_ID, 
+							CG_NO, 
+							SDO_NO
+						)
+				ELSE 
+					(SELECT 
+						STRING_AGG(CHASSIS_NO, ', ') 
+							WITHIN GROUP (ORDER BY CHASSIS_NO ASC)
+					FROM 
+						TMT_RORO_MST
+					WHERE 
+						VSL_CALL_ID	= GR.VSL_CALL_ID 
+						AND GR_NO 	= GR.GR_NO 
+						AND CG_NO	= GR.SHIPG_NOTE_NO
+					GROUP BY 
+						VSL_CALL_ID, 
+						CG_NO, GR_NO
+					)
+			END 												AS UNITNO
+		FROM 
+			TMT_JOB 											S
+		INNER JOIN 
+			TMT_RORO_MST 										M
+				ON S.VSL_CALL_ID 								= M.VSL_CALL_ID 
+				AND S.CG_NO 									= M.CG_NO
+		LEFT OUTER JOIN 
+			TMT_CG_ARRV_DELV 									D
+				ON  S.VSL_CALL_ID 								= D.VSL_CALL_ID
+				AND S.CG_NO 									= D.CG_NO
+				AND S.GATE_TXN_NO 								= D.GATE_TXN_NO
+		LEFT OUTER JOIN 
+			TMT_GR GR
+			ON	S.VSL_CALL_ID 									= GR.VSL_CALL_ID 
+			AND S.CG_NO 										= GR.GR_NO
+		LEFT OUTER JOIN 
+			TMT_SHIPG_NOTE										SN
+				ON  GR.VSL_CALL_ID 								= SN.VSL_CALL_ID
+				AND SN.SHIPG_NOTE_NO 							= GR.SHIPG_NOTE_NO
+		LEFT OUTER JOIN 
+			TMT_BL 												BL
+				ON	S.VSL_CALL_ID 								= BL.VSL_CALL_ID 
+				AND S.CG_NO 									= BL.BL_NO
+		LEFT OUTER JOIN 
+			TMT_VSL_SCH											VS 
+				ON S.VSL_CALL_ID 								= VS.VSL_CALL_ID
+		LEFT OUTER JOIN 
+			TMT_VSL_PART 										PART 
+				ON VS.VSL_CD 									= PART.VSL_CD
+		WHERE  	
+			(M.OUT_DTM IS NOT NULL 								AND M.OUT_DTM  <![CDATA[<>]]> '')
+			AND S.JOB_PURP_CD 									IN ('WG')
+			AND S.JOB_TP_CD 									IN ('LO')
+			<if test="cmdtCd != null and cmdtCd != ''">
+				AND ISNULL(SN.CMDT_CD, BL.CMDT_CD) 				= #{cmdtCd}
+			</if>
+			<if test="cnsneCd != null and cnsneCd != ''">
+				AND BL.CNSNE 									= #{cnsneCd}
+			</if>
+			<if test="locTpCd != null and locTpCd != ''">
+				AND (
+					SELECT TOP(1)
+						LOC_TP_CD 
+					FROM 
+						TMT_LOC_DEF
+					WHERE 
+						LOC_ID  = 	(SELECT TOP(1)
+										LOC_ID 
+									FROM 
+										TMT_INV_LOC
+									WHERE 
+										JOB_NO = S.JOB_NO
+									)
+					) 											= #{locTpCd}
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+				AND S.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test="scn != null and scn != ''">
+				AND S.SHIP_CALL_NO 								= #{scn}
+			</if>
+			<if test="mfDocId != null and mfDocId != ''">
+				AND BL.MF_DOC_ID 								= #{mfDocId}
+			</if>
+			<if test="startDt != null and startDt != ''">
+				AND S.WORK_END_DT  								>= CONVERT(DATETIME, #{startDt}, 103)
+			</if>
+			<if test="endDt != null and endDt != ''">
+				AND S.WORK_END_DT 								<![CDATA[<]]> DATEADD(MINUTE, 1439, CONVERT(DATETIME, #{endDt}, 103))
+			</if>
+			<if test="startDt == null or startDt == ''">
+				<if test="endDt == null or endDt == ''">
+					<if test="workDT != null and workDT != ''">
+						AND M.OUT_DTM 							= CONVERT(DATE, #{workDT}, 103)
+					</if>
+				</if>
+			</if>
+			<if test="catgCd != null and catgCd != ''">
+				AND M.CATG_CD  									=  #{catgCd}
+			</if>
+			<if test="locId != null and locId != ''">
+				<!-- AND SUBSTRING(
+						S.TO_LOC_ID, 
+						0, 
+						CHARINDEX('(', S.TO_LOC_ID) - 1
+					) 											=  #{locId} -->
+				
+				AND SUBSTRING(
+				    S.TO_LOC_ID,
+				    1,
+				    CASE 
+				    	WHEN CHARINDEX('(', S.TO_LOC_ID) > 0
+			         		THEN CHARINDEX('(', S.TO_LOC_ID) - 1
+			         	ELSE LEN(S.TO_LOC_ID)
+				    END
+				)												=  #{locId}
+			</if>
+			<if test="fwrAgnt != null and fwrAgnt != ''">
+				AND ISNULL(SN.FWRD, BL.FWRD) 					= #{fwrAgnt}
+			</if>
+			<if test="blNo != null and blNo != ''">
+				<if test="shipgNoteNo != null and shipgNoteNo != ''">
+					AND (M.CG_NO = #{blNo} 						OR  M.CG_NO = #{shipgNoteNo})
+				</if>
+				<if test="shipgNoteNo == null or shipgNoteNo == ''">
+					AND M.CG_NO 								= #{blNo}
+				</if>			
+			</if>
+			<if test='hhtFnlChk == "Y"'>
+				AND (M.OUT_DTM IS NULL							OR M.OUT_DTM = '')
+			</if>
+			<if test='hhtFnlChk == "true"'>
+				AND (M.OUT_DTM IS NULL							OR M.OUT_DTM = '')
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				<if test="blNo != null and blNo != ''">
+					AND (M.CG_NO = #{blNo} 						OR  M.CG_NO = #{shipgNoteNo})
+				</if>
+				<if test="blNo == null or blNo == ''">
+					AND M.CG_NO 								= #{shipgNoteNo}
+				</if>			
+			</if>
+			<if test="lotNo != null and lotNo != ''">
+				AND BL.LOT_NO 									LIKE '%' + #{lotNo} + '%'
+			</if>
+			<if test="shftId != null and shftId != ''">
+				AND S.SHFT_ID 									= #{shftId}
+			</if>
+			<if test="cargoTp != null and cargoTp != ''">
+				AND BL.CG_TP_CD 								= #{cargoTp}
+			</if>
+			<if test="unitNo != null and unitNo != ''">
+				AND M.CHASSIS_NO 									LIKE '%' + #{unitNo} + '%'
+			</if>
+    </sql>
+    
+	<sql id="sqlHandlingOutAuth">
+		/* handlinginoutlist.sqlHandlingOutAuth */
+		<if test='userType == "E"'>
+  			AND (
+				EXISTS (
+					SELECT 
+						'1' 
+					FROM 
+						TMT_SHIPG_NOTE 							SN, 
+						TB_PTNR 								PTNR
+					WHERE 
+						SN.VSL_CALL_ID 							= M.VSL_CALL_ID 
+						AND SN.SHIPG_NOTE_NO 					= M.SHIPG_NOTE_NO 
+						AND SN.FWRD 							= #{ptnrCode}
+						AND PTNR.PTNR_CODE 						= #{ptnrCode}
+						AND PTNR.PTNR_TYPE 						= 'FWD'
+				)
+				OR EXISTS (
+					SELECT 
+						'1' 
+					FROM 
+						TMT_SHIPG_NOTE 							SN, 
+						TB_PTNR 								PTNR
+					WHERE 
+						SN.VSL_CALL_ID 							= M.VSL_CALL_ID 
+						AND SN.SHIPG_NOTE_NO 					= M.SHIPG_NOTE_NO 
+						AND SN.SHIPG_AGNCY 						= #{ptnrCode}
+						AND PTNR.PTNR_CODE 						= #{ptnrCode}
+						AND PTNR.PTNR_CODE 						= 'SHA'
+				)
+				OR EXISTS (
+					SELECT 
+						'1' 
+					FROM 
+						TMT_BL 									BL
+					WHERE
+						BL.VSL_CALL_ID 							= M.VSL_CALL_ID 
+						AND BL.BL_NO 							= M.CG_NO 
+						AND BL.TSPTR 							= #{ptnrCode}
+				)
+				OR EXISTS (
+					SELECT 
+						'1' 
+					FROM 
+						TMT_SHIPG_NOTE 							SN, 
+						TMT_GR 									GR 
+					WHERE 
+						SN.TSPT_COMP 							= #{ptnrCode}
+						AND SN.VSL_CALL_ID 						= GR.VSL_CALL_ID 
+						AND SN.SHIPG_NOTE_NO 					= GR.SHIPG_NOTE_NO
+						AND GR.VSL_CALL_ID 						= M.VSL_CALL_ID
+						AND GR.GR_NO 							= M.CG_NO
+				)
+			)
+		</if>
+	</sql>
+</mapper>

@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="invoiceTemplate">
+	
+	<!--  ##############################	Result Map Define    ############################## -->
+
+	<!--  ############################## 	Query Statement Define ############################ -->
+	<select id="selectAllInvoiceTemplateCount" parameterType="InvoiceTemplateParm" resultType="java.lang.String">
+	 	SELECT /*invoicetemplate.selectAllInvoiceTemplateCount*/
+			COUNT(*)
+        FROM 
+			(<include refid="getAllInvoiceTemplate"/>)
+	</select>
+
+	<select id="selectAllInvoiceTemplate"  parameterType="InvoiceTemplateParm" resultType="InvoiceTemplateItem">
+  		<if test="pageNo != 0"> 
+             SELECT /*invoicetemplate.selectAllInvoiceTemplate*/
+             	*
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY TEMPLATE_CODE) 	AS ROW_NUM,
+					innerTable.*
+				FROM ( 
+		</if>
+				<include refid="getAllInvoiceTemplate"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable 
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	CAST((CASE WHEN #{pageNo}  = '0' THEN '1' ELSE #{pageNo} END) AS INT) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+    </select>
+
+	<sql id="getAllInvoiceTemplate">
+		SELECT /*invoicetemplate.getAllInvoiceTemplate*/
+			TEMPLATE_CODE 										AS templateCd,
+			TEMPLATE_NAME 										AS templateNm,
+			PAYER 												AS payer,
+			DELV_TP_CD 											AS deliveryTpCd,
+			CG_TP_CD 											AS cargoTpCd,
+			OPE_CLASS_CD 										AS category,
+			DESCRIPTION 										AS descr
+		FROM   	
+			(
+				SELECT 
+					ROW_NUMBER() OVER(ORDER BY TEMPLATE_CODE) 	AS ROW_NUM,
+					*
+				FROM
+					TMT_B_IV_TEMPLATE
+			) 													AS TEMPTABLE
+		<if test="templateCd != null and templateCd != ''">
+			WHERE 
+				ROW_NUM = 1 
+				AND TEMPLATE_CODE = #{templateCd}
+		</if>
+	</sql>
+
+	<select id="selectCmbInvoiceTemp"  parameterType="InvoiceTemplateParm" resultType="InvoiceTemplateItem">
+		SELECT 	/*invoicetemplate.selectCmbInvoiceTemp*/
+			TEMPLATE_CODE 										AS templateCd,
+			TEMPLATE_NAME 										AS templateNm
+		FROM   	
+			TMT_B_IV_TEMPLATE
+		ORDER BY 
+			templateNm
+	</select>
+	
+	<select id="isItemExisted" parameterType="InvoiceTemplateItem" resultType="java.lang.Integer">
+		SELECT /*invoicetemplate.isItemExisted*/
+			COUNT(1) 
+		FROM 
+			(SELECT 
+				ROW_NUMBER() OVER(ORDER BY TEMPLATE_CODE) 		AS ROW_NUM,
+				*
+			FROM 
+				TMT_B_IV_TEMPLATE
+			) 													AS TEMPTABLE
+		WHERE 
+			ROW_NUM = 1 
+			<if test="templateCd != null and templateCd != ''">
+   				AND	TEMPLATE_CODE = #{templateCd}
+			</if>
+	</select>
+	
+	<!--  ############################## Insert Statement Define ############################## -->	
+
+	<insert id="insertInvoiceTemplate"  parameterType="InvoiceTemplateItem">
+		<selectKey order="BEFORE" resultType="String" keyProperty="templateCd" >
+			SELECT 
+				'IT' + ISNULL(TRIM(FORMAT(RIGHT(MAX(TEMPLATE_CODE), 6) + 1, '000000')),'000000') 	AS templateCd 
+			FROM 
+				TMT_B_IV_TEMPLATE
+		</selectKey>
+
+			INSERT /*invoicetemplate.insertInvoiceTemplate*/
+			INTO TMT_B_IV_TEMPLATE(
+				TEMPLATE_CODE,
+		 	   	TEMPLATE_NAME,
+			   	PAYER,
+			   	DELV_TP_CD,
+				CG_TP_CD,
+				OPE_CLASS_CD,
+			   	DESCRIPTION,
+				STAFF_CD,
+			   	UPDATE_TIME,
+			   	VERSION
+			)
+			VALUES(
+    			#{templateCd},
+				#{templateNm},
+				#{payer},
+				#{deliveryTpCd},
+				#{cargoTpCd},
+				#{category},
+				#{descr},
+				#{userId},
+				SYSDATETIMEOFFSET(),
+				#{newVersion}
+			)
+	</insert>
+
+	<!--  ############################## Update Statement Define ############################## -->
+
+	<update id="updateInvoiceTemplate"  parameterType="InvoiceTemplateItem">
+		UPDATE /*invoicetemplate.updateInvoiceTemplate*/
+			TMT_B_IV_TEMPLATE
+		SET		
+			PAYER 												= #{payer},
+			DELV_TP_CD 											= #{deliveryTpCd},
+			CG_TP_CD 											= #{cargoTpCd},
+			OPE_CLASS_CD 										= #{category},
+			DESCRIPTION 										= #{descr},
+			STAFF_CD 											= #{userId},
+			UPDATE_TIME 										= SYSDATETIMEOFFSET(),
+			VERSION 											= #{newVersion},
+			TEMPLATE_NAME 										= #{templateNm}
+		WHERE
+			TEMPLATE_CODE										= #{templateCd}
+	</update>
+
+	<!--  ############################## Delete Statement Define ############################## -->
+
+	<update id="deleteInvoiceTemplate"  parameterType="InvoiceTemplateItem">
+		DELETE /*invoicetemplate.deleteInvoiceTemplate*/
+			TMT_B_IV_TEMPLATE
+		WHERE  
+			TEMPLATE_CODE = #{templateCd}
+	</update>
+	
+	<select id="selectTariffTemplate"  parameterType="InvoiceTemplateParm" resultType="InvoiceTemplateItem">
+		SELECT /*invoicetemplate.selectTariffTemplate*/
+			TEMPLATE_CODE 										AS 	templateCd,
+			TRF_CD 												AS 	trfCd,
+			SUB_TRF_CD 											AS	subTrfCd
+		FROM   	
+			TMT_B_IV_TEMPLATE_DTL
+		WHERE 
+			1 = 1
+			<if test="templateCd != null and templateCd != ''">
+   				AND	TEMPLATE_CODE = #{templateCd}
+			</if>
+	</select>
+
+<!--  ########################### Insert Statement Define ############################### -->			
+	<insert id="insertTariffTemplate"  parameterType="InvoiceTemplateItem">
+		INSERT /*invoicetemplate.insertTariffTemplate*/
+		INTO TMT_B_IV_TEMPLATE_DTL(
+			TEMPLATE_CODE,
+		 	TRF_CD,
+			SUB_TRF_CD,
+			STAFF_CD,
+			UPDATE_TIME,
+			VERSION
+		)
+		VALUES(
+    		#{templateCd},
+			#{trfCd},
+			#{subTrfCd},
+			#{userId},
+			SYSDATETIME(),
+			#{newVersion}
+		)
+	</insert>
+
+	<update id="deleteTariffByTemplateCode"  parameterType="InvoiceTemplateItem">
+		DELETE /*invoicetemplate.deleteTariffByTemplateCode*/
+			TMT_B_IV_TEMPLATE_DTL
+		WHERE  
+			TEMPLATE_CODE = #{templateCd}
+	</update>
+
+	<update id="deleteTariffByTariffCode"  parameterType="InvoiceTemplateItem">
+		DELETE /*invoicetemplate.deleteTariffByTariffCode*/
+			TMT_B_IV_TEMPLATE_DTL
+		WHERE  
+			TRF_CD = #{trfCd}
+	</update>
+	
+	<!--#################################### Get Tariff Code ####################################-->
+	<select id="selectTariffCodeCount" parameterType="TariffCodeParm" resultType="java.lang.String">
+	 	SELECT /*invoicetemplate.selectTariffCodeCount*/
+			COUNT(*)
+        FROM 
+			(<include refid="getTariffCode"/>)					AS TEMPTABLE
+	</select>
+
+	<select id="selectTariffCode"  parameterType="TariffCodeParm" resultType="TariffCodeItem">
+  		<if test="pageNo != 0"> 
+             SELECT /*invoicetemplate.selectTariffCode*/
+             	*
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY trfTpCdNm) 		AS ROW_NUM,
+					innerTable.*
+				FROM ( 
+		</if>
+				<include refid="getTariffCode"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable 
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) * CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	CAST((CASE WHEN #{pageNo}  = '0' THEN '1' ELSE #{pageNo} END) AS INT) * CAST(#{sizePerPage} AS INT)
+		</if>
+    </select>
+
+	<sql id="getTariffCode">
+		SELECT /*invoicetemplate.getTariffCode*/
+			TRF_CD 												AS trfCd,
+			SUB_TRF_CD 											AS subTrfCd,
+			DESCR 												AS descr,
+			TRF_TP_CD 											AS trfTpCd,
+			IV_UNIT1 											AS ivUnit1,
+			IV_UNIT2 											AS ivUnit2,
+			IV_UNIT3 											AS ivUnit3,
+			(SELECT 
+				S_CD_NM 
+			FROM 
+				TMT_CD_MSTD 
+			WHERE
+				L_CD = 'MT' 
+				AND M_CD = 'TRFTP' 
+				AND S_CD = TRF_TP_CD
+			) 													AS trfTpCdNm,
+			'false' 											AS trfCheck
+		FROM   	
+			TMT_B_TRF_CD a
+		WHERE 
+			VLD_YN = 'Y'
+			<if test="trfTpCd != null and trfTpCd != ''">
+    			AND	TRF_TP_CD = #{trfTpCd}
+			</if>
+			<if test="trfCd != null and trfCd != ''">
+    			AND	TRF_CD = #{trfCd}
+			</if>
+			<if test="subTrfCd != null and subTrfCd != ''">
+    			AND	SUB_TRF_CD = #{subTrfCd}
+			</if>
+			<if test="searchTp == 'INV_TPL'">
+				ORDER BY trfTpCdNm
+			</if>
+	</sql>
+
+</mapper>

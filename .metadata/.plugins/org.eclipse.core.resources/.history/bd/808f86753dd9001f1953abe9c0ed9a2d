@@ -1,0 +1,2034 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="vesselScheduleInternal">
+	
+	<resultMap id="ConfirmationSlipDetailMap" type="vesselScheduleItem">
+    	<result property="vslCallId"         column="VSLCALLID"/>
+		<result property="seq"               column="SEQ"/>
+		<result property="cgTpCd"            column="CGTPCD"/>
+		<result property="opeTpCd"           column="OPETPCD"/>
+		<result property="cgTpNm"            column="CGTPNM"/>
+		<result property="cmdtCd"            column="CMDTCD"/>
+		<result property="cmdtCdNm"          column="CMDTCDNM"/>
+		<result property="opeHr"             column="OPEHR"/>
+		<result property="workDd"            column="WORKDD"/>
+		<result property="workHatchNo"       column="WORKHATCHNO"/>
+		<result property="wgt"               column="WGT"/>
+		<result property="msrmt"             column="MSRMT"/>
+		<result property="qty"               column="QTY"/>
+		<result property="pkgTpCd"           column="PKGTPCD"/>
+		<result property="clnCd"             column="CLNCD"/>
+		<result property="topCgCd"           column="TOPCGCD"/>
+		<result property="topCln"            column="TOPCLN"/>
+		<result property="tmnlOpr"           column="TMNLOPR"/>
+		<result property="shprCnsne"         column="SHPRCNSNE"/>
+		<result property="cnsne" 			 column="CNSNE"/>
+		<result property="unno"              column="UNNO"/>
+		<result property="imdg"              column="IMDG"/>
+		<result property="pol"             	 column="POL"/>
+		<result property="fdest"             column="FDEST"/>
+		<result property="crc"               column="CRC"/>
+		<result property="tkNo"              column="TKNO"/>
+		<result property="blNo"              column="BLNO"/>
+		<result property="cgOptTpCd"         column="CGOPTTPCD"/>
+		<result property="cgOptTpNm"         column="CGOPTTPNM"/>
+		<result property="dgSeq"         	 column="DGSEQ"/>
+		<result property="dgChk"         	 column="DGCHK"/>
+		<result property="opeType"         	 column="OPETYPE"/>
+		<result property="cnsneNm"         	 column="CNSNENM"/>
+		<result property="cnsneAddr"         column="CNSNEADDR"/>
+		<result property="shpNm"         	 column="SHPNM"/>
+		<result property="shpAddr"         	 column="SHPADDR"/>
+		<result property="pkgTpNm"         	 column="PKGTPNM"/>
+		<result property="remark"         	 column="REMARK"/>
+		<result property="delvTpCd"          column="DELVTPCD"/>
+		<result property="delvTpNm"			 column="DELVTPNM"/>
+    </resultMap>
+
+	<sql id="berth3HrsComCondition">
+		AND (
+			EXISTS (
+				SELECT
+					1
+				FROM
+					TMT_VSL_SCH C
+                WHERE
+                	(C.ATB IS NULL OR C.ATB = '')
+                	AND (C.ETB IS NOT NULL AND C.ETB <![CDATA[<>]]> '')
+                	AND (C.ETB BETWEEN DATEADD(DAY, -30, SYSDATETIME()) AND DATEADD(HOUR, +3, SYSDATETIME()))
+                	AND C.ETB BETWEEN A.ATB
+                	AND (
+                		CASE
+                			WHEN (A.ATU IS NOT NULL AND A.ATU <![CDATA[<>]]> '') THEN A.ATU
+                        	WHEN (A.ETU IS NOT NULL AND A.ETU <![CDATA[<>]]> '') THEN A.ETU
+                        	WHEN (A.ETD IS NOT NULL AND A.ETD <![CDATA[<>]]> '') THEN A.ETD
+                    	END
+                    )
+	            	AND ISNULL((
+	            		SELECT 
+	            			BERTH_TP 
+	            		FROM 
+	            			TMT_BERTH_LOC
+	                    WHERE 
+	                    	LOC_CD 						= 'BBT'
+	                    	AND BERTH_CD 				= C.BERTH_LOC
+	                    	AND (BERTH_TP IS NOT NULL AND BERTH_TP <![CDATA[<>]]> '')
+					), ''
+					) = ISNULL((
+						SELECT 
+							BERTH_TP 
+						FROM 
+							TMT_BERTH_LOC
+	                    WHERE 
+	                    	LOC_CD 						= 'BBT'
+	                    	AND BERTH_CD 				= A.BERTH_LOC
+	                    	AND (BERTH_TP IS NOT NULL AND BERTH_TP <![CDATA[<>]]> '')
+					), '')
+					AND (
+                   		A.BERTH_LOC 					= C.BERTH_LOC 
+                   		OR A.WHARF_MARK_FROM BETWEEN C.WHARF_MARK_FROM AND C.WHARF_MARK_TO
+                    	OR A.WHARF_MARK_TO BETWEEN C.WHARF_MARK_FROM AND C.WHARF_MARK_TO 
+					)
+				) 
+	        OR EXISTS (
+	        	SELECT 
+	        		1 
+	        	FROM (
+	        		SELECT
+	        			VSL_CALL_ID, 
+	        			MAX(SEQ) 						AS SEQ 
+	        		FROM
+	        			TMT_VSL_SHFT D
+	                WHERE
+	                	(D.ATB_DT IS NULL OR D.ATB_DT = '')
+	                	AND (D.ETB_DT IS NOT NULL AND D.ETB_DT <![CDATA[<>]]> '')
+	                GROUP BY 
+	                	VSL_CALL_ID
+				) D, TMT_VSL_SHFT E
+				WHERE 
+					D.VSL_CALL_ID 						= E.VSL_CALL_ID
+		        	AND D.SEQ 							= E.SEQ
+		        	AND (E.ETB_DT BETWEEN DATEADD(DAY, +30, SYSDATETIME()) AND DATEADD(HOUR, +3, SYSDATETIME()))
+		        	AND E.ETB_DT BETWEEN A.ATB 
+		        AND (
+		        	CASE 
+		        		WHEN (A.ATU IS NOT NULL AND A.ATU <![CDATA[<>]]> '') THEN A.ATU
+						WHEN (A.ETU IS NOT NULL AND A.ETU <![CDATA[<>]]> '') THEN A.ETU
+						WHEN (A.ETD IS NOT NULL AND A.ETD <![CDATA[<>]]> '') THEN A.ETD
+					END
+				)
+            	AND ISNULL(
+            		(
+            			SELECT 
+            				BERTH_TP 
+            			FROM 
+            				TMT_BERTH_LOC
+	                    WHERE 
+	                    	LOC_CD 						= 'BBT'
+	                    	AND (BERTH_TP IS NOT NULL AND BERTH_TP <![CDATA[<>]]> '')
+	                    	AND BERTH_CD 				= ISNULL(E.PLAN_BERTH_NO, 
+	                    										ISNULL(E.NX_BERTH_NO, E.PREV_BERTH_NO))
+					), '') = ISNULL((
+							SELECT 
+								BERTH_TP 
+							FROM 
+								TMT_BERTH_LOC
+	                        WHERE 
+	                        	LOC_CD = 'BBT'
+	                        	AND (BERTH_TP IS NOT NULL AND BERTH_TP <![CDATA[<>]]> '')
+	                        	AND BERTH_CD 			= A.BERTH_LOC
+					), '')
+				AND (
+                 	A.BERTH_LOC 						= ISNULL(E.PLAN_BERTH_NO,
+                 												ISNULL(E.NX_BERTH_NO, E.PREV_BERTH_NO))
+					OR A.WHARF_MARK_FROM BETWEEN ISNULL(E.PLAN_WHARF_MARK_FM, E.WHARF_MARK_FM) AND ISNULL(E.PLAN_WHARF_MARK_TO, E.WHARF_MARK_TO)
+					OR A.WHARF_MARK_TO BETWEEN ISNULL(E.PLAN_WHARF_MARK_FM, E.WHARF_MARK_FM) AND ISNULL(E.PLAN_WHARF_MARK_TO, E.WHARF_MARK_TO) 
+               	)
+			)
+		)	 
+	</sql>
+	    
+    <sql id="berth3HrsJpvcs">
+        SELECT /*vesselScheduleInternal.berth3HrsJpvcs*/
+        	A.VSL_CALL_ID 					AS VSLCALLID
+        FROM
+			TMT_VSL_SCH A
+        WHERE
+			(A.ATB IS NOT NULL AND A.ATB <![CDATA[<>]]> '')
+			AND (A.ATB BETWEEN DATEADD(DAY, -30, SYSDATETIME()) AND SYSDATETIME())
+			AND NOT EXISTS (SELECT 1 FROM TMT_VSL_SHFT B WHERE B.VSL_CALL_ID = A.VSL_CALL_ID)
+		<include refid="berth3HrsComCondition"/>
+        UNION ALL	 
+        SELECT
+			A.VSL_CALL_ID 					AS VSLCALLID
+        FROM (
+        	SELECT 
+        		H.VSL_CALL_ID 				AS VSL_CALL_ID,
+				H.ATB_DT 					AS ATB,
+				H.ATU_DT 					AS ATU,
+				H.ETU_DT 					AS ETU,
+				I.ETD    					AS ETD,
+				H.BERTH_LOC,
+				H.WHARF_MARK_FROM,
+				H.WHARF_MARK_TO
+			FROM (
+				SELECT 
+					G.VSL_CALL_ID,
+					G.ATB_DT,
+					G.ATU_DT,
+					G.ETU_DT,
+					ISNULL(G.PLAN_BERTH_NO,
+					ISNULL(G.NX_BERTH_NO, G.PREV_BERTH_NO)) 		AS BERTH_LOC,
+					ISNULL(G.PLAN_WHARF_MARK_FM, G.WHARF_MARK_FM) 	AS WHARF_MARK_FROM,
+ 				    ISNULL(G.PLAN_WHARF_MARK_TO, G.WHARF_MARK_TO) 	AS WHARF_MARK_TO
+				FROM (
+					SELECT
+						VSL_CALL_ID,
+						MAX(SEQ) SEQ
+					FROM
+						TMT_VSL_SHFT F
+					WHERE
+						(F.ATB_DT IS NOT NULL AND F.ATB_DT <![CDATA[<>]]> '')
+					GROUP BY
+						VSL_CALL_ID) 		F,
+					TMT_VSL_SHFT 			G
+				WHERE
+					G.VSL_CALL_ID 			= F.VSL_CALL_ID
+					AND G.SEQ 				= F.SEQ
+					AND (G.ATB_DT BETWEEN DATEADD(DAY, -30, SYSDATETIME()) AND SYSDATETIME())
+			) H, TMT_VSL_SCH I
+			WHERE
+				H.VSL_CALL_ID 				= I.VSL_CALL_ID
+		) A 
+		WHERE
+			(A.ATB BETWEEN DATEADD(DAY, -30, SYSDATETIME()) AND SYSDATETIME())
+		<include refid="berth3HrsComCondition"/>
+    </sql>
+
+	<sql id="vesselSchedule">
+        SELECT DISTINCT /*vesselScheduleInternal.vesselSchedule*/
+			A.VSL_CD                							AS VSLCD,
+			A.CALL_YEAR             							AS CALLYEAR,
+			A.CALL_SEQ              							AS CALLSEQ,
+			B.VSL_NM                							AS VSLNM,
+			A.VSL_CALL_ID           							AS VSLCALLID,
+			A.SHIP_CALL_NO           							AS SCN,
+			DBO.F_CM_CODE_NM('VC',
+							'VSLTP',
+							B.VSL_TP) 							AS VSLTPNM,
+			DBO.F_GET_ISSNO(A.VSL_CD) 							AS isscNo,
+			DBO.F_GET_IMONO(A.VSL_CD ) 							AS IMONO,
+			A.BERTH_PLAN_YN         							AS BERTHPLANYN,
+			A.ETA 												AS ETA,
+			(RIGHT('00' + CONVERT(NVARCHAR, CAST(DAY(SYSDATETIME()) AS INT)), 2)
+			+ '/' +
+			RIGHT('00' + CONVERT(NVARCHAR, CAST(MONTH(SYSDATETIME()) AS INT)), 2)
+			) 													AS ETADAYMONTH,
+			FORMAT(A.ETA, 'HH:mm') 								AS ETAHOUR,
+			A.ETD 												AS ETD,
+			A.ETB 												AS ETB,
+			A.ATA 												AS ATA,
+			A.ATB 												AS ATB,
+			A.ATU 												AS ATU,
+			FORMAT(A.UPDATE_TIME,'dd/MM/yyyy HH:mm')    		AS INSDTM,
+			(
+				CASE
+					WHEN ((
+							ISNULL(A.DG_GOOD_YN, 'N') NOT IN ('Y') AND (
+								((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) <![CDATA[ >= ]]> 48 AND (C.SUMIT_DT IS NULL OR C.SUMIT_DT = ''))
+	                            OR
+								((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) <![CDATA[ >= ]]> 48 AND (DATEDIFF(DAY, C.SUMIT_DT, A.ETA) * 24) <![CDATA[ >= ]]> 24)
+							)
+						)
+						OR
+						(
+						    ISNULL(A.DG_GOOD_YN, 'N') IN ('Y') AND (
+						    	(DATEDIFF(DAY, A.UPDATE_TIME, A.ETA)) <![CDATA[ < ]]> 30 OR (DATEDIFF(DAY, A.UPDATE_TIME, A.ETA)) <![CDATA[ > ]]> 45)
+							AND (
+						    	((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) <![CDATA[ >= ]]> 48 AND (C.SUMIT_DT IS NULL OR C.SUMIT_DT = ''))
+								OR
+						     	((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) <![CDATA[ >= ]]> 48 AND (DATEDIFF(DAY, C.SUMIT_DT, A.ETA) * 24) <![CDATA[ >= ]]> 24)
+						    )
+						)
+					) THEN 'NORMAL MATURED'
+					WHEN (
+						(
+                            ISNULL(A.DG_GOOD_YN,'N') NOT IN ('Y') AND (
+                                ((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) <![CDATA[ < ]]> 48 AND (C.SUMIT_DT IS NULL OR C.SUMIT_DT = ''))
+                            	OR
+								((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) <![CDATA[ < ]]> 48 OR (DATEDIFF(DAY, C.SUMIT_DT, A.ETA) * 24) <![CDATA[ < ]]> 24)
+                            )
+                        )
+                        OR    
+                        (
+                            ISNULL(A.DG_GOOD_YN,'N') IN ('Y') AND (
+								(DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) <![CDATA[ < ]]> 30 OR DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) <![CDATA[ > ]]> 45
+                            	)
+                           	AND (
+                               	((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) <![CDATA[ < ]]> 48 AND (C.SUMIT_DT IS NULL OR C.SUMIT_DT = ''))
+                           		OR
+                               	((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) <![CDATA[ < ]]> 48 OR (DATEDIFF(DAY, C.SUMIT_DT, A.ETA) * 24) <![CDATA[ < ]]> 24)
+                           	)
+						)
+					)) THEN 'NORMAL NON-MATURED'
+					WHEN ISNULL(A.DG_GOOD_YN,'N') IN ('Y')
+						AND DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) BETWEEN 30 AND 45
+						AND (C.SUMIT_DT IS NULL OR C.SUMIT_DT = '')
+					THEN 'SCHEDULE'
+					WHEN ISNULL(A.DG_GOOD_YN,'N') IN ('Y')
+						AND (C.SUMIT_DT IS NOT NULL AND C.SUMIT_DT <![CDATA[ <> ]]> '')
+						AND DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) BETWEEN 30 AND 45
+						AND DATEDIFF(DAY, C.SUMIT_DT, A.ETA) <![CDATA[ >= ]]> 3
+					THEN 'SCHEDULE MATURED'
+					WHEN ISNULL(A.DG_GOOD_YN,'N') IN ('Y')
+						AND (C.SUMIT_DT IS NOT NULL AND C.SUMIT_DT <![CDATA[<>]]> '')
+						AND DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) BETWEEN 30 AND 45
+						AND DATEDIFF(DAY, C.SUMIT_DT, A.ETA) <![CDATA[ < ]]> 3
+					THEN 'SCHEDULE NON MATURED'
+					ELSE 'NORMAL MATURED'
+                END
+			) 													AS STATUS,
+			(
+				CASE 
+                     WHEN (
+                     	(
+                            ISNULL(A.DG_GOOD_YN,'N') NOT IN ('Y')
+                            AND (
+                                ((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) <![CDATA[ >= ]]> 48 AND (C.SUMIT_DT IS NULL OR C.SUMIT_DT = ''))
+                            	OR
+                                ((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) <![CDATA[ >= ]]> 48 AND (DATEDIFF(DAY, C.SUMIT_DT, A.ETA) * 24) <![CDATA[ >= ]]> 24)
+                            )
+                        )
+                        OR
+                        (
+                            ISNULL(A.DG_GOOD_YN,'N') IN ('Y')
+                            AND (DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) <![CDATA[ < ]]> 30 OR DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) <![CDATA[ > ]]> 45 )
+                            AND (
+                                ((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) <![CDATA[ >= ]]> 48 AND (C.SUMIT_DT IS NULL OR C.SUMIT_DT = ''))
+                            	OR
+                                 ((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) <![CDATA[ >= ]]> 48 AND (DATEDIFF(DAY, C.SUMIT_DT, A.ETA) * 24) <![CDATA[ >= ]]> 24)
+                            	)
+                        	)
+                        ) THEN 'NRM'
+					WHEN (
+						(
+                            ISNULL(A.DG_GOOD_YN,'N') NOT IN ('Y') AND (
+                                ((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) <![CDATA[ < ]]> 48 AND (C.SUMIT_DT IS NULL OR C.SUMIT_DT = ''))
+                            	OR
+								((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) <![CDATA[ < ]]> 48 OR (DATEDIFF(DAY, C.SUMIT_DT, A.ETA) * 24) <![CDATA[ < ]]> 24)
+                            )
+                        )             
+                        OR    
+                        (
+                            ISNULL(A.DG_GOOD_YN,'N') IN ('Y')
+                            AND (DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) <![CDATA[ < ]]> 30 OR DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) <![CDATA[ > ]]> 45 )
+                            AND (
+                                ((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) <![CDATA[ < ]]> 48 AND (C.SUMIT_DT IS NULL OR C.SUMIT_DT = ''))
+                            	OR
+                                ((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) <![CDATA[ < ]]> 48 OR (DATEDIFF(DAY, C.SUMIT_DT, A.ETA)*24) <![CDATA[ < ]]> 24)
+                            )                     
+                        )
+					) THEN 'NNM'
+                    WHEN ISNULL(A.DG_GOOD_YN,'N') IN ('Y')
+						AND DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) BETWEEN 30 AND 45
+						AND (C.SUMIT_DT IS NULL OR C.SUMIT_DT = '')
+					THEN 'SCH'
+                    WHEN ISNULL(A.DG_GOOD_YN,'N') IN ('Y')
+						AND (C.SUMIT_DT IS NOT NULL AND C.SUMIT_DT <![CDATA[<>]]> '')
+						AND DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) BETWEEN 30 AND 45
+						AND DATEDIFF(DAY, C.SUMIT_DT, A.ETA) <![CDATA[ >= ]]> 3
+					THEN 'SLM'
+					WHEN ISNULL(A.DG_GOOD_YN,'N') IN ('Y')
+						AND (C.SUMIT_DT IS NOT NULL AND C.SUMIT_DT <![CDATA[<>]]> '')
+						AND DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) BETWEEN 30 AND 45
+						AND DATEDIFF(DAY, C.SUMIT_DT, A.ETA) <![CDATA[ < ]]> 3
+					THEN 'SNM'
+                    ELSE 'NRM'
+                END
+			) 													AS SCHSTATUS,
+			(CASE A.SUMMIT_STAT
+				WHEN 'RC' THEN ''
+				WHEN 'CC' THEN 'Cancelled'
+				ELSE DBO.F_CM_CODE_NM('MT', 'DOCSTAT', A.SUMMIT_STAT)
+			END) 												AS SUMMITSTATNAME,
+            A.BERTH_APRV_USER_ID    							AS BERTHAPRVUSERID,
+			(SELECT
+				MAX(DTL.UPDATE_TIME)
+			FROM
+				TMT_CONFM_SLP_DTL 								DTL
+			WHERE
+				DTL.VSL_CALL_ID 								= C.VSL_CALL_ID
+			) 													AS SUMITDT,
+			(SELECT
+					(CASE
+						WHEN (DTL.SUMDT IS NULL OR DTL.SUMDT = '') THEN 'N'
+						ELSE 'Y'
+					END)
+				FROM (
+					SELECT
+						MAX(DTL.UPDATE_TIME) 					AS SUMDT
+                    FROM
+						TMT_CONFM_SLP_DTL 						AS DTL
+                    WHERE
+						DTL.VSL_CALL_ID 						= C.VSL_CALL_ID
+                ) 												AS DTL
+			) 													AS CSSTATUS,
+			A.ARRV_SA_ID            							AS ARRVSAID,
+			A.STAFF_CD 											AS SALOGINID,
+			A.BERTH_LOC             							AS BERTHLOC,
+			DBO.F_GET_OPE_TP(A.VSL_CALL_ID) 						AS OPERATIONTYPE,
+			<choose>
+				<when test="rptNm== 'shipsch'">
+				</when>
+				<otherwise>
+					DBO.F_GET_COMODITY( A.VSL_CALL_ID)              AS comodityCode,
+				</otherwise>
+			</choose>
+			(CASE DBO.F_GET_OPE_TP(A.VSL_CALL_ID)
+				WHEN 'Loading and Discharging' THEN 'L/D'
+				WHEN 'Loading Only' THEN 'L'
+				ELSE 'D'
+			END)												AS ldStatus,
+			DBO.F_CM_CODE_NM('MT', 'CGTP', A.CARGO_TP) 			AS CARGOTP,
+			B.GRT                   							AS GRT,
+			B.DWT                   							AS DWT,
+			(SELECT
+				SUM(CG_WGT) WGT
+			FROM
+				TMT_CONFM_SLP_DTL
+			WHERE
+				VSL_CALL_ID = A.VSL_CALL_ID
+			) 													AS MT,
+			(SELECT
+				SUM(OPE_HR)
+			FROM
+				TMT_CONFM_SLP_DTL
+			WHERE
+				VSL_CALL_ID = A.VSL_CALL_ID
+			) 													AS OPEHR,
+			A.DG_GOOD_YN    									AS DGGOODYN,
+			DBO.F_GET_DG_DECLARATION(A.VSL_CALL_ID,
+								 A.VSL_CD,
+								 A.CALL_YEAR,
+								 A.CALL_SEQ,
+								 B.VSL_TP) 						AS DGDECLARATION,
+			DBO.F_GET_DG_STATUS(A.VSL_CALL_ID,
+							A.VSL_CD,
+							A.CALL_YEAR,
+							A.CALL_SEQ) 						AS DGSTATUS,
+			B.LOA                    							AS LOA,
+			A.DRF_ARRV              							AS DRFARRV,
+			A.DRF_DEPTR             							AS DRFDEPTR,
+			A.SHIP_CALL_NO          							AS SHIPCALLNO,
+			(CASE
+				WHEN (C.FILE_CATG_CD IS NULL OR C.FILE_CATG_CD = '') THEN 'N'
+				ELSE 'Y'
+			END) 												AS STOWAGEPLAN,
+			A.SUMMIT_STAT           							AS SUMMITSTAT,
+			B.SA_CORP_ID            							AS SACORPID,
+			<!-- (CASE
+				WHEN ISNULL(D.CREDIT_LIMIT,0) <![CDATA[ <= ]]> 2000 THEN 'R'
+				WHEN (DATEDIFF(DAY, C.SUMIT_DT, A.ETA) * 24) <![CDATA[ <= ]]> 24 THEN 'B'
+				WHEN (SELECT
+							ISNULL(COUNT(*),0)
+				       FROM
+							TMT_VSL_SCH_HIST B
+				       WHERE
+							B.VSL_CD = A.VSL_CD
+					   		AND B.CALL_YEAR = A.CALL_YEAR
+					   		AND B.CALL_SEQ = A.CALL_SEQ
+					   		AND B.DATA_FIELD = 'ETA'
+					) <![CDATA[ > ]]> 0 THEN 'G'
+				ELSE ''
+			END) 												AS VSLCOLOR, --> <!--TMT_VSL_SCH_HIST DONT EXIST  -->
+            (
+            	SELECT 
+            		CASE
+		            	WHEN COUNT(SEQ) = 0 THEN 'N'
+		            	ELSE 'Y'
+	            	END 
+				FROM
+					TMT_CONFM_SLP_DTL
+				WHERE
+					VSL_CALL_ID = A.VSL_CALL_ID
+			) 													AS ISCS1,
+            (
+            	SELECT 
+            		CASE 
+                        WHEN COUNT(*) > 0 THEN 'Y'
+                        ELSE 'N'
+                    END 
+                FROM
+					TMT_B_IV_ADV
+                WHERE
+					VSL_CALL_ID = A.VSL_CALL_ID
+			) 													AS isIvAdv,
+			A.BERTH_LABEL 										AS berthLabel,
+			(
+				SELECT
+					ISNULL(SUM(CG_WGT), 0)
+              	FROM
+					TMT_CONFM_SLP_DTL
+              	WHERE
+					VSL_CALL_ID = A.VSL_CALL_ID
+      				AND CG_OPT_TP_CD = 'DS'
+     			<if test="rptNm== 'shipsch'">
+					<choose>
+					 	<when test='rptLoc== "w"'>
+							AND CG_TP_CD NOT IN ('LQE','LQN')
+						</when>
+					 	<when test='rptLoc== "j"'>
+							AND CG_TP_CD IN ('LQE','LQN')
+						</when>
+					</choose>
+				</if>
+			) 													AS dischargeMt,
+			(
+				SELECT
+					ISNULL(SUM(CG_WGT), 0)
+               	FROM
+					TMT_CONFM_SLP_DTL
+               	WHERE
+					VSL_CALL_ID 								= A.VSL_CALL_ID
+       				AND CG_OPT_TP_CD 							= 'LD'
+				<if test="rptNm== 'shipsch'">
+					<choose>
+					 	<when test='rptLoc== "w"'>
+							AND CG_TP_CD NOT IN ('LQE','LQN')
+						</when>
+					 	<when test='rptLoc== "j"'>
+							AND CG_TP_CD IN ('LQE','LQN')
+						</when>
+					</choose>
+				</if>
+			) 													AS loadingMt,
+			B.VSL_WIDTH 										AS vslWidth,
+			A.VSL_CALL_ID 										AS motherVslCallId,
+			(SELECT TOP 1
+				DBL_BNK_SHIP1
+			FROM
+				TMT_DBL_BNK 									AS BNK
+			WHERE
+				A.VSL_CALL_ID 									= BNK.VSL_CALL_ID
+			) 													AS dbVslCallId,
+			A.DOMESTIC_CHK 										AS domesticChk,
+			(CASE
+				WHEN (
+					SELECT
+						EX_RECCL_CD + IM_RECCL_CD
+					FROM
+						TMT_B_RECCL
+					WHERE
+						VSL_CALL_ID = A.VSL_CALL_ID
+						) 										= 'YY'
+					THEN 'Verified'
+				ELSE ''
+			END)												AS reconcileStatus,
+			(CASE
+				WHEN (
+					(SELECT
+						EX_RECCL_CD + IM_RECCL_CD
+					FROM
+						TMT_B_RECCL
+					WHERE
+						VSL_CALL_ID = A.VSL_CALL_ID) IS NULL OR
+					(SELECT
+						EX_RECCL_CD + IM_RECCL_CD
+					FROM
+						TMT_B_RECCL
+					WHERE
+						VSL_CALL_ID = A.VSL_CALL_ID) != 'YY')
+				AND (
+					(SELECT
+						PARAMETER_CHK
+					FROM
+						TMT_MOST_PARAMETERS
+					WHERE
+						PARAMETER_CD = 'WORKING_COMPLETE_CHK') = 'Y'
+				AND
+					(SELECT
+						PARAMETER_VALUE
+					FROM
+						TMT_MOST_PARAMETERS
+					WHERE
+						PARAMETER_CD = 'WORKING_COMPLETE_CHK') IS NOT NULL
+				AND
+					(SELECT
+						PARAMETER_VALUE
+					FROM
+						TMT_MOST_PARAMETERS
+					WHERE
+						PARAMETER_CD = 'WORKING_COMPLETE_CHK') != ''
+				AND
+					DATEDIFF(HOUR, A.ATU,
+                         CONVERT(DATETIME,
+                                 DATEADD(
+                                         HOUR,
+                                         CONVERT(INTEGER, (SELECT PARAMETER_VALUE
+                                                           FROM TMT_MOST_PARAMETERS
+                                                           WHERE PARAMETER_CD = 'WORKING_COMPLETE_CHK')),
+                                         SYSDATETIME()))) <![CDATA[<]]>
+                CONVERT(INTEGER, (SELECT PARAMETER_VALUE
+                                  FROM TMT_MOST_PARAMETERS
+                                  WHERE PARAMETER_CD = 'WORKING_COMPLETE_CHK')))
+					THEN 'RED'
+				ELSE 'NONE'
+			END)                                           		AS vwcColor
+        FROM 
+			 TMT_VSL_SCH A
+				LEFT OUTER JOIN TMT_CONFM_SLP C
+					ON A.VSL_CALL_ID 							= C.VSL_CALL_ID,
+             TMT_VSL_PART B,
+             TMT_AGENCY_INFO D
+             <if test="locCd == 'BBT' or rptNm== 'shipsch'">
+             ,TMT_BERTH_LOC E
+             </if>
+        WHERE
+			A.VSL_CD 											= B.VSL_CD
+        	AND
+	        	((CASE
+	        		WHEN B.VSL_TP NOT IN ('BRGE') THEN A.ARRV_SA_ID
+	        		ELSE '1'
+	        	END)
+	        		=
+	        	(CASE
+	        		WHEN B.VSL_TP NOT IN ('BRGE') THEN D.AGENCY_CODE
+	        		ELSE '1'
+	        	END))
+	  		AND D.ptnr_type 									= 'SHA'
+        	AND A.SUMMIT_STAT <![CDATA[ <> ]]> 'CC'
+		<if test="etaFrom != null and etaFrom != ''">
+             AND A.ETA <![CDATA[ >= ]]> CONVERT(datetime, #{etaFrom}, 103)
+		</if>				
+		<if test="etaTo != null and etaTo != ''">
+             AND A.ETA <![CDATA[ < ]]> DATEADD(DAY, 1, CONVERT(datetime, #{etaTo}, 103))
+		</if>		
+		<if test="vslCallId != null and vslCallId != ''">
+ 			AND A.VSL_CALL_ID 									= #{vslCallId}
+		</if>
+		<if test="scn != null and scn != ''">
+ 			AND A.SHIP_CALL_NO 									= #{scn}
+		</if>
+		<if test="atdYn == 'false'">
+ 			AND A.ATD IS  NULL
+		</if>
+		<if test="locCd == 'BBT'">
+			AND A.BERTH_LOC 									= E.BERTH_CD
+			AND E.LOC_CD 										= 'BBT'
+       	</if>	
+       	<if test="rptNm== 'shipsch'">
+			AND A.BERTH_LOC 									= E.BERTH_CD
+			<choose>
+				<when test='rptLoc== "w"'>
+					AND E.BERTH_TP 								= 'WRF'
+				</when>
+				<when test='rptLoc== "j"'>
+					AND E.BERTH_TP IN ('NDJ', 'EDJ')
+				</when>
+			</choose>
+       	</if>	
+			<if test="alertYn == null or alertYn == ''">
+				<if test="vslTp != null and vslTp != ''">
+	   				AND B.VSL_TP 								= #{vslTp}
+				</if>		
+				<if test="cgTpCd != null and cgTpCd != ''">
+	   				AND A.CARGO_TP 								= #{cgTpCd}
+				</if>						
+				<if test="planned == 'PLN'">
+	   				AND A.BERTH_PLAN_YN 						= 'Y'
+				</if>		
+				<if test="planned == 'NPN'">
+	   				AND ISNULL(A.BERTH_PLAN_YN, 'N') 			= 'N'
+				</if>				
+				<if test="dbYn == 'true'">
+	   				<!-- AND DBO.F_GET_DB_YN(A.VSL_CALL_ID) 				= 'Y' --> -- NON USE FUNCTION
+				</if>
+			</if>
+		<if test="alertYn != null and alertYn != ''">
+			<if test='alertYn == "Y"'>
+	           <if test="alertTp == 'Berth32hrs'">
+               		AND A.VSL_CALL_ID IN
+				   	(
+               			SELECT
+				   			VSL_CALL_ID
+						FROM
+				   			TMT_VSL_SCH
+						WHERE
+				   			(DATEDIFF(DAY, SYSDATETIME(), ETA) * 24) <![CDATA[ <= ]]> 32
+			            	AND ETA > SYSDATETIME()
+			            	AND BERTH_PLAN_YN IS NULL
+			            	AND WHARF_MARK_FROM IS NULL)
+			  </if>
+			  <if test="alertTp == 'IVAdvice'">
+              		AND  A.ARRV_SA_ID  							= #{ptnrCode}
+                    AND A.VSL_CALL_ID NOT IN (
+	                    SELECT
+				  			A1.VSL_CALL_ID 						AS VSL_CALL_ID
+	                    FROM
+				  			TMT_B_IV_ADV 						A1
+	                    WHERE
+				  			PTNR_CD 							= #{ptnrCode}
+				  			OR
+				  			PAYER_CD 							= #{ptnrCode})
+                    AND DATEDIFF(DAY, A.ETA, SYSDATETIME()) <![CDATA[ <= ]]> 180
+			  </if>
+			</if>
+		</if>
+		<if test="ptnrCd != null and ptnrCd != ''">
+			AND (A.ARRV_SA_ID 									= #{ptnrCd}
+					OR
+				A.DEPR_SA_ID 									= #{ptnrCd})
+		</if>
+		AND A.BERTH_LOC NOT IN (SELECT
+									BERTH_CD
+								FROM
+									TMT_BERTH_LOC
+								WHERE
+									LOC_CD 						= 'CT')
+		<!-- ORDER BY
+			A.ETA DESC
+			OFFSET
+				(CASE WHEN #{pageNo} = '0' THEN 0 ELSE CAST(#{pageNo} AS INT) - 1 END) * CAST(#{sizePerPage} AS INT) ROWS
+			FETCH
+				NEXT CAST(#{sizePerPage} AS INT) ROWS ONLY -->
+    </sql>
+    
+  	<select id="selectVesselScheduleList"  parameterType="vesselScheduleParm" resultType="vesselScheduleItem">
+		<if test="pageNo != 0"> 
+			SELECT /*vesselScheduleInternal.selectVesselScheduleList*/
+				*
+			FROM (SELECT
+					inner_query.*, ROW_NUMBER() OVER(ORDER BY ETA DESC) row_num
+				FROM (
+		</if>
+		<include refid="getVesselScheduleList"/>
+		<if test="pageNo != 0"> 
+				) inner_query
+			) inner_query
+			WHERE
+				inner_query.row_num <![CDATA[>]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT) - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_query.row_num <![CDATA[<=]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT)) * CAST(#{sizePerPage} AS INT)
+		</if>
+  	</select>
+  	
+  	<select id="selectVesselScheduleListCount"  parameterType="vesselScheduleParm" resultType="java.lang.String">
+  		SELECT /*vesselScheduleInternal.selectVesselScheduleListCount*/
+			COUNT(*)
+		FROM
+			(<include refid="getVesselScheduleList"/>)					AS selectVesselScheduleListCount
+  	</select>
+  	
+  	<sql id="getVesselScheduleList">
+  		SELECT /*vesselScheduleInternal.getVesselScheduleList*/
+			VCS.*
+		FROM (
+			<include refid="vesselSchedule"/>	
+		) VCS
+		WHERE
+			1 = 1
+		<if test="schStatus != null and schStatus != ''">  
+		    AND SCHSTATUS 				= #{schStatus}
+		</if>
+		<!-- ORDER BY
+			ETA DESC
+			OFFSET
+				(CASE WHEN #{pageNo} = '0' THEN 0 ELSE CAST(#{pageNo} AS INT) - 1 END) * CAST(#{sizePerPage} AS INT) ROWS
+			FETCH
+				NEXT CAST(#{sizePerPage} AS INT) ROWS ONLY -->
+    </sql>
+
+  	<select id="selectVesselScheduleReport"  parameterType="vesselScheduleParm" resultType="vesselScheduleItem">
+  		SELECT /*vesselScheduleInternal.selectVesselScheduleReport*/
+  			A.VSL_CD 											AS VSLCD,
+			ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) 			AS RN,
+			A.CALL_YEAR 										AS CALLYEAR,
+			A.CALL_SEQ 											AS CALLSEQ,
+			B.VSL_NM 											AS VSLNM,
+			A.VSL_CALL_ID 										AS VSLCALLID,
+			A.SHIP_CALL_NO 										AS SCN,
+			FORMAT(A.ETA, 'dd/MM/yyyy HH:mm') 					AS ETA,
+			FORMAT(A.UPDATE_TIME, 'dd/MM/yyyy HH:mm') 			AS INSDTM,
+			A.ARRV_SA_ID 										AS ARRVSAID,
+			B.LOA 												AS LOA,
+			B.DWT 												AS DWT,
+			A.DRF_ARRV 											AS DRFARRV,
+			A.DRF_DEPTR 										AS DRFDEPTR,
+			(CASE DBO.F_GET_OPE_TP(A.VSL_CALL_ID)
+				WHEN 'Loading and Discharging' THEN 'LD'
+				WHEN 'Loading Only' THEN 'L'
+				ELSE 'D'
+			END) 												AS ldStatus,
+			(
+				SELECT 
+					SUM (CG_WGT) 								AS WGT
+				FROM
+					TMT_CONFM_SLP_DTL
+				WHERE
+					VSL_CALL_ID 								= A.VSL_CALL_ID
+			) 													AS MT,
+			DBO.F_GET_CONFIRMATIONSLIP_PTNR(A.VSL_CALL_ID,
+											'CNS') 				AS CONSIGNEE,
+			DBO.F_GET_CONFIRMATIONSLIP_PTNR(A.VSL_CALL_ID,
+											'FWD') 				AS FORWARDER,
+			ISNULL(
+				(
+					SELECT 
+						(CASE
+							WHEN DOC_APPRV_STAT = 'AP' THEN 'APPROVE'
+							WHEN DOC_APPRV_STAT = 'IP' THEN 'IN PROGRESS'
+							WHEN DOC_APPRV_STAT = 'HL' THEN 'HOLD'
+							WHEN DOC_APPRV_STAT = 'RJ' THEN 'REJECT'
+							ELSE 'N/A'
+						END)
+	             	FROM
+						TMT_CLR_DOC
+	            	WHERE
+						DOC_ID 									= 'AHC'
+						AND (CALL_YEAR, CALL_SEQ, VSL_CD) IN (
+							SELECT
+								CALL_YEAR,
+								CALL_SEQ,
+								VSL_CD
+							FROM
+								TMT_VSL_SCH
+							WHERE
+								VSL_CALL_ID 					= A.VSL_CALL_ID
+						)
+			), 'N/A')											AS ogaStatus,
+			ISNULL(
+          		(
+	          		SELECT 
+						ISNULL(FORMAT(UPDATE_TIME, 'dd/MM/yyyy HH:mm:ss'),
+								FORMAT(UPDATE_TIME, 'dd/MM/yyyy HH:mm:ss'))
+					FROM
+						TMT_CLR_DOC
+					WHERE
+						DOC_ID 									= 'AHC'
+						AND (CALL_YEAR, CALL_SEQ, VSL_CD) IN (
+							SELECT
+								CALL_YEAR, CALL_SEQ, VSL_CD
+	                    	FROM
+								TMT_VSL_SCH
+	                    	WHERE
+								VSL_CALL_ID 					= A.VSL_CALL_ID
+						)
+            	), '') 											AS ogaStatusDate,
+          	ISNULL(
+          		(
+          			SELECT 
+          				(CASE
+	                        WHEN QUAR_ANCH = 'Y' AND QUAR_WHARF = 'N' THEN 'QUARANTINE AT ANCHORAGE'
+	                        WHEN QUAR_ANCH = 'N' AND QUAR_WHARF = 'Y' THEN  'QUARANTINE AT WHARF'
+                        	ELSE 'IN PROGRESS'
+					 	END)
+					FROM
+						TMT_CLR_DOC
+					WHERE
+						DOC_ID 									= 'AHC'
+						AND (CALL_YEAR, CALL_SEQ, VSL_CD) IN (
+							SELECT
+								CALL_YEAR, CALL_SEQ, VSL_CD
+                        	FROM
+								TMT_VSL_SCH
+							WHERE
+								VSL_CALL_ID 					= A.VSL_CALL_ID
+						)
+			), 'IN PROGRESS') 									AS ogaQuarantine,
+			(
+				SELECT 
+					CASE
+                    	WHEN DOC_APPRV_STAT = 'AP' THEN STAFF_CD
+                    	ELSE ''
+                	END
+            	FROM
+					TMT_CLR_DOC
+           		WHERE
+					DOC_ID 										= 'AHC'
+                	AND (CALL_YEAR, CALL_SEQ, VSL_CD) IN (
+                		SELECT
+                			CALL_YEAR, CALL_SEQ, VSL_CD
+						FROM
+							TMT_VSL_SCH
+						WHERE
+							VSL_CALL_ID 						= A.VSL_CALL_ID
+				)
+			) 													AS ogaApprovalBy
+   	 	FROM
+			TMT_VSL_SCH A,
+			TMT_VSL_PART B,
+			TMT_AGENCY_INFO D
+		<if test="locCd == 'BBT'">
+			,TMT_BERTH_LOC E
+		</if>
+     	WHERE
+			A.VSL_CD 											= B.VSL_CD
+			AND A.ARRV_SA_ID 									= D.AGENCY_CODE
+			AND D.ptnr_type 									= 'SHA'
+			AND A.SUMMIT_STAT <![CDATA[<>]]> 'CC'	/* Added by Phuong Do, 20110713, MantisID : 0030586 */
+			AND A.BERTH_LOC IN (SELECT
+									BERTH_CD
+								FROM
+									TMT_BERTH_LOC
+								WHERE
+									LOC_CD 						='BBT'
+								)
+		<if test="etaFrom != null and etaFrom != ''">
+            AND A.ETA <![CDATA[ >= ]]> CONVERT(DATE, #{etaFrom})
+		</if>				
+		<if test="etaTo != null and etaTo != ''">
+            AND A.ETA <![CDATA[<]]> DATEADD(DAY, 1, CONVERT(DATE, #{etaFrom}))
+		</if>		
+		<if test="vslCallId != null and vslCallId != ''">
+			 AND A.VSL_CALL_ID 									= #{vslCallId}
+		</if>
+		<if test="atdYn == 'false'">
+			AND (A.ATD IS NULL OR A.ATD = '')
+		</if>
+		<if test="locCd == 'BBT'">
+		    AND A.BERTH_LOC 									= E.BERTH_CD
+		    AND E.LOC_CD 										= 'BBT'
+		</if>		
+		<if test="alertYn != 'Y'">
+			<if test="vslTp != null and vslTp != ''">
+				AND B.VSL_TP 									= #{vslTp}
+			</if>		
+			<if test="cgTpCd != null and cgTpCd != ''">
+				AND A.CARGO_TP_MPTS 							= #{cgTpCd}
+			</if>						
+			<if test="planned == 'PLN'">
+				AND A.BERTH_PLAN_YN 							= 'Y'
+			</if>		
+			<if test="planned == 'NPN'">
+				AND ISNULL(A.BERTH_PLAN_YN, 'N') 				= 'N'
+			</if>		
+			<if test="vslStatus != null and vslStatus != ''">
+				AND ( A.MPTS_STAT 								= #{vslStatus}
+				<if test="vslStatus == 'PD'">
+	   				OR (A.MPTS_STAT IS NULL OR A.MPTS_STAT = '')
+				</if>
+	           	)
+			</if>				
+			<if test="dbYn == 'true'">
+				<!-- AND DBO.F_GET_DB_YN(A.VSL_CALL_ID) 					= 'Y' --> -- NON USE FUNCTION
+			</if>
+		</if>
+		<if test="alertYn != null and alertYn != ''">
+			<if test="alertYn == 'Y'">
+				<if test="alertTp == 'Berth32hrs'">
+					AND A.VSL_CALL_ID IN (
+						SELECT
+							VSL_CALL_ID
+						FROM
+							TMT_VSL_SCH
+						WHERE
+							(DATEDIFF(DAY, SYSDATETIME(), ETA) * 24) <![CDATA[ <= ]]> 32
+			            	AND ETA > SYSDATETIME()
+			            	AND (BERTH_PLAN_YN IS NULL OR BERTH_PLAN_YN = '')
+			           	 	AND (WHARF_MARK_FROM IS NULL OR WHARF_MARK_FROM = 0)
+					)
+				</if>
+				<if test="alertTp == 'IVAdvice'">
+	           		AND A.ARRV_SA_ID  							= #{ptnrCode}
+	                AND A.VSL_CALL_ID NOT IN (
+                        SELECT
+							A1.VSL_CALL_ID 						AS VSL_CALL_ID
+                        FROM
+							TMT_B_IV_ADV 						A1
+                        WHERE
+							PTNR_CD 							= #{ptnrCode}
+								OR
+							PAYER_CD 							= #{ptnrCode}
+                	)
+                	AND DATEDIFF(DAY, A.ETA, SYSDATETIME()) <![CDATA[ <= ]]> 180
+				</if>
+			</if>
+		</if>
+    </select>
+    
+  	<select id="selectVesselScheduleDetail"  parameterType="vesselScheduleParm" resultType="vesselScheduleItem">
+  	<![CDATA[
+        SELECT /*vesselScheduleInternal.selectVesselScheduleDetail*/
+                A.VSL_CD                						AS VSLCD,
+                A.CALL_YEAR             						AS CALLYEAR,
+                A.CALL_SEQ              						AS CALLSEQ,
+                A.VSL_CALL_ID           						AS VSLCALLID,
+                A.SHIP_CALL_NO          						AS SHIPCALLNO,
+                A.BERTH_PLAN_YN         						AS BERTHPLANYN,
+                A.BERTH_LOC             						AS BERTHLOC,
+                A.SUMMIT_STAT           						AS SUMMITSTAT,
+				(CASE A.SUMMIT_STAT
+					WHEN 'RC' THEN ''
+					WHEN 'CC' THEN 'Cancelled'
+					ELSE DBO.F_CM_CODE_NM('MT', 'DOCSTAT', A.SUMMIT_STAT)
+				END)											AS SUMMITSTATNAME,
+                A.DEPT_TP               						AS DEPTTP,
+                A.VC_DIV                						AS VCDIV,
+                A.ETA    										AS ETA,
+                A.ETD    										AS ETD,
+                A.ETW    										AS ETW,
+                A.ETB    										AS ETB,
+                A.ETC    										AS ETC,
+                A.ETU    										AS ETU,
+                A.ATA    										AS ATA,
+                A.ATD    										AS ATD,
+                A.ATB    										AS ATB,
+				DBO.F_GET_CUR_ATB(A.VSL_CALL_ID)					AS CURATB,
+                A.ATU    										AS ATU,
+                A.ATC    										AS ATC,
+                A.ATW    										AS ATW,
+                A.STOWW_YN              						AS STOWWYN,
+                A.ARMS_YN               						AS ARMSYN,
+                A.ADV_IMMG_YN           						AS ADVIMMGYN,
+                A.BTR    										AS BTR,
+                A.DRF_ARRV              						AS DRFARRV,
+                A.DRF_DEPTR             						AS DRFDEPTR,
+                A.INB_SERV_LANE         						AS INBSERVLANE,
+                A.OUTB_SERV_LANE        						AS OUTBSERVLANE,
+                A.YOT                   						AS YOT,
+                A.YCT                   						AS YCT,
+                FORMAT(A.UPDATE_TIME,'dd/MM/yyyy HH:mm')    	AS INSDTM,
+                A.STAFF_CD           							AS INSUSERID,
+                A.UPDATE_TIME           						AS UPDDTM,
+                A.STAFF_CD           							AS UPDUSERID,
+                A.ARRV_SA_ID            						AS ARRVSAID,
+                (SELECT TOP 1
+					ENG_SNM
+				 FROM
+					TMT_AGENCY_INFO
+				 WHERE
+					AGENCY_CODE = A.ARRV_SA_ID
+				) 												AS ARRVSANM,
+                (SELECT TOP 1
+					ACC_NO
+				 FROM
+					TMT_AGENCY_INFO
+				 WHERE
+					AGENCY_CODE = A.ARRV_SA_ID
+				) 												AS ACCNO,
+                A.DEPR_SA_ID            						AS DEPRSAID,
+                A.VSL_OPERATOR          						AS VSLOPERATOR,
+                A.PILOT_ONBOARD         						AS PILOTONBOARD,
+                A.PILOT_DISEMBARK       						AS PILOTDISEMBARK,
+                A.BERTH_ALONGSIDE       						AS BERTHALONGSIDE,
+                A.APPROVE_USER_ID       						AS APPROVEUSERID,
+                A.APPROVE_DTM           						AS APPROVEDTM,
+                A.BERTH_DIV             						AS BERTHDIV,
+                A.LOAD_CARGO            						AS LOADCARGO,
+                A.DISCH_CARGO           						AS DISCHCARGO,
+                A.LOAD_CARGO_QTY        						AS LOADCARGOQTY,
+                A.DISCH_CARGO_QTY       						AS DISCHCARGOQTY,
+                A.SHIFT_CARGO_QTY       						AS SHIFTCARGOQTY,
+                A.SUBMIT_RMK            						AS SUBMITRMK,
+                A.DOMESTIC_CHK									AS DOMESTICCHK,
+                A.READINESS_ATA									AS READINESSATA,
+                A.DELAY_RSN_CD									AS VSLDLRSN,
+                CASE 
+                	WHEN A.BARTER_TRADE IS NULL OR A.BARTER_TRADE = '' THEN 'N'
+                	ELSE 'Y'
+                END AS BARTERTRADE,
+                CONVERT(NVARCHAR,
+						ISNULL(A.WHARF_MARK_FROM, 0)) 			AS WHARFMARKFROM,
+                ((CASE
+					WHEN ISNULL(A.WHARF_MARK_TO, 0) = 0 THEN ISNULL(A.WHARF_MARK_FROM, 0)
+					ELSE 0
+				END)
+                +
+                (CASE
+					WHEN ISNULL(A.WHARF_MARK_TO, 0) = 0 THEN ISNULL(B.LOA, 0)
+					ELSE ISNULL(A.WHARF_MARK_TO, 0)
+				END))  											AS WHARFMARKTO,
+                B.INMARSAT_NO           						AS INMARSATNO,
+                B.MMSI_CD               						AS MMSICD,
+                B.VSL_NM                						AS VSLNM,
+                B.BLD_YEAR              						AS BLDYEAR,
+                B.SHIP_OFFICIAL_NO      						AS SHIPOFFICIALNO,
+                B.VSL_TP1_VSL           						AS VSLTP1VSL,
+                B.VSL_TP2_TERM          						AS VSLTP2TERM,
+                B.VSL_TP3_TRADE         						AS VSLTP3TRADE,
+                B.DOM_YN                						AS DOMYN,
+                B.CALL_SIGN             						AS CALLSIGN,
+                B.VSL_FLAG_CD           						AS VSLFLAGCD,
+                B.CNTRY_CD              						AS CNTRYCD,
+                B.VSL_TP                						AS VSLTP,
+                ISNULL((SELECT
+							LOC_CD
+						FROM
+							TMT_BERTH_LOC
+						WHERE
+							BERTH_CD = A.BERTH_LOC), 'N'
+				) 												AS bbtLoc,
+				DBO.F_CM_CODE_NM('VC',
+								 'VSLTP',
+								 B.VSL_TP) 						AS VSLTPNM,
+                B.VSL_REG_PORT          						AS VSLREGPORT,
+                B.REG_DT                						AS REGDT,
+                B.VSL_CUST_CD           						AS VSLCUSTCD,
+                B.SA_CUST_CD            						AS SACUSTCD,
+                B.IMO_NO                						AS IMONO,
+                B.CLASS                 						AS VCLASS,
+                B.LST_DRYDOCK           						AS LSTDRYDOCK,
+                B.LOA                   						AS LOA,
+                B.LBP                   						AS LBP,
+                B.VSL_WIDTH             						AS VSLWIDTH,
+                B.VSL_MX_WIDTH          						AS VSLMXWIDTH,
+                B.VSL_DEPTH             						AS VSLDEPTH,
+                B.SUMM_DRF              						AS SUMMDRF,
+                B.TOP_TIER              						AS TOPTIER,
+                B.ANTN_HGT              						AS ANTNHGT,
+                B.BOW_DIST              						AS BOWDIST,
+                B.STERN_DIST            						AS STERNDIST,
+                B.DISP                  						AS DISP,
+                B.FLOAT_CRANE_YN        						AS FLOATCRANEYN,
+                B.CRANE_SIDE            						AS CRANESIDE,
+                B.ALONG_SIDE            						AS ALONGSIDE,
+                B.ISSC_NO               						AS ISSCNO,
+                B.NRT                   						AS NRT,
+                B.GRT                   						AS GRT,
+                B.DWT                   						AS DWT,
+                B.BALE_CAPA             						AS BALECAPA,
+                B.GRAIN_CAPA            						AS GRAINCAPA,
+                B.ENG_DESC              						AS ENGDESC,
+                B.ENG_BHP               						AS ENGBHP,
+                B.SPEED                 						AS SPEED,
+                B.MX_TEU                						AS MXTEU,
+                B.HATCH_QTY             						AS HATCHQTY,
+                B.MX_ROW_DECK           						AS MXROWDECK,
+                B.MX_ROW_HOLD           						AS MXROWHOLD,
+                B.STAT_CD        								AS STATCD,
+                B.NAT_CD                						AS NATCD,
+                B.SERV_TP               						AS SERVTP,
+                B.VHF_YN                						AS VHFYN,
+                B.VSL_OUTR              						AS VSLOUTR,
+                B.LAUNCH_DT             						AS LAUNCHDT,
+                B.OUTR                  						AS OUTR,
+                B.VSL_DIV               						AS VSLDIV,
+                B.SA_CORP_ID            						AS SACORPID,
+                B.CREW_NO               						AS CREWNO,
+                B.NAV_EQU               						AS NAVEQU,
+                B.BUNKER_COND           						AS BUNKERCOND,
+                B.CONSUM_SEA            						AS CONSUMSEA,
+                B.FRESHWT_COND          						AS FRESHWTCOND,
+                B.APPRX_DIST            						AS APPRXDIST,
+                B.TOWING_SPEED          						AS TOWINGSPEED,
+                B.COMPTY_OFFICER        						AS COMPTYOFFICER,
+                B.TRAD_CERTI            						AS TRADCERTI,
+                B.TOWING_EQ             						AS TOWINGEQ,
+                B.CONFIRM_USER_ID       						AS CONFIRMUSERID,
+                B.CONFIRM_DTM           						AS CONFIRMDTM,
+                B.SHIP_GEAR             						AS SHIPGEAR,
+                B.RPM_TYPE              						AS RPMTYPE,
+                B.REMARKS               						AS REMARKS,
+                B.TERMINAL_TYPE         						AS TERMINALTYPE,
+                B.VSL_TP_TRADE          						AS VSLTPTRADE,
+                B.SHIPPING_LINE_CD      						AS SHIPPINGLINECD,
+                C.SUMIT_DT    									AS SUMITDT,
+				(CASE
+					WHEN (C.SUMIT_DT IS NULL OR C.SUMIT_DT = '') THEN 'NO'
+					ELSE 'YES'
+				END)											AS CONFIRM,
+                (
+                	CASE 
+						WHEN (
+							(
+                            	ISNULL(A.DG_GOOD_YN,'N') NOT IN ('Y') AND (
+                                	((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) >= 48 AND (C.SUMIT_DT IS NULL OR C.SUMIT_DT = ''))
+                            		OR
+                                 	((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) >= 48 AND (DATEDIFF(DAY, C.SUMIT_DT, A.ETA) * 24) >= 24)
+                            	)
+                        	)
+                        	OR
+                        	(
+	                            ISNULL(A.DG_GOOD_YN,'N') IN ('Y')
+	                            AND (DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) < 30 OR DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) > 45 )
+                            	AND (
+                                	((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) >= 48 AND (C.SUMIT_DT IS NULL OR C.SUMIT_DT = ''))
+                            		OR
+                                 	((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) >= 48 AND (DATEDIFF(DAY, C.SUMIT_DT, A.ETA) * 24) >= 24)
+                            	)
+                        	)
+                        ) THEN 'NORMAL MATURED'
+                      	WHEN (
+                      		(
+                            	ISNULL(A.DG_GOOD_YN,'N') NOT IN ('Y') AND (
+                                	((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) < 48 AND (C.SUMIT_DT IS NULL OR C.SUMIT_DT = ''))
+                            		OR
+                                 	((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) < 48 OR (DATEDIFF(DAY, C.SUMIT_DT, A.ETA)* 24) < 24)
+                            	)
+                        	)                
+                        	OR    
+                        	(
+                            	ISNULL(A.DG_GOOD_YN,'N') IN ('Y') AND (
+                            		DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) < 30 OR DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) > 45 )
+                            	AND (
+                                	((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) < 48 AND (C.SUMIT_DT IS NULL OR C.SUMIT_DT = ''))
+                            		OR
+                                 	((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) < 48 OR (DATEDIFF(DAY, C.SUMIT_DT, A.ETA) * 24) < 24)
+                            	)
+                        	)
+                        ) THEN 'NORMAL NON-MATURED'
+                     	WHEN ISNULL(A.DG_GOOD_YN,'N') IN ('Y')
+                     		AND DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) BETWEEN 30 AND 45
+							AND (C.SUMIT_DT IS NULL OR C.SUMIT_DT = '')
+						THEN 'SCHEDULE'
+						WHEN ISNULL(A.DG_GOOD_YN,'N') IN ('Y')
+							AND (C.SUMIT_DT IS NOT NULL AND C.SUMIT_DT <> '')
+							AND DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) BETWEEN 30 AND 45
+							AND DATEDIFF(DAY, C.SUMIT_DT, A.ETA) >= 3
+						THEN 'SCHEDULE MATURED'
+						WHEN ISNULL(A.DG_GOOD_YN,'N') IN ('Y')
+						    AND (C.SUMIT_DT IS NOT NULL AND C.SUMIT_DT <> '')
+						    AND DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) BETWEEN 30 AND 45
+						    AND DATEDIFF(DAY, C.SUMIT_DT, A.ETA) < 3
+						THEN 'SCHEDULE NON MATURED'
+						ELSE 'NORMAL MATURED'
+                	END
+                ) 												AS STATUS,
+                (
+                	CASE 
+						WHEN (
+							(
+                            	ISNULL(A.DG_GOOD_YN,'N') NOT IN ('Y') AND (
+                                	((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA)*24) >= 48 AND (C.SUMIT_DT IS NULL OR C.SUMIT_DT = ''))
+                           			OR
+                                 	((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA)*24) >= 48 AND (DATEDIFF(DAY, C.SUMIT_DT, A.ETA) * 24) >= 24)
+                            	)
+                        	)
+                        	OR
+                       		(
+	                            ISNULL(A.DG_GOOD_YN,'N') IN ('Y') AND (
+	                            	DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) < 30 OR DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) > 45 )
+                            	AND (
+                                ((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) >= 48 AND (C.SUMIT_DT IS NULL OR C.SUMIT_DT = ''))
+                            	OR
+                                ((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) >= 48 AND (DATEDIFF(DAY, C.SUMIT_DT, A.ETA) * 24) >= 24)
+                            )
+                        )
+					) THEN 'NRM'
+					WHEN (
+						(
+                            ISNULL(A.DG_GOOD_YN,'N') NOT IN ('Y') AND (
+                                ((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) < 48 AND (C.SUMIT_DT IS NULL OR C.SUMIT_DT = ''))
+                            	OR
+                                ((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) < 48 OR (DATEDIFF(DAY, C.SUMIT_DT, A.ETA) * 24) < 24)
+                            )
+                        )
+                        OR
+                        (
+                            ISNULL(A.DG_GOOD_YN,'N') IN ('Y') AND (
+                            	DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) < 30 OR DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) > 45 )
+                            AND (
+                                ((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) < 48 AND (C.SUMIT_DT IS NULL OR C.SUMIT_DT = ''))
+                            	OR
+                                ((DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) * 24) < 48 OR (DATEDIFF(DAY, C.SUMIT_DT, A.ETA) * 24) < 24)
+                            )                     
+                        )
+					) THEN 'NNM'
+                    WHEN ISNULL(A.DG_GOOD_YN,'N') IN ('Y')
+						AND DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) BETWEEN 30 AND 45
+						AND (C.SUMIT_DT IS NULL OR C.SUMIT_DT = '')
+					THEN 'SCH'
+					WHEN ISNULL(A.DG_GOOD_YN,'N') IN ('Y')
+						AND (C.SUMIT_DT IS NOT NULL AND C.SUMIT_DT <> '')
+						AND DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) BETWEEN 30 AND 45
+						AND DATEDIFF(DAY, C.SUMIT_DT, A.ETA) >= 3
+                    THEN 'SLM'
+                    WHEN ISNULL(A.DG_GOOD_YN,'N') IN ('Y')
+						AND (C.SUMIT_DT IS NOT NULL AND C.SUMIT_DT <> '')
+						AND DATEDIFF(DAY, A.UPDATE_TIME, A.ETA) BETWEEN 30 AND 45
+						AND DATEDIFF(DAY, C.SUMIT_DT, A.ETA) < 3
+					THEN 'SNM'
+					ELSE 'NRM'
+                END) 											AS SCHSTATUS,
+                (CASE
+                	WHEN (C.SUMIT_DT IS NULL OR C.SUMIT_DT = '') THEN ''
+                	ELSE 'SUBMIT'
+				END) 											AS CONFIRMATIONSLIP,
+                (CASE
+                	WHEN (C.SUMIT_DT IS NULL OR C.SUMIT_DT = '') THEN ''
+                	ELSE 'Y'
+				END) 											AS CSYN,
+                A.DG_GOOD_YN    								AS DGGOODYN,
+				DBO.F_GET_DG_STATUS(A.VSL_CALL_ID,
+                				A.VSL_CD,
+                				A.CALL_YEAR,
+                				A.CALL_SEQ) 					AS DGSTATUS,
+				DBO.F_GET_DG_DECLARATION(A.VSL_CALL_ID,
+                					A.VSL_CD,
+                					A.CALL_YEAR,
+                					A.CALL_SEQ,
+                					B.VSL_TP) 					AS DGDECLARATION,
+                (SELECT
+                	SUM(CG_WGT) WGT
+                FROM
+                	TMT_CONFM_SLP_DTL
+                WHERE
+                	VSL_CALL_ID = A.VSL_CALL_ID) 				AS MT,
+				DBO.F_GET_COMODITY(A.VSL_CALL_ID)               AS comodityCode,
+				DBO.F_GET_OPE_TP(A.VSL_CALL_ID) 				AS OPERATIONTYPE,
+                (SELECT
+                	SUM(OPE_HR)
+                FROM
+                	TMT_CONFM_SLP_DTL
+                WHERE
+                	VSL_CALL_ID = A.VSL_CALL_ID) 				AS OPEHR,
+				-- DBO.F_GET_VSL_COLOR(A.VSL_CALL_ID,
+                --				A.ETA,
+                --				C.SUMIT_DT,
+                --				A.ARRV_SA_ID)     				AS VSLCOLOR,	-- COMMENTED DUE TO NO TABLE NAMED TMT_VSL_SCH_HIST
+                A.STAFF_CD 										AS SALOGINID,
+                (CASE
+                	WHEN (C.FILE_CATG_CD IS NULL OR C.FILE_CATG_CD = '') THEN 'N'
+                	ELSE 'Y'
+                END) 											AS STOWAGEPLAN,
+                A.BERTH_APRV_USER_ID    						AS BERTHAPRVUSERID,
+                A.PURP_CALL 									AS PURPCALLCD,
+                DBO.F_CM_CODE_NM('VC',
+                				'POC',
+                				A.PURP_CALL) 					AS PURPCALL,
+                A.BERTH_LABEL 									AS berthLabel,
+                A.VSL_CALL_ID 									AS motherVslCallId,
+                (CASE
+                	WHEN (DB.DBL_BNK_SHIP1 IS NULL OR DB.DBL_BNK_SHIP1 = '') THEN 'N'
+                	ELSE 'Y'
+                END)  											AS dbYn,
+                DB.DBL_BNK_SHIP1 								AS dbVslCallId,
+                (CASE
+				WHEN (SELECT
+						EX_RECCL_CD + IM_RECCL_CD
+					FROM
+						TMT_B_RECCL
+					WHERE
+						VSL_CALL_ID = A.VSL_CALL_ID) <> ''
+					AND
+					(SELECT
+						EX_RECCL_CD + IM_RECCL_CD
+					FROM
+						TMT_B_RECCL
+					WHERE
+						VSL_CALL_ID = A.VSL_CALL_ID) IS NOT NULL
+					AND
+					(SELECT
+						EX_RECCL_CD + IM_RECCL_CD
+					FROM
+						TMT_B_RECCL
+					WHERE
+						VSL_CALL_ID = A.VSL_CALL_ID) = 'YY'
+					THEN 'Verified'
+				ELSE ''
+			END)												AS reconcileStatus
+        FROM
+        		TMT_VSL_SCH A
+            	LEFT OUTER JOIN TMT_VSL_PART B
+            			ON  A.VSL_CD 							= B.VSL_CD
+            	LEFT OUTER JOIN TMT_CONFM_SLP C
+            			ON A.VSL_CALL_ID 						= C.VSL_CALL_ID
+            	LEFT OUTER JOIN TMT_DBL_BNK DB
+            			ON A.VSL_CALL_ID 						= DB.VSL_CALL_ID
+		WHERE
+				A.VSL_CALL_ID 									= #{vslCallId}
+				AND A.SUMMIT_STAT <> 'CC'	
+		]]>
+    </select>
+      
+	<select id="selectConfirmationSlip" parameterType="vesselScheduleParm" resultType="vesselScheduleItem">
+		SELECT /*vesselScheduleInternal.selectConfirmationSlip*/
+			A.VSL_CALL_ID                       AS VSLCALLID, 
+			A.SHIP_CALL_NO                      AS SCN, 
+			A.SUMIT_DT                          AS SUMITDT, 
+			A.OPE_TP_CD                         AS OPETPCD,
+			A.SHRE_TK                           AS SHRETK,
+			A.NOF_LINES                         AS NOFLINES,
+			ISNULL(A.DSCH_HOSE_QTY,	0)          AS DSCHHOSEQTY,
+			ISNULL(A.LOAD_HOSE_QTY,	0)          AS LOADHOSEQTY,
+			ISNULL(A.DSCH_ARM_QTY, 0)           AS DSCHARMQTY,
+			ISNULL(A.LOAD_ARM_QTY, 0)           AS LOADARMQTY,
+			A.TEMP_REDY_DT 						AS TEMPREDYDT, 
+			A.DOC_REDY_DT  						AS DOCREDYDT, 
+			A.CG_REDY_DT   						AS CGREDYDT, 
+			A.ULTG_REDY_DT 						AS ULTGREDYDT, 
+			A.TK_REDY_DT   						AS TKREDYDT, 
+			A.FILE_CATG_CD                      AS FILECATGCD
+		FROM
+			TMT_CONFM_SLP A
+		WHERE
+			A.VSL_CALL_ID 						= #{vslCallId}
+	</select>
+	
+	<select id="selectConfirmationSlipDetail"  parameterType="vesselScheduleParm" resultMap="ConfirmationSlipDetailMap"> 
+		SELECT /*vesselScheduleInternal.selectConfirmationSlipDetail*/
+			A.VSL_CALL_ID                        	AS VSLCALLID, 
+			B.SEQ                                	AS SEQ, 
+			B.CG_TP_CD                           	AS CGTPCD, 
+			ISNULL(B.OPE_TP_CD,' ')                 AS OPETPCD,
+			(
+				SELECT TOP 1
+					S_CD_NM
+				FROM
+					TMT_CD_MSTD
+				WHERE
+					L_CD							= 'MT'
+					AND M_CD						= 'CGTP'
+			    	AND S_CD						= B.CG_TP_CD
+			)               					 	AS CGTPNM, 
+			ISNULL(B.CMDT_CD,' ')                   AS CMDTCD,
+			(
+				SELECT TOP 1
+					CMDT_DESC
+				FROM
+					TMT_CMDT
+			  	WHERE
+					CMDT_CD 						= B.CMDT_CD
+			)           							AS CMDTCDNM,
+			ISNULL(B.PKG_TP_CD,' ')				 	AS PKGTPCD,
+			ISNULL(B.OPE_HR,0)                      AS OPEHR,
+			ISNULL(B.WORK_DD,0)                     AS WORKDD,
+			ISNULL(B.WORK_HATCH_NO,' ')             AS WORKHATCHNO,
+			(CASE B.CG_WGT
+				WHEN 0 THEN '0'
+				ELSE
+					(CASE ROUND(B.CG_WGT, 0, 1)
+						WHEN 0 THEN '0' + CONVERT(NVARCHAR, B.CG_WGT)
+						ELSE CONVERT(NVARCHAR, B.CG_WGT)
+					END)
+			END)									AS WGT,
+			ISNULL(B.QTY,0)                         AS QTY,
+			B.CLN_CD                               	AS CLNCD, 
+			B.TOP_CG_CD                            	AS TOPCGCD, 
+			(
+				CASE 
+					WHEN B.CLN_CD = 'Y' THEN 'CLEAN'
+					WHEN B.TOP_CG_CD = 'Y' THEN 'TOP'
+					ELSE '' 
+				END 
+			)						  				AS TOPCLN,
+			B.TMNL_OPR                             	AS TMNLOPR, 
+			B.SHPR_CNSNE                           	AS SHPRCNSNE, 
+			B.CNSNE                           	  	AS CNSNE, 
+			B.UNNO                                 	AS UNNO, 
+			B.IMDG                                 	AS IMDG,
+			B.POL	                              	AS POL, 
+			B.FDEST                                	AS FDEST, 
+			ISNULL(B.CRC,0)                         AS CRC,
+			ISNULL(B.BL_NO,' ')                     AS BLNO,
+			B.CG_OPT_TP_CD                         	AS CGOPTTPCD,
+			DBO.F_CM_CODE_NM(
+							'MT',
+							'CGOPETP',
+							B.CG_OPT_TP_CD) 		AS CGOPTTPNM,
+			B.DG_SEQ								AS DGSEQ,
+			(
+				CASE 
+					WHEN (C.SEQ IS NULL OR C.SEQ = '') THEN 'N'
+					ELSE 'Y'
+				END
+			) 								  		AS DGCHK,
+			OPE_CATEGORY                          	AS OPETYPE,
+			B.DELV_TP_CD							AS DELVTPCD,
+			B.RMK									AS REMARK,
+			(CASE B.DELV_TP_CD
+				WHEN 'D' THEN 'Direct'
+				WHEN 'I' THEN 'Indirect'
+				WHEN 'B' THEN 'Direct And Indirect'
+				ELSE ''
+			END)									AS DELVTPNM
+		FROM
+			TMT_CONFM_SLP 							A,
+			TMT_CONFM_SLP_DTL 						B
+				LEFT OUTER JOIN TMT_DG C
+					ON B.DG_SEQ = C.SEQ
+		WHERE
+			A.VSL_CALL_ID 							= B.VSL_CALL_ID
+			AND A.VSL_CALL_ID 						= #{vslCallId}
+		<if test="cargoType != 'LIQUID'">
+			AND B.CG_TP_CD IN ('BBK','DBE','DBN', 'CTR')
+		</if>
+		<if test="cargoType == 'LIQUID'">
+			AND B.CG_TP_CD IN ('LQE','LQN', 'LQD')
+		</if>
+		ORDER BY B.SEQ ASC
+	</select>
+	
+	<select id="selectVORLiquidCargo"  parameterType="vesselScheduleParm" resultType="vesselScheduleItem">
+		SELECT /*vesselScheduleInternal.selectVORLiquidCargo*/
+			LQ.VSL_CALL_ID                                            	AS VSLCALLID,
+			FORMAT(CONVERT(DATE, LQ.WORK_YMD),'dd/MM/yyyy')     		AS WORKYMD,
+			LQ.SHFT_ID                                                	AS SHFTID,
+			LQ.OPE_TP                                                 	AS OPETP,
+			LQ.JOB_TP_CD                                              	AS JOBTPCD,
+			LQ.SEQ                                                    	AS SEQ,
+			LQ.CG_TP_CD                                               	AS CGTPCD,
+			LQ.HOSE_TP_CD                                             	AS HOSETPCD,
+			LQ.TK_OPR                                                 	AS TKOPR,
+			LQ.SHPR                                                   	AS SHPR,
+			ISNULL(LQ.CNSNE, ' ')                                       AS CNSNE,
+			LQ.TON_HDL_AMT                                            	AS TONHDLAMT,
+			LQ.PUMP_RATE                                              	AS PUMPRATE,
+			ISNULL(FORMAT(LQ.ST_DT,'dd/MM/yyyy HH:mm'), ' ')         	AS STDT,
+			ISNULL(FORMAT(LQ.END_DT,'dd/MM/yyyy HH:mm'), ' ')        	AS ENDDT,
+			LQ.JOB_CMPL_YN                                            	AS JOBCMPLYN,
+			ISNULL(FORMAT(LQ.HOSE_ON_DT,'dd/MM/yyyy HH:mm'), ' ')    	AS HOSEONDT,
+			ISNULL(FORMAT(LQ.HOSE_OFF_DT,'dd/MM/yyyy HH:mm'), ' ')   	AS HOSEOFFDT,
+			LQ.HOSE_CMPL_YN                                           	AS HOSECMPLYN,
+			ISNULL(LQ.CMDT_CD, ' ')                                     AS CMDTCD,
+			ISNULL(LQ.PKG_TP_CD, ' ')                                   AS PKGTPCD,
+			(CASE #{opeTp, jdbcType=VARCHAR}
+				WHEN 'GEN' THEN ISNULL(SLPT.LOADPLANMTG, 0)
+				WHEN 'STS' THEN ISNULL(SLPT.LOADPLANMTS, 0)
+				WHEN 'TLS' THEN ISNULL(SLPT.LOADPLANMTT, 0)
+			END)														AS LOADPLANMT,
+			(CASE #{opeTp, jdbcType=VARCHAR}
+				WHEN 'GEN' THEN ISNULL(SLPT.DISPLANMTG, 0)
+				WHEN 'STS' THEN ISNULL(SLPT.DISPLANMTS, 0)
+				WHEN 'TLS' THEN ISNULL(SLPT.DISPLANMTT, 0)
+			END) 														AS DISPLANMT,
+			(CASE #{opeTp, jdbcType=VARCHAR}
+				WHEN 'GEN' THEN ISNULL(LQTOTAL.LOADACTUALMTG, 0)
+				WHEN 'STS' THEN ISNULL(LQTOTAL.LOADACTUALMTS, 0)
+				WHEN 'TLS' THEN ISNULL(LQTOTAL.LOADACTUALMTT, 0)
+			END) 														AS LOADACTUALMT,
+			(CASE #{opeTp, jdbcType=VARCHAR}
+				WHEN 'GEN' THEN ISNULL(LQTOTAL.DISACTUALMTG, 0)
+				WHEN 'STS' THEN ISNULL(LQTOTAL.DISACTUALMTS, 0)
+				WHEN 'TLS' THEN ISNULL(LQTOTAL.DISACTUALMTT, 0)
+			END) 														AS DISACTUALMT,
+			(CASE LQ.JOB_TP_CD
+				WHEN 'GEN' THEN ISNULL(LQ.TON_HDL_AMT, 0)
+				WHEN 'STS' THEN ISNULL(LQ.TON_HDL_AMT, 0)
+				WHEN 'TLS' THEN ISNULL(LQ.TON_HDL_AMT, 0)
+				ELSE 0
+			END) 														AS LOADTOTMT,
+			(CASE LQ.JOB_TP_CD
+				WHEN 'GEN' THEN ISNULL(LQ.TON_HDL_AMT, 0)
+				WHEN 'STS' THEN ISNULL(LQ.TON_HDL_AMT, 0)
+				WHEN 'TLS' THEN ISNULL(LQ.TON_HDL_AMT, 0)
+				ELSE 0
+			END) 														AS DISTOTMT,
+			(ISNULL(RPT.LOAD_HOSE_QTY,0) + ISNULL(RPT.DSCH_HOSE_QTY,0)) AS FLXTOTLINE,
+			(ISNULL(RPT.LOAD_ARM_QTY, 0) + ISNULL(RPT.DSCH_ARM_QTY, 0)) AS ARMTOTLINE,
+			RPT.FENDER                                                	AS FENDER,
+			ISNULL(LQ.LINE_NO, 0)										AS LINE_NO,			--ORIGINAL IS LINENO, CONFLICT
+			(SELECT TOP 1
+				BL_NO
+			FROM
+				TMT_CONFM_SLP_DTL SLP
+			WHERE
+				SLP.VSL_CALL_ID 										= LQ.VSL_CALL_ID
+			) 															AS BLNO
+		FROM
+			TMT_LQDCG_OPE_MST RPT			--ORIGINAL IS LTTMT_LQDCG_OPE_MST
+				LEFT OUTER JOIN TMT_LQDCG_OPE LQ
+					ON RPT.VSL_CALL_ID 									= LQ.VSL_CALL_ID
+					AND RPT.WORK_YMD 									= LQ.WORK_YMD
+					AND RPT.SHFT_ID										= LQ.SHFT_ID
+					AND RPT.OPE_TP										= LQ.OPE_TP,
+			(
+				SELECT
+					SLP.VSL_CALL_ID,
+					SUM(
+						CASE SLP.CG_OPT_TP_CD
+							WHEN 'LD' THEN ISNULL(SLP.CG_WGT, 0)
+							ELSE 0
+						END
+					)													AS LOADPLANMTG,
+					SUM(
+						CASE SLP.CG_OPT_TP_CD
+							WHEN 'DS' THEN ISNULL(SLP.CG_WGT, 0)
+							ELSE 0
+						END
+					)													AS DISPLANMTG,
+					SUM(
+						CASE SLP.CG_OPT_TP_CD
+							WHEN 'SL' THEN ISNULL(SLP.CG_WGT, 0)
+							ELSE 0
+						END
+					)													AS LOADPLANMTS,
+					SUM(
+						CASE SLP.CG_OPT_TP_CD
+							WHEN 'SD' THEN ISNULL(SLP.CG_WGT, 0)
+							ELSE 0
+						END
+					)													AS DISPLANMTS,
+					SUM(
+						CASE SLP.CG_OPT_TP_CD
+							WHEN 'TL' THEN ISNULL(SLP.CG_WGT, 0)
+							ELSE 0
+						END
+					)													AS LOADPLANMTT,
+					SUM(
+						CASE SLP.CG_OPT_TP_CD
+							WHEN 'TD' THEN ISNULL(SLP.CG_WGT, 0)
+							ELSE 0
+						END
+					)													AS DISPLANMTT
+				FROM
+					TMT_CONFM_SLP_DTL 									SLP
+				WHERE
+					SLP.VSL_CALL_ID 									= #{vslCallId}
+				GROUP BY
+					VSL_CALL_ID
+			) SLPT
+				LEFT OUTER JOIN TMT_LQDCG_OPE_MST RPT2			--ORIGINAL IS LTTMT_LQDCG_OPE_MST
+					ON SLPT.VSL_CALL_ID 								= RPT2.VSL_CALL_ID
+				<if test="workYmd != null and workYmd != ''">
+					AND RPT.WORK_YMD = FORMAT(CONVERT(DATE, #{workYmd}), 'yyyyMMdd')
+				</if>
+				<if test="shift != null and shift != ''">
+					AND RPT.SHFT_ID = #{shift}
+				</if>
+				<if test="opeTp != null and opeTp != ''">
+					AND RPT.OPE_TP = #{opeTp}
+				</if>
+			,(
+				SELECT
+					OPESUM.VSL_CALL_ID,
+					SUM(
+						CASE OPESUM.JOB_TP_CD
+							WHEN 'LD' THEN ISNULL(OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END
+					)													AS LOADACTUALMTG,
+					SUM(
+						CASE OPESUM.JOB_TP_CD
+							WHEN 'DS' THEN ISNULL(OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END
+					)													AS DISACTUALMTG,
+					SUM(
+						CASE OPESUM.JOB_TP_CD
+							WHEN 'SL' THEN ISNULL(OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END
+					)													AS LOADACTUALMTS,
+					SUM(
+						CASE OPESUM.JOB_TP_CD
+							WHEN 'SD' THEN ISNULL(OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END
+					)													AS DISACTUALMTS,
+					SUM(
+						CASE OPESUM.JOB_TP_CD
+							WHEN 'TL' THEN ISNULL(OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END
+					)													AS LOADACTUALMTT,
+					SUM(
+						CASE OPESUM.JOB_TP_CD
+							WHEN 'TD' THEN ISNULL(OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END
+					)													AS DISACTUALMTT
+				FROM
+					TMT_LQDCG_OPE OPESUM
+				WHERE
+					OPESUM.VSL_CALL_ID 									= #{vslCallId}
+				GROUP BY
+					OPESUM.VSL_CALL_ID
+			) LQTOTAL
+        WHERE
+			SLPT.VSL_CALL_ID 											= #{vslCallId}
+		<if test="searchType != 'AMT_INFO'">
+			AND (LQ.VSL_CALL_ID IS NOT NULL AND LQ.VSL_CALL_ID <![CDATA[<>]]> '')
+		</if>
+	</select>
+		
+	<select id="selectConfirmationSlipOperationType"  parameterType="vesselScheduleParm" resultType="vesselScheduleItem">
+		SELECT /*vesselScheduleInternal.selectConfirmationSlipOperationType*/
+			(
+			   	CASE opeTpCd 
+				   	WHEN 'BK' THEN opeTpCd 
+					WHEN 'SS' THEN opeTpCd
+					ELSE cgOpTp
+				END 
+			) AS opeTpCd, 
+			(
+			   	CASE opeTpCd 
+				   	WHEN 'BK' THEN opeTpNm 
+					WHEN 'SS' THEN opeTpNm
+					ELSE cgOpTpNm
+				END 
+			) AS opeTpNm
+		FROM (
+			SELECT 
+				A.PURP_CALL 									AS opeTpCd,
+				B.S_CD_NM  										AS opeTpNm,
+				A.CG_OP_TP 										AS cgOpTp,
+				C.S_CD_NM  										AS cgOpTpNm,
+				A.VSL_CALL_ID
+			FROM
+				TMT_VSL_SCH A
+					LEFT OUTER JOIN (
+									SELECT
+										*
+									FROM
+										TMT_CD_MSTD
+									WHERE
+										M_CD 					= 'POC'
+										AND L_CD 				= 'VC'
+									) B
+								ON A.PURP_CALL = B.S_CD
+					LEFT OUTER JOIN (
+									SELECT
+										*
+									FROM
+										TMT_CD_MSTD
+									WHERE
+										M_CD 					= 'CGFZ'
+										AND L_CD 				= 'VC'
+									) C
+								ON A.CG_OP_TP 					= C.S_CD
+			WHERE
+				A.VSL_CALL_ID 									= #{vslCallId}
+	   ) 														AS AB
+	</select>
+	
+	<select id="selectVesselInfo"  parameterType="vesselScheduleParm" resultType="vesselScheduleItem">
+		SELECT /*vesselScheduleInternal.selectVesselInfo*/
+			VSL_CALL_ID 							AS vslCallId,
+			A.OUTB_VOY 								AS outbVoy,
+			(
+				SELECT TOP 1
+					S_CD_NM
+			  	FROM
+					TMT_CD_MSTD SA
+				WHERE
+					l_CD							='VC'
+					AND M_CD						='CGFZ'
+					AND S_CD 						= A.CG_OP_TP
+			) 										AS cgOpTpNm,
+			<!-- ,TO_CHAR(A.ETA,'DD/MM/YYYY HH24:MI') 	AS eta --> 		
+			B.VSL_NM 								AS vslNm,
+			A.INB_VOY 								AS inbVoy,
+			B.IMO_NO 								AS imoNo,
+			<!-- ,TO_CHAR(A.ETD,'DD/MM/YYYY HH24:MI') 	AS etd -->
+			B.CALL_SIGN 							AS callSign,
+			A.ARRV_SA_ID 							AS arrvSaId,
+			(
+				SELECT TOP 1
+					S_CD_NM
+			  	FROM
+					TMT_CD_MSTD 					SA
+				WHERE
+					L_CD							= 'VC'
+					AND M_CD						= 'VSLTP'
+					AND S_CD 						= B.VSL_TP
+			) 										AS vslTpNm,
+			B.GRT 									AS grt,
+			A.DRF_ARRV								AS drfArrv,
+			A.DRF_DEPTR								AS drfDeptr,
+			DBO.F_CM_CODE_NM('VC',
+							'NATION',
+							b.VSL_FLAG_CD) 			AS vslFlagCd
+		FROM
+			TMT_VSL_SCH 							A,
+			TMT_VSL_PART 							B
+		WHERE
+			A.VSL_CD								= #{vslCd}
+			AND A.CALL_YEAR 						= #{callYear}
+			AND A.CALL_SEQ 							= #{callSeq}
+			AND A.VSL_CD 							= B.VSL_CD
+	</select>
+    
+    <select id="selectBerthInfo"  parameterType="vesselScheduleParm" resultType="vesselScheduleItem">
+		SELECT /*vesselScheduleInternal.selectBerthInfo*/
+			BERTH_TP 			BERTHTP,
+			BERTH_CD 			BERTHCD,
+			BERTH_CD 			BERTHNM,
+			PST_STA 			PSTSTA,
+			PST_END 			PSTEND,
+			LENGTH
+		FROM
+			TMT_BERTH_LOC
+		WHERE
+			BERTH_TP IN ('WRF','NDJ','EDJ')
+		ORDER BY
+			BERTH_CD
+    </select>
+    
+    <select id="selectBerthValidation"  parameterType="vesselScheduleParm" resultType="vesselScheduleItem">
+		SELECT /*vesselScheduleInternal.selectBerthValidation*/
+			(CASE
+				WHEN COUNT(VSL_CALL_ID) = 0 THEN 'Y'
+				ELSE 'N'
+			END) 						AS isValidated
+			FROM
+				TMT_VSL_SCH 			S
+			WHERE
+				(ATB IS NOT NULL AND ATB <![CDATA[<>]]> '')
+			    AND (ATU IS NULL OR ATU = '')
+			    AND BERTH_LOC 			= #{berthLoc}
+			    AND VSL_CALL_ID 		!= #{vslCallId}
+    </select>
+    
+    <select id="selectVslTpCombo"  parameterType="vesselScheduleParm" resultType="vesselScheduleItem">
+		SELECT /*vesselScheduleInternal.selectVslTpCombo*/
+			M_CD 					AS MCD,
+		 	S_CD 					AS SCD,
+			S_CD_NM 				AS SCDNM,
+		    S_CD_DESC 				AS SCDDESC
+		FROM
+			TMT_CD_MSTD
+		WHERE
+			L_CD 					= 'VC'
+		  	AND M_CD 				= 'VSLTP'
+		  	AND S_CD_USE 			= 'Y'
+		  	AND STAFF_CD 			= 'MOSTADMIN'
+		  	AND S_CD NOT IN ('SC1','SC2','SC3','SR1','SR2','SR3')
+    </select>
+    
+    <update id="updateItems_VesselDetail" parameterType="vesselScheduleItem">
+		UPDATE /*vesselScheduleInternal.updateItems_VesselDetail*/
+			TMT_VSL_SCH
+		SET
+			ETB					= #{etb},
+			ETW					= #{etw},
+			ETC					= #{etc},
+			ETU					= #{etu},
+			ETD					= #{etd},
+			ATA					= #{ata},
+			ATD					= #{atd},
+			ATB					= #{atb},
+			ATU					= #{atu},
+			ATC					= #{atc},
+			ATW					= #{atw},
+			WHARF_MARK_FROM 	= TRY_CONVERT(NUMERIC(4,0), #{wharfMarkFrom}),
+			BERTH_LOC 			= #{berthLoc},
+			WHARF_MARK_TO 		= TRY_CONVERT(NUMERIC(4,0), #{wharfMarkTo}),
+			UPDATE_TIME 		= SYSDATETIME(),
+			STAFF_CD 			= #{userId},
+			BERTH_LABEL 		= #{berthLabel}
+		WHERE
+			VSL_CALL_ID 		= #{vslCallId}
+    </update>
+    
+    <insert id="insertConfirmationSlipItems"  parameterType="vesselScheduleItem">
+		INSERT /*vesselScheduleInternal.insertConfirmationSlipItems*/
+		INTO
+			TMT_CONFM_SLP (
+			  VSL_CALL_ID,
+			  SHIP_CALL_NO,
+			  SUMIT_DT,
+			  OPE_TP_CD,
+			  SHRE_TK,
+			  NOF_LINES,
+			  DSCH_HOSE_QTY,
+			  LOAD_HOSE_QTY,
+			  DSCH_ARM_QTY,
+			  LOAD_ARM_QTY,
+			  TEMP_REDY_DT,
+			  DOC_REDY_DT,
+			  CG_REDY_DT,
+			  ULTG_REDY_DT,
+			  TK_REDY_DT,
+			  FILE_CATG_CD,
+			  UPDATE_TIME,
+			  STAFF_CD
+		) VALUES (
+			#{vslCallId},
+			#{shipCallNo},
+			SYSDATETIME(),
+			#{opeTpCd}, 
+			#{shreTk}, 
+			#{nofLines}, 
+			#{dschHoseQty},
+			#{loadHoseQty},
+			#{dschArmQty},
+			#{loadArmQty},
+			#{tempRedyDt},
+			#{docRedyDt},
+			#{cgRedyDt},
+			#{ultgRedyDt},
+			#{tkRedyDt},
+			#{fileCatgCd},
+			SYSDATETIME(),
+			#{userId}
+		)
+	</insert>
+	
+	<select id="selectConfirmationSlipCount"  parameterType="vesselScheduleParm" resultType="vesselScheduleItem">
+		SELECT /*vesselScheduleInternal.selectConfirmationSlipCount*/
+			A.VSL_CALL_ID		VSLCALLID
+		FROM
+			TMT_CONFM_SLP		A
+		WHERE
+			A.VSL_CALL_ID 		= #{vslCallId}
+	</select>
+	
+	<update id="updateConfirmationSlipItems"  parameterType="vesselScheduleItem">
+		UPDATE /*vesselScheduleInternal.updateConfirmationSlipItems*/
+			TMT_CONFM_SLP
+		SET
+			SUMIT_DT        	= SYSDATETIME(),
+		   	OPE_TP_CD       	= #{opeTpCd},
+		   	SHRE_TK         	= #{shreTk},
+		   	NOF_LINES       	= #{nofLines},
+		    DSCH_HOSE_QTY		= #{dschHoseQty},
+		    LOAD_HOSE_QTY		= #{loadHoseQty},
+		    DSCH_ARM_QTY		= #{dschArmQty},
+		    LOAD_ARM_QTY		= #{loadArmQty},
+		    TEMP_REDY_DT		= #{tempRedyDt},
+		    DOC_REDY_DT			= #{docRedyDt},
+		    CG_REDY_DT			= #{cgRedyDt},
+		    ULTG_REDY_DT		= #{ultgRedyDt},
+		    TK_REDY_DT			= #{tkRedyDt},
+			FILE_CATG_CD		= #{fileCatgCd},
+		    STAFF_CD			= #{userId},
+		    UPDATE_TIME 		= SYSDATETIME()
+		 WHERE
+			VSL_CALL_ID 		= #{vslCallId}
+	</update>
+	
+	<insert id="insertConfirmationSlipDetailItems" parameterType="vesselScheduleItem">
+		INSERT /*vesselScheduleInternal.insertConfirmationSlipDetailItems*/
+		INTO
+			TMT_CONFM_SLP_DTL(
+				VSL_CALL_ID,
+				SHIP_CALL_NO,
+				SEQ,
+				CG_TP_CD,
+				OPE_TP_CD,
+				CMDT_CD,
+				OPE_HR,
+				WORK_DD,
+				WORK_HATCH_NO,
+				CG_WGT,
+				CG_VOL,
+				QTY,
+				PKG_TP_CD,
+				CLN_CD,
+				TOP_CG_CD,
+				TMNL_OPR,
+				SHPR_CNSNE,
+				CNSNE,
+				UNNO,
+				IMDG,
+				POL,
+				FDEST,
+				CRC,
+				LORRY_NO,
+				BL_NO,
+				UPDATE_TIME,
+				STAFF_CD,
+				CG_OPT_TP_CD,
+				DG_SEQ,
+				OPE_CATEGORY,
+				RMK,
+				DELV_TP_CD
+			) VALUES (
+				#{vslCallId},
+				#{scn},
+				(SELECT
+					ISNULL(MAX(SEQ), 0) + 1
+				 FROM
+					 TMT_CONFM_SLP_DTL
+				 WHERE
+					 VSL_CALL_ID = #{vslCallId}),
+				#{cgTpCd},
+				#{opeTpCd},
+				#{cmdtCd},
+				CAST(ISNULL(#{opeHr},0) AS NUMERIC(15,3)),
+				CAST(ISNULL(#{workDd},0) AS NUMERIC(10,0)),
+				#{workHatchNo},
+				CAST(ISNULL(#{wgt},0) AS NUMERIC(15,3)),
+				CAST(ISNULL(#{msrmt},0) AS NUMERIC(15,3)),
+				CAST(ISNULL(#{qty},0) AS NUMERIC(10,3)),
+				#{pkgTpCd},
+				#{clnCd},
+				#{topCgCd},
+				#{tmnlOpr},
+				#{shprCnsne},
+				#{cnsne},
+				#{unno},
+				#{imdg},
+				#{pol},
+				#{fdest},
+				#{crc},
+				#{tkNo},
+				#{blNo},
+				SYSDATETIME(),
+				#{userId},
+				#{cgOptTpCd},
+				#{dgSeq},
+				#{opeType},
+				#{remark},
+				#{delvTpCd}
+		)
+	</insert>
+	
+	<update id="updateVesselDetailItem"  parameterType="vesselScheduleItem">
+		UPDATE /*vesselScheduleInternal.updateVesselDetailItem*/
+			TMT_VSL_SCH
+		SET
+			ETB					= #{etb},
+			ETW					= #{etw},
+			ETC					= #{etc},
+			ETU					= #{etu},
+			ETD					= #{etd},
+			ATA					= #{ata},
+			ATD					= #{atd},
+			ATB					= #{atb},
+			ATU					= #{atu},
+			ATC					= #{atc},
+			ATW					= #{atw},
+			WHARF_MARK_FROM 	= TRY_CONVERT(NUMERIC(4,0), #{wharfMarkFrom}),
+			BERTH_LOC 			= #{berthLoc},
+			WHARF_MARK_TO		= TRY_CONVERT(NUMERIC(4,0), #{wharfMarkTo}),
+			UPDATE_TIME			= SYSDATETIME(),
+			STAFF_CD 			= #{userId},
+			BERTH_LABEL 		= #{berthLabel},
+			DOMESTIC_CHK 		= #{domesticChk},
+			READINESS_ATA 		= #{readinessAta},
+			DELAY_RSN_CD 		= #{vslDlRsn}
+		WHERE
+			VSL_CALL_ID			= #{vslCallId}
+    </update>
+	
+	<update id="updateConfirmationSlipDetailItems"  parameterType="vesselScheduleItem">
+		UPDATE /*vesselScheduleInternal.updateConfirmationSlipDetailItems*/
+			TMT_CONFM_SLP_DTL
+		SET
+			CG_TP_CD         	= #{cgTpCd},
+		   	OPE_TP_CD        	= #{opeTpCd},
+			CMDT_CD          	= #{cmdtCd},
+			OPE_HR           	= #{opeHr},
+			WORK_DD          	= #{workDd},
+			WORK_HATCH_NO    	= #{workHatchNo},
+			CG_WGT           	= #{wgt},
+			CG_VOL           	= #{msrmt},
+			QTY              	= #{qty},
+			PKG_TP_CD        	= #{pkgTpCd},
+			CLN_CD           	= #{clnCd},
+			TOP_CG_CD        	= #{topCgCd},
+			TMNL_OPR         	= #{tmnlOpr},
+			SHPR_CNSNE       	= #{shprCnsne},
+			CNSNE       		= #{cnsne},
+			UNNO             	= #{unno},
+			IMDG             	= #{imdg},
+			POL              	= #{pol},
+			FDEST            	= #{fdest},
+			CRC              	= #{crc},
+			LORRY_NO			= #{tkNo},
+			BL_NO            	= #{blNo},
+			STAFF_CD			= #{userId},
+			CG_OPT_TP_CD     	= #{cgOptTpCd},
+			DG_SEQ 				= #{dgSeq},
+			OPE_CATEGORY 		= #{opeType},
+			RMK	 				= #{remark},
+			DELV_TP_CD 			= #{delvTpCd}
+		WHERE
+			VSL_CALL_ID 		= #{vslCallId}
+			AND SEQ 			= #{seq}
+	</update>
+	
+	<delete id="deleteConfirmationSlipDetailItems"  parameterType="vesselScheduleItem">
+		DELETE
+			TMT_CONFM_SLP_DTL
+		WHERE
+			VSL_CALL_ID 		= #{vslCallId}
+			AND CG_TP_CD 		= #{cgTpCd}
+			AND SEQ 			= #{seq}
+	</delete>
+	
+</mapper>

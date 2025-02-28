@@ -1,0 +1,651 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="warehouseBalance">
+	
+	<sql id="getWarehouseBalanceItems">
+		/*warehouseBalance.getWarehouseBalanceItems*/
+		WITH CHANGE_VSL_INFO AS (
+			SELECT 
+				R.VSL_CALL_ID,
+				R.ORG_REF_NO,
+				SUM(INV.CG_WGT) 	AS WGT,
+				SUM(INV.CG_VOL) 	AS MSRMT,
+				SUM (INV.PKG_QTY) 	AS PKGQTY,
+				INV.LOC_ID
+			FROM 
+				TMT_RHDL_CG R 
+			INNER JOIN
+				TMT_INV_LOC INV 
+			ON
+				INV.VSL_CALL_ID = R.NX_VSL_CALL_ID
+				AND INV.REF_NO 	= R.NX_REF_NO
+				 
+			WHERE 
+				R.RHDL_MODE 	= 'C'
+			GROUP BY 
+				R.VSL_CALL_ID, 
+				R.ORG_REF_NO, 
+				INV.LOC_ID
+		),
+		
+		IN_AMT_IMPORT AS
+			(SELECT 
+				AA.VSL_CALL_ID,
+				AA.CG_NO,
+				AA.WH_LOC_ID,
+				AA.ACTMT,
+				AA.ACTM3,
+				AA.ACTQTY,
+				(SELECT 
+					MAX (WH_LOC_TP)
+				 FROM
+					TMT_INV_LOC
+				 WHERE
+					VSL_CALL_ID 	= AA.VSL_CALL_ID
+					AND CG_NO 		= AA.CG_NO
+					AND WH_LOC_ID 	= AA.WH_LOC_ID) WH_LOC_TP,
+				AA.LOC_ID
+			FROM ( 
+				SELECT
+					SUM(IL.CG_WGT)  AS ACTMT,
+					SUM(IL.CG_VOL)  AS ACTM3,
+					SUM(IL.PKG_QTY) AS ACTQTY,
+					IL.VSL_CALL_ID,
+					IL.CG_NO,
+					IL.WH_LOC_ID,
+					IL.LOC_ID
+				FROM 	
+					TMT_INV_LOC IL
+				INNER JOIN 
+					TMT_JOB JO
+				ON 
+					IL.VSL_CALL_ID 		= JO.VSL_CALL_ID
+					AND IL.CG_NO     	= JO.CG_NO
+					AND IL.JOB_NO    	= JO.JOB_NO
+				WHERE 
+					JO.JOB_PURP_CD IN ('AW', 'GW', 'WW')
+					<if test="vslCallId != null and vslCallId != ''">
+						AND IL.VSL_CALL_ID = #{vslCallId}
+					</if>
+					<if test="scn != null and scn != ''">
+						AND IL.SHIP_CALL_NO = #{scn}
+					</if>
+					<if test="whId != null and whId != ''">
+						AND IL.WH_LOC_ID = #{whId}
+					</if>
+				GROUP BY
+					IL.VSL_CALL_ID,
+					IL.CG_NO, 
+					IL.WH_LOC_ID,
+					IL.LOC_ID) AA
+			),
+			
+		OUT_AMT_IMPORT AS
+		(
+			SELECT
+				-SUM(IL.CG_WGT)  AS ACTMT,
+				-SUM(IL.CG_VOL)  AS ACTM3,
+				-SUM(IL.PKG_QTY) AS ACTQTY,
+				IL.VSL_CALL_ID,
+				IL.CG_NO,
+				IL.WH_LOC_ID,
+				IL.LOC_ID,
+				IL.WH_LOC_TP
+		    FROM 	
+				TMT_INV_LOC IL
+			INNER JOIN 
+				TMT_JOB JO
+			ON
+				IL.VSL_CALL_ID 	= JO.VSL_CALL_ID
+				AND IL.CG_NO 	= JO.CG_NO
+				AND IL.JOB_NO 	= JO.JOB_NO
+		    WHERE	
+				JO.JOB_PURP_CD IN ('WA', 'WG')
+				<if test="vslCallId != null and vslCallId != ''">
+					AND IL.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="scn != null and scn != ''">
+					AND IL.SHIP_CALL_NO = #{scn}
+				</if>
+				<if test="whId != null and whId != ''">
+					AND IL.WH_LOC_ID = #{whId}
+				</if>
+		    GROUP BY
+				IL.VSL_CALL_ID,
+				IL.CG_NO,
+				IL.WH_LOC_ID,
+				IL.LOC_ID,
+				IL.WH_LOC_TP
+		),
+		
+		BAL_AMT_IMPORT AS
+		(
+		    SELECT
+				SUM(IL.CG_WGT)  AS BALMT,
+				SUM(IL.CG_VOL)  AS BALM3,
+				SUM(IL.PKG_QTY) AS BALQTY,
+				COUNT(1)        AS LOCCOUNT,
+				IL.VSL_CALL_ID,
+				IL.CG_NO,
+				IL.WH_LOC_ID,
+				IL.LOC_ID
+		    FROM 		
+				TMT_INV_LOC IL
+			INNER JOIN 
+				TMT_JOB JO
+			ON
+				IL.VSL_CALL_ID = JO.VSL_CALL_ID
+				AND IL.CG_NO     = JO.CG_NO
+				AND IL.JOB_NO    = JO.JOB_NO
+		    <where>
+		    	<if test="vslCallId != null and vslCallId != ''">
+		  			AND IL.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="scn != null and scn != ''">
+					AND IL.SHIP_CALL_NO = #{scn}
+				</if>
+				<if test="whId != null and whId != ''">
+			  		AND IL.WH_LOC_ID = #{whId}
+				</if>
+		    </where> 	
+		    
+		    GROUP BY
+				IL.VSL_CALL_ID,
+				IL.CG_NO,
+				IL.WH_LOC_ID,
+				IL.LOC_ID
+		),
+		
+		IN_AMT_EXPORT AS
+			(SELECT 
+				AA.VSL_CALL_ID,
+                AA.WH_LOC_ID,
+                AA.ACTMT,
+                AA.ACTM3,
+                AA.ACTQTY,
+                (SELECT
+					MAX (WH_LOC_TP)
+                 FROM
+					TMT_INV_LOC
+                 WHERE  
+					VSL_CALL_ID = AA.VSL_CALL_ID
+					AND CG_NO IN (SELECT
+									GR_NO 
+								FROM 
+									TMT_GR 
+								WHERE
+									VSL_CALL_ID 		= AA.VSL_CALL_ID
+									AND SHIPG_NOTE_NO 	= AA.SHIPG_NOTE_NO)
+									AND WH_LOC_ID = AA.WH_LOC_ID
+				) WH_LOC_TP,
+                AA.LOC_ID,
+                AA.SHIPG_NOTE_NO
+           FROM (
+				SELECT
+					SUM(IL.CG_WGT)  AS ACTMT,
+					SUM(IL.CG_VOL)  AS ACTM3,
+					SUM(IL.PKG_QTY) AS ACTQTY,
+					IL.VSL_CALL_ID,
+					GR.SHIPG_NOTE_NO,
+					IL.WH_LOC_ID,
+					IL.LOC_ID
+				FROM
+					TMT_INV_LOC IL
+				INNER JOIN
+					TMT_JOB JO
+				ON
+					IL.VSL_CALL_ID 	= JO.VSL_CALL_ID
+					AND IL.CG_NO 	= JO.CG_NO
+					AND IL.JOB_NO 	= JO.JOB_NO
+            INNER JOIN 
+				TMT_GR GR 
+			ON
+				IL.VSL_CALL_ID 		= GR.VSL_CALL_ID
+				AND IL.CG_NO 		= GR.GR_NO
+              
+		    WHERE 	
+				JO.JOB_PURP_CD IN ('AW', 'GW', 'WW')
+				AND ISNULL(JO.RHDL_MODE, ' ') != 'R'
+				<if test="vslCallId != null and vslCallId != ''">
+					AND IL.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="scn != null and scn != ''">
+					AND IL.SHIP_CALL_NO = #{scn}
+				</if>
+				<if test="whId != null and whId != ''">
+					AND IL.WH_LOC_ID = #{whId}
+				</if>
+		    GROUP BY
+				IL.VSL_CALL_ID,
+				GR.SHIPG_NOTE_NO, 
+				IL.WH_LOC_ID,
+				IL.LOC_ID) AA
+		),
+		
+		OUT_AMT_EXPORT AS
+		(
+			SELECT
+				-SUM(IL.CG_WGT)  AS ACTMT,
+				-SUM(IL.CG_VOL)  AS ACTM3,
+				-SUM(IL.PKG_QTY) AS ACTQTY,
+				IL.VSL_CALL_ID,
+				GR.SHIPG_NOTE_NO,
+				IL.WH_LOC_ID,
+				IL.LOC_ID,
+				IL.WH_LOC_TP
+			FROM 	
+				TMT_INV_LOC IL
+			INNER JOIN
+				TMT_JOB JO
+			ON 	
+				IL.VSL_CALL_ID 	= JO.VSL_CALL_ID
+				AND IL.CG_NO 	= JO.CG_NO
+				AND IL.JOB_NO 	= JO.JOB_NO
+			INNER JOIN
+				TMT_GR GR 
+			ON  
+				IL.VSL_CALL_ID 	= GR.VSL_CALL_ID
+				AND IL.CG_NO 	= GR.GR_NO
+		    WHERE	
+				JO.JOB_PURP_CD IN ('WA', 'WG')	
+				<if test="vslCallId != null and vslCallId != ''">
+					AND IL.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="scn != null and scn != ''">
+					AND IL.SHIP_CALL_NO = #{scn}
+				</if>
+				<if test="whId != null and whId != ''">
+					AND IL.WH_LOC_ID = #{whId}
+				</if>
+		    GROUP BY
+				IL.VSL_CALL_ID,
+				GR.SHIPG_NOTE_NO,
+				IL.WH_LOC_ID,
+				IL.LOC_ID,
+				IL.WH_LOC_TP
+		),
+		
+		BAL_AMT_EXPORT AS
+		(
+		    SELECT
+				SUM(IL.CG_WGT)  AS BALMT,
+				SUM(IL.CG_VOL)  AS BALM3,
+				SUM(IL.PKG_QTY) AS BALQTY,
+				COUNT(1)        AS LOCCOUNT,
+				IL.VSL_CALL_ID,
+				GR.SHIPG_NOTE_NO,
+				IL.WH_LOC_ID,
+				IL.LOC_ID
+		    FROM 	
+				TMT_INV_LOC IL
+			INNER JOIN
+				TMT_JOB JO
+			ON
+				IL.VSL_CALL_ID 	= JO.VSL_CALL_ID
+				AND IL.JOB_NO 	= JO.JOB_NO
+			INNER JOIN
+				TMT_GR GR 
+			ON
+				IL.VSL_CALL_ID 	= GR.VSL_CALL_ID
+				AND IL.CG_NO 	= GR.GR_NO
+	
+			<where>
+					CASE WHEN IL.CG_WGT <![CDATA[>]]> 0 THEN IL.CG_NO ELSE '0' END NOT LIKE 'RTS' + '%'
+					<if test="vslCallId != null and vslCallId != ''">
+			  			AND IL.VSL_CALL_ID = #{vslCallId}
+					</if>
+					<if test="scn != null and scn != ''">
+						AND IL.SHIP_CALL_NO = #{scn}
+					</if>
+					<if test="whId != null and whId != ''">
+				  		AND IL.WH_LOC_ID = #{whId}
+					</if>
+			</where>	
+					
+		    GROUP BY
+				IL.VSL_CALL_ID,
+				GR.SHIPG_NOTE_NO,
+				IL.WH_LOC_ID,
+				IL.LOC_ID
+		),
+		
+		GET_RC_STATUS_FOR_SN
+     	AS 	(SELECT TOP(1)
+				SNN.VSL_CALL_ID, SNN.SHIPG_NOTE_NO, JB.RC_CO_CD
+			FROM	
+				TMT_JOB JB
+			INNER JOIN
+				TMT_GR GRR
+			ON
+				JB.VSL_CALL_ID 			= GRR.VSL_CALL_ID
+				AND JB.CG_NO 			= GRR.GR_NO
+			INNER JOIN
+				TMT_SHIPG_NOTE SNN 
+			ON
+				SNN.VSL_CALL_ID 		= GRR.VSL_CALL_ID 
+				AND SNN.SHIPG_NOTE_NO 	= GRR.SHIPG_NOTE_NO
+          WHERE 
+			JB.RC_CO_CD = 'ST' ),
+	getWarehouseBalanceItems AS (
+		SELECT	DISTINCT
+			MST.VSL_CALL_ID                                         AS VSLCALLID,
+			VP.VSL_NM                                               AS VSLNM,
+			BL.MF_DOC_ID                                            AS MFDOCID,
+			BL.BL_NO                                                AS BLNO,
+			''                                                      AS SHIPGNOTENO,
+			BL.LOT_NO                                               AS USERREFNO,
+			BL.CATG_CD                                              AS CATGCD,
+			DBO.F_CM_CODE_NM('MT', 'CATGTP', BL.CATG_CD)            AS CATGNM,
+			BL.CG_TP_CD                                             AS CGTPCD,
+			DBO.F_CM_CODE_NM('MT', 'CGTP', BL.CG_TP_CD)             AS CGTPNM,
+			BL.CMDT_CD                                              AS CMDTCD,
+			(SELECT TOP(1)
+				CMDT_DESC
+			FROM
+				TMT_CMDT
+			WHERE
+				CMDT_CD = BL.CMDT_CD ) AS CMDTNM,
+			SCH.ARRV_SA_ID                                          AS SHACD,
+			DBO.F_GET_PARTNER_INFO(SCH.ARRV_SA_ID, 'ENG_SNM')       AS SHANM,
+			BL.FWRD                                                 AS FWDCD,
+			DBO.F_GET_PARTNER_INFO(BL.FWRD, 'ENG_SNM')              AS FWDNM,
+			BL.SHPR                                                 AS SHPCD,
+			DBO.F_GET_PARTNER_INFO(BL.SHPR, 'ENG_SNM')              AS SHPNM,
+			BL.CNSNE                                                AS CNSNECD,
+			DBO.F_GET_PARTNER_INFO(BL.CNSNE, 'ENG_SNM')             AS CNSNENM,
+			ISNULL(BL.PKG_QTY,0)                                    AS DOCQTY,
+			ISNULL(ROUND(BL.CG_WGT,3),0)                           	AS DOCMT,
+			ISNULL(ROUND(BL.CG_VOL,3),0)                           	AS DOCM3,
+			I.ACTMT                                                 AS STOREDMT,
+			I.ACTM3                                                 AS STOREDM3,
+			I.ACTQTY                                                AS STOREDQTY,
+			BAL.BALMT  - CASE WHEN I.LOC_ID = CHGVSL.LOC_ID THEN ISNULL(CHGVSL.WGT, 0) ELSE 0 END 		AS BALMT,
+			BAL.BALM3  - CASE WHEN I.LOC_ID = CHGVSL.LOC_ID THEN ISNULL(CHGVSL.MSRMT, 0) ELSE 0 END 	AS BALM3,
+			BAL.BALQTY - CASE WHEN I.LOC_ID = CHGVSL.LOC_ID THEN ISNULL(CHGVSL.PKGQTY, 0) ELSE 0 END 	AS BALQTY,
+			I.LOC_ID                                                AS LOCID,
+			I.WH_LOC_ID                                             AS WHID,
+			I.WH_LOC_TP												AS WHTPCD,
+			(SELECT TOP(1)
+				TCM.S_CD_NM 
+			FROM
+				TMT_CD_MSTD TCM,TMT_LOC_DEF D
+			WHERE
+				I.LOC_ID = D.LOC_ID 
+				AND D.LOC_TP_CD = TCM.S_CD 
+				AND TCM.M_CD = 'WHTP') AS WHTPNM,
+			BL.TSPT_TP_CD 											AS TSPTTPCD,
+			DBO.F_CM_CODE_NM('MT', 'TSPTTP', BL.TSPT_TP_CD) 		AS TSPTTPNM
+					
+		FROM 
+			TMT_CG_MST MST
+		INNER JOIN 
+			TMT_BL BL
+		ON
+			MST.VSL_CALL_ID 	= BL.VSL_CALL_ID
+			AND MST.CG_NO     	= BL.BL_NO
+		LEFT OUTER JOIN 
+			TMT_VSL_SCH SCH
+		ON
+			MST.VSL_CALL_ID 	= SCH.VSL_CALL_ID
+		LEFT OUTER JOIN
+			TMT_VSL_PART VP 
+		ON
+			SCH.VSL_CD 			= VP.VSL_CD
+		INNER JOIN 
+			IN_AMT_IMPORT I
+		ON
+			MST.VSL_CALL_ID 	= I.VSL_CALL_ID
+			AND MST.CG_NO     	= I.CG_NO
+		LEFT OUTER JOIN 
+			OUT_AMT_IMPORT O
+		ON
+			MST.VSL_CALL_ID 	= O.VSL_CALL_ID
+			AND MST.CG_NO     	= O.CG_NO
+			AND I.LOC_ID	 	= O.LOC_ID
+		LEFT OUTER JOIN 
+			BAL_AMT_IMPORT BAL
+		ON
+			MST.VSL_CALL_ID 	= BAL.VSL_CALL_ID
+			AND MST.CG_NO     	= BAL.CG_NO
+			AND I.LOC_ID 		= BAL.LOC_ID
+		LEFT OUTER JOIN
+			CHANGE_VSL_INFO CHGVSL 
+		ON
+			MST.VSL_CALL_ID 	= CHGVSL.VSL_CALL_ID 
+			AND MST.CG_NO 		= CHGVSL.ORG_REF_NO
+			AND I.LOC_ID 		= CHGVSL.LOC_ID
+
+		WHERE 
+			1=1
+			AND CASE WHEN (SELECT TOP(1) RC_CO_CD FROM TMT_JOB WHERE VSL_CALL_ID = MST.VSL_CALL_ID AND CG_NO = BL.BL_NO AND RC_CO_CD = 'ST'  ) IS NOT NULL THEN BAL.BALMT ELSE 2 END >
+				CASE WHEN (SELECT TOP(1) RC_CO_CD FROM TMT_JOB WHERE VSL_CALL_ID = MST.VSL_CALL_ID AND CG_NO = BL.BL_NO AND RC_CO_CD = 'ST'  ) IS NOT NULL THEN 0 ELSE 1 END
+			AND CASE WHEN (SELECT TOP(1) RC_CO_CD FROM TMT_JOB WHERE VSL_CALL_ID = MST.VSL_CALL_ID AND CG_NO = BL.BL_NO AND RC_CO_CD = 'ST'  ) IS NOT NULL THEN BAL.BALM3 ELSE 2 END >
+				CASE WHEN (SELECT TOP(1) RC_CO_CD FROM TMT_JOB WHERE VSL_CALL_ID = MST.VSL_CALL_ID AND CG_NO = BL.BL_NO AND RC_CO_CD = 'ST'  ) IS NOT NULL THEN 0 ELSE 1 END
+			AND CASE WHEN (SELECT TOP(1) RC_CO_CD FROM TMT_JOB WHERE VSL_CALL_ID = MST.VSL_CALL_ID AND CG_NO = BL.BL_NO AND RC_CO_CD = 'ST'  ) IS NOT NULL THEN BAL.BALQTY ELSE 2 END >
+				CASE WHEN (SELECT TOP(1) RC_CO_CD FROM TMT_JOB WHERE VSL_CALL_ID = MST.VSL_CALL_ID AND CG_NO = BL.BL_NO AND RC_CO_CD = 'ST'  ) IS NOT NULL THEN 0 ELSE 1 END
+			<if test="vslCallId != null and vslCallId != ''">
+				AND BL.VSL_CALL_ID = #{vslCallId}
+			</if>
+			<if test="scn != null and scn != ''">
+				AND BL.SHIP_CALL_NO = #{scn}
+			</if>
+			<if test="blNo != null and blNo != ''">
+				AND BL.BL_NO = #{blNo}
+			</if>
+			<if test="snNo != null and snNo != ''">
+				AND BL.BL_NO = #{snNo}
+			</if>
+			<if test="mfDocId != null and mfDocId != ''">
+				AND BL.MF_DOC_ID = #{mfDocId}
+			</if>
+			<if test="userRefNo != null and userRefNo != ''">
+				AND BL.LOT_NO = #{userRefNo}
+			</if>
+			<if test="bondedWhYn == 'true'">
+				AND I.WH_LOC_TP	 = 'BW'
+			</if>
+			<if test="whId != null and whId != ''">
+				AND I.WH_LOC_ID = #{whId}
+			</if>
+			<if test="cmdtCd != null and cmdtCd != ''">
+				AND BL.CMDT_CD = #{cmdtCd}
+			</if>
+			<if test="cnsneCd != null and cnsneCd != ''">
+				AND BL.CNSNE = #{cnsneCd}
+			</if>
+			<if test="locTpCd != null and locTpCd != ''">
+				AND 
+					(SELECT TOP(1)
+						TCM.S_CD
+					FROM 
+						TMT_CD_MSTD TCM,TMT_LOC_DEF D
+					WHERE
+						I.LOC_ID = D.LOC_ID 
+						AND D.LOC_TP_CD = TCM.S_CD 
+						AND TCM.M_CD = 'WHTP' ) = #{locTpCd}
+			</if>
+
+		UNION
+    	SELECT	DISTINCT
+			SN.VSL_CALL_ID                                         	AS VSLCALLID,
+			VP.VSL_NM                                               AS VSLNM,
+			''                                            			AS MFDOCID,
+			''                                                      AS BLNO,
+			SN.SHIPG_NOTE_NO                                        AS SHIPGNOTENO,
+			SN.LOT_NO                                               AS USERREFNO,
+			SN.CATG_CD                                              AS CATGCD,
+			DBO.F_CM_CODE_NM('MT', 'CATGTP', SN.CATG_CD)            AS CATGNM,
+			SN.CG_TP_CD                                             AS CGTPCD,
+			DBO.F_CM_CODE_NM('MT', 'CGTP', SN.CG_TP_CD)             AS CGTPNM,
+			SN.CMDT_CD                                              AS CMDTCD,
+			(SELECT TOP(1) 
+				CMDT_DESC 
+			FROM
+				TMT_CMDT 
+			WHERE
+				CMDT_CD = SN.CMDT_CD ) AS CMDTNM,
+			SCH.ARRV_SA_ID                                          AS SHACD,
+			DBO.F_GET_PARTNER_INFO(SCH.ARRV_SA_ID, 'ENG_SNM')       AS SHANM,
+			SN.FWRD                                                 AS FWDCD,
+			DBO.F_GET_PARTNER_INFO(SN.FWRD, 'ENG_SNM')              AS FWDNM,
+			SN.SHPR                                                 AS SHPCD,
+			DBO.F_GET_PARTNER_INFO(SN.SHPR, 'ENG_SNM')              AS SHPNM,
+			SN.CNSNE                                                AS CNSNECD,
+			DBO.F_GET_PARTNER_INFO(SN.CNSNE, 'ENG_SNM')             AS CNSNENM,
+			ISNULL(SN.PKG_QTY,0)                                    AS DOCQTY,
+			ISNULL(ROUND(SN.CG_WGT,3),0)                           	AS DOCMT,
+			ISNULL(ROUND(SN.CG_VOL,3),0)                           	AS DOCM3,
+			I.ACTMT                                                 AS STOREDMT,
+			I.ACTM3                                                 AS STOREDM3,
+			I.ACTQTY                                                AS STOREDQTY,
+			BAL.BALMT  - CASE WHEN I.LOC_ID = CHGVSL.LOC_ID THEN ISNULL(CHGVSL.WGT, 0) ELSE 0 END 		AS BALMT,
+			BAL.BALM3  - CASE WHEN I.LOC_ID = CHGVSL.LOC_ID THEN ISNULL(CHGVSL.MSRMT, 0) ELSE 0 END 	AS BALM3,
+			BAL.BALQTY - CASE WHEN I.LOC_ID = CHGVSL.LOC_ID THEN ISNULL(CHGVSL.PKGQTY, 0) ELSE 0 END 	AS BALQTY,
+			I.LOC_ID                                                AS LOCID,
+			I.WH_LOC_ID                                             AS WHID,
+			I.WH_LOC_TP												AS WHTPCD,
+			(SELECT TOP(1)
+				TCM.S_CD_NM 
+			FROM
+				TMT_CD_MSTD TCM,TMT_LOC_DEF D
+			WHERE 
+				I.LOC_ID = D.LOC_ID 
+				AND D.LOC_TP_CD = TCM.S_CD 
+				AND TCM.M_CD = 'WHTP' ) AS WHTPNM,
+			SN.TSPT_TP_CD 											AS TSPTTPCD,
+			DBO.F_CM_CODE_NM('MT', 'TSPTTP', SN.TSPT_TP_CD) 		AS TSPTTPNM
+					
+		FROM 	
+			TMT_SHIPG_NOTE SN
+		LEFT OUTER JOIN 
+			TMT_VSL_SCH SCH
+		ON
+			SN.VSL_CALL_ID = SCH.VSL_CALL_ID
+		LEFT OUTER JOIN 
+			TMT_VSL_PART VP 
+		ON
+			SCH.VSL_CD = VP.VSL_CD
+		INNER JOIN 
+			IN_AMT_EXPORT I
+		ON
+			SN.VSL_CALL_ID 			= I.VSL_CALL_ID
+			AND SN.SHIPG_NOTE_NO 	= I.SHIPG_NOTE_NO
+		LEFT OUTER JOIN 
+			OUT_AMT_EXPORT O
+		ON
+			SN.VSL_CALL_ID 			= O.VSL_CALL_ID
+			AND SN.SHIPG_NOTE_NO 	= O.SHIPG_NOTE_NO
+			AND I.LOC_ID 			= O.LOC_ID
+		LEFT OUTER JOIN 
+			BAL_AMT_EXPORT BAL
+		ON
+			SN.VSL_CALL_ID 			= BAL.VSL_CALL_ID
+			AND SN.SHIPG_NOTE_NO 	= BAL.SHIPG_NOTE_NO
+			AND I.LOC_ID 			= BAL.LOC_ID
+		LEFT OUTER JOIN 
+			GET_RC_STATUS_FOR_SN RCSN
+		ON
+			SN.VSL_CALL_ID 			= RCSN.VSL_CALL_ID
+			AND SN.SHIPG_NOTE_NO 	= RCSN.SHIPG_NOTE_NO
+		LEFT OUTER JOIN 
+			CHANGE_VSL_INFO CHGVSL
+		ON 
+			SN.VSL_CALL_ID 			= CHGVSL.VSL_CALL_ID 
+			AND SN.SHIPG_NOTE_NO 	= CHGVSL.ORG_REF_NO
+			AND I.LOC_ID 			= CHGVSL.LOC_ID
+
+		WHERE 	
+			1=1
+			AND CASE WHEN RCSN.RC_CO_CD = 'ST' THEN BAL.BALMT ELSE 2 END >
+				CASE WHEN RCSN.RC_CO_CD = 'ST' THEN 0 ELSE 1 END
+			AND CASE WHEN RCSN.RC_CO_CD = 'ST' THEN BAL.BALM3 ELSE 2 END >
+				CASE WHEN RCSN.RC_CO_CD = 'ST' THEN 0 ELSE 1 END
+			AND CASE WHEN RCSN.RC_CO_CD = 'ST' THEN BAL.BALQTY ELSE 2 END >
+				CASE WHEN RCSN.RC_CO_CD = 'ST' THEN 0 ELSE 1 END
+			<if test="vslCallId != null and vslCallId != ''">
+				AND SN.VSL_CALL_ID = #{vslCallId}
+			</if>
+			<if test="scn != null and scn != ''">
+				AND SN.SHIP_CALL_NO = #{scn}
+			</if>
+			<if test="blNo != null and blNo != ''">
+				AND SN.SHIPG_NOTE_NO = #{blNo}
+			</if>
+			<if test="snNo != null and snNo != ''">
+				AND SN.SHIPG_NOTE_NO = #{snNo}
+			</if>
+			<if test="mfDocId != null and mfDocId != ''">
+				AND SN.MF_DOC_ID = #{mfDocId}
+			</if>
+			<if test="userRefNo != null and userRefNo != ''">
+				AND SN.LOT_NO = #{userRefNo}
+			</if>
+			<if test="bondedWhYn == 'true'">
+				AND I.WH_LOC_TP	 = 'BW'
+			</if>
+			<if test="whId != null and whId != ''">
+				AND I.WH_LOC_ID = #{whId}
+			</if>
+			<if test="cmdtCd != null and cmdtCd != ''">
+				AND SN.CMDT_CD = #{cmdtCd}
+			</if>
+			<if test="cnsneCd != null and cnsneCd != ''">
+				AND SN.CNSNE = #{cnsneCd}
+			</if>
+			<if test="locTpCd != null and locTpCd != ''">
+					AND (SELECT TOP(1)
+						TCM.S_CD
+					FROM 
+						TMT_CD_MSTD TCM,TMT_LOC_DEF D
+					WHERE
+						I.LOC_ID 		= D.LOC_ID 
+						AND D.LOC_TP_CD = TCM.S_CD 
+						AND TCM.M_CD 	= 'WHTP' ) = #{locTpCd}
+			</if>
+		)
+	</sql>
+	
+	<select id="selectWarehouseBalanceItems" parameterType="warehouseBalanceParm" resultType="warehouseBalanceItem">
+		<include refid="getWarehouseBalanceItems"/>
+		<choose>
+		
+		 	<when test="pageNo != 0"> 
+				SELECT /*warehouseBalance.selectWarehouseBalanceItems*/
+					*
+				FROM 
+	             	(SELECT
+							innerTable.*, 
+							ROW_NUMBER() OVER(ORDER BY USERREFNO, VSLCALLID, BLNO, SHIPGNOTENO, WHID, LOCID) row_num,
+							SUM(BALMT) 	OVER (PARTITION BY VSLCALLID, USERREFNO) AS TOTALBALMT,
+							SUM(BALM3) 	OVER (PARTITION BY VSLCALLID, USERREFNO) AS TOTALBALM3,
+							SUM(BALQTY) OVER (PARTITION BY VSLCALLID, USERREFNO) AS TOTALBALQTY
+					FROM  
+						getWarehouseBalanceItems AS innerTable 
+					)innerTable 
+					WHERE 
+						innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+				  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) 		* CAST(#{sizePerPage} AS INT)
+		
+			</when>
+					
+			<otherwise> 
+				SELECT /*warehouseBalance.selectWarehouseBalanceItems*/
+					*,
+					SUM(BALMT) 	OVER (PARTITION BY VSLCALLID, USERREFNO) AS TOTALBALMT,
+					SUM(BALM3) 	OVER (PARTITION BY VSLCALLID, USERREFNO) AS TOTALBALM3,
+					SUM(BALQTY) OVER (PARTITION BY VSLCALLID, USERREFNO) AS TOTALBALQTY
+				FROM
+					getWarehouseBalanceItems
+			</otherwise>
+		</choose>
+	 </select>
+	 <select id="selectWarehouseBalanceItemsCount" parameterType="warehouseBalanceParm" resultType="java.lang.String">
+	 	<include refid="getWarehouseBalanceItems"/>
+	 	
+	 	SELECT /*warehouseBalance.selectWarehouseBalanceItemsCount*/
+			COUNT(*)
+		FROM
+			getWarehouseBalanceItems
+	 </select>
+</mapper>

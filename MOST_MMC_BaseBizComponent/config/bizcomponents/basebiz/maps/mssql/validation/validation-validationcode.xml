@@ -1,0 +1,2287 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="validationCode">
+	
+	<select id="selectValidation" parameterType="validationCodeParm" resultType="validationCodeItem">
+		<if test="tyCd == 'SUCCESS_TEST'">
+			SELECT /* validationcode.selectValidation.SUCCESS_TEST */
+				'Y' 											AS isValidated
+		</if>
+
+		<if test="tyCd == 'FAIL_TEST'">
+			SELECT /* validationcode.selectValidation.FAIL_TEST */
+				'N' 											AS isValidated
+		</if>
+
+		<if test='tyCd == "deployStaffRoleCheck"'>
+			SELECT /* validationcode.selectValidation.deployStaffRoleCheck */
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS isValidated 
+			FROM 
+				TMT_ROLE
+			WHERE 
+				EMP_ID  										= #{col1}
+				AND ROLE_CD 									= #{col2}
+		</if>
+
+		<if test='tyCd == "validationSN"'>
+			SELECT /* validationcode.selectValidation.validationSN */
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS isValidated 
+			FROM 
+				TMT_SHIPG_NOTE
+			WHERE 
+				SHIPG_NOTE_NO 									= #{col2}
+				<if test="col1 != null and col1 != ''">
+					AND VSL_CALL_ID 							= #{col1}
+				</if>
+		</if>
+
+		<if test='tyCd == "checkSNEmptyGR"'>
+			SELECT /* validationcode.selectValidation.checkSNEmptyGR */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated 
+			FROM 
+				TMT_SHIPG_NOTE 									SN
+			INNER JOIN 
+				TMT_GR GR
+					ON 	SN.VSL_CALL_ID 							= GR.VSL_CALL_ID
+					AND SN.SHIPG_NOTE_NO 						= GR.SHIPG_NOTE_NO
+				WHERE 
+					SN.SHIPG_NOTE_NO 							= #{col1}
+		</if>
+
+		<if test='tyCd == "checkSNTruckAssign"'>
+			SELECT /* validationcode.selectValidation.checkSNTruckAssign */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated 
+			FROM 
+				TMT_SHIPG_NOTE 									SN
+			INNER JOIN 
+				TMT_ASSIGN_TRANSPORT AG
+					ON 	SN.VSL_CALL_ID 							= AG.VSL_CALL_ID
+					AND SN.SHIPG_NOTE_NO 						= AG.SHIPG_NOTE_NO
+			WHERE 
+					SN.SHIPG_NOTE_NO 							= #{col1}
+		</if>
+
+		<if test='tyCd == "vesselAtbEditable"'>
+			SELECT /* validationcode.selectValidation.vesselAtbEditable */
+				CASE 
+					WHEN FORMAT(MAX(A.ATB), 'dd/MM/yyyy HH:mm') = #{col2} 
+						THEN 'Y'
+					WHEN 
+						(MAX(A.ATU) IS NULL OR MAX(A.ATU) = '') 
+							THEN 'Y'
+					WHEN 
+						(MAX(A.ATW) IS NULL OR MAX(A.ATW) = '') 
+						AND (MAX(A.ATC) IS NULL OR MAX(A.ATC) = '')
+							THEN 'Y'
+					WHEN 
+						(MAX(B.VSL_CALL_ID) IS NULL OR MAX(B.VSL_CALL_ID) = '') 
+						AND (MAX(C.VSL_CALL_ID) IS NULL OR MAX(C.VSL_CALL_ID) = '') 
+							THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated
+			FROM 
+				TMT_VSL_SCH 									A
+			LEFT OUTER JOIN
+				TMT_VSL_SHFT 									B
+					ON A.VSL_CALL_ID 							= B.VSL_CALL_ID
+			LEFT OUTER JOIN
+				TMT_DBL_BNK 									C
+					ON A.VSL_CALL_ID 							= C.VSL_CALL_ID
+			WHERE 
+				A.VSL_CALL_ID 									= #{col1}
+			GROUP BY 
+				A.VSL_CALL_ID
+		</if>
+
+		<if test="tyCd == 'VALID_PTNR'">
+			SELECT /* validationcode.selectValidation.VALID_PTNR */
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS isValidated 
+			FROM 
+				TMT_PTNR PTNR
+			WHERE 
+				1 = 1
+		<!-- 				  	   
+				, TB_PTNR_SYS SYS
+				, TMT_AGENCY_INFO AGNT
+			WHERE  
+				SYS.PTNR_CODE  									=  PTNR.PTNR_CODE(+) 
+				AND  SYS.PTNR_CODE 								=  AGNT.AGENCY_CODE(+) 
+				AND SYS.SYSTEM_CODE 							= 'MPTS' 
+		-->
+			AND PTNR.PTNR_CODE = #{col1}  <!-- OR AGNT.AGENCY_CODE = #{col1} -->
+		</if>
+
+		<if test='tyCd == "atbExist"'>
+			SELECT /* validationcode.selectValidation.atbExist */
+				CASE
+					WHEN (ATB IS NOT NULL AND ATB <![CDATA[<>]]> '')
+						THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated
+			FROM 
+				TMT_VSL_SCH
+			WHERE 
+				VSL_CALL_ID 									= #{col1}
+		</if>
+
+		<if test='tyCd == "dptExist"'>
+			SELECT /* validationcode.selectValidation.dptExist */
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS isValidated 
+			FROM 
+				TMT_VSL_OPE_RPT_DTL
+			WHERE 
+				VSL_CALL_ID 									= #{col1}
+				AND (DPT_AGENT IS NOT NULL 						AND DPT_AGENT <![CDATA[<>]]> '')
+				AND UPDATE_TIME 								<![CDATA[ < ]]>  SYSDATETIME()
+		</if>
+
+		<if test='tyCd == "validateWorkDate"'>
+			SELECT TOP(1) /* validationcode.selectValidation.validateWorkDate */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated
+			FROM 
+				TMT_DEPY
+			WHERE 
+				EMP_ID 											= #{col1}
+				AND WORK_YMD 									= FORMAT(CONVERT(DATE, #{col2}, 103), 'yyyyMMdd')
+				AND WORK_CD 									= 'WD'
+				AND SHFT_ID 									<![CDATA[ <> ]]> #{col3}
+			GROUP BY 
+				WORK_CD,
+				VSL_CALL_ID,
+				WORK_YMD,
+				SHFT_ID,EMP_ID
+		</if>
+
+		<if test='tyCd == "isValidWorkingTime"'>
+			SELECT /* validationcode.selectValidation.isValidWorkingTime */
+				dbo.F_CHK_WORKING_TIME(#{col1}, #{col2}) 		AS isValidated			
+		</if>
+
+		<if test='tyCd == "dblBnkValid"'>
+			<!-- If there is Double Banking info later than this, can't delete. (Including mother vessel and 2nd vessel).  -->
+			SELECT /* validationcode.selectValidation.dblBnkValid */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated
+			FROM 
+				TMT_DBL_BNK
+			WHERE 
+				(VSL_CALL_ID 									= #{col1} 
+					AND ATB 									> CONVERT(DATETIME, #{col2}, 103))
+				OR (DBL_BNK_SHIP1 = #{col1} 
+					AND SHIP1_ATB 								> CONVERT(DATETIME, #{col2}, 103))
+		</if>
+
+		<if test='tyCd == "laterEQValid"'>
+			<!-- If there is Equipment Setting info after ATB of Shifting, cant' delete. -->
+			SELECT /* validationcode.selectValidation.laterEQValid */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated
+			FROM 
+				TMT_VSL_OPE_RPT_DTL
+			WHERE 
+				VSL_CALL_ID 									= #{col1}
+				AND (WORK_ST_DT > CONVERT(DATETIME, #{col2}, 103) 
+					OR WORK_END_DT > CONVERT(DATETIME, #{col2}, 103))
+		</if>
+
+		<if test='tyCd == "stsValid"'>
+			<!-- If there is STS info, can't delete. -->
+			SELECT /* validationcode.selectValidation.stsValid */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated
+			FROM 
+				TMT_STS
+			WHERE 
+				VSL_CALL_ID 									= #{col1}
+		</if>
+
+		<if test='tyCd == "shftValid"'>
+			<!-- If there is Shifting info later than this, can't delete. -->
+			SELECT /* validationcode.selectValidation.shftValid */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated
+			FROM 
+				TMT_VSL_SHFT
+			WHERE
+				VSL_CALL_ID 									= #{col1}
+				AND ATB_DT 										> CONVERT(DATETIME, #{col2}, 103)			
+		</if>
+
+		<if test='tyCd == "dgConfirmedCmdt"'>
+			<!-- checking dg confirmed commodity in vor liquid -->
+			SELECT /* validationcode.selectValidation.dgConfirmedCmdt */
+				CASE 
+					WHEN A.SEQ IS NULL OR A.SEQ = ''
+						THEN 'Y'
+					ELSE 'N'
+				END												AS ISVALIDATED
+			FROM 
+				TMT_VSL_SCH 									B, 
+				TMT_CONFM_SLP_DTL 								C
+			LEFT OUTER JOIN
+				TMT_DG 											A
+					ON C.DG_SEQ 								= A.SEQ
+			WHERE 
+				C.VSL_CALL_ID 									= #{col1}
+				AND C.VSL_CALL_ID 								= B.VSL_CALL_ID
+				AND C.CMDT_CD 									= #{col2}
+				AND C.CG_OPT_TP_CD 								= #{col3}
+				AND C.CG_TP_CD 									= #{col4}
+				<if test="col5 != null and col5 != ''">
+				AND C.TMNL_OPR 									= #{col5}
+				</if>
+		</if>
+			
+		<!-- checking conditon in Package Tariff Rate Detail -->
+		<if test='tyCd == "checkConditon"'>
+			SELECT /* validationcode.selectValidation.checkConditon */
+				CASE COUNT(B.PKG_NM)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END												AS ISVALIDATED
+			FROM  
+				TMT_B_TRF_CD 									A
+			LEFT OUTER JOIN
+				TMT_B_TRF 										B
+					ON  A.TRF_CD 								= B.TRF_CD
+					AND A.SUB_TRF_CD 							= B.SUB_TRF_CD,
+				TMT_B_AGRE_COND 								C, 
+				TMT_B_AGRE_COND_PRPT 							D,
+
+				(SELECT 
+					(CASE 
+						WHEN (COUNT(X.AGRE_NO) = 6) 
+							THEN X.AGRE_NO 
+						ELSE 'N' 
+					END) 										AS AGRE_NO 
+				FROM  
+					TMT_B_AGRE_COND 							X 
+				WHERE  
+					NOT ((X.PRPT_CD != #{col6} 		OR  X.CHR_VAL != #{col7}) 
+					AND	(X.PRPT_CD 	!= #{col8} 		OR  X.CHR_VAL != #{col9}) 
+					AND (X.PRPT_CD 	!= #{col10} 	OR  X.CHR_VAL != #{col11})
+					AND (X.PRPT_CD 	!= #{col12} 	OR  X.CHR_VAL != #{col13}) 
+					AND (NOT(X.PRPT_CD = #{col14} 	AND X.TIER_VAL1 = #{col15} AND X.TIER_VAL2 = #{col16}))
+					AND (NOT(X.PRPT_CD = #{col17} 	AND X.TIER_VAL1 = #{col18} AND X.TIER_VAL2 = #{col19}))
+				) 
+				GROUP BY 
+					X.AGRE_NO) 									Y
+			WHERE 
+				1 = 1
+				AND B.PRC_TP_CD 								= 'K'	
+				AND A.VLD_YN 									= 'Y'	
+				<!-- 
+				AND A.SYTM_ID 									= 'MT' 
+				-->
+				AND C.AGRE_NO 									= D.AGRE_NO	
+				AND C.PRPT_CD 									= D.PRPT_CD 
+				AND C.AGRE_NO 									= Y.AGRE_NO 
+				AND B.PKG_NM 									= #{col1}
+				AND B.PTNR_CD 									= #{col2}
+				AND B.RMK 										= #{col3}
+				AND B.APLY_YMD 									= FORMAT(CONVERT(DATETIME, #{col4}, 103),'yyyyMMdd')
+				AND b.EXPR_YMD 									= FORMAT(CONVERT(DATETIME, #{col5}, 103),'yyyyMMdd')  
+		</if>
+
+		<!-- checking vor liquid weather there is vor in the jpvc -->
+		<if test='tyCd == "isVORLiquidSC"'>
+			SELECT /* validationcode.selectValidation.isVORLiquidSC */ 				
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS ISVALIDATED 
+			FROM 
+				TMT_LQDCG_OPE
+			WHERE 
+				VSL_CALL_ID 									= #{col1}
+				AND (SHPR = #{col2} OR CNSNE = #{col2})
+		</if>
+
+		<if test='tyCd == "checkRcDelete"'>
+			SELECT	/* validationcode.selectValidation.checkRcDelete */
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS ISVALIDATED 
+			WHERE #{col3} IN (
+						SELECT 
+							JOB_NO 
+						FROM 
+							TMT_JOB B
+						WHERE 
+							B.JOB_GROUP =	(SELECT 
+												GP.JOB_GROUP 
+											FROM 
+												TMT_JOB GP
+											WHERE 
+												GP.JOB_NO =	(SELECT 
+																MAX(MX.JOB_NO) 
+															FROM 
+																TMT_JOB MX 
+															WHERE 
+																MX.VSL_CALL_ID 	= #{col1} 
+																AND MX.CG_NO 	= #{col2})))
+		</if>
+
+		<if test='tyCd == "checkMegaPayer"'>
+			SELECT /* validationcode.selectValidation.checkMegaPayer */			
+				CASE US.USER_TYPE
+					WHEN 'E' THEN 
+								(SELECT 
+									CASE COUNT(*)
+										WHEN 0 THEN 'N'
+										ELSE 'Y'
+									END
+								FROM 
+									TMT_PTNR_USER
+								WHERE 
+									USER_ID = US.USER_ID)
+					ELSE 'Y'
+				END 											AS ISVALIDATED 
+			FROM 
+				TMT_USER_INFO 									US
+			WHERE 
+				US.USER_ID 										= #{col1} 
+		</if>
+
+		<if test='tyCd == "checkShipgAgent"'>
+			SELECT /* validationcode.selectValidation.checkShipgAgent */		
+				CASE US.USER_TYPE
+					WHEN 'E' THEN
+								CASE 
+									(SELECT
+										CASE COUNT(*)
+											WHEN 0 THEN 'N'
+											ELSE 'Y'
+										END
+									FROM 
+										TMT_PTNR_USER 
+									WHERE 
+										PTNR_TYPE 	IN ( 'FWD' , 'CNS' )
+										AND USER_ID = US.USER_ID
+									)
+									WHEN 'N' 
+										THEN	
+											(SELECT 
+												CASE COUNT(*)
+													WHEN 0 THEN 'N'
+													ELSE 'Y'
+												END
+											FROM 
+												TMT_VSL_SCH SH
+											WHERE 
+												VSL_CALL_ID = #{col1}
+												AND EXISTS 
+													(SELECT 
+														'1' 
+													FROM 
+														TMT_AGENCY_INFO 
+													WHERE 
+														PTNR_TYPE = 'SHA' 
+														AND USER_ID = US.USER_ID
+														AND AGENCY_CODE = SH.ARRV_SA_ID))					
+									ELSE 'Y'
+								END
+					ELSE 'Y'
+				END												AS ISVALIDATED 
+			FROM 
+				TMT_USER_INFO 									US
+			WHERE 
+				US.USER_ID 										= #{col2}
+		</if>
+
+		<if test='tyCd == "checkSvcOdrExist"'>
+			SELECT /* validationcode.selectValidation.checkSvcOdrExist */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated
+			FROM 
+				TMT_SVC_ODR_CONF
+			WHERE 
+				CATEGORY1 										= #{col1}
+				AND CATEGORY2 									= #{col2}
+				AND CATEGORY3 									= #{col3}
+				<if test="col4 != null and col4 != ''">
+					AND SEQ 									&lt;&gt; #{col4}
+				</if>
+		</if>
+
+		<!-- checking jpvc if that is belong to he's company -->
+		<if test='tyCd == "isAuthShaJpvc"'>
+			SELECT /* validationcode.selectValidation.isAuthShaJpvc */
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS isValidated 
+			FROM 
+				TMT_VSL_SCH 									A, 
+				TMT_VSL_PART 									B					<!-- TVC_VSL_PART 									B INVALID-->
+			WHERE 
+				VSL_CALL_ID 									= #{col1}
+				AND A.VSL_CD 									= B.VSL_CD                    
+				AND B.SA_CORP_ID 								= #{col2}
+		</if>
+
+		<if test='tyCd == "chkGroupEmpExists"'>
+			SELECT /* validationcode.selectValidation.chkGroupEmpExists */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated
+			FROM 
+				TMT_SHFT_GRP_EMP
+			WHERE 
+				SHFT_GRP_CD 									= #{col1}
+		</if>
+
+		<if test='tyCd == "checkInvoice"'>
+			SELECT /* validationcode.selectValidation.checkInvoice */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated
+			FROM 
+				TMT_B_IV 
+			WHERE 
+				VSL_CALL_ID 									= #{col1} 
+				AND STAT_CD 									='IV'
+		</if>
+
+		<if test='tyCd == "chkAllowExisted"'>
+			SELECT /* validationcode.selectValidation.chkAllowExisted */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated
+			FROM 
+				TMT_ALLOW_RATE A 														<!-- THIS TABLE HAS BEEN DELETED-->
+			WHERE 
+				APP_TYPE  										= 'INCE'
+				<if test="col1 != null and col1 != ''">
+					AND ROLE1 									= #{col1}
+				</if>
+				<if test="col2 != null and col2 != ''">
+					AND (
+						<if test="col3 != null and col3 != ''">
+						CONVERT(DATE, ST_DATE, 112) 
+							BETWEEN CONVERT(DATE, #{col2}, 103)
+								AND CONVERT(DATE, #{col3}, 103)
+						OR 	(CONVERT(DATE, ED_DATE, 112) 
+								BETWEEN CONVERT(DATE, #{col2}, 103) 
+									AND CONVERT(DATE, #{col3}, 103))
+						OR 	(CONVERT(DATE, #{col2}, 103) 
+								BETWEEN CONVERT(DATE, ST_DATE, 112)
+									AND CONVERT(DATE, ED_DATE, 112))
+						OR 	(CONVERT(DATE, #{col3}, 103) 
+								BETWEEN CONVERT(DATE, ST_DATE, 112)
+									AND CONVERT(DATE, ED_DATE, 112))
+						</if>
+					)
+				</if>
+		</if>
+
+		<if test='tyCd == "chkAllowExistedFUEL"'>
+			SELECT /* validationcode.selectValidation.chkAllowExistedFUEL */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated 
+			FROM 
+				TMT_ALLOW_RATE 									A 						<!-- THIS TABLE HAS BEEN DELETED-->
+			WHERE 
+				APP_TYPE  										= 'FUEL'
+				<if test="col1 != null and col1 != ''">
+					AND STAFF_ID = #{col1}
+				</if>
+				<if test="col2 != null and col2 != ''">
+					AND
+						(<if test="col3 != null and col3 != ''">
+							CONVERT(DATE, ST_DATE, 112) 
+								BETWEEN CONVERT(DATE, #{col2}, 103)
+									AND CONVERT(DATE, #{col3}, 103)
+							OR 	(CONVERT(DATE, ED_DATE, 112) 
+									BETWEEN CONVERT(DATE, #{col2}, 103) 
+										AND CONVERT(DATE, #{col3}, 103))
+							OR 	(CONVERT(DATE, #{col2}, 103) 
+									BETWEEN CONVERT(DATE, ST_DATE, 112)
+										AND CONVERT(DATE, ED_DATE, 112))
+							OR	(CONVERT(DATE, #{col3}, 103) 
+									BETWEEN CONVERT(DATE, ST_DATE, 112)
+										AND CONVERT(DATE, ED_DATE, 112))
+							</if>
+						)
+				</if>   
+
+		</if>
+
+		<if test='tyCd == "chkAllowExistedTON"'>
+			SELECT /* validationcode.selectValidation.chkAllowExistedTON */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated 
+			FROM 
+				TMT_ALLOW_RATE 									A 						<!-- THIS TABLE HAS BEEN DELETED-->
+			WHERE 
+				APP_TYPE  										= 'TONN'
+				<if test="col1 != null and col1 != ''">
+					AND STAFF_ID = #{col1}
+				</if>
+				<if test="col2 != null and col2 != ''">
+					AND (
+						<if test="col3 != null and col3 != ''">
+							CONVERT(DATE, ST_DATE, 112) 
+								BETWEEN CONVERT(DATE, #{col2}, 103)
+									AND CONVERT(DATE, #{col3}, 103)
+							OR 	(CONVERT(DATE, ED_DATE, 112) 
+									BETWEEN CONVERT(DATE, #{col2}, 103) 
+										AND CONVERT(DATE, #{col3}, 103))
+							OR 	(CONVERT(DATE, #{col2}, 103) 
+									BETWEEN CONVERT(DATE, ST_DATE, 112)
+										AND CONVERT(DATE, ED_DATE, 112))
+							OR	(CONVERT(DATE, #{col3}, 103) 
+									BETWEEN CONVERT(DATE, ST_DATE, 112)
+										AND CONVERT(DATE, ED_DATE, 112))
+						</if>
+					)
+				</if>				
+		</if>
+		
+		<if test='tyCd == "chkAllowExistedALLO"'>
+			SELECT /* validationcode.selectValidation.chkAllowExistedALLO */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated  
+			FROM 
+				TMT_ALLOW_RATE 									A 						<!-- THIS TABLE HAS BEEN DELETED-->
+			WHERE 
+				APP_TYPE  										= 'ALRT'
+				<if test="col1 != null and col1 != ''">
+					AND ALLOWANCE 								= #{col1}
+				</if>
+				<if test="col2 != null and col2 != ''">
+					AND (
+						<if test="col3 != null and col3 != ''">
+							CONVERT(DATE, ST_DATE, 112) 
+								BETWEEN CONVERT(DATE, #{col2}, 103)
+									AND CONVERT(DATE, #{col3}, 103)
+							OR 	(CONVERT(DATE, ED_DATE, 112) 
+									BETWEEN CONVERT(DATE, #{col2}, 103) 
+										AND CONVERT(DATE, #{col3}, 103))
+							OR 	(CONVERT(DATE, #{col2}, 103) 
+									BETWEEN CONVERT(DATE, ST_DATE, 112)
+										AND CONVERT(DATE, ED_DATE, 112))
+							OR	(CONVERT(DATE, #{col3}, 103) 
+									BETWEEN CONVERT(DATE, ST_DATE, 112)
+										AND CONVERT(DATE, ED_DATE, 112))
+						</if>
+					)
+				</if>
+		</if>
+
+		<!-- check for multi skill -->		        
+		<if test='tyCd == "chkMuskExisted"'>
+			SELECT /* validationcode.selectValidation.chkMuskExisted */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated 
+			FROM 
+				TMT_ALLOW_RATE 									A 						<!-- THIS TABLE HAS BEEN DELETED-->
+			WHERE APP_TYPE  									= 'MUSK'
+				<if test="col1 != null and col1 != ''">
+					AND STAFF_ID 								= #{col1}
+				</if>
+				<if test="col2 != null and col2 != ''">
+					AND (
+						<if test="col3 != null and col3 != ''">
+							CONVERT(DATE, ST_DATE, 112) 
+								BETWEEN CONVERT(DATE, #{col2}, 103)
+									AND CONVERT(DATE, #{col3}, 103)
+							OR 	(CONVERT(DATE, ED_DATE, 112) 
+									BETWEEN CONVERT(DATE, #{col2}, 103) 
+										AND CONVERT(DATE, #{col3}, 103))
+							OR 	(CONVERT(DATE, #{col2}, 103) 
+									BETWEEN CONVERT(DATE, ST_DATE, 112)
+										AND CONVERT(DATE, ED_DATE, 112))
+							OR	(CONVERT(DATE, #{col3}, 103) 
+								BETWEEN CONVERT(DATE, ST_DATE, 112)
+									AND CONVERT(DATE, ED_DATE, 112))
+						</if>
+					)
+				</if>
+		</if>
+
+		<if test='tyCd == "checkUserRole"'>
+			SELECT /* validationcode.selectValidation.checkUserRole */
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS isValidated  
+			FROM 
+				TMT_USER_AUTH
+			WHERE 
+				AUTH_GRP 										= 'GCD325' 
+				AND USER_ID 									= #{col1}
+		</if>
+
+		<if test='tyCd == "checkUserRoleCS"'>
+			SELECT /* validationcode.selectValidation.checkUserRoleCS */
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS isValidated 
+			FROM 
+				TMT_USER_AUTH
+			WHERE 
+				AUTH_GRP 										= 'GCD317' 
+				AND USER_ID 									= #{col1}
+		</if>
+
+		<if test='tyCd == "checkUserJpl"'>
+			SELECT /* validationcode.selectValidation.checkUserJpl */
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS isValidated  
+			FROM 
+				TMT_USER_AUTH
+			WHERE 
+				AUTH_GRP 										= 'GCD347' 
+				AND USER_ID 									= #{col1}
+		</if>
+
+		<if test='tyCd == "checkAdminBilling"'>
+			SELECT /* validationcode.selectValidation.checkAdminBilling */
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS isValidated  
+			FROM 
+				TMT_USER_AUTH
+			WHERE 
+				AUTH_GRP 										IN ( 'GCD338' ,'GCD336')
+				AND USER_ID 									= #{col1}
+		</if>
+
+		<if test='tyCd == "checkStatus"'>
+			SELECT /* validationcode.selectValidation.checkStatus */
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS isValidated  
+			FROM TMT_DEPY
+			WHERE 
+				EMP_ID 											= #{col1}
+				AND SHFT_ID 									= #{col2}
+				AND WORK_YMD 									= FORMAT(CONVERT(DATE, #{col3}, 103), 'yyyyMMdd')
+				AND WORK_CD 									= #{col4}
+		</if>
+
+		<if test='tyCd == "checkExisted"'>
+			SELECT TOP(1) /* validationcode.selectValidation.checkExisted */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+				ELSE 'N'
+			END 											AS isValidated
+			FROM 
+				TMT_DLY_BRK 
+			WHERE
+				1 = 1
+			<if test="col1 != null and col1 != ''">
+				AND VSL_CALL_ID 							= #{col1}
+				</if>
+			<if test="col11 != null and col11 != ''">
+				AND seq 									!= #{col11}
+			</if>
+			<if test="col2 != null and col2 != ''">
+				AND INPT_DT 								= CONVERT(date, #{col2}, 103) 
+			</if>
+			<if test="col3 != null and col3 != ''">
+				AND shft_id  								= #{col3}
+			</if>
+			<if test="col4 != null and col4 != ''">
+				AND RSN_CD   								= #{col4}
+			</if>
+			<if test="col5 != null and col5 != ''">
+				AND EQ_NO    								= #{col5}
+			</if>
+			<if test="col6 != null and col6 != ''">
+				AND HATCH_NO     							= #{col6}
+			</if>
+			<if test="col7 != null and col7 != ''">
+				AND ACPT_YN      							= #{col7}
+			</if>
+			<if test="col8 != null and col8 != ''">
+				AND HATCH_DRT_CD       						= #{col8}
+			</if>
+			<if test="col9 != null and col9 != ''">
+				AND (
+					<if test="col10 != null and col10 != ''">
+						ST_DT 	BETWEEN CONVERT(DATETIME, #{col9}, 103)
+									AND CONVERT(DATETIME, #{col10}, 103)
+
+						OR END_DT 	BETWEEN CONVERT(DATETIME, #{col9}, 103) 
+										AND CONVERT(DATETIME, #{col10}, 103)
+
+						OR 	(CONVERT(DATETIME, #{col9}, 103) 
+							BETWEEN ST_DT
+								AND END_DT)
+
+						OR(CONVERT(DATETIME, #{col10}, 103) 
+							BETWEEN ST_DT
+								AND END_DT)
+					</if>
+					<if test="col10 == null or col10 == ''">
+						END_DT <![CDATA[>]]> CONVERT(DATETIME, #{col9}, 103)
+					</if>
+				)
+			</if>
+				
+			<if test="col12 != null and col12 != ''">
+				AND (
+					ST_DT 		<![CDATA[<]]> 	CONVERT(DATETIME, #{col12}, 103) 
+					AND	END_DT 	<![CDATA[>]]> 	CONVERT(DATETIME, #{col12}, 103)
+					
+					<if test="col13 != null and col13 != ''">
+						OR(
+							ST_DT 		<![CDATA[<]]> 	CONVERT(DATETIME, #{col13}, 103) 
+							AND END_DT 	<![CDATA[>=]]> 	CONVERT(DATETIME, #{col13}, 103)
+						)
+					</if>
+				) 
+			</if>
+		</if>
+
+		<if test='tyCd == "checkCNS"'>
+			SELECT /* validationcode.selectValidation.checkCNS */
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 										AS isValidated 
+			FROM 
+				TB_PTNR 								PTNR, 							<!-- INVALID TABLE-->
+				TB_PTNR_SYS 							SYS
+			WHERE     
+				PTNR.PTNR_CODE 		= SYS.PTNR_CODE
+				AND SYS.SYSTEM_CODE = 'MPTS'
+				AND PTNR_TYPE		 = 'CNS'
+				AND PTNR.PTNR_CODE 	LIKE #{col1}
+		</if>
+		
+		<if test='tyCd == "checkCTT"'>
+			SELECT
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 										AS isValidated
+			FROM 
+				TB_PTNR 									PTNR, 						<!-- INVALID TABLE-->
+				TB_PTNR_SYS 								SYS
+			WHERE     
+				PTNR.PTNR_CODE 								= SYS.PTNR_CODE
+				AND SYS.SYSTEM_CODE 						= 'MPTS'
+				AND PTNR_TYPE 								= 'CTT'
+				AND PTNR.PTNR_CODE 							LIKE #{col1}
+		</if>
+		
+		<if test='tyCd == "checkFWD"'>
+			SELECT /* validationcode.selectValidation.checkFWD */
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 										AS isValidated
+			FROM 
+				TB_PTNR_SYS 								SYS							<!-- INVALID TABLE-->
+			LEFT OUTER JOIN 
+				TB_PTNR 									PTNR
+					ON SYS.PTNR_CODE 						= PTNR.PTNR_CODE
+			LEFT OUTER JOIN
+				TB_AGENCY_INFO 								AGN
+					ON SYS.PTNR_CODE 						= AGNT.AGENCY_CODE
+			WHERE     
+				1 = 1
+					<!-- AND SYS.SYSTEM_CODE = 'MPTS'  -->
+				AND (PTNR.PTNR_CODE LIKE #{col1} 			OR AGNT.AGENCY_CODE = #{col1})
+		</if>
+		
+		<if test='tyCd == "checkCTTForHHT"'>
+			SELECT /* validationcode.selectValidation.checkCTTForHHT */
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 										AS isValidated
+			FROM 
+				TB_PTNR 									PTNR, 						<!-- INVALID TABLE-->
+				TB_PTNR_SYS 								SYS
+			WHERE     
+				PTNR.PTNR_CODE 								= SYS.PTNR_CODE
+					AND SYS.SYSTEM_CODE 						= 'MPTS'
+					AND PTNR_TYPE 								= 'CTT'
+					AND PTNR.PTNR_CODE 						= #{col1}
+		</if>
+		
+		<if test='tyCd == "checkFWDForHHT"'>
+			SELECT 
+			    CASE 
+			        WHEN COUNT(*) = 0 THEN 'N'
+			        ELSE 'Y'
+			    END AS isValidated
+			FROM 
+			    TMT_PTNR PTNR 
+			    LEFT JOIN TMT_AGENCY_INFO AGNT 
+			        ON PTNR.PTNR_CODE = AGNT.AGENCY_CODE
+			WHERE 
+			    PTNR.PTNR_TYPE IN ('FWD', 'SHA', 'CNS', 'CTT', 'TMO')
+			    AND (PTNR.PTNR_CODE = #{col1} OR AGNT.AGENCY_CODE = #{col1});
+
+		</if>
+		
+		<if test='tyCd == "IMDG"'>
+			SELECT /* validationcode.selectValidation.IMDG */
+				CASE
+					WHEN UNNO IS NULL OR UNNO = ''
+						THEN 'N'
+					ELSE 'Y'
+				END											AS isValidated
+			FROM 
+				TMT_CMDT
+			WHERE 
+				CMDT_CD 									LIKE #{col1}
+		</if>
+
+		<if test='tyCd == "validationFinalCargo"'>
+			SELECT /* validationcode.selectValidation.validationFinalCargo */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END												AS isValidated,
+				dbo.F_GET_CARGO_STAT(#{col1},#{col2})			AS ref5
+			FROM 
+				TMT_JOB
+			WHERE     
+				VSL_CALL_ID 									= #{col1}
+				AND FNL_OPE_YN 									= 'Y'
+				AND JOB_TP_CD 									='LD' 
+				AND JOB_PURP_CD 								IN ('AV', 'GV')
+				AND CG_NO 										IN 	(SELECT 
+																		GR_NO
+																	FROM 
+																		TMT_GR
+																	WHERE 
+																		SHIPG_NOTE_NO = #{col2})
+		</if>
+
+		<if test='tyCd == "validationFinalRORO"'>
+			SELECT /* validationcode.selectValidation.validationFinalRORO */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 										AS isValidated,
+				dbo.F_GET_CARGO_STAT(#{col1},#{col2})		AS ref5
+			FROM 
+				TMT_JOB
+			WHERE     
+				VSL_CALL_ID = #{col1}
+				AND JOB_TP_CD ='LD' AND JOB_PURP_CD IN ('AV', 'GV')
+				AND CG_NO IN (SELECT SHIPG_NOTE_NO
+								FROM TMT_GR
+								WHERE SHIPG_NOTE_NO = #{col2})
+		</if>
+
+		<if test='tyCd == "validationFinalCargo4HandlingIn"'>
+			SELECT /* validationcode.selectValidation.validationFinalCargo4HandlingIn */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated
+				FROM TMT_CG_MST
+			WHERE     
+				VSL_CALL_ID 									= #{col1}
+				AND cg_no  										IN 	(SELECT 
+																		GR_NO
+																	FROM 
+																		TMT_GR
+																	WHERE 
+																		SHIPG_NOTE_NO = #{col2})
+				AND (HDL_IN_END_DT IS NOT NULL					AND HDL_IN_END_DT <![CDATA[<>]]> '')
+		</if>
+
+		<if test='tyCd == "validationFinalUpdate4Wh"'>
+			SELECT /* validationcode.selectValidation.validationFinalUpdate4Wh */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated
+			FROM 
+				TMT_CG_MST
+			WHERE   
+				VSL_CALL_ID 									= #{col1}
+				AND cg_no  										IN 	(SELECT 
+																		GR_NO
+																	FROM 
+																		TMT_GR
+																	WHERE 
+																		SHIPG_NOTE_NO = #{col2})
+				AND (HDL_IN_END_DT IS NOT NULL					AND HDL_IN_END_DT <![CDATA[<>]]> '')
+		</if>
+
+		<if test='tyCd == "validationFinalUpdate4Loading"'>
+			SELECT /* validationcode.selectValidation.validationFinalUpdate4Loading */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated
+			FROM 
+				TMT_JOB
+			WHERE     
+				VSL_CALL_ID 									= #{col1}
+				AND FNL_OPE_YN 									= 'Y'
+				AND JOB_TP_CD 									='LD'
+				AND CG_NO 										IN 	(SELECT 
+																		GR_NO
+																	FROM 
+																		TMT_GR
+																	WHERE 
+																		SHIPG_NOTE_NO = #{col2})
+		</if>
+
+		<if test='tyCd == "createCS1"'>
+			<if test="col1 != null and col1 != ''">
+				<if test='col2 == "CTR"'>
+					SELECT /* validationcode.selectValidation.CTR */
+						CASE
+          					WHEN DATEDIFF(SECOND, ETA, SYSDATETIME()) > 0
+								THEN
+									CASE
+										WHEN 
+											DATEDIFF(SECOND, ETA, SYSDATETIME())
+											<![CDATA[>=]]>
+											(ISNULL(
+												(SELECT TOP(1)
+													KEY_VAL
+												FROM 
+													TMT_CFG_DTL
+												WHERE     
+													SYS_CD = 'MPTS'
+														AND KEY_NM = #{col2}
+												), 0)
+											/24)
+												THEN 'Y'
+										ELSE 'N'
+									END
+							ELSE
+								CASE
+									WHEN 
+										(SELECT TOP(1)
+											KEY_VAL
+										FROM 
+											TMT_CFG_DTL
+										WHERE     
+											SYS_CD 		= 'MPTS'
+											AND KEY_NM 	= #{col2}
+										) = 0
+									THEN 'Y'
+									ELSE 'N'
+								END
+						END                              		AS isValidated
+					FROM 
+						TMT_VSL_SCH 
+					WHERE 
+						VSL_CALL_ID 							= #{col1}
+				</if>
+
+				<if test='col2 == "DBE"'>
+					SELECT /* validationcode.selectValidation.DBE */
+						CASE
+          					WHEN DATEDIFF(SECOND, ETA, SYSDATETIME()) > 0
+          						THEN
+									CASE
+										WHEN 
+											DATEDIFF(SECOND, ETA, SYSDATETIME()) 
+											<![CDATA[>=]]>
+											(ISNULL(
+												(SELECT TOP(1)
+													KEY_VAL
+												FROM 
+													TMT_CFG_DTL
+												WHERE     
+													SYS_CD 		= 'MPTS'
+													AND KEY_NM 	= #{col2}
+												), 0)
+											/24)
+												THEN 'Y'
+										ELSE 'N'
+									END
+							ELSE
+								CASE
+									WHEN 
+										(SELECT TOP(1)
+											KEY_VAL
+										FROM 
+											TMT_CFG_DTL
+										WHERE     
+											SYS_CD 		= 'MPTS'
+											AND KEY_NM 	= #{col2}
+										) = 0
+									THEN 'Y'
+									ELSE 'N'
+								END
+						END                              		AS isValidated
+					FROM 
+						TMT_VSL_SCH 
+					WHERE 
+						VSL_CALL_ID 							= #{col1}
+				</if>
+				
+				<if test='col2 == "DBN"'>
+					SELECT /* validationcode.selectValidation.DBN */
+						CASE
+          					WHEN DATEDIFF(SECOND, ETA, SYSDATETIME()) > 0
+								THEN
+									CASE
+										WHEN 
+											DATEDIFF(SECOND, ETA, SYSDATETIME()) 
+											<![CDATA[>=]]>
+											(ISNULL(
+												(SELECT TOP(1)
+													KEY_VAL
+												FROM 
+													TMT_CFG_DTL
+												WHERE     
+													SYS_CD = 'MPTS'
+														AND KEY_NM = #{col2}
+												), 0)
+											/24)
+												THEN 'Y'
+										ELSE 'N'
+									END
+							ELSE
+								CASE
+									WHEN 
+										(SELECT TOP(1)
+											KEY_VAL
+										FROM 
+											TMT_CFG_DTL
+										WHERE     
+											SYS_CD 		= 'MPTS'
+											AND KEY_NM 	= #{col2}
+										) = 0
+										THEN 'Y'
+									ELSE 'N'
+								END
+						END                              		AS isValidated
+						FROM 
+							TMT_VSL_SCH 
+						WHERE 
+							VSL_CALL_ID 						= #{col1}
+				</if>
+				
+				<if test='col2 == "BBK"'>
+					SELECT /* validationcode.selectValidation.BBK */
+						CASE
+          					WHEN DATEDIFF(SECOND, ETA, SYSDATETIME()) > 0
+          						THEN
+									CASE
+										WHEN 
+											DATEDIFF(SECOND, ETA, SYSDATETIME()) 
+											<![CDATA[>=]]>
+											(ISNULL(
+												(SELECT 
+													KEY_VAL
+												FROM 
+													TMT_CFG_DTL
+												WHERE     
+													SYS_CD 		= 'MPTS'
+													AND KEY_NM 	= #{col2}
+												), 0)
+											/24)
+												THEN 'Y'
+										ELSE 'N'
+									END
+							ELSE
+								CASE
+									WHEN 
+										(SELECT TOP(1)
+											KEY_VAL
+										FROM 
+											TMT_CFG_DTL
+										WHERE     
+											SYS_CD = 'MPTS'
+											AND KEY_NM = #{col2}
+										) = 0
+									THEN 'Y'
+									ELSE 'N'
+								END
+						END                              		AS isValidated
+						FROM 
+							TMT_VSL_SCH 
+						WHERE 
+							VSL_CALL_ID 						= #{col1}
+				</if>
+				
+				<if test='col2 == "LQE"'>
+					SELECT /* validationcode.selectValidation.LQE */
+						CASE
+          					WHEN DATEDIFF(SECOND, ETA, SYSDATETIME()) > 0
+          						THEN
+									CASE
+										WHEN 
+											DATEDIFF(SECOND, ETA, SYSDATETIME()) 
+											<![CDATA[>=]]>
+											(ISNULL(
+												(SELECT 
+													KEY_VAL
+												FROM 
+													TMT_CFG_DTL
+												WHERE     
+													SYS_CD 		= 'MPTS'
+													AND KEY_NM 	= #{col2}
+												), 0)
+											/24)
+												THEN 'Y'
+										ELSE 'N'
+									END
+							ELSE
+								CASE
+									WHEN 
+										(SELECT TOP(1)
+											KEY_VAL
+										FROM 
+											TMT_CFG_DTL
+										WHERE     
+											SYS_CD = 'MPTS'
+											AND KEY_NM = #{col2}
+										) = 0
+									THEN 'Y'
+									ELSE 'N'
+								END
+						END                              		AS isValidated
+						FROM 
+							TMT_VSL_SCH 
+						WHERE 
+							VSL_CALL_ID 						= #{col1}				
+				</if>
+				
+				<if test='col2 == "LQN"'>
+					SELECT /* validationcode.selectValidation.LQN */
+						CASE
+          					WHEN DATEDIFF(SECOND, ETA, SYSDATETIME()) > 0
+          						THEN
+									CASE
+										WHEN 
+											DATEDIFF(SECOND, ETA, SYSDATETIME()) 
+											<![CDATA[>=]]>
+											(ISNULL(
+												(SELECT 
+													KEY_VAL
+												FROM 
+													TMT_CFG_DTL
+												WHERE     
+													SYS_CD 		= 'MPTS'
+													AND KEY_NM 	= #{col2}
+												), 0)
+											/24)
+												THEN 'Y'
+										ELSE 'N'
+									END
+							ELSE
+								CASE
+									WHEN 
+										(SELECT TOP(1)
+											KEY_VAL
+										FROM 
+											TMT_CFG_DTL
+										WHERE     
+											SYS_CD = 'MPTS'
+											AND KEY_NM = #{col2}
+										) = 0
+									THEN 'Y'
+									ELSE 'N'
+								END
+						END                              		AS isValidated
+						FROM 
+							TMT_VSL_SCH 
+						WHERE 
+							VSL_CALL_ID 						= #{col1}						
+				</if>
+				
+				<if test='col2 == "OIMR"'>
+					SELECT /* validationcode.selectValidation.OIMR */
+						CASE
+          					WHEN DATEDIFF(SECOND, ETA, SYSDATETIME()) > 0
+          						THEN
+									CASE
+										WHEN 
+											DATEDIFF(SECOND, ETA, SYSDATETIME()) 
+											<![CDATA[>=]]>
+											(ISNULL(
+												(SELECT 
+													KEY_VAL
+												FROM 
+													TMT_CFG_DTL
+												WHERE     
+													SYS_CD 		= 'MPTS'
+													AND KEY_NM 	= #{col2}
+												), 0)
+											/24)
+												THEN 'Y'
+										ELSE 'N'
+									END
+							ELSE
+								CASE
+									WHEN 
+										(SELECT TOP(1)
+											KEY_VAL
+										FROM 
+											TMT_CFG_DTL
+										WHERE     
+											SYS_CD = 'MPTS'
+											AND KEY_NM = #{col2}
+										) = 0
+									THEN 'Y'
+									ELSE 'N'
+								END
+						END                              		AS isValidated
+						FROM 
+							TMT_VSL_SCH 
+						WHERE 
+							VSL_CALL_ID 						= #{col1}
+				</if>
+				
+				<if test='col2 == "BT"'>
+					SELECT /* validationcode.selectValidation.BT */
+						CASE
+          					WHEN DATEDIFF(SECOND, ETA, SYSDATETIME()) > 0
+          						THEN
+									CASE
+										WHEN 
+											DATEDIFF(SECOND, ETA, SYSDATETIME()) 
+											<![CDATA[>=]]>
+											(ISNULL(
+												(SELECT 
+													KEY_VAL
+												FROM 
+													TMT_CFG_DTL
+												WHERE     
+													SYS_CD 		= 'MPTS'
+													AND KEY_NM 	= #{col2}
+												), 0)
+											/24)
+												THEN 'Y'
+										ELSE 'N'
+									END
+							ELSE
+								CASE
+									WHEN 
+										(SELECT TOP(1)
+											KEY_VAL
+										FROM 
+											TMT_CFG_DTL
+										WHERE     
+											SYS_CD = 'MPTS'
+											AND KEY_NM = #{col2}
+										) = 0
+									THEN 'Y'
+									ELSE 'N'
+								END
+						END                              		AS isValidated
+						FROM 
+							TMT_VSL_SCH 
+						WHERE 
+							VSL_CALL_ID 						= #{col1}
+				</if>
+			</if>
+		</if>
+
+		<if test='tyCd == "createDocument"'>
+			<if test="col1 != null and col1 != ''">
+				<if test='col2 == "CTR"'>
+					SELECT /* validationcode.selectValidation.CTR */
+						CASE
+          					WHEN DATEDIFF(SECOND, ETA, SYSDATETIME()) > 0
+          						THEN
+									CASE
+										WHEN 
+											DATEDIFF(SECOND, ETA, SYSDATETIME()) 
+											<![CDATA[>=]]>
+											(ISNULL(
+												(SELECT 
+													KEY_VAL
+												FROM 
+													TMT_CFG_DTL
+												WHERE     
+													SYS_CD 		= 'MPTS'
+													AND KEY_NM 	= #{col2}
+												), 0)
+											/24)
+												THEN 'Y'
+										ELSE 'N'
+									END
+							ELSE
+								CASE
+									WHEN 
+										(SELECT TOP(1)
+											KEY_VAL
+										FROM 
+											TMT_CFG_DTL
+										WHERE     
+											SYS_CD = 'MPTS'
+											AND KEY_NM = #{col2}
+										) = 0
+									THEN 'Y'
+									ELSE 'N'
+								END
+						END                              		AS isValidated
+						FROM 
+							TMT_VSL_SCH 
+						WHERE 
+							VSL_CALL_ID 						= #{col1}							
+				</if>
+
+				<if test='col2 == "DBE"'>
+					SELECT /* validationcode.selectValidation.DBE */
+						CASE
+          					WHEN DATEDIFF(SECOND, ETA, SYSDATETIME()) > 0
+          						THEN
+									CASE
+										WHEN 
+											DATEDIFF(SECOND, ETA, SYSDATETIME()) 
+											<![CDATA[>=]]>
+											(ISNULL(
+												(SELECT 
+													KEY_VAL
+												FROM 
+													TMT_CFG_DTL
+												WHERE     
+													SYS_CD 		= 'MPTS'
+													AND KEY_NM 	= #{col2}
+												), 0)
+											/24)
+												THEN 'Y'
+										ELSE 'N'
+									END
+							ELSE
+								CASE
+									WHEN 
+										(SELECT TOP(1)
+											KEY_VAL
+										FROM 
+											TMT_CFG_DTL
+										WHERE     
+											SYS_CD = 'MPTS'
+											AND KEY_NM = #{col2}
+										) = 0
+									THEN 'Y'
+									ELSE 'N'
+								END
+						END                              		AS isValidated
+						FROM 
+							TMT_VSL_SCH 
+						WHERE 
+							VSL_CALL_ID 						= #{col1}
+				</if>
+
+				<if test='col2 == "DBN"'>
+					SELECT /* validationcode.selectValidation.DBN */
+						CASE
+          					WHEN DATEDIFF(SECOND, ETA, SYSDATETIME()) > 0
+          						THEN
+									CASE
+										WHEN 
+											DATEDIFF(SECOND, ETA, SYSDATETIME()) 
+											<![CDATA[>=]]>
+											(ISNULL(
+												(SELECT 
+													KEY_VAL
+												FROM 
+													TMT_CFG_DTL
+												WHERE     
+													SYS_CD 		= 'MPTS'
+													AND KEY_NM 	= #{col2}
+												), 0)
+											/24)
+												THEN 'Y'
+										ELSE 'N'
+									END
+							ELSE
+								CASE
+									WHEN 
+										(SELECT TOP(1)
+											KEY_VAL
+										FROM 
+											TMT_CFG_DTL
+										WHERE     
+											SYS_CD = 'MPTS'
+											AND KEY_NM = #{col2}
+										) = 0
+									THEN 'Y'
+									ELSE 'N'
+								END
+						END                              		AS isValidated
+						FROM 
+							TMT_VSL_SCH 
+						WHERE 
+							VSL_CALL_ID 						= #{col1}		
+				</if>
+				
+				<if test='col2 == "BBK"'>
+					SELECT /* validationcode.selectValidation.BBK */
+						CASE
+          					WHEN DATEDIFF(SECOND, ETA, SYSDATETIME()) > 0
+          						THEN
+									CASE
+										WHEN 
+											DATEDIFF(SECOND, ETA, SYSDATETIME()) 
+											<![CDATA[>=]]>
+											(ISNULL(
+												(SELECT 
+													KEY_VAL
+												FROM 
+													TMT_CFG_DTL
+												WHERE     
+													SYS_CD 		= 'MPTS'
+													AND KEY_NM 	= #{col2}
+												), 0)
+											/24)
+												THEN 'Y'
+										ELSE 'N'
+									END
+							ELSE
+								CASE
+									WHEN 
+										(SELECT TOP(1)
+											KEY_VAL
+										FROM 
+											TMT_CFG_DTL
+										WHERE     
+											SYS_CD = 'MPTS'
+											AND KEY_NM = #{col2}
+										) = 0
+									THEN 'Y'
+									ELSE 'N'
+								END
+						END                              		AS isValidated
+						FROM 
+							TMT_VSL_SCH 
+						WHERE 
+							VSL_CALL_ID 						= #{col1}		
+				</if>
+					
+				<if test='col2 == "LQE"'>
+					SELECT /* validationcode.selectValidation.LQE */
+						CASE
+          					WHEN DATEDIFF(SECOND, ETA, SYSDATETIME()) > 0
+          						THEN
+									CASE
+										WHEN 
+											DATEDIFF(SECOND, ETA, SYSDATETIME()) 
+											<![CDATA[>=]]>
+											(ISNULL(
+												(SELECT 
+													KEY_VAL
+												FROM 
+													TMT_CFG_DTL
+												WHERE     
+													SYS_CD 		= 'MPTS'
+													AND KEY_NM 	= #{col2}
+												), 0)
+											/24)
+												THEN 'Y'
+										ELSE 'N'
+									END
+							ELSE
+								CASE
+									WHEN 
+										(SELECT TOP(1)
+											KEY_VAL
+										FROM 
+											TMT_CFG_DTL
+										WHERE     
+											SYS_CD = 'MPTS'
+											AND KEY_NM = #{col2}
+										) = 0
+									THEN 'Y'
+									ELSE 'N'
+								END
+						END                              		AS isValidated
+						FROM 
+							TMT_VSL_SCH 
+						WHERE 
+							VSL_CALL_ID 						= #{col1}	
+				</if>
+				
+				<if test='col2 == "LQN"'>
+					SELECT /* validationcode.selectValidation.LQN */
+						CASE
+          					WHEN DATEDIFF(SECOND, ETA, SYSDATETIME()) > 0
+          						THEN
+									CASE
+										WHEN 
+											DATEDIFF(SECOND, ETA, SYSDATETIME()) 
+											<![CDATA[>=]]>
+											(ISNULL(
+												(SELECT 
+													KEY_VAL
+												FROM 
+													TMT_CFG_DTL
+												WHERE     
+													SYS_CD 		= 'MPTS'
+													AND KEY_NM 	= #{col2}
+												), 0)
+											/24)
+												THEN 'Y'
+										ELSE 'N'
+									END
+							ELSE
+								CASE
+									WHEN 
+										(SELECT TOP(1)
+											KEY_VAL
+										FROM 
+											TMT_CFG_DTL
+										WHERE     
+											SYS_CD = 'MPTS'
+											AND KEY_NM = #{col2}
+										) = 0
+									THEN 'Y'
+									ELSE 'N'
+								END
+						END                              		AS isValidated
+						FROM 
+							TMT_VSL_SCH 
+						WHERE 
+							VSL_CALL_ID 						= #{col1}	
+				</if>
+				
+				<if test='col2 == "OIMR"'>
+					SELECT /* validationcode.selectValidation.OIMR */
+						CASE
+          					WHEN DATEDIFF(SECOND, ETA, SYSDATETIME()) > 0
+          						THEN
+									CASE
+										WHEN 
+											DATEDIFF(SECOND, ETA, SYSDATETIME()) 
+											<![CDATA[>=]]>
+											(ISNULL(
+												(SELECT 
+													KEY_VAL
+												FROM 
+													TMT_CFG_DTL
+												WHERE     
+													SYS_CD 		= 'MPTS'
+													AND KEY_NM 	= #{col2}
+												), 0)
+											/24)
+												THEN 'Y'
+										ELSE 'N'
+									END
+							ELSE
+								CASE
+									WHEN 
+										(SELECT TOP(1)
+											KEY_VAL
+										FROM 
+											TMT_CFG_DTL
+										WHERE     
+											SYS_CD = 'MPTS'
+											AND KEY_NM = #{col2}
+										) = 0
+									THEN 'Y'
+									ELSE 'N'
+								END
+						END                              		AS isValidated
+						FROM 
+							TMT_VSL_SCH 
+						WHERE 
+							VSL_CALL_ID 						= #{col1}		
+				</if>
+
+				<if test='col2 == "BT"'>
+					SELECT /* validationcode.selectValidation.BT */
+						CASE
+          					WHEN DATEDIFF(SECOND, ETA, SYSDATETIME()) > 0
+          						THEN
+									CASE
+										WHEN 
+											DATEDIFF(SECOND, ETA, SYSDATETIME()) 
+											<![CDATA[>=]]>
+											(ISNULL(
+												(SELECT 
+													KEY_VAL
+												FROM 
+													TMT_CFG_DTL
+												WHERE     
+													SYS_CD 		= 'MPTS'
+													AND KEY_NM 	= #{col2}
+												), 0)
+											/24)
+												THEN 'Y'
+										ELSE 'N'
+									END
+							ELSE
+								CASE
+									WHEN 
+										(SELECT TOP(1)
+											KEY_VAL
+										FROM 
+											TMT_CFG_DTL
+										WHERE     
+											SYS_CD = 'MPTS'
+											AND KEY_NM = #{col2}
+										) = 0
+									THEN 'Y'
+									ELSE 'N'
+								END
+						END                              		AS isValidated
+						FROM 
+							TMT_VSL_SCH 
+						WHERE 
+							VSL_CALL_ID 						= #{col1}		
+				</if>
+			</if>
+		</if>
+
+		<if test='tyCd == "submitLateVesselSchedule"'>
+			SELECT /* validationcode.selectValidation.submitLateVesselSchedule */
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS isValidated 
+			FROM 
+				TMT_VSL_SCH
+			WHERE 
+				VSL_CALL_ID  									= #{col1}
+				<!-- AND FIRST_ETA -  INS_DTM 						<![CDATA[<]]>  7 -->
+		</if>
+
+		<!-- Add for Tablet -->
+		<if test='tyCd == "existsVslDelay"'>
+			SELECT /* validationcode.selectValidation.existsVslDelay */
+				(SELECT TOP(1) 
+					CASE COUNT(*)
+						WHEN 0 THEN 'Y'
+						ELSE 'N'
+					END 										AS isValidated 
+				FROM 
+					TMT_DLY_BRK 
+				WHERE 
+					1 = 1
+					<if test="col1 != null and col1 != ''">
+						AND VSL_CALL_ID 						= #{col1}
+					</if>
+					<if test="col2 != null and col2 != ''">
+						AND INPT_DT 							= CONVERT(DATE, #{col2}, 103) 
+					</if>
+					<if test="col3 != null and col3 != ''">
+						AND shft_id  							= #{col3}
+					</if>
+					<if test="col4 != null and col4 != ''">
+						AND RSN_CD   							= #{col4}
+					</if>
+					<if test="col5 != null and col5 != ''">
+						AND EQ_NO    							= #{col5}
+					</if>
+					<if test="col6 != null and col6 != ''">
+						AND HATCH_NO     						= #{col6}
+					</if>
+					<if test="col7 != null and col7 != ''">
+						AND ACPT_YN      						= #{col7}
+					</if>
+					<if test="col8 != null and col8 != ''">
+						AND HATCH_DRT_CD       					= #{col8}
+					</if>
+					<if test="col9 != null and col9 != ''">
+						AND (
+							<if test="col10 != null and col10 != ''">
+								ST_DT 
+									BETWEEN CONVERT(DATETIME, #{col9}, 103)
+										AND CONVERT(DATETIME, #{col10}, 103)
+								OR 	END_DT 
+										BETWEEN CONVERT(DATETIME, #{col9}, 103) 
+											AND CONVERT(DATETIME, #{col10}, 103)
+								OR 	(CONVERT(DATETIME, #{col9}, 103) 
+										BETWEEN ST_DT
+											AND END_DT)
+								OR	(CONVERT(DATETIME, #{col10}, 103) 
+										BETWEEN ST_DT
+											AND END_DT)
+							</if>
+							<if test="col10 == null or col10 == ''">
+								END_DT <![CDATA[>]]> CONVERT(DATETIME, #{col9}, 103)
+							</if>
+						)
+					</if>
+					<if test="col11 != null and col11 != ''">
+						AND SEQ 							<![CDATA[<>]]> #{col11}
+					</if>
+				) 												AS ISVALIDATED,
+				(SELECT TOP(1) 
+					DLY_CD 
+				FROM 
+					TMT_DLY_CD 
+				WHERE 
+					DLY_CD = #{col4}) 							AS ref1
+		</if>
+
+		<if test='tyCd == "existsJettyDelay"'>
+			SELECT /* validationcode.selectValidation.existsJettyDelay */
+				(SELECT TOP(1)
+					CASE COUNT(*)
+						WHEN 0 THEN 'Y'
+						ELSE 'N'
+					END 											AS isValidated   
+				FROM 
+					TMT_DLY_SUM 
+				WHERE 
+					1 = 1
+					<if test="col1 != null and col1 != ''">
+						AND VSL_CALL_ID 							= #{col1}
+					</if>
+					<if test="col2 != null and col2 != ''">
+						AND CG_TP_CD 								= #{col2}
+					</if>
+					<if test="col3 != null and col3 != ''">							
+						AND DLY_CD  								= #{col3}
+					</if>
+					<if test="col4 != null and col4 != ''">
+						AND WORK_YMD 								= FORMAT(CONVERT(DATE, #{col4}, 103), 'yyyyMMdd')
+					</if>
+					<if test="col5 != null and col5 != ''">
+						AND SHFT_ID    								= #{col5}
+					</if>
+					<if test="col6 != null and col6 != ''">
+						AND (
+							<if test="col7 != null and col7 != ''">
+								ST_DT 
+									BETWEEN CONVERT(DATETIME, #{col6}, 103)
+										AND CONVERT(DATETIME, #{col7}, 103)
+								OR 	END_DT 
+									BETWEEN CONVERT(DATETIME, #{col6}, 103) 
+										AND CONVERT(DATETIME, #{col7}, 103)
+								OR 	(CONVERT(DATETIME, #{col6}, 103) 
+										BETWEEN ST_DT
+											AND END_DT)
+								OR	(CONVERT(DATETIME, #{col7}, 103) 
+									BETWEEN ST_DT
+										AND END_DT)
+							</if>
+							<if test="col7 == null or col7 == ''">
+								END_DT <![CDATA[>]]> CONVERT(DATETIME, #{col6}, 103')
+							</if>
+						)
+					</if>
+					<if test="col8 != null and col8 != ''">
+						AND SEQ 								<![CDATA[<>]]> #{col8}
+					</if>
+				) 												AS ISVALIDATED,
+				(SELECT 
+					DLY_CD
+				FROM 
+					TMT_DLY_CD 
+				WHERE 
+					DLY_CD = #{col3}) AS ref1 		 			
+		</if>
+								
+		
+		<if test='tyCd == "deleteAllIvAdviceStatusValidation"'>
+			SELECT /* validationcode.selectValidation.deleteAllIvAdviceStatusValidation */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated
+			FROM 	
+				TMT_B_IV_ADV_ACK 								AC
+			INNER JOIN 
+				TMT_B_IV_ADV 									AV 
+					ON AV.ADV_NO 								= AC.ADV_NO
+			WHERE 	
+				AV.VSL_CALL_ID 									= #{col1}
+			 	AND ACK_STAT_CD 								= 'C'
+		</if>	
+		
+		<if test='tyCd == "BERTH_OVERLAP_VALIDATION"'>
+			SELECT /* validationcode.selectValidation.BERTH_OVERLAP_VALIDATION */
+				CASE 
+					WHEN COUNT(VSL_CALL_ID) = 0 THEN 'Y' 
+					ELSE 'N' 
+				END 											AS isValidated
+			FROM    
+				TMT_VSL_SCH 									S
+			WHERE   
+				(ATB IS NOT NULL								AND ATB <![CDATA[<>]]> '')
+				AND (ATU IS NULL								OR ATU = '')
+				AND BERTH_LOC 									= #{col1}
+				AND VSL_CALL_ID 								!= #{col2}
+		</if>
+		
+		<if test='tyCd == "ISEXISTED_APPROVAL_CRANE_MEGA"'>
+			SELECT /* validationcode.selectValidation.ISEXISTED_APPROVAL_CRANE_MEGA */
+				CASE 
+					WHEN COUNT (1) > 0 THEN 'Y' 
+					ELSE 'N' 
+				END 											AS isValidated
+			FROM 
+				TMT_MEGA A
+			INNER JOIN 
+				TMT_MEGA_DTL B 
+					ON A.MEGA_NO 								= B.MEGA_NO
+			LEFT OUTER JOIN 
+				TMT_MEGA_DTL_OPE C
+			        ON  B.MEGA_NO 								= C.MEGA_NO
+			        AND B.SEQ 									= C.MEGA_IDX
+			        AND B.EQ_DIV_CD 							= C.EQ_DIV_CD
+			WHERE     
+				A.STAT_CD 										= 'AP'
+				AND ((A.MEGA_TP_CD IS NULL OR A.MEGA_TP_CD = '') 
+					OR A.MEGA_TP_CD &lt;&gt; 'H')
+				AND A.VSL_CALL_ID 								= #{col1}
+				AND A.PURP_TP_CD 								= #{col2}  
+				AND A.SHFT_ID 									= #{col3}
+				AND A.WORK_YMD 									= FORMAT(CONVERT(DATE, #{col4}, 103), 'yyyyMMdd')
+				AND B.DIV_CD 									= 'EQ'
+				AND B.EQ_DIV_CD 								= 'SC'
+		<!-- 			       
+				AND (EXISTS 
+						(SELECT 
+							S_CD 
+						FROM TMT_CD_MSTD 
+						WHERE     
+							L_CD = 'MT' 
+							AND M_CD = 'EQFCTPCD' 
+							AND S_CD = B.EQ_DIV_CD 
+							AND S_CD_VAL = 'PC') 
+					OR  
+						B.EQ_DIV_CD = 'SC'
+					) 
+		-->
+		</if>	
+		
+		<if test='tyCd == "EXISTED_ACCOUNTNO_PTNR_VALIDATION"'>
+			WITH 
+				PTNR_INFO AS
+					(SELECT  
+						PTNR_CODE, 
+						ACC_NO
+					FROM    
+						TMT_PTNR
+					WHERE   
+						PTNR_CODE 		= #{col1}
+						AND (ACC_NO IS NOT NULL AND ACC_NO <![CDATA[<>]]> '')
+					UNION
+					SELECT  
+						AGENCY_CODE 	AS PTNR_CODE, 
+						ACC_NO
+						FROM    
+							TMT_AGENCY_INFO
+						WHERE   
+							AGENCY_CODE = #{col1}
+							AND (ACC_NO IS NOT NULL AND ACC_NO <![CDATA[<>]]> '')
+					)
+			SELECT /* validationcode.selectValidation.EXISTED_ACCOUNTNO_PTNR_VALIDATION */
+				CASE 
+					WHEN COUNT(1) > 0 THEN 'Y' 
+					ELSE 'N' 
+				END 											AS isValidated
+			FROM    
+				PTNR_INFO
+		</if>	
+		
+		<if test="tyCd== 'CHECK_DUPLICATED_SN_FOR_RHDL'">
+			SELECT /* validationcode.selectValidation.CHECK_DUPLICATED_SN_FOR_RHDL */
+				CASE 
+					WHEN COUNT(*) > 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS isValidated 
+			FROM	
+				TMT_RHDL_CG 
+			WHERE	
+				NX_VSL_CALL_ID 									= #{col1}
+				AND NX_REF_NO 									= #{col2}
+		</if>
+		
+		<if test="tyCd== 'RORO_OP_CHECK'">
+			SELECT /* validationcode.selectValidation.RORO_OP_CHECK */
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS isValidated 
+            FROM    
+				TMT_VSL_OPE_RPT_DTL
+            WHERE   
+				VSL_CALL_ID 									= #{col1}
+				AND CG_TP_CD 									= #{col2}
+				AND WORK_ST_DT 									&lt; CONVERT(DATETIME, #{col3}, 103)
+				AND WORK_END_DT 								&gt; CONVERT(DATETIME, #{col3}, 103)
+				AND SHFT_ID 									= dbo.F_GET_SHIFT_CD(CONVERT(DATETIME, #{col3}, 103), '')
+		</if>
+
+		<if test="tyCd== 'COSTCENTER_EXISTED_CHECK'">
+			SELECT /* validationcode.selectValidation.COSTCENTER_EXISTED_CHECK */
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS isValidated 
+            FROM    
+				TMT_B_COSTCENT
+            WHERE   
+				COST_CENT_CD 									= #{col1}
+                AND ERP_COST_CENT 								= #{col2}
+		</if>
+		
+		<if test="tyCd== 'BONDED_WH_VALIDATION'">
+			SELECT /* validationcode.selectValidation.BONDED_WH_VALIDATION */
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS isValidated 
+			FROM    
+				TMT_CUSTOMS_RELEASE
+			WHERE   
+				VSL_CALL_ID 									= #{col1}
+				AND DOC_NO 										= #{col2}
+				AND BONDED_WH_YN 								= 'Y'
+				<choose>
+					<when test="col3 eq 'I'.toString()">
+						AND (CUST_GET_IN IS NOT NULL			AND CUST_GET_IN <![CDATA[<>]]> '')
+					</when>
+					<otherwise>
+						AND (CUST_GET_OUT IS NOT NULL			AND CUST_GET_OUT <![CDATA[<>]]> '')
+					</otherwise>
+				</choose>		        
+		</if>
+		
+		<if test="tyCd== 'CUSTOMS_RELEASED_VALIDATION'">
+		<!-- 	SELECT /* validationcode.selectValidation.CUSTOMS_RELEASED_VALIDATION */
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS isValidated 
+			FROM    
+				TMT_CUSTOMS_RELEASE
+			WHERE   
+				VSL_CALL_ID 									= #{col1}
+			    AND DOC_NO 										= #{col2}
+			    AND ISNULL(BONDED_WH_YN, 'N') 					= 'N'  -->
+			    
+			    
+			    <!-- PPSB_MOST_CUSP_Operation - GAP ID: OPR-20 -->
+			    SELECT 
+				    CASE CUST_MSG_MODE
+						WHEN 'C' THEN 'Y'
+						ELSE 'N'
+					END AS isValidated
+			    FROM TMT_GCS_RECV
+				WHERE	
+					1 = 1
+					AND VSL_ID 											= #{col1}
+					AND BK_NO 											= #{col2}
+					AND IE_CD 											= #{col3}
+					AND SCN 											= #{col4}
+					AND CUST_MSG_TP										= 'N'
+					AND SEQ03 = (
+						SELECT 
+							MAX(SEQ03)
+						FROM	
+							TMT_GCS_RECV 
+						WHERE	
+							1 = 1
+							AND VSL_ID 											= #{col1}
+							AND BK_NO 											= #{col2}
+							AND IE_CD 											= #{col3}
+							AND SCN 											= #{col4}
+							AND CUST_MSG_TP										= 'N'
+						GROUP BY VSL_ID, IE_CD, BK_NO
+					)
+		</if>
+		
+		<if test="tyCd=='OPE_TMNLHOLD_VALIDATION'">
+			SELECT /* validationcode.selectValidation.OPE_TMNLHOLD_VALIDATION */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated
+		  	FROM 	
+				TMT_TMNL_HOLD 									H
+		    INNER JOIN 
+				TMT_VSL_SCH 									V
+		          	ON 	H.VSL_CALL_ID 							= V.VSL_CALL_ID
+		            AND ISNULL(H.RELEASE_STATUS, 'N') 			= 'N'
+		            AND CHARINDEX(#{col3}, H.OP_MODE) 			> 0
+		 	WHERE 
+				V.VSL_CALL_ID 									= #{col1} 
+				AND H.CG_NO 									= #{col2}
+		</if>
+		
+		<if test="tyCd=='OPE_BILL_DOCUMENT_HOLD_VALIDATION'">
+			SELECT /* validationcode.selectValidation.OPE_BILL_DOCUMENT_HOLD_VALIDATION */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated
+		  	FROM 	
+				TMT_TMNL_HOLD 									H
+		    INNER JOIN 
+				TMT_VSL_SCH 									V
+		          	ON  H.VSL_CALL_ID 							= V.VSL_CALL_ID
+		            AND ISNULL(H.RELEASE_STATUS, 'N') 			= 'N'
+		            AND CHARINDEX(#{col3}, H.OP_MODE) 			> 0
+		 	WHERE 
+				V.VSL_CALL_ID 									= #{col1} 
+				AND H.CG_NO 									= #{col2}
+		</if>
+		
+		<if test="tyCd=='2ND_WEIGHTED_VALIDATION'">
+			SELECT /* validationcode.selectValidation.2ND_WEIGHTED_VALIDATION */
+				CASE COUNT(*)
+					WHEN 0 THEN 'N'
+					ELSE 'Y'
+				END 											AS isValidated 
+			FROM    
+				TMT_WEIGHTBRIDGE
+			WHERE   
+				1 = 1
+				<!-- (SECOND_WGT IS NULL								OR SECOND_WGT = '') -->
+			    AND TRANSACTION_NO 								= #{col1}
+		</if>
+		
+		<if test="tyCd=='INTERNALTRUCK_APRON_OPE_VALIDATION'">
+			SELECT /* validationcode.selectValidation.INTERNALTRUCK_APRON_OPE_VALIDATION */
+				CASE COUNT(*)
+					WHEN 0 THEN 'Y'
+					ELSE 'N'
+				END 											AS isValidated
+			FROM    
+				TMT_JOB
+			WHERE   
+				JOB_PURP_CD 									IN ('VA', 'WA')
+			    AND (NEXT_JOB_NO IS NULL						OR NEXT_JOB_NO = '')
+			    AND LORRY_NO 									= #{col1}
+		</if>
+
+		<if test="tyCd=='UNITS_RORO_IN_STORED'">
+			SELECT /* validationcode.selectValidation.UNITS_RORO_IN_STORED */
+				CASE 
+					WHEN COUNT (*) = 0 THEN 'N' 
+					ELSE 'Y' 
+				END  											AS isValidated 
+            FROM    
+				TMT_JOB
+            WHERE   
+				JOB_PURP_CD 									IN ('AW')
+				AND (NEXT_JOB_NO IS NULL						OR NEXT_JOB_NO = '')
+				AND VSL_CALL_ID 								= #{col1}
+				AND CG_NO 										= #{col2}
+				<if test="col3 != null and col3 != ''">
+					AND CHAS_NO 								= #{col3} 
+				</if>
+		</if>
+		
+		<if test='tyCd == "capacityCode"'>
+			SELECT /* validationcode.selectValidation.DUPLICATED_CAPACITY_CODE */
+			    CASE
+			        WHEN EXISTS (
+			            SELECT
+			                1
+			            FROM
+			                TMT_EQ_CAPA
+			            WHERE
+			                CAPA_CD 							= #{col1}
+			        ) THEN 'N'
+			        ELSE 'Y'
+			    END 											AS isValidated;
+		</if>
+		<if test="tyCd == 'cranesInBerth'">
+			SELECT /* validationcode.selectValidation.OVER_CRANE_LIMIT_PER_BERTH */
+				CASE 
+			        WHEN (
+			        	SELECT 
+			        		COUNT(EQ_FAC_NO)
+			            FROM (
+			            	SELECT TOP (2) 
+			            		EQ_FAC_NO
+			                FROM 
+			                	TMT_EQ_FAC
+			                WHERE 
+			                	EQ_TP_CD 		= 'CR'
+			                	AND LOC			= #{col1}
+			                	AND EQ_FAC_NO	<![CDATA[<>]]>  #{col2}
+			        	) AS EQ_FAC
+			       ) = 2
+		       			THEN 'N'
+		       		ELSE 'Y'
+				END 											AS isValidated;
+		</if>
+		<if test="tyCd== 'ZB_RELEASED_VALIDATION'">
+		    <!-- MOST_MMC_JPB.OPR-005. Apply for ZB1 and ZB2-->
+		    WITH RankedJobs AS (
+			    SELECT
+			        TD.*,
+			        ROW_NUMBER() OVER (PARTITION BY TD.VSL_CD, TD.SHIP_CALL_NO, TD.CALL_YEAR, TD.CALL_SEQ, TD.DOC_ID ORDER BY CAST(TD.JOB_NO AS INT) DESC) AS rn
+			    FROM
+			        TMT_FZ_CG_DECL TD
+			    INNER JOIN TMT_FZ_DOC_MST TM 
+			        ON TD.VSL_CD = TM.VSL_CD
+			        AND TD.CALL_YEAR = TM.CALL_YEAR
+			        AND TD.CALL_SEQ = TM.CALL_SEQ
+			        AND TD.SHIP_CALL_NO = TM.SHIP_CALL_NO
+			        AND TD.VSL_CALL_ID = TM.VSL_CALL_ID
+			        AND TD.JOB_NO = TM.JOB_NO
+			        AND TD.DOC_ID = TM.DOC_ID
+			    WHERE
+			        TM.DOC_STAT_CD 		= 'AP'
+			        AND TD.DOC_ID 		= #{col1}
+			        AND TD.VSL_CD 		= #{col2}
+			        AND TD.SHIP_CALL_NO = #{col3}
+			        AND TD.CALL_YEAR 	= #{col4}
+			        AND TD.CALL_SEQ 	= #{col5}
+			        AND TD.BL_NO		= #{col6}			       
+			)
+			SELECT
+			    CASE
+			        WHEN COUNT(TD.JOB_NO) <![CDATA[>]]> 0 THEN 'Y'
+			        ELSE 'N'
+			    END AS isValidated
+			FROM
+			    RankedJobs TD
+			WHERE
+			    rn = 1
+		</if>
+		
+		<if test='tyCd == "VORDBKSTATUS"'>
+			SELECT
+			        /* validationcode.selectValidation.VorStatus */
+			        CASE
+		                COUNT(VSL_CALL_ID)
+		                	WHEN 0 THEN 'Y'
+		                ELSE 'N'
+			        END AS isValidated
+			FROM 
+			        TMT_VSL_OPE_RPT
+			WHERE 
+			        VSL_CALL_ID = #{col1}
+			        AND CALL_YEAR = #{col2}
+			        AND CALL_SEQ = #{col3}
+			        AND VERIFY_STATUS = 'Y'
+		</if>
+	</select>
+	
+	<sql id = "selectConfirmedTruckItems">
+	<!-- List of Truck In side (gate in not gate out) and already confirm Handling Out-->
+		SELECT /* validationcode.selectConfirmedTruckItems*/
+			GT.VSL_CALL_ID         								AS VSLCALLID,
+			CG_IN_OUT_CD         								AS CGINOUT,
+			GT.LORRY_NO          								AS LORRYNO,
+			GATE_TXN_NO         								AS GATETXNNO,
+			BL.BL_NO             								AS BLNO,
+			SN.SHIPG_NOTE_NO     								AS SHIPGNOTENO
+		FROM 
+		    TMT_CG_ARRV_DELV  									GT
+		LEFT JOIN 
+			TMT_BL BL 
+				ON GT.CG_NO  									= BL.BL_NO 
+				AND GT.VSL_CALL_ID 								= BL.VSL_CALL_ID
+		LEFT JOIN 
+			TMT_GR  											GR 
+				ON GT.CG_NO  									= GR.GR_NO 
+				AND GT.VSL_CALL_ID 								= GT.VSL_CALL_ID
+		LEFT JOIN 
+			TMT_SHIPG_NOTE  									SN 
+				ON SN.SHIPG_NOTE_NO 							= GR.SHIPG_NOTE_NO 
+				AND SN.VSL_CALL_ID  							= GR.VSL_CALL_ID
+		WHERE 
+		   (GT.GATE_OUT_DT IS NULL								OR GT.GATE_OUT_DT = '') 
+		    AND (GT.GATE_CD_OUT IS NULL							OR GT.GATE_CD_OUT = '')
+		    AND (GATE_TXN_NO IS NOT NULL						AND GATE_TXN_NO <![CDATA[<>]]> '')
+		    AND (GT.JOB_NO IS NOT NULL							AND GT.JOB_NO <![CDATA[<>]]> '')
+        	AND GT.VSL_CALL_ID 									= #{vslCallId}
+        	AND	GT.LORRY_NO 									= #{lorryNo}
+		GROUP BY 
+			GT.VSL_CALL_ID,
+			CG_IN_OUT_CD,
+			GT.LORRY_NO,
+			GATE_TXN_NO,
+			BL.BL_NO,
+			SN.SHIPG_NOTE_NO
+	</sql>
+
+	<sql id = "selectGateInTruckItems">
+		<!--ADP. CUSP: Lorry Gate In, not Gate Out yet -->
+		SELECT /* validationcode.selectGateInTruckItems */
+			GT.VSL_CALL_ID     									AS VSLCALLID,
+			CG_NO             									AS CGNO,
+			GR.GR_NO											AS GRNO,
+			CG_IN_OUT_CD     									AS CGINOUT,
+			GT.LORRY_NO      									AS LORRYNO,
+			GATE_IN_DT     										AS GATE_IN_DT,
+			GATE_OUT_DT     									AS GATE_OUT_DT,
+			GATE_TXN_NO     									AS GATETXNNO,
+			BL.BL_NO 											AS BLNO,
+			SN.SHIPG_NOTE_NO 									AS SHIPGNOTENO
+		FROM 
+			TMT_CG_ARRV_DELV 									GT
+		LEFT JOIN 
+			TMT_BL 												BL 
+				ON GT.CG_NO 									= BL.BL_NO 
+				AND GT.VSL_CALL_ID 								= BL.VSL_CALL_ID
+		LEFT JOIN 
+			TMT_GR 												GR 
+				ON GT.CG_NO 									= GR.GR_NO 
+				AND GT.VSL_CALL_ID 								= GT.VSL_CALL_ID
+		LEFT JOIN 
+			TMT_SHIPG_NOTE 										SN 
+				ON SN.SHIPG_NOTE_NO 							= GR.SHIPG_NOTE_NO 
+				AND SN.VSL_CALL_ID 								= GR.VSL_CALL_ID
+		WHERE 
+			(GT.GATE_OUT_DT IS NULL								OR GT.GATE_OUT_DT = '') 
+			AND (GT.GATE_CD_OUT IS NULL							OR GT.GATE_CD_OUT = '')
+			AND (GATE_PASS_NO IS NULL							OR GATE_PASS_NO = '') 
+			AND (JOB_NO IS NULL									OR JOB_NO = '')
+			<if test="vslCallId != null and vslCallId != ''">
+				AND GT.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test="lorryNo != null and lorryNo != ''">
+				AND	GT.LORRY_NO 								= #{lorryNo}
+			</if>
+			<if test="cgNo != null and cgNo != ''">
+				AND	GT.CG_NO 									= #{cgNo}
+			</if>
+		ORDER BY
+        	GT.GATE_IN_DT DESC
+	</sql>
+	
+</mapper>

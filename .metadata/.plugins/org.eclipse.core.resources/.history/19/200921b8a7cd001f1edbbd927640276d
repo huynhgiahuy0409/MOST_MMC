@@ -1,0 +1,58 @@
+package com.tsb.most.biz.dao.planning;
+
+import com.tsb.most.biz.parm.planning.SearchBerthPlanParm;
+import com.tsb.most.framework.bizparm.base.InsertItemsBizParm;
+import com.tsb.most.framework.bizparm.base.UpdateItemsBizParm;
+import com.tsb.most.framework.dao.BaseDao;
+import com.tsb.most.framework.dataitem.DataItemList;
+import com.tsb.most.framework.exception.DaoException;
+
+public class BerthPlanDao extends BaseDao implements IBerthPlanDao {
+	
+    
+    public DataItemList selectBerthInfoList(SearchBerthPlanParm parm) throws DaoException {
+        return unifiedDao.getItems("berthPlan.selectBerthInfoList", parm);
+    }
+    
+    public DataItemList selectBerthPlanList(SearchBerthPlanParm parm) throws DaoException {
+        return unifiedDao.getItems("berthPlan.selectBerthPlanList", parm);
+    }
+    
+    public DataItemList selectShftPlanList(SearchBerthPlanParm parm) throws DaoException {
+        return unifiedDao.getItems("berthPlan.selectShftPlanList", parm);
+    }
+    
+    public DataItemList insertItems(InsertItemsBizParm parm) throws DaoException {
+    	return null;
+    }
+    
+    public DataItemList updateItems(UpdateItemsBizParm parm) throws DaoException {
+    	try{
+    		DataItemList updateItems = parm.getUpdateItems();
+    		
+    		setNewVersion(updateItems);
+    		unifiedDao.updateItemsWithTimeCheck(null, "berthPlan.updateItemsBerthPlan", updateItems);
+    		setVersion(updateItems);
+    		
+    		return updateItems;
+    	}catch(Exception e) {
+    		throw new DaoException(e);
+    	}
+    }
+    
+	public DataItemList selectDrawBittList(SearchBerthPlanParm param) throws DaoException {
+		return unifiedDao.getItems("berthPlan.selectDrawBittList", param);
+	}
+    
+    public DataItemList selectPartnerInformationList(SearchBerthPlanParm parm) throws DaoException {
+        return unifiedDao.getItems("berthPlan.selectPartnerInformationList", parm);
+    }
+    
+    public DataItemList selectBusinessHistoryList(SearchBerthPlanParm parm) throws DaoException {
+        return unifiedDao.getItems("berthPlan.selectBusinessHistoryList", parm);
+    }
+    
+    public DataItemList selectVesselInformation(SearchBerthPlanParm parm) throws DaoException {
+        return unifiedDao.getItems("berthPlan.selectVesselInformation", parm);
+    }
+}

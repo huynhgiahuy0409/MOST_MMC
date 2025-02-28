@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://JAVA.sun.com/xml/ns/javaee"
+	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
+	id="WebApp_ID" metadata-complete="true" version="3.0">
+	<display-name>MOST_WebService</display-name>
+	<welcome-file-list>
+		<welcome-file>index.jsp</welcome-file>
+	</welcome-file-list>
+	<display-name>MOST Web Service API</display-name>
+	<welcome-file-list>
+		<welcome-file>index.jsp</welcome-file>
+	</welcome-file-list>
+	<servlet>
+		<description>Load configuration value</description>
+		<display-name>StartupServlet</display-name>
+		<servlet-name>StartupServlet</servlet-name>
+		<servlet-class>com.tsb.mostif.webservice.servlet.MOSTIFStartupServlet</servlet-class>
+		<init-param>
+			<param-name>ws_cacheservice_config_filename</param-name>
+			<param-value>localcacheinfo.xml</param-value>
+		</init-param>
+		<load-on-startup>0</load-on-startup>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>StartupServlet</servlet-name>
+		<url-pattern>/StartupServlet</url-pattern>
+	</servlet-mapping>
+	<servlet>
+		<servlet-name>Jersey RESTful Application</servlet-name>
+		<servlet-class>org.glassfish.jersey.servlet.ServletContainer</servlet-class>
+		<init-param>
+			<param-name>jersey.config.server.provider.packages</param-name>
+			<param-value>
+				com.tsb.mostif
+			</param-value>
+		</init-param>
+		<init-param>
+			<param-name>javax.ws.rs.Application</param-name>
+			<param-value>com.tsb.mostif.webservice.util.WebServiceResourceConfig</param-value>
+		</init-param>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>Jersey RESTful Application</servlet-name>
+		<url-pattern>/*</url-pattern>
+	</servlet-mapping>
+	<session-config>
+		<session-timeout>60</session-timeout>
+	</session-config>
+	<context-param>
+		<param-name>contextConfigLocation</param-name>
+		<param-value>
+			/WEB-INF/config/server-applicationContext.xml
+			/WEB-INF/config/server-applicationContext-core.xml
+			/WEB-INF/config/bizcomponents/bizcomponentContext-config.xml
+<!-- 			classpath:/bizcomponents/bizcomponentContext-service-mybatis.xml  -->
+			classpath:/bizcomponents/bizcomponentContext-most-service-mybatis.xml 
+      </param-value>
+	</context-param>
+	<context-param>
+		<param-name>enable_appserverconfig_external</param-name>
+		<param-value>N</param-value>
+	</context-param>
+	<context-param>
+		<param-name>appserverconfig_filename</param-name>
+		<param-value>server-applicationContext.properties</param-value>
+	</context-param>
+	<context-param>
+		<param-name>appserverconfig_filepath</param-name>
+		<param-value>MOSTIF_CONF_FILE_PATH</param-value>
+	</context-param>
+	<context-param>
+		<param-name>config</param-name>
+		<param-value>MOST_IF/WS/config</param-value>
+	</context-param>
+	<listener>
+		<listener-class>com.tsb.most.framework.listener.StartupListener</listener-class>
+	</listener>
+	<description>Encoding Filter</description>
+	<filter>
+		<filter-name>Encoding Filter</filter-name>
+		<filter-class>com.tsb.most.framework.servlet.filter.EncodingFilter</filter-class>
+		<init-param>
+			<param-name>encoding</param-name>
+			<param-value>UTF-8</param-value>
+		</init-param>
+	</filter>
+	<filter-mapping>
+		<filter-name>Encoding Filter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+</web-app>

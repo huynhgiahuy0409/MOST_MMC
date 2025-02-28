@@ -1,0 +1,428 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="draftSurveyPrwf"> 
+
+ 	<resultMap id="draftSurveyMap"								type="vslDraftSurveyItem" >
+ 		<result property="vslCallId" 							column="VSL_CALL_ID"/>
+ 		<result property="vslCd" 								column="VSL_CD"/>
+ 		<result property="scn" 									column="SHIP_CALL_NO"/>
+ 		<result property="catgCd" 								column="CATG_CD"/>
+ 		<result property="mfDocId" 								column="MF_DOC_ID"/>
+ 		<result property="blNo" 								column="BL_NO"/>
+ 		<result property="tmnlCd" 								column="TMNL_CD"/>
+ 		<result property="delvTpCd" 							column="DELV_TP_CD"/>
+ 		<result property="cmdtGrpCd" 							column="CMDT_GRP_CD"/>
+ 		<result property="cmdtCd" 								column="CMDT_CD"/>
+ 		<result property="docWgt" 								column="DECLARE_MT"/>
+ 		<result property="weighbridgeWgt" 						column="WEIGHTBRIDGE_WGT"/>
+ 		<result property="operationWgt" 						column="OPERATION_WGT"/>
+ 		<result property="pkgTpCd" 								column="PKG_TP_CD"/>
+ 		<result property="cgTpCd" 								column="CG_TP_CD"/>
+ 		<result property="tsptTpCd" 							column="TSPT_TP_CD"/>
+ 	</resultMap>
+	
+	<sql id="selectDryBulkCargo">
+		WITH CARGO_TYPE AS (
+			SELECT
+			    S_CD
+			FROM
+			    TMT_CD_MSTD
+			WHERE
+			    L_CD = 'MT'
+			    AND M_CD = 'CGTP'
+			    AND S_CD LIKE 'DB%'
+		)
+	</sql>
+	
+	<select id="selectSummaryDocumentForTerminals" parameterType="vslDraftSurveyParm" resultMap="draftSurveyMap">
+		<include refid="selectDryBulkCargo"></include>
+	 	SELECT /* draftSurveyPrwf.selectSummaryDocumentForTerminals */
+	 		BL.VSL_CALL_ID,
+			SUM(
+				CASE BL.TSPT_TP_CD
+					WHEN 'LR' THEN JOB.CG_WGT
+					ELSE 0
+				END
+			) 													AS WEIGHTBRIDGE_WGT,
+			SUM(
+				CASE BL.TSPT_TP_CD
+					WHEN 'LR' THEN 0
+					ELSE JOB.CG_WGT 
+				END
+			) 													AS OPERATION_WGT
+		FROM
+			TMT_BL 												BL
+		INNER JOIN 
+			CARGO_TYPE											CT
+				ON BL.CG_TP_CD									= CT.S_CD
+		INNER JOIN 
+			TMT_JOB 											JOB
+				ON 	BL.VSL_CD 									= JOB.VSL_CD
+				AND BL.SHIP_CALL_NO 							= JOB.SHIP_CALL_NO
+				AND BL.VSL_CALL_ID 								= JOB.VSL_CALL_ID
+				AND BL.MF_DOC_ID 								= JOB.MF_DOC_ID
+				AND BL.BL_NO 									= JOB.CG_NO
+		WHERE
+			BL.VSL_CD 											= #{vslCd}
+			AND BL.SHIP_CALL_NO									= #{scn}						
+			AND JOB.JOB_PURP_CD 								IN ('VG', 'VA')
+		GROUP BY
+			BL.VSL_CALL_ID
+			
+		UNION
+		
+		SELECT /* draftSurveyPrwf.selectSummaryDocumentForTerminals */
+	 		SN.VSL_CALL_ID,
+			SUM(
+				CASE SN.TSPT_TP_CD
+					WHEN 'LR' THEN JOB.CG_WGT
+					ELSE 0
+				END
+			) 													AS WEIGHTBRIDGE_WGT,
+			SUM(
+				CASE SN.TSPT_TP_CD
+					WHEN 'LR' THEN 0
+					ELSE JOB.CG_WGT 
+				END
+			) 													AS OPERATION_WGT
+		FROM
+			TMT_SHIPG_NOTE 										SN
+		INNER JOIN 
+			CARGO_TYPE											CT
+				ON SN.CG_TP_CD									= CT.S_CD
+		INNER JOIN 
+			(
+				SELECT 
+					VSL_CD,
+					VSL_CALL_ID,
+					MF_DOC_ID,
+					SHIPG_NOTE_NO,
+					GR_NO
+				FROM 
+					TMT_GR
+			) 													GR
+				ON 	SN.VSL_CD									= GR.VSL_CD
+				AND SN.VSL_CALL_ID								= GR.VSL_CALL_ID
+				AND SN.MF_DOC_ID								= GR.MF_DOC_ID
+				AND SN.SHIPG_NOTE_NO							= GR.SHIPG_NOTE_NO
+		INNER JOIN 
+			TMT_JOB 											JOB
+				ON 	SN.VSL_CD 									= JOB.VSL_CD
+				AND SN.SHIP_CALL_NO 							= JOB.SHIP_CALL_NO
+				AND SN.VSL_CALL_ID 								= JOB.VSL_CALL_ID
+				AND SN.MF_DOC_ID 								= JOB.MF_DOC_ID
+				AND GR.GR_NO 									= JOB.CG_NO
+		WHERE
+			SN.VSL_CD 											= #{vslCd}
+			AND SN.SHIP_CALL_NO									= #{scn}				
+			AND JOB.JOB_PURP_CD 									IN ('GV', 'AV')
+		GROUP BY
+			SN.VSL_CALL_ID
+	</select>
+	
+	<select id="selectDocumentItems" parameterType="vslDraftSurveyParm" resultMap="draftSurveyMap">
+		<include refid="selectDryBulkCargo"></include>
+	 	SELECT /* draftSurveyPrwf.selectDocumentItems */
+			BL.VSL_CALL_ID,
+			BL.VSL_CD,
+			BL.SHIP_CALL_NO,
+			BL.CATG_CD,
+			BL.MF_DOC_ID,
+			BL.BL_NO,
+			BL.VSL_CALL_ID,
+			(
+				SELECT
+					TMNL_CD
+				FROM
+					TMT_TMNL_DEF
+			) 													AS TMNL_CD,
+			BL.DELV_TP_CD,
+			BL.CMDT_GRP_CD,
+			BL.CMDT_CD,
+			BL.CG_WGT 											AS DECLARE_MT,
+			SUM(
+				CASE BL.TSPT_TP_CD
+					WHEN 'LR' THEN JOB.CG_WGT
+					ELSE 0
+				END
+			) 													AS WEIGHTBRIDGE_WGT,
+			SUM(
+				CASE BL.TSPT_TP_CD
+					WHEN 'LR' THEN 0
+					ELSE JOB.CG_WGT 
+				END
+			) 													AS OPERATION_WGT,
+			BL.PKG_TP_CD, 
+			BL.CG_TP_CD, 
+			BL.TSPT_TP_CD
+		FROM
+			TMT_BL 												BL
+		INNER JOIN 
+			CARGO_TYPE											CT
+				ON BL.CG_TP_CD									= CT.S_CD
+		INNER JOIN 
+			TMT_JOB 											JOB
+				ON 	BL.VSL_CD 									= JOB.VSL_CD
+				AND BL.SHIP_CALL_NO 							= JOB.SHIP_CALL_NO
+				AND BL.VSL_CALL_ID 								= JOB.VSL_CALL_ID
+				AND BL.MF_DOC_ID 								= JOB.MF_DOC_ID
+				AND BL.BL_NO 									= JOB.CG_NO
+		WHERE
+			BL.VSL_CD 											= #{vslCd}
+			AND BL.SHIP_CALL_NO									= #{scn}					
+			AND JOB.JOB_PURP_CD 									IN ('VG', 'VA')
+		GROUP BY
+			BL.VSL_CALL_ID,
+			BL.VSL_CD,
+			BL.SHIP_CALL_NO,
+			BL.CATG_CD,
+			BL.MF_DOC_ID,
+			BL.BL_NO,
+			BL.VSL_CALL_ID,
+			BL.DELV_TP_CD,
+			BL.CMDT_GRP_CD,
+			BL.CMDT_CD,
+			BL.CG_WGT,
+			BL.PKG_TP_CD, 
+			BL.CG_TP_CD, 
+			BL.TSPT_TP_CD
+			
+		UNION
+		
+		SELECT /* draftSurveyPrwf.selectDocumentItems */
+			SN.VSL_CALL_ID,
+			SN.VSL_CD,
+			SN.SHIP_CALL_NO,
+			SN.CATG_CD,
+			SN.MF_DOC_ID,
+			SN.SHIPG_NOTE_NO,
+			SN.VSL_CALL_ID,
+			(
+				SELECT
+					TMNL_CD
+				FROM
+					TMT_TMNL_DEF
+			) 													AS TMNL_CD,
+			SN.DELV_TP_CD,
+			SN.CMDT_GRP_CD,
+			SN.CMDT_CD,
+			SN.CG_WGT 											AS DECLARE_MT,
+			SUM(
+				CASE SN.TSPT_TP_CD
+					WHEN 'LR' THEN JOB.CG_WGT
+					ELSE 0
+				END
+			) 													AS WEIGHTBRIDGE_WGT,
+			SUM(
+				CASE SN.TSPT_TP_CD
+					WHEN 'LR' THEN 0
+					ELSE JOB.CG_WGT 
+				END
+			) 													AS OPERATION_WGT,
+			SN.PKG_TP_CD, 
+			SN.CG_TP_CD, 
+			SN.TSPT_TP_CD
+		FROM
+			TMT_SHIPG_NOTE										SN
+		INNER JOIN 
+			CARGO_TYPE											CT
+				ON SN.CG_TP_CD									= CT.S_CD
+		INNER JOIN 
+			(
+				SELECT 
+					VSL_CD,
+					VSL_CALL_ID,
+					MF_DOC_ID,
+					SHIPG_NOTE_NO,
+					GR_NO
+				FROM 
+					TMT_GR
+			) 													GR
+				ON 	SN.VSL_CD									= GR.VSL_CD
+				AND SN.VSL_CALL_ID								= GR.VSL_CALL_ID
+				AND SN.MF_DOC_ID								= GR.MF_DOC_ID
+				AND SN.SHIPG_NOTE_NO							= GR.SHIPG_NOTE_NO
+		INNER JOIN 
+			TMT_JOB 											JOB
+				ON 	SN.VSL_CD 									= JOB.VSL_CD
+				AND SN.SHIP_CALL_NO 							= JOB.SHIP_CALL_NO
+				AND SN.VSL_CALL_ID 								= JOB.VSL_CALL_ID
+				AND SN.MF_DOC_ID 								= JOB.MF_DOC_ID
+				AND GR.GR_NO 									= JOB.CG_NO
+		WHERE
+			SN.VSL_CD 											= #{vslCd}
+			AND SN.SHIP_CALL_NO									= #{scn}					
+			AND JOB.JOB_PURP_CD 									IN ('GV', 'AV')
+		GROUP BY
+			SN.VSL_CALL_ID,
+			SN.VSL_CD,
+			SN.SHIP_CALL_NO,
+			SN.CATG_CD,
+			SN.MF_DOC_ID,
+			SN.SHIPG_NOTE_NO,
+			SN.VSL_CALL_ID,
+			SN.DELV_TP_CD,
+			SN.CMDT_GRP_CD,
+			SN.CMDT_CD,
+			SN.CG_WGT,
+			SN.PKG_TP_CD, 
+			SN.CG_TP_CD, 
+			SN.TSPT_TP_CD
+	</select>
+	
+	<insert id="insertVslDraftSurvey" parameterType="vslDraftSurveyItem">
+		INSERT /* draftSurveyPrwf.insertItems */
+		INTO TMT_VSL_DRAFT_SURVEY(
+			VSL_CD,
+			SHIP_CALL_NO,
+			NUMBER_OF_CALL,
+			INITIAL_READING_WGT,
+			FINAL_READING_WGT,
+			DRAFT_SURVEY_WGT,
+			WEIGHTBRIDGE_WGT,
+			OPERATION_WGT,
+			RMK,
+			VERSION,
+			STAFF_CD,
+			UPDATE_TIME
+		) VALUES (
+			#{vslCd},
+			#{scn},
+			#{numberOfCalls},
+			#{initialReadingWgt},
+			#{finalReadingWgt},
+			#{draftSurveyWgt},
+			#{weighbridgeWgt},
+			#{operationWgt},
+			#{rmk},
+			#{newVersion},
+			#{userId},
+			SYSDATETIME()
+		)
+	</insert>
+	
+	<insert id="insertVslDraftSurveyDtls" parameterType="vslDraftSurveyItem">
+		INSERT /* draftSurveyPrwf.insertVslDraftSurveyDtls */
+		INTO TMT_VSL_DRAFT_SURVEY_DTL(
+			VSL_CD,
+			SHIP_CALL_NO,
+			VSL_CALL_ID,
+			SEQ,
+			TMNL_CD,
+			MF_DOC_ID,
+			BL_NO,
+			SHIPG_NOTE_NO,
+			CATG_CD,
+			CMDT_GRP_CD,
+			CMDT_CD,
+			PKG_TP_CD,
+			CG_TP_CD,
+			TSPT_TP_CD,
+			DELV_TP_CD,
+			DOC_WGT,
+			WEIGHTBRIDGE_WGT,
+			OPERATION_WGT,
+			DRAFT_SURVEY_WGT,
+			VERSION,
+			STAFF_CD,
+			UPDATE_TIME
+		) VALUES (
+			#{vslCd},
+			#{scn},
+			#{vslCallId},
+			(SELECT 
+				ISNULL(MAX(SEQ), 0) + 1 
+			FROM 
+				TMT_VSL_DRAFT_SURVEY_DTL
+			WHERE
+				SHIP_CALL_NO = #{scn}
+			),
+			#{tmnlCd},
+			#{mfDocId},
+			#{blNo},
+			#{snNo},
+			#{catgCd},
+			#{cmdtGrpCd},
+			#{cmdtCd},
+			#{pkgTpCd},
+			#{cgTpCd},
+			#{tsptTpCd},
+			#{delvTpCd},
+			#{docWgt},
+			#{weighbridgeWgt},
+			#{operationWgt},
+			#{draftSurveyWgt},
+			#{newVersion},
+			#{userId},
+			SYSDATETIME()
+		)
+	</insert>
+	
+	<delete id="deleteVslDraftSurveyItem"  parameterType="vslDraftSurveyItem">
+		BEGIN
+			DELETE /* draftSurveyPrwf.deleteVslDraftSurveyItem */ 	 
+			FROM 
+				TMT_VSL_DRAFT_SURVEY_DTL
+			WHERE 
+				VSL_CD 											= #{vslCd} 
+				AND SHIP_CALL_NO								= #{scn} 
+				
+			DELETE /* draftSurveyPrwf.deleteVslDraftSurveyItem */ 	 
+			FROM 
+				TMT_VSL_DRAFT_SURVEY
+			WHERE 
+				VSL_CD 											= #{vslCd} 
+				AND SHIP_CALL_NO								= #{scn} 
+		END;
+	</delete>
+	
+	<select id="checkIfReconcileStatusIsVerified" 				resultType="java.lang.String">
+		SELECT /* draftSurveyPrwf.deleteVslDraftSurveyItem */ 	 
+			TOP(1) SHIP_CALL_NO
+		FROM
+			TMT_B_RECCL
+		WHERE
+			SHIP_CALL_NO 										= #{scn}
+			AND (
+				EX_RECCL_CD = 'Y' 								OR IM_RECCL_CD = 'Y'
+			)
+	</select>
+	
+	<update id="updateVslDraftSurvey" 							parameterType="vslDraftSurveyItem">
+		UPDATE /* draftSurveyPrwf.updateVslDraftSurvey */ 	 
+			TMT_VSL_DRAFT_SURVEY
+		SET 
+			INITIAL_READING_WGT									= #{initialReadingWgt},
+			FINAL_READING_WGT									= #{finalReadingWgt},	
+			DRAFT_SURVEY_WGT									= #{draftSurveyWgt},
+			VERSION												= #{newVersion},
+			STAFF_CD											= #{userId},
+			UPDATE_TIME											= SYSDATETIME()
+		WHERE
+			VSL_CD												= #{vslCd}
+			AND SHIP_CALL_NO									= #{scn}
+	</update>
+	
+	<update id="updateVslDraftSurveyDtls" 						parameterType="vslDraftSurveyItem">
+		UPDATE /* draftSurveyPrwf.updateVslDraftSurveyDtls */
+			TMT_VSL_DRAFT_SURVEY_DTL
+		SET
+			DRAFT_SURVEY_WGT 									= #{draftSurveyWgt},
+			VERSION 											= #{newVersion},
+			STAFF_CD 											= #{userId},
+			UPDATE_TIME  										= SYSDATETIME()
+		WHERE
+			VSL_CD 												= #{vslCd}
+			AND SHIP_CALL_NO 									= #{scn}
+			AND VSL_CALL_ID 									= #{vslCallId}
+			AND TMNL_CD 										= #{tmnlCd}
+			AND MF_DOC_ID 										= #{mfDocId}
+			<if test='blNo != null and !blNo.equals("")'>
+				AND BL_NO										= #{blNo}
+			</if>
+			<if test='snNo != null and !snNo.equals("")'>
+				AND SHIPG_NOTE_NO								= #{snNo}
+			</if>
+	</update>
+</mapper>

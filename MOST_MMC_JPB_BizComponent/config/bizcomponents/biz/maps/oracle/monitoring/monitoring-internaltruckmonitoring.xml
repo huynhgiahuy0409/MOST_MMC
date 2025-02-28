@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+<mapper namespace="internalTruckMonitoring">
+	<sql id="getInternalTruckMonitoringList">
+		<choose>
+			<when test="(snNo != null and snNo != '') or (bookingNo != null and bookingNo != '')">
+				<include refid="getInternalTruckMonitoringSNList"/>
+				<if test="(blNo != null and blNo != '') or (masterBlNo != null and masterBlNo != '')">
+					UNION ALL
+					<include refid="getInternalTruckMonitoringBLList"/>
+				</if>
+			</when>
+			<when test="(blNo != null and blNo != '') or (masterBlNo != null and masterBlNo != '')">
+				<include refid="getInternalTruckMonitoringBLList"/>
+			</when>
+			<otherwise>
+				<include refid="getInternalTruckMonitoringSNList"/>
+				UNION ALL
+				<include refid="getInternalTruckMonitoringBLList"/>
+			</otherwise>
+		</choose>
+	</sql>
+
+	<sql id="getInternalTruckMonitoringSNList">
+		SELECT DISTINCT J.VSL_CALL_ID 		VSLCALLID,
+						''					MASTERBLNO,
+		                '' 					BLNO,
+		                '' 					SDONO,
+		                J.CG_NO 			GRNO,
+		                T.SHIPG_NOTE_NO 	SNNO,
+		                S.MF_DOC_ID			BOOKINGNO,
+		                T.LORRY_NO 			TRUCKNO,
+		                T.CHASSIS_NO 		CHASSISNO,
+		                J.BARGE_NO			BARGENO,
+		                (SELECT PP.VSL_NM FROM TMT_VSL_PART PP, (SELECT VSL_CD FROM TMT_VSL_SCH WHERE VSL_CALL_ID = J.BARGE_NO AND ROWNUM = 1) VV WHERE PP.VSL_CD = VV.VSL_CD AND ROWNUM = 1)  AS BARGENM,
+		                TO_CHAR(J.WORK_ST_DT, 'DD/MM/YYYY HH24:MI') 	CONFIRMDT,
+		                TO_CHAR(W.FIRST_WGT_DT, 'DD/MM/YYYY HH24:MI') 	FIRSTWGTTIME,
+		                NVL(W.FIRST_WGT, 0) 							FIRSTWGT,
+		                TO_CHAR(W.SECOND_WGT_DT, 'DD/MM/YYYY HH24:MI') 	SECONDWGTTIME,
+		                NVL(W.SECOND_WGT, 0) 							SECONDWGT,
+		                E.CONTT_NO			CONTRACTORCD,
+		                F_GET_PARTNER_INFO(E.CONTT_NO, 'ENG_SNM') AS CONTRACTORNM,
+		                J.RMK RMK,
+		                (SELECT P.VSL_NM FROM TMT_VSL_PART P INNER JOIN TMT_VSL_SCH V ON P.VSL_CD = V.VSL_CD WHERE V.VSL_CALL_ID = J.VSL_CALL_ID AND ROWNUM = 1) AS VSLNM,
+		                (SELECT CMDT_DESC FROM TMT_CMDT WHERE CMDT_CD = S.CMDT_CD AND ROWNUM = 1) AS CMDT,
+		                (SELECT S_CD_NM FROM TMT_CD_MSTD WHERE L_CD = 'MT' AND M_CD = 'JOBTP' AND S_CD = J.JOB_TP_CD AND ROWNUM = 1) AS JOBTP,
+		                CASE
+		        			WHEN J.JOB_TP_CD = 'MV' THEN J.FM_LOC_ID
+		        			ELSE ''
+		        		END AS ORGWH,
+		        		CASE
+		        			WHEN J.JOB_TP_CD = 'MV' THEN J.TO_LOC_ID
+		        			ELSE ''
+		        		END AS NEWWH
+		  FROM 	TMT_JOB J
+		  	   	INNER JOIN TMT_GR G 
+		  	   		ON  G.VSL_CALL_ID = J.VSL_CALL_ID AND G.GR_NO = J.CG_NO
+		       	INNER JOIN TMT_ASSIGN_TRANSPORT T
+		          	ON	T.VSL_CALL_ID = J.VSL_CALL_ID
+						AND T.SHIPG_NOTE_NO = G.SHIPG_NOTE_NO
+						AND T.LORRY_NO = J.LORRY_NO
+       		   	INNER JOIN TMT_SHIPG_NOTE S
+       		   		ON 	S.VSL_CALL_ID = G.VSL_CALL_ID AND S.SHIPG_NOTE_NO = G.SHIPG_NOTE_NO
+		       	LEFT OUTER JOIN TMT_WEIGHTBRIDGE W
+		          	ON 	W.VSL_CALL_ID = J.VSL_CALL_ID
+		             	AND W.SHIPG_NOTE_NO = T.SHIPG_NOTE_NO
+		             	AND W.TRANSACTION_NO = J.WB_TRANSACTION_NO
+		       
+		       	LEFT OUTER JOIN TMT_INV_LOC I     
+		       		ON 	J.VSL_CALL_ID = I.VSL_CALL_ID 
+		       			AND J.CG_NO = I.CG_NO 
+		       			AND J.JOB_NO =I.JOB_NO 
+
+		       	LEFT OUTER JOIN TMT_EQ_FAC E 
+		       		ON E.EQ_FAC_NO = J.LORRY_NO
+		  
+		  WHERE T.TRUCK_MODE = 'I'
+		  		AND J.JOB_PURP_CD NOT IN ('AV')
+		  		AND CASE WHEN S.WGT_CHK = 'Y' THEN
+                 		CASE WHEN W.SECOND_WGT IS NOT NULL THEN
+                    		CASE WHEN W.STAFF_CD <![CDATA[<>]]> 'PACK..CARGO_WEIGHT' THEN '2'
+                         		ELSE '1'
+                    		END
+                    	ELSE '2'
+                 		END
+              			ELSE '1'
+           			END = '1'
+				<if test="vslCallId != null and vslCallId != ''">
+					AND J.VSL_CALL_ID	  = #{vslCallId}
+				</if>
+			  	<if test="contractor != null and contractor != ''">
+	                AND E.CONTT_NO = #{contractor}
+			   	</if>
+			   	<if test="bookingNo != null and bookingNo != ''">
+	                AND S.MF_DOC_ID = #{bookingNo}
+			   	</if> 
+
+			   	<if test="snNo != null and snNo != ''">
+	                AND T.SHIPG_NOTE_NO = #{snNo}
+			   	</if>
+			   	<if test="grNo != null and grNo != ''">
+	                AND J.CG_NO	  = #{grNo}
+			   	</if>   
+			   	<if test="whId != null and whId != ''">
+	                AND I.WH_LOC_ID	= #{whId}
+			   	</if>    
+		       	<if test="confirmDtFromDt != null and confirmDtFromDt != ''">
+	                AND J.WORK_ST_DT <![CDATA[>=]]> TO_DATE(#{confirmDtFromDt}, 'DD/MM/YYYY HH24:MI')
+		   	   	</if> 
+		   	   	<if test="confirmDtToDt != null and confirmDtToDt != ''">
+	                AND J.WORK_ST_DT <![CDATA[<=]]> TO_DATE(#{confirmDtToDt}, 'DD/MM/YYYY HH24:MI')
+		       	</if> 
+		       	<if test="lorryNo != null and lorryNo != ''">
+	                AND J.LORRY_NO LIKE '%' || #{lorryNo} || '%'
+			   	</if> 
+	</sql>
+	
+	<sql id="getInternalTruckMonitoringBLList">
+		SELECT 	DISTINCT
+				J.VSL_CALL_ID 		VSLCALLID,
+				B.MF_DOC_ID			MASTERBLNO,
+                J.CG_NO 			BLNO,
+                J.SDO_NO 			SDONO,
+                '' 					GRNO,
+                '' 					SNNO,
+                '' 					BOOKINGNO,
+                T.LORRY_NO 			TRUCKNO,
+                T.CHASSIS_NO 		CHASSISNO,
+                J.BARGE_NO			BARGENO,
+                (SELECT PP.VSL_NM FROM TMT_VSL_PART PP, (SELECT VSL_CD FROM TMT_VSL_SCH WHERE VSL_CALL_ID = J.BARGE_NO AND ROWNUM = 1) VV WHERE PP.VSL_CD = VV.VSL_CD AND ROWNUM = 1)  AS BARGENM,
+                TO_CHAR(J.WORK_ST_DT, 'DD/MM/YYYY HH24:MI') 	CONFIRMDT,
+                TO_CHAR(W.FIRST_WGT_DT, 'DD/MM/YYYY HH24:MI') 	FIRSTWGTTIME,
+                NVL(W.FIRST_WGT, 0) 							FIRSTWGT,
+                TO_CHAR(W.SECOND_WGT_DT, 'DD/MM/YYYY HH24:MI') 	SECONDWGTTIME,
+                NVL(W.SECOND_WGT, 0) 							SECONDWGT,
+                E.CONTT_NO			CONTRACTORCD,
+                F_GET_PARTNER_INFO(E.CONTT_NO, 'ENG_SNM') AS CONTRACTORNM,
+                J.RMK RMK,
+                (SELECT P.VSL_NM FROM TMT_VSL_PART P INNER JOIN TMT_VSL_SCH V ON P.VSL_CD = V.VSL_CD WHERE V.VSL_CALL_ID = J.VSL_CALL_ID AND ROWNUM = 1) AS VSLNM,
+		        (SELECT CMDT_DESC FROM TMT_CMDT WHERE CMDT_CD = B.CMDT_CD AND ROWNUM = 1) AS CMDT,
+		        (SELECT S_CD_NM FROM TMT_CD_MSTD WHERE L_CD = 'MT' AND M_CD = 'JOBTP' AND S_CD = J.JOB_TP_CD AND ROWNUM = 1) AS JOBTP,
+		        CASE
+		        	WHEN J.JOB_TP_CD = 'MV' THEN J.FM_LOC_ID
+		        	ELSE ''
+		        END AS ORGWH,
+		        CASE
+		        	WHEN J.JOB_TP_CD = 'MV' THEN J.TO_LOC_ID
+		        	ELSE ''
+		        END AS NEWWH
+		  FROM 	TMT_JOB J
+		       	INNER JOIN TMT_ASSIGN_TRANSPORT T
+		          	ON	T.VSL_CALL_ID = J.VSL_CALL_ID
+		             	AND T.BL_NO = J.CG_NO
+		             	AND T.LORRY_NO = J.LORRY_NO
+		       	INNER JOIN TMT_BL B
+		       		ON 	B.VSL_CALL_ID = J.VSL_CALL_ID 
+		       			AND B.BL_NO = J.CG_NO
+		       	LEFT OUTER JOIN TMT_WEIGHTBRIDGE W
+		          	ON  W.VSL_CALL_ID = J.VSL_CALL_ID
+		             	AND W.BL_NO = J.CG_NO
+		             	AND W.TRANSACTION_NO = J.WB_TRANSACTION_NO
+		       
+		       	LEFT OUTER JOIN TMT_INV_LOC I 
+		       		ON 	J.VSL_CALL_ID = I.VSL_CALL_ID 
+		       			AND J.CG_NO = I.CG_NO 
+		       			AND J.JOB_NO =I.JOB_NO 
+		       
+		      	LEFT OUTER JOIN TMT_EQ_FAC E 
+		       		ON E.EQ_FAC_NO = J.LORRY_NO
+		WHERE   T.TRUCK_MODE = 'I'  
+				AND J.JOB_PURP_CD NOT IN ('VA')
+				AND CASE WHEN B.WGT_CHK = 'Y' THEN
+                 		CASE WHEN W.SECOND_WGT IS NOT NULL THEN
+                    		CASE WHEN W.STAFF_CD <![CDATA[<>]]> 'PACK..CARGO_WEIGHT' THEN '2'
+                         		ELSE '1'
+                    		END
+                    	ELSE '2'
+                 		END
+              			ELSE '1'
+           			END = '1'     
+		  		<if test="vslCallId != null and vslCallId != ''">
+	                AND J.VSL_CALL_ID = #{vslCallId}
+		   		</if>  
+
+		   		<if test="contractor != null and contractor != ''">
+	                AND E.CONTT_NO = #{contractor}
+			   	</if>
+		   		<if test="masterBlNo != null and masterBlNo != ''">
+	                AND B.MF_DOC_ID = #{masterBlNo}
+				</if> 
+		   		<if test="blNo != null and blNo != ''">
+	                AND J.CG_NO = #{blNo}
+		   		</if>      
+		   		<if test="sdoNo != null and sdoNo != ''">
+	                AND J.SDO_NO = #{sdoNo}
+		   		</if> 
+		   		<if test="whId != null and whId != ''">
+	                AND I.WH_LOC_ID	  = #{whId}
+				</if>    
+		   		<if test="confirmDtFromDt != null and confirmDtFromDt != ''">
+	                AND J.WORK_ST_DT <![CDATA[>=]]> TO_DATE(#{confirmDtFromDt}, 'DD/MM/YYYY HH24:MI')
+		   	   	</if> 
+		   	   	<if test="confirmDtToDt != null and confirmDtToDt != ''">
+	                AND J.WORK_ST_DT <![CDATA[<=]]> TO_DATE(#{confirmDtToDt}, 'DD/MM/YYYY HH24:MI')
+		       	</if> 
+		       	<if test="lorryNo != null and lorryNo != ''">
+	                AND J.LORRY_NO LIKE '%' || #{lorryNo} || '%'
+			   	</if> 
+	</sql>
+	
+	<select id="selectInternalTruckMonitoringList"  parameterType="internalTruckMonitoringParm" resultType="internalTruckMonitoringItem">
+	 	<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getInternalTruckMonitoringList"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	 </select>
+	 
+	 <select id="selectInternalTruckMonitoringListCount" parameterType="internalTruckMonitoringParm" resultType="java.lang.String">
+	 	SELECT COUNT(*)
+          FROM (<include refid="getInternalTruckMonitoringList"/>)
+	 </select>
+</mapper>

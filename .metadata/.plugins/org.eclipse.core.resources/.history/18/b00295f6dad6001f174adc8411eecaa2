@@ -1,0 +1,452 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	<import resource="classpath:/bizcomponents/bizcomponentContext-common-mybatis.xml"/>
+	<bean id="baseBizSqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+ 		 <property name="dataSource">
+			<ref bean="mostDataSource" />
+		 </property>
+		  <property name="configLocation">
+		  	<value>classpath:/bizcomponents/basebiz/maps/business-${db.type}-map-config-mybatis.xml</value>
+		  </property>	
+	</bean>
+		  
+	<bean id="baseBizSqlSession" class="org.mybatis.spring.SqlSessionTemplate" >
+  		<constructor-arg index="0" ref="baseBizSqlSessionFactory" />
+	</bean>
+
+	<!-- ############ DAO Defindtions : MyBatis implements #################### -->
+	<!-- per module -->
+	<bean id="baseBizMostUnifiedDao" class="com.tsb.most.framework.dao.SqlMapUnifiedDaoMyBatis">
+	    <property name="sqlSession"><ref bean="baseBizSqlSession" /></property>
+    </bean>  	
+  	    
+	<bean id="baseBizMostDaoUtil" class="com.tsb.most.framework.bizcomponemt.base.DaoUtil" />    
+	
+  	<!-- ########### DAO for ServiceBizComponents ################################# -->
+	<!-- Validation-->
+	<bean id="validationCodeDao" class="com.tsb.most.basebiz.dao.validation.ValidationCodeDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+	
+	<!-- Popup-->
+	<bean id="popupServiceDao" class="com.tsb.most.basebiz.dao.popup.PopupServiceDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	
+  	<!-- combobox -->
+  	<bean id="comboboxServiceDao" class="com.tsb.most.basebiz.dao.combobox.ComboboxServiceDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	
+	<!-- codes-->
+  	<bean id="codeMasterDao" class="com.tsb.most.basebiz.dao.codes.CodeMasterDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+	<bean id="capacityCodeDao" class="com.tsb.most.basebiz.dao.codes.CapacityCodeDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	<bean id="brandModelCodeDao" class="com.tsb.most.basebiz.dao.codes.BrandModelCodeDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+ 	<bean id="commodityCodeDao" class="com.tsb.most.basebiz.dao.codes.CommodityCodeDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	<bean id="countryCodeDao" class="com.tsb.most.basebiz.dao.codes.CountryCodeDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	<bean id="unlocationCodeDao" class="com.tsb.most.basebiz.dao.codes.UNLocationCodeDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	<bean id="dangerousGoodsCodeDao" class="com.tsb.most.basebiz.dao.codes.DangerousGoodsCodeDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	<bean id="generalCodeDao" class="com.tsb.most.basebiz.dao.codes.GeneralCodeDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	<bean id="delayCodeDao" class="com.tsb.most.basebiz.dao.codes.DelayCodeDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	<bean id="hsCodeDao" class="com.tsb.most.basebiz.dao.codes.HSCodeDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	
+  	<!-- administrator -->
+  	<bean id="authorityGroupDao" class="com.tsb.most.basebiz.dao.administrator.AuthorityGroupDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	<bean id="menuRegisterDao" class="com.tsb.most.basebiz.dao.administrator.MenuRegisterDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	<bean id="companyRegisterDao" class="com.tsb.most.basebiz.dao.administrator.CompanyRegisterDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	<bean id="userRegisterDao" class="com.tsb.most.basebiz.dao.administrator.UserRegisterDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	
+  	<!-- Configuration -->
+  	<bean id="terminalDefinitionDao" class="com.tsb.most.basebiz.dao.configuration.TerminalDefinitionDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	<bean id="warehouseDefinitionDao" class="com.tsb.most.basebiz.dao.configuration.WarehouseDefinitionDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	<bean id="equipmentConfigurationDao" class="com.tsb.most.basebiz.dao.configuration.EquipmentConfigurationDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	<bean id="berthLocationConfigurationDao" class="com.tsb.most.basebiz.dao.configuration.BerthLocationConfigurationDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	<bean id="driverTruckRegistrationDao" class="com.tsb.most.basebiz.dao.configuration.DriverTruckRegistrationDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	<bean id="rosterConfigurationDao" class="com.tsb.most.basebiz.dao.configuration.RosterConfigurationDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	<bean id="whConfigurationDao" class="com.tsb.most.basebiz.dao.configuration.WhConfigurationDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	<bean id="serviceOrderSettingDao" class="com.tsb.most.basebiz.dao.configuration.ServiceOrderSettingDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	<bean id="bizConfigurationDao" class="com.tsb.most.basebiz.dao.configuration.BizConfigurationDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+  	<!--s MGR-010 MPTS– Allowance Configuration -->
+  	<bean id="allowanceConfigurationDao" class="com.tsb.most.basebiz.dao.configuration.AllowanceConfigurationDao" lazy-init="true">
+		<property name="unifiedDao">							<ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil">								<ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>
+	<!--e MGR-010 MPTS– Allowance Configuration -->
+	<!-- VMS Port -->
+    <bean id="portDao" class="com.tsb.most.basebiz.dao.vms.PortDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+    </bean>  	
+	
+  	<!-- VMS Coast Vessel -->
+  	<bean id="vesselCoastDao" class="com.tsb.most.basebiz.dao.vms.VesselCoastDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>	
+
+  	<!-- VMS Car Vessel -->
+  	<bean id="vesselCarDao" class="com.tsb.most.basebiz.dao.vms.VesselCarDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>	
+
+  	<!-- VMS Bulk Vessel -->
+  	<bean id="vesselBulkDao" class="com.tsb.most.basebiz.dao.vms.VesselBulkDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="baseBizMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="baseBizMostDaoUtil"/></property>
+  	</bean>	
+  	
+	
+  	<!-- ################## ServiceBiz Component Target ######################## -->	
+	
+	<!-- Validation-->
+  	<bean id="validationCodeTarget" class="com.tsb.most.basebiz.service.validation.ValidationCode" lazy-init="true">
+		<property name="validationCodeDao" 				ref="validationCodeDao"/>
+  	</bean>
+	
+	<!-- Popup-->
+  	<bean id="popupServiceTarget" class="com.tsb.most.basebiz.service.popup.PopupService" lazy-init="true">
+		<property name="popupServiceDao" 				ref="popupServiceDao"/>
+  	</bean>
+  	<!-- combobox -->
+  	<bean id="comboboxServiceTarget" class="com.tsb.most.basebiz.service.combobox.ComboboxService" lazy-init="true">
+		<property name="comboboxServiceDao" 			ref="comboboxServiceDao"/>
+  	</bean>
+  	<!-- Codes -->
+  	<bean id="codeMasterTarget" class="com.tsb.most.basebiz.service.codes.CodeMaster" lazy-init="true">
+		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+  	</bean>
+  	<bean id="capacityCodeTarget" class="com.tsb.most.basebiz.service.codes.CapacityCode" lazy-init="true">
+		<property name="capacityCodeDao" 				ref="capacityCodeDao"/>
+  	</bean>
+  	<bean id="brandModelCodeTarget" class="com.tsb.most.basebiz.service.codes.BrandModelCode" lazy-init="true">
+		<property name="brandModelCodeDao" 				ref="brandModelCodeDao"/>
+  	</bean>
+  	<bean id="CommodityCodeTarget" class="com.tsb.most.basebiz.service.codes.CommodityCode" lazy-init="true">
+		<property name="commodityCodeDao" 				ref="commodityCodeDao"/>
+  	</bean>
+  	<bean id="countryCodeTarget" class="com.tsb.most.basebiz.service.codes.CountryCode" lazy-init="true">
+		<property name="countryCodeDao" 				ref="countryCodeDao"/>
+  	</bean>
+  	<bean id="unlocationCodeTarget" class="com.tsb.most.basebiz.service.codes.UNLocationCode" lazy-init="true">
+		<property name="unlocationCodeDao" 				ref="unlocationCodeDao"/>
+  	</bean>
+  	<bean id="dangerousGoodsCodeTarget" class="com.tsb.most.basebiz.service.codes.DangerousGoodsCode" lazy-init="true">
+		<property name="dangerousGoodsCodeDao" 			ref="dangerousGoodsCodeDao"/>
+  	</bean>
+  	<bean id="generalCodeTarget" class="com.tsb.most.basebiz.service.codes.GeneralCode" lazy-init="true">
+		<property name="generalCodeDao" 				ref="generalCodeDao"/>
+  	</bean>
+  	<bean id="delayCodeTarget" class="com.tsb.most.basebiz.service.codes.DelayCode" lazy-init="true">
+		<property name="delayCodeDao" 					ref="delayCodeDao"/>
+  	</bean>
+  	<bean id="hsCodeTarget" class="com.tsb.most.basebiz.service.codes.HSCode" lazy-init="true">
+		<property name="hsCodeDao" 						ref="hsCodeDao"/>
+  	</bean>
+
+  	<!-- administrator -->
+  	<bean id="authorityGroupTarget" class="com.tsb.most.basebiz.service.administrator.AuthorityGroup" lazy-init="true">
+		<property name="authorityGroupDao" 				ref="authorityGroupDao"/>
+  	</bean>
+  	<bean id="menuRegisterTarget" class="com.tsb.most.basebiz.service.administrator.MenuRegister" lazy-init="true">
+		<property name="menuRegisterDao" 				ref="menuRegisterDao"/>
+  	</bean>
+  	<bean id="companyRegisterTarget" class="com.tsb.most.basebiz.service.administrator.CompanyRegister" lazy-init="true">
+		<property name="companyRegisterDao" 			ref="companyRegisterDao"/>
+		<property name="fileUpload" 					ref="fileUpload"/>
+  	</bean>
+  	<bean id="userRegisterTarget" class="com.tsb.most.basebiz.service.administrator.UserRegister" lazy-init="true">
+		<property name="userRegisterDao" 				ref="userRegisterDao"/>
+		<property name="fileUploadDao" 					ref="fileUploadDao"/>
+		<property name="authorityGroupDao" 				ref="authorityGroupDao"/>
+  	</bean>
+
+  	<!-- Configuration -->
+  	<bean id="terminalDefinitionTarget" class="com.tsb.most.basebiz.service.configuration.TerminalDefinition" lazy-init="true">
+		<property name="terminalDefinitionDao" 			ref="terminalDefinitionDao"/>
+  	</bean>
+  	<bean id="warehouseDefinitionTarget" class="com.tsb.most.basebiz.service.configuration.WarehouseDefinition" lazy-init="true">
+		<property name="warehouseDefinitionDao" 		ref="warehouseDefinitionDao"/>
+  	</bean>
+  	<bean id="equipmentConfigurationTarget" class="com.tsb.most.basebiz.service.configuration.EquipmentConfiguration" lazy-init="true">
+		<property name="equipmentConfigurationDao" 		ref="equipmentConfigurationDao"/>
+		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+		<property name="fileUpload" 					ref="fileUpload"/>
+  	</bean>
+  	<bean id="berthLocationConfigurationTarget" class="com.tsb.most.basebiz.service.configuration.BerthLocationConfiguration" lazy-init="true">
+		<property name="berthLocationConfigurationDao" 	ref="berthLocationConfigurationDao"/>
+  	</bean>
+  	<bean id="driverTruckRegistrationTarget" class="com.tsb.most.basebiz.service.configuration.DriverTruckRegistration" lazy-init="true">
+		<property name="driverTruckRegistrationDao" 	ref="driverTruckRegistrationDao"/>
+  	</bean>
+  	<bean id="rosterConfigurationTarget" class="com.tsb.most.basebiz.service.configuration.RosterConfiguration" lazy-init="true">
+		<property name="rosterConfigurationDao" 		ref="rosterConfigurationDao"/>
+  	</bean>
+  	<bean id="serviceOrderSettingTarget" class="com.tsb.most.basebiz.service.configuration.ServiceOrderSetting" lazy-init="true">
+		<property name="serviceOrderSettingDao" 		ref="serviceOrderSettingDao"/>
+  	</bean>
+  	<bean id="bizConfigurationTarget" class="com.tsb.most.basebiz.service.configuration.BizConfiguration" lazy-init="true">
+		<property name="bizConfigurationDao" 		ref="bizConfigurationDao"/>
+  	</bean>
+  	<!--s MGR-010 MPTS– Allowance Configuration -->
+  	<bean id="allowanceConfigurationTarget" class="com.tsb.most.basebiz.service.configuration.AllowanceConfiguration" lazy-init="true">
+		<property name="allowanceConfigurationDao" 				ref="allowanceConfigurationDao"/>
+		<property name="codeMasterDao" 							ref="codeMasterDao"/>
+  	</bean>
+  	<!--s MGR-010 MPTS– Allowance Configuration -->
+   	<!-- VMS Port -->	
+ 	<bean id="portTarget" class="com.tsb.most.basebiz.service.vms.Port" lazy-init="true">
+        <property name="portDao" ref="portDao"/>
+    </bean>	
+  	<bean id="vesselCoastTarget" class="com.tsb.most.basebiz.service.vms.VesselCoast" lazy-init="true">
+		<property name="vesselCoastDao" ref="vesselCoastDao"/>
+    </bean>	
+
+    <bean id="vesselCarTarget" class="com.tsb.most.basebiz.service.vms.VesselCar" lazy-init="true">
+		<property name="vesselCarDao" ref="vesselCarDao"/>
+    </bean>	
+    
+    <bean id="vesselBulkTarget" class="com.tsb.most.basebiz.service.vms.VesselBulk" lazy-init="true">
+		<property name="vesselBulkDao" ref="vesselBulkDao"/>
+    </bean>
+    
+	<!-- ###########  Service Component  ################################# -->
+
+	<!-- Validation -->
+	<bean id="validationCode" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="validationCodeTarget"/>
+		</property>
+	</bean>
+	
+	<!-- popup -->
+	<bean id="popupService" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="popupServiceTarget"/>
+		</property>
+	</bean>
+	
+	<!-- combobox -->
+	<bean id="comboboxService" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="comboboxServiceTarget"/>
+		</property>
+	</bean>
+	
+	<!-- codes -->
+	<bean id="codeMaster" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="codeMasterTarget"/>
+		</property>
+	</bean>
+	<bean id="capacityCode" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="capacityCodeTarget"/>
+		</property>
+	</bean>
+	<bean id="brandModelCode" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="brandModelCodeTarget"/>
+		</property>
+	</bean>
+	<bean id="commodityCode" parent="mostTxProxyTemplate">
+	<property name="target">
+	      <ref bean="CommodityCodeTarget"/>
+	   </property>
+	</bean>
+	<bean id="countryCode" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="countryCodeTarget"/>
+	   </property>
+	</bean>
+	<bean id="unlocationCode" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="unlocationCodeTarget"/>
+	   </property>
+	</bean>
+	<bean id="dangerousGoodsCode" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="dangerousGoodsCodeTarget"/>
+	   </property>
+	</bean>
+	<bean id="generalCode" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="generalCodeTarget"/>
+	   </property>
+	</bean>
+	<bean id="delayCode" parent="mostTxProxyTemplate">
+	<property name="target">
+	      <ref bean="delayCodeTarget"/>
+	   </property>
+	</bean>
+	<bean id="hsCode" parent="mostTxProxyTemplate">
+		<property name="target">
+	      	<ref bean="hsCodeTarget"/>
+		</property>
+	</bean>
+	
+	<!-- administrator -->
+	<bean id="authorityGroup" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="authorityGroupTarget"/>
+	   </property>
+	</bean>
+	<bean id="menuRegister" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="menuRegisterTarget"/>
+	   </property>
+	</bean>
+	<bean id="companyRegister" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="companyRegisterTarget"/>
+	   </property>
+	</bean>
+	<bean id="userRegister" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="userRegisterTarget"/>
+	   </property>
+	</bean>
+
+	 <!-- Configuration -->
+  	<bean id="terminalDefinition" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="terminalDefinitionTarget"/>
+		</property>
+	</bean>
+	<bean id="warehouseDefinition" parent="mostTxProxyTemplate">
+		<property name="target">
+		      <ref bean="warehouseDefinitionTarget"/>
+	   </property>
+	</bean>
+	<bean id="equipmentConfiguration" parent="mostTxProxyTemplate">
+		<property name="target">
+		      <ref bean="equipmentConfigurationTarget"/>
+	   </property>
+	</bean>
+	<bean id="berthLocationConfiguration" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="berthLocationConfigurationTarget"/>
+	   </property>
+	</bean>
+	<bean id="driverTruckRegistration" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="driverTruckRegistrationTarget"/>
+	   </property>
+	</bean>
+	<bean id="rosterConfiguration" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="rosterConfigurationTarget"/>
+	   </property>
+	</bean>
+	<bean id="serviceOrderSetting" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="serviceOrderSettingTarget"/>
+	   </property>
+	</bean>
+	<bean id="bizConfiguration" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="bizConfigurationTarget"/>
+	   </property>
+	</bean>
+	<bean id="allowanceConfiguration" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="allowanceConfigurationTarget"/>
+	   </property>
+	</bean>
+	 <!-- VMS Port -->
+	 <bean id="port" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="portTarget"/>
+	   	</property>
+	</bean>
+	<bean id="vesselCoast" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="vesselCoastTarget"/>
+	   	</property>
+	</bean>
+	<bean id="vesselCar" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="vesselCarTarget"/>
+	   	</property>
+	</bean>
+	<bean id="vesselBulk" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="vesselBulkTarget"/>
+	   	</property>
+	</bean>
+	
+</beans>

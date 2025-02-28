@@ -1,0 +1,485 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace = "customRelease">
+
+	<select id="selectShippingNoteList" parameterType="SearchCustomerCleranceParm" resultType="CustomerCleranceItem">
+		SELECT /* customRelease.selectShippingNoteList */
+			SHIPG_NOTE_NO 										AS SNNO,
+			SHIPG_NOTE_NO 										AS SNNONM,
+			CBR_NO	  											AS CBR,
+			MF_DOC_ID											AS MFDOCID
+		FROM 
+			TMT_SHIPG_NOTE
+		WHERE 
+			1 = 1
+			<if test="scn != null and scn != ''">
+   				AND SHIP_CALL_NO 								= #{scn} 
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+   				AND VSL_CALL_ID 								= #{vslCallId} 
+			</if>
+		GROUP BY 
+		  	SHIPG_NOTE_NO,
+		  	CBR_NO,
+		  	MF_DOC_ID
+		ORDER BY 
+		  	SHIPG_NOTE_NO
+	</select>
+	
+	<select id="selectBlList" parameterType="SearchCustomerCleranceParm" resultType="CustomerCleranceItem">
+		SELECT /* customRelease.selectBlList */
+			B.BL_NO 											AS BLNO,
+			B.BL_NO 											AS BLNONM,
+			B.MF_DOC_ID											AS MFDOCID
+		FROM 
+			TMT_VSL_SCH 										A, 
+			TMT_BL 												B
+		WHERE
+			1 = 1
+			<if test="scn != null and scn != ''">
+   				AND A.SHIP_CALL_NO 								= #{scn}
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+   				AND A.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			AND A.VSL_CD 										= B.VSL_CD
+			AND A.CALL_YEAR 									= B.CALL_YEAR
+			AND A.CALL_SEQ 										= B.CALL_SEQ
+			AND B.CATG_CD 										IN ('I','T')
+		ORDER BY 
+			BLNO
+	</select>
+	
+	<select id="selectCustomsCargoReleaseList" parameterType="SearchCustomerCleranceParm" resultType="CustomerCleranceItem">
+		SELECT /* customrelease.selectCustomsCargoReleaseList */
+			S.VSL_CALL_ID             							AS VSLCALLID,
+			R.VSL_ID            								AS VSLCD,
+			P.VSL_NM                  							AS VSLNM,
+			R.SCN             									AS SCN,
+			R.BK_NO           									AS BLCBR,
+			CASE R.IE_CD
+				WHEN 'I' THEN 'Import'
+				WHEN 'E' THEN 'Export'
+				ELSE ''
+			END 												AS IE,
+			R.IE_CD            									AS IECD,
+			R.GROS_WEIGHT     									AS MT,
+			R.POL             									AS POL,
+			R.POD             									AS POD,
+			R.CNSNE_CD											AS CNSNECD,
+			CASE
+				WHEN R.CUST_MSG_TP = 'N' AND R.CUST_MSG_MODE = 'C' 
+					THEN 'Release'
+				WHEN R.CUST_MSG_TP = 'N' AND R.CUST_MSG_MODE = 'B' 
+					THEN 'Hold'
+				ELSE ''
+			END             									AS STATUS,
+			R.CUST_DECL_NO    									AS CUSTDECLNO,
+			R.STAFF_CD											AS MODIFIEDBY,
+			CASE
+				WHEN R.UPDATE_TIME IS NULL  THEN NULL
+				ELSE 
+					FORMAT(R.UPDATE_TIME, 'dd/MM/yyyy HH:mm')
+			END 												AS MODIFIEDDATE,
+			ISNULL(R.UPDATE_TIME, R.EDI_TRANS_DATE) 			AS EDITDATE,
+			CASE 
+				WHEN R.EDI_TRANS_DATE IS NULL THEN NULL
+				ELSE 
+					FORMAT(
+						R.EDI_TRANS_DATE, 
+						'dd/MM/yyyy'
+					)
+			END 												AS EDITRANSDATE
+		FROM        
+			TMT_GCS_RECV 										R,
+			(SELECT  
+				R1.VSL_ID,
+				R1.SCN,
+				R1.BK_NO,
+				R1.IE_CD,
+				MAX(R1.SEQ03) 			AS SEQMAX
+			FROM     
+				TMT_GCS_RECV 			R1
+			WHERE 
+				1 = 1
+			GROUP BY 
+				R1.VSL_ID, 
+				R1.SCN, 
+				R1.BK_NO, 
+				R1.IE_CD
+			) 													R2,
+			TMT_VSL_PART 										P,
+			TMT_VSL_SCH 										S
+        WHERE       
+			1 = 1
+			AND R.VSL_ID 										= P.VSL_CD
+			AND R.VSL_ID 										= S.VSL_CD
+			AND R.SCN 											= S.SHIP_CALL_NO
+			AND R.SCN 											IS NOT NULL
+			AND R.VSL_ID 										IS NOT NULL
+			AND R.BK_NO 										IS NOT NULL
+			AND R.VSL_ID 										= R2.VSL_ID
+			AND R.SCN 											= R2.SCN
+			AND R.BK_NO 										= R2.BK_NO
+			AND R.IE_CD 										= R2.IE_CD
+			AND R.SEQ03 										= SEQMAX
+			AND  S.BERTH_LOC IN ( 
+				SELECT 
+					BERTH_CD 
+				FROM 
+					TMT_BERTH_LOC  
+				WHERE 
+					LOC_CD ='BBT'
+			)
+			<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+				AND 
+					ISNULL(R.UPDATE_TIME, R.EDI_TRANS_DATE) 
+						BETWEEN CONVERT(DATETIME, #{startDate} + ' 00:00', 103) 
+						AND CONVERT(DATETIME, #{endDate} + ' 23:59', 103)
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+				AND S.VSL_CALL_ID 								= #{vslCallId} 
+			</if>
+			<if test="scn != null and scn != ''">
+				AND S.SHIP_CALL_NO 								= #{scn} 
+			</if>
+			<if test="status != null and status != ''"> 
+ 				<if test="status == 'RELEASE' ">
+					AND R.CUST_MSG_TP 							= 'N' 					
+					AND R.CUST_MSG_MODE 						= 'C'
+				</if>
+				<if test="status == 'HOLD'">
+					AND R.CUST_MSG_TP 							= 'N' 					
+					AND R.CUST_MSG_MODE 						= 'B'
+				</if>
+			</if>
+			<if test="blNo != null and blNo != ''"> 
+				<if test="snNo == null or snNo == ''">
+					AND R.IE_CD 								= 'I'
+					AND R.BK_NO 								= #{blNo}
+				</if>
+			</if>
+			<if test="snNo != null and snNo != ''"> 
+				<if test="blNo == null or blNo == ''">
+					AND R.IE_CD 								= 'E'
+					AND R.BK_NO 								= #{cbr}
+				</if>
+				<if test="blNo != null and blNo != ''">
+					AND (
+						R.BK_NO 								= #{blNo} 
+						OR R.BK_NO 								= #{cbr}
+					)
+				</if>
+			</if>
+			<if test="status == 'HOLD' or status == null or status == ''">
+				<if test="snNo == null or snNo == ''">
+					<include refid="customsBl"/>
+				</if>
+				<if test="snNo != null and snNo != ''">
+					<if test="blNo != null and blNo != ''">
+						<include refid="customsBl"/>
+					</if>
+				</if>
+				<if test="blNo == null or blNo == ''">
+					<include refid="customsSn"/>
+				</if>
+				<if test="blNo != null and blNo != ''">
+					<if test="snNo != null and snNo != ''">
+						<include refid="customsSn"/>
+					</if>
+				</if>
+			</if>
+       	ORDER BY
+			EDITDATE DESC, 
+			VSLCALLID ASC
+	</select>
+
+	<sql id="customsBl">
+		UNION
+		SELECT  
+			S.VSL_CALL_ID              							AS VSLCALLID,
+			S.VSL_CD              								AS VSLCD,
+			P.VSL_NM              								AS VSLNM,
+			S.SHIP_CALL_NO        								AS SCN,
+			B.BL_NO               								AS BLCBR,
+			'Import'              								AS IE,
+			'I'                   								AS IECD,
+			B.CG_WGT               								AS MT,
+			B.POL                 								AS POL,
+			B.POD                 								AS POD,
+			B.CNSNE												AS CNSNE_CD,
+			'Hold'                    							AS STATUS,
+			''                    								AS CUSTDECLNO,
+			''													AS MODIFIEDBY,
+			NULL												AS MODIFIEDDATE,
+			S.ETA												AS EDITDATE,
+			NULL                								AS EDITRANSDATE
+		FROM    
+			TMT_VSL_SCH 										S,
+			TMT_BL 												B,
+			TMT_VSL_PART 										P
+		WHERE   
+			1 = 1
+			<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+				AND ETA 
+				BETWEEN CONVERT(DATETIME, #{startDate} + ' 00:00', 103) 
+					AND CONVERT(DATETIME, #{endDate} + ' 23:59', 103)
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+				AND S.VSL_CALL_ID 								= #{vslCallId} 
+			</if>
+			<if test="scn != null and scn != ''">
+				AND S.SHIP_CALL_NO 								= #{scn} 
+			</if>
+			<if test="blNo != null and blNo != ''">
+           		AND B.BL_NO 									= #{blNo}				
+			</if>
+			AND (ATD IS NULL 									OR ATD = '')
+			AND P.VSL_CD 										= S.VSL_CD
+			AND S.VSL_CALL_ID									= B.VSL_CALL_ID 
+			AND NOT EXISTS (
+				SELECT 
+					* 
+				FROM 
+					TMT_GCS_RECV 								R
+				WHERE   
+					R.SCN 										= S.SHIP_CALL_NO
+					AND R.BK_NO 								= B.BL_NO
+					AND R.IE_CD 								= 'I'
+					AND R.VSL_ID 								= S.VSL_CD
+			)
+	</sql>
+
+	<sql id="customsSn">
+		UNION
+		SELECT  
+			S.VSL_CALL_ID               						AS VSLCALLID,
+			S.VSL_CD              								AS VSLCD,
+			P.VSL_NM              								AS VSLNM,
+			S.SHIP_CALL_NO        								AS SCN,
+			N.MF_DOC_ID	              							AS BLCBR,
+			'Export'              								AS IE,
+			'E'                   								AS IECD,
+			N.CG_WGT              								AS MT,
+			N.POL		        								AS POL,
+			N.POD         										AS POD,
+			N.CNSNE               								AS CNSNE_CD,
+			'Hold'                    							AS STATUS,
+			''                    								AS CUSTDECLNO,
+			''													AS MODIFIEDBY,
+			NULL												AS MODIFIEDDATE,
+			S.ETA												AS EDITDATE,
+			NULL                    							AS EDITRANSDATE
+		FROM    
+			TMT_VSL_SCH 										S,
+			TMT_SHIPG_NOTE 										N,
+			TMT_VSL_PART 										P
+		WHERE   
+			1 = 1
+			<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+				AND ETA 
+				BETWEEN CONVERT(DATETIME, #{startDate} + ' 00:00', 103) 
+					AND CONVERT(DATETIME, #{endDate} + ' 23:59', 103)
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+				AND S.VSL_CALL_ID 								= #{vslCallId} 
+			</if>
+			<if test="scn != null and scn != ''">
+				AND S.SHIP_CALL_NO 								= #{scn} 
+			</if>
+			<if test="snNo != null and snNo != ''">
+				AND N.SHIPG_NOTE_NO 							= #{snNo}				
+			</if>
+			AND (ATD IS NULL									OR ATD = '')
+			AND P.VSL_CD 										= S.VSL_CD
+			AND S.VSL_CALL_ID									= N.VSL_CALL_ID 
+			AND N.STAT_CD 										IN ('CF', 'FS', 'ST', 'AP')
+			AND NOT EXISTS (
+				SELECT 
+					* 
+				FROM 
+					TMT_GCS_RECV 			R
+				WHERE   
+					R.SCN = SCN
+					AND R.BK_NO 			= N.SHIPG_NOTE_NO
+					AND R.IE_CD 			= 'E'
+					AND R.VSL_ID 			= S.VSL_CD
+			)
+	</sql>
+	
+	<insert id="insertCustomsCargoReleaseItems"  parameterType="CustomerCleranceItem">
+		INSERT /* customRelease.insertCustomsCargoReleaseItems */
+		INTO TMT_GCS_RECV(
+			CUST_DECL_NO,
+			CUST_MSG_TP,
+			CUST_MSG_MODE,
+			VER_NO,
+			DATA_CREATION_DT,
+			REF_NO,
+			IE_CD,
+			SCN,
+			VSL_ID,
+			OPR_CD,
+			CNSNE_CD,
+			TSPT_TP,
+			DESCR,
+			PKG_TP,
+			NO_PKG,
+			NO_ITEM,
+			GROS_WEIGHT,
+			POL,
+			POD,
+			CG_TP,
+			CG_STAT,
+			CUST_DECL_DT,
+			BK_NO,
+			MARKINGS,
+			SEQ03,
+			EDI_STAT,
+			UPDATE_TIME,
+			EDI_FF_NAME,
+			EDI_TRANS_DATE,
+			STAFF_CD
+		) SELECT TOP(1)
+			#{custDeclNo},
+			<!-- <if test="custDeclNo == null or custDeclNo == ''">
+				ISNULL(CUST_DECL_NO, 'Manual Input'),
+			</if>
+			<if test="custDeclNo != null and custDeclNo != ''">	
+				#{custDeclNo},
+			</if> -->
+			ISNULL(CUST_MSG_TP, 'N'),
+			CASE #{status}
+				WHEN 'HOLD' THEN 'B'
+				ELSE 'C'
+			END,
+			VER_NO,
+			SYSDATETIME(),
+			REF_NO,
+			IE_CD,
+			SCN,
+			VSL_ID,
+			OPR_CD,
+			CNSNE_CD,
+			TSPT_TP,
+			DESCR,
+			PKG_TP,
+			NO_PKG,
+			NO_ITEM,
+			GROS_WEIGHT,
+			POL,
+			POD,
+			CG_TP,
+			CG_STAT,
+			CUST_DECL_DT,
+			BK_NO,
+			MARKINGS,
+			(SELECT
+                MAX(SEQ03) + 1
+            FROM 
+				TMT_GCS_RECV 				R1
+            WHERE 
+				R.SCN 						= R1.SCN
+				AND R.IE_CD 				= R1.IE_CD
+				AND R.VSL_ID 				= R1.VSL_ID
+				AND R.BK_NO 				= R1.BK_NO
+			),
+			EDI_STAT,
+			SYSDATETIME(),
+			EDI_FF_NAME,
+			CASE
+				WHEN #{ediTransDate} IS NOT NULL AND #{ediTransDate} <![CDATA[<>]]> '' 
+					THEN CONVERT(DATETIME, #{ediTransDate} + ' 00:00', 103)
+				ELSE NULL
+			END,
+			<!-- EDI_TRANS_DATE, -->
+			#{userId}
+		FROM 
+			TMT_GCS_RECV 										R
+		WHERE 
+			1 = 1
+			AND SCN 											= #{scn}
+			AND IE_CD 											= #{ieCd}
+			AND VSL_ID 											= #{vslCd}
+			AND BK_NO											= #{blCbr} 
+	</insert>
+	
+	<insert id="insertNewCustomsCargoReleaseItems"  parameterType="CheckListCustomClearanceItem">
+		INSERT /* customRelease.insertNewCustomsCargoReleaseItems */
+		INTO TMT_GCS_RECV (
+			CUST_DECL_NO,
+			CUST_MSG_TP,
+			CUST_MSG_MODE,
+			VER_NO,
+			DATA_CREATION_DT,
+			IE_CD,
+			SCN,
+			VSL_ID,
+			OPR_CD,
+			CNSNE_CD,
+			GROS_WEIGHT,
+			POL,
+			POD,
+			BK_NO,
+			SEQ03,
+			EDI_STAT,
+			UPDATE_TIME,
+			EDI_FF_NAME,
+			STAFF_CD
+		) VALUES (
+			#{custDeclNo},
+			<!-- <if test="custDeclNo == null or custDeclNo == ''">
+				'Manual Input',
+			</if>
+			<if test="custDeclNo != null and custDeclNo != ''">
+				#{custDeclNo},
+			</if> -->
+			'N',
+			CASE #{status}
+				WHEN 'HOLD' THEN 'B'
+				ELSE 'C'
+			END,
+			'1',
+			SYSDATETIME(),
+			#{ieCd},
+			#{scn},
+			#{vslCd},
+			'JBD002',
+			#{cnsneCd},
+			#{mt},
+			#{pol},
+			#{pod},
+			#{blCbr},
+			(SELECT 
+				ISNULL(MAX(SEQ03) + 1, 1) 
+			FROM 
+				TMT_GCS_RECV V 
+			WHERE 
+				V.VSL_ID 					= #{vslCd}
+				AND V.SCN 					= #{scn}
+				AND V.BK_NO 				= #{blCbr}
+				AND V.IE_CD 				= #{ieCd}
+			),
+			'N',
+			SYSDATETIME(),
+			#{userId},
+			#{userId}
+		)
+	</insert>
+	
+	<select id="selectIsCustomsCargoReleaseExist" parameterType="SearchCustomerCleranceParm" resultType="java.lang.String">
+		SELECT /* customrelease.selectIsCustomsCargoReleaseExist */
+			COUNT(*)
+		FROM	
+			TMT_GCS_RECV 
+		WHERE	
+			1 = 1
+			AND VSL_ID 											= #{vslCd}
+			AND SCN 											= #{scn}
+			AND BK_NO 											= #{blCbr}
+			AND IE_CD 											= #{ieCd}
+	</select>
+</mapper>

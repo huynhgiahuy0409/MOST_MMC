@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dimensionCheck">
+	 <select id="selectDimensionCheck" parameterType="dimensionCheckParm" resultType="dimensionCheckItem">
+		SELECT	/* dimensionCheck.selectDimensionCheck */
+			WIDTH 		actWidth,
+			LENGTH 		actLength,
+			HEIGHT 		actHeight,
+			CHK_DT 		checkTime,
+			RMK 		dimensionRemark,
+			VSL_CD 		vslCd,
+			CALL_YEAR 	callYear,
+			CALL_SEQ 	callSeq,
+			VSL_CALL_ID vslCallId,
+			JOB_NO 		jobNo
+		FROM 
+			TMT_DIMENSION_CHECK
+		WHERE
+			1 = 1
+			<if test="jobNo != null AND jobNo != ''">
+				AND JOB_NO = #{jobNo}
+			</if>
+	</select>
+
+	<insert id="insertDimensionCheck" parameterType="dimensionCheckItem">
+		<selectKey order="BEFORE" resultType="dimensionCheckItem" keyProperty="vslCd,callYear,callSeq" >
+			SELECT TOP(1)
+				VSL_CD 		AS vslCd,
+				CALL_YEAR	AS callYear,
+				CALL_SEQ 	AS callSeq
+			 FROM 	
+				TMT_VSL_SCH
+			 WHERE
+				VSL_CALL_ID = #{vslCallId}
+		</selectKey>
+		
+		INSERT INTO /* dimensionCheck.insertDimensionCheck */
+		TMT_DIMENSION_CHECK (
+		  VSL_CD,
+		  CALL_SEQ,
+		  CALL_YEAR,
+		  VSL_CALL_ID,
+		  CG_NO,
+		  IX_CD,
+		  CATG_CD,
+		  JOB_NO,
+		  WIDTH,
+		  HEIGHT,
+		  LENGTH,
+		  CHK_DT,
+		  RMK,
+		 <!--  CRT_DT,
+		  CRT_BY, -->
+		  UPDATE_TIME,
+		  STAFF_CD
+		) VALUES (
+		    #{vslCd}
+		   ,#{callSeq}
+		   ,#{callYear}
+		   ,#{vslCallId}
+		   ,#{cgNo}
+		   ,#{ixCd}
+		   ,#{catgCd}
+		   ,#{jobNo}
+		   ,#{actWidth}
+		   ,#{actHeight}
+		   ,#{actLength}
+		   ,SYSDATETIME()
+		   ,#{dimensionRemark}
+		   <!-- ,SYSDATETIME()
+		   ,#{userId} -->
+		   ,SYSDATETIME()
+		   ,#{userId}
+		)
+	</insert>
+	
+	<delete id="deleteDimensionCheck" parameterType="dimensionCheckItem">
+		DELETE /* dimensionCheck.deleteDimensionCheck */
+		FROM 
+			TMT_DIMENSION_CHECK
+		WHERE
+			JOB_NO = #{jobNo}
+	</delete>
+	
+	<select id="selectJobNoDimensionCheck"   parameterType="dimensionCheckParm"  resultType="dimensionCheckItem">
+		SELECT /*dimensionCheck.selectJobNoDimensionCheck*/
+			'J' + FORMAT(GETDATE(), 'yyMMdd') + RIGHT('000000000' + ISNULL(CONCAT(MAX(CAST(RIGHT(JOB_NO, 9) AS INT)), ''), '000000000'), 9) AS jobNo
+		FROM  
+			TMT_JOB
+	 </select>
+	 
+	 <select id="selectBlSnNo"   parameterType="dimensionCheckParm"  resultType="dimensionCheckItem">
+		SELECT /* dimensionCheck.selectBlSnNo */
+		   vslCallId,
+		   blSnNo,
+		   cd,
+		   cdNm,
+		   docLength,
+		   docWidth,
+		   docHeight
+       FROM (
+                SELECT 
+					BL.VSL_CALL_ID		AS vslCallId, 
+					BL.BL_NO 			AS blSnNo,
+					BL.BL_NO 			AS cd,
+					BL.BL_NO 			AS cdNm,
+					BL.HEIGHT 			AS docHeight,
+					BL.WIDTH 			AS docWidth,
+					BL.LENGTH 			AS docLength
+                FROM 
+					tmt_bl BL 
+                WHERE
+					BL.vsl_call_id	 	= #{vslCallId} 
+					AND BL.BL_NO LIKE #{cgNo} + '%'
+                UNION
+                SELECT
+					SN.VSL_CALL_ID 		AS vslCallId,
+					SN.SHIPG_NOTE_NO 	AS blSnNo,
+					SN.SHIPG_NOTE_NO 	AS cd,
+					SN.SHIPG_NOTE_NO 	AS cdNm,
+					SN.HEIGHT 			AS docHeight,
+					SN.WIDTH 			AS docWidth,
+					SN.LENGTH 			AS docLength
+                FROM 
+					tmt_shipg_note SN
+                WHERE 
+					SN.vsl_call_id = #{vslCallId} 
+					AND SN.SHIPG_NOTE_NO LIKE #{cgNo} + '%'
+            ) AS selectBlSnNo
+	 </select>
+	 
+	 <select id="selectDoGrNo"   parameterType="dimensionCheckParm"  resultType="dimensionCheckItem">
+		SELECT /* dimensionCheck.selectDoGrNo */
+		   vslCallId,
+		   doGrNo,
+		   doGrCd,
+		   doGrNm               
+       FROM (
+           	 SELECT 
+				DO.VSL_CALL_ID 	AS vslCallId, 
+			   	DO.DO_NO 		AS doGrNo,
+			   	DO.DO_NO 		AS doGrCd,
+			   	DO.DO_NO 		AS doGrNm
+           	FROM 
+				tmt_do DO 
+          	WHERE 
+				DO.vsl_call_id 	= #{vslCallId}
+			  	AND DO.BL_NO 	= #{blNo}
+            UNION
+            SELECT
+				GR.VSL_CALL_ID 	AS vslCallId,
+				GR.GR_NO 		AS doGrNo,
+				GR.GR_NO 		AS doGrCd,
+				GR.GR_NO 		AS doGrNm
+             FROM
+				tmt_gr GR
+             WHERE 
+				GR.vsl_call_id 			= #{vslCallId}
+			    AND GR.SHIPG_NOTE_NO 	= #{blNo}
+            ) AS selectDoGrNo
+	 </select>
+	 
+</mapper>

@@ -1,0 +1,964 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace = "checkListCustomClerance">
+
+	<!-- <select id = "selectCustomCleranceForImport"  parameterType = "checkListCustomClearanceParm" resultType = "checkListCustomClearanceItem">
+		SELECT /*checkListCustomClerance.selectCustomCleranceForImport*/
+			BL_NO 							AS blNo,
+			VS.VSL_CALL_ID 					AS vslCallId,
+			CMDT_CD 						AS cmdtCd,
+			CASE
+				WHEN DELV_TP_CD = 'D' THEN 'Direct'
+				WHEN DELV_TP_CD = 'I' THEN 'Indirect'
+				WHEN DELV_TP_CD = 'B' THEN 'Both'
+				ELSE ''
+			END 							AS DELVTPCD,
+			(SELECT TOP(1)
+				CMDT.CMDT_DESC
+			FROM
+				TMT_CMDT CMDT
+			WHERE
+				CMDT.CMDT_CD = CMDT_CD ) 	AS cmdtNm,
+			CG_WGT 							AS docMt,
+			PKG_QTY 						AS docQty,
+			CUS.DOC_NO 						AS releaseNo,
+			CASE
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+					AND CUS.RELEASE_MT IS NULL OR CUS.RELEASE_MT ='' THEN  0
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+					AND CUS.RELEASE_MT IS NOT NULL AND CUS.RELEASE_MT <![CDATA[<>]]>''
+					AND CUS.CG_NO = BL.BL_NO THEN CG_WGT - CUS.RELEASE_MT
+		        ELSE
+					CG_WGT
+			END 							AS balanceMt,
+		    CASE
+		    	WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+					AND CUS.RELEASE_MT IS NULL OR CUS.RELEASE_MT ='' THEN  0
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+					AND CUS.RELEASE_MT IS NOT NULL AND CUS.RELEASE_MT <![CDATA[<>]]>''
+					AND CUS.CG_NO = BL.BL_NO THEN  PKG_QTY - CUS.RELEASE_QTY
+				ELSE PKG_QTY
+			END 							AS balanceQty,
+			CASE
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+					AND CUS.RELEASE_MT IS NULL OR CUS.RELEASE_MT ='' THEN  0
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+					AND CUS.RELEASE_MT IS NOT NULL AND CUS.RELEASE_MT <![CDATA[<>]]>''
+					AND CUS.CG_NO = BL.BL_NO THEN  CG_WGT - CUS.RELEASE_MT
+		        ELSE CG_WGT
+		    END 							AS releaseMt,
+			CASE
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+					AND CUS.RELEASE_MT IS NULL OR CUS.RELEASE_MT ='' THEN  0
+		        WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+					AND CUS.RELEASE_MT IS NOT NULL AND CUS.RELEASE_MT <![CDATA[<>]]>''
+					AND CUS.CG_NO = BL.BL_NO THEN  PKG_QTY - CUS.RELEASE_QTY
+		        ELSE PKG_QTY
+			END 							AS releaseQty,
+			FWRD 							AS fwdCd,
+			DBO.F_PTNR_SNM(BL.FWRD, 'FWD') 	AS fwdNm,
+			CNSNE AS cnsCd,
+			DBO.F_PTNR_SNM(BL.CNSNE, 'CNS') AS cnsNm,
+			CG_TP_CD 						AS cgTpCd
+		FROM
+			TMT_BL BL
+		INNER JOIN
+			TMT_VSL_SCH VS
+		ON
+		 	BL.VSL_CALL_ID = VS.VSL_CALL_ID
+		LEFT OUTER JOIN (
+			SELECT DISTINCT
+				VSL_MANIFEST_NO,
+			  	DOC_NO,
+				CG_NO,
+				SUM(RELEASE_MT) OVER (PARTITION BY VSL_MANIFEST_NO, DOC_NO, CG_NO) RELEASE_MT,
+				SUM(RELEASE_QTY) OVER (PARTITION BY VSL_MANIFEST_NO, DOC_NO, CG_NO) RELEASE_QTY
+			FROM
+				TMT_CUSTOMS_RELEASE
+			WHERE
+				IX_CD IN ('IM', 'TS')
+		) CUS
+		ON
+			VS.VSL_CALL_ID = CUS.VSL_MANIFEST_NO
+        	AND ((CUS.CG_NO IS NULL OR CUS.CG_NO ='') OR (CUS.CG_NO IS NOT NULL AND CUS.CG_NO <![CDATA[<>]]>'' AND BL.BL_NO = CUS.CG_NO))
+		WHERE 1=1
+		<if test="vslCallId != null and vslCallId != ''" >
+			AND VS.VSL_CALL_ID 	= #{vslCallId}
+		</if>
+		<if test="blNo != null and blNo != ''" >
+			AND BL.BL_NO 		= #{blNo}
+		</if>
+	</select> -->
+	
+	<select id = "selectCustomCleranceForImport"  parameterType = "checkListCustomClearanceParm" resultType = "checkListCustomClearanceItem">
+		SELECT
+			SCH.VSL_CALL_ID        						as vslCallId,
+			/*ZB551.JOB_NO             					as jobNo ,
+			ZB552.DOC_STAT_CD         					as docStatCd,
+			ZB552.REG_NO              					as regNo,*/
+			BL1.JOB_NO_BL1             					as jobNoBl1,
+			BL1.DOC_STAT_CD_BL1     					as docStatCdBl1,
+			<!-- BL1.JOB_NO_MF1          				as jobNoMf1, -->
+			BL1.DOC_STAT_CD_MF1      					as docStatCdMf1,
+			<!-- BL1.REG_NO_MF2            				as regNoMf1, -->
+			<!-- BL1.JOB_NO_CG1             			as jobNoCg1, -->
+			BL1.DOC_STAT_CD_CG1      					as docStatCdCg1,
+			BL1.BL_NO                 					as blNo,
+			GCS.STATUS                 					as status,
+			GCS.RELEASE_NO             					as releaseNo,
+			GCS.SCN                 					as scn,
+			ISNULL(dgYn, 'N')            				as dgYn,
+			dgStatus
+		FROM
+			TMT_VSL_SCH SCH ,
+	        /*TFZ_ZB55 ZB551,
+	        TFZ_DOC_HDR ZB552,*/
+			(SELECT
+				BL1.JOB_NO 								JOB_NO_BL1,
+	            BL2.DOC_STAT_CD 						DOC_STAT_CD_BL1,
+	            BL2.REG_NO 								REG_NO_BL2,
+	            <!-- MF1.JOB_NO_MF1, -->
+	            MF1.DOC_STAT_CD_MF1,
+	           	<!-- MF1.REG_NO_MF2,
+	            CG1.JOB_NO_CG1, -->
+	            CG1.DOC_STAT_CD_CG1,
+	            BL1.VSL_CD,
+	            BL1.CALL_YEAR,
+	            BL1.CALL_SEQ,
+	            BL1.BL_NO 								BL_NO,
+				(CASE
+					WHEN ISNULL(DG1.DG_CHK, 'N') = 'N'
+						THEN 'N'
+					ELSE 'Y'
+				END) AS     							dgYn,
+				(CASE
+					WHEN DG1.DG_CHK = 'Y'
+						THEN 'Confirmed'
+					WHEN DG1.DG_CHK = 'N'
+						THEN 'Canceled'
+					WHEN DG1.DG_CHK = 'R'
+						THEN 'Rejected'
+					ELSE ''
+				END) 									AS dgStatus
+	        FROM
+				TMT_BL BL1
+					INNER JOIN TMT_FZ_DOC_MST BL2
+						ON BL1.DOC_ID = BL2.DOC_ID
+							AND BL1.JOB_NO = BL2.JOB_NO
+					LEFT JOIN (
+						SELECT
+							MF2.DOC_STAT_CD DOC_STAT_CD_MF1,
+							MF1.MF_DOC_ID
+						FROM
+						    TMT_MF MF1,
+						    TMT_FZ_DOC_MST MF2,
+							TMT_VSL_SCH bb
+						WHERE
+							1 = 1
+						<if test="vslCallId != null and vslCallId != ''">
+							AND bb.VSL_CALL_ID = #{vslCallId}
+						</if>
+						<if test="scn != null and scn != ''">
+              				AND bb.SHIP_CALL_NO			= #{scn}
+              			</if>
+						<if test="etaFrom != null and etaFrom != ''">
+							AND CONVERT(DATE, bb.ETA)
+								BETWEEN CONVERT(DATE, #{etaFrom}, 103) AND CONVERT(DATE, #{etaTo}, 103)
+						</if>
+				  		/*AND MF1.DOC_ID = 'K4'*/
+					) MF1
+						ON BL1.MF_DOC_ID = MF1.MF_DOC_ID
+							AND BL1.MF_DOC_ID = MF1.MF_DOC_ID
+					LEFT JOIN (
+						SELECT
+							/*CG1.JOB_NO JOB_NO_CG1,*/
+							CG2.DOC_STAT_CD DOC_STAT_CD_CG1,
+							/*CG1.BL_NO*/
+							CG2.REG_NO 						CG2_REG_NO,
+							CG2.VSL_CALL_ID 				AS VSLCALLID
+						FROM
+							/*TFZ_CG_DECL CG1,*/
+							TMT_FZ_DOC_MST CG2,
+							TMT_VSL_SCH bb
+						WHERE
+							1 = 1
+							/*CG1.DOC_ID = CG2.DOC_ID
+							AND CG1.JOB_NO = CG2.JOB_NO*/
+							<if test="vslCallId != null and vslCallId != ''">
+								AND bb.VSL_CALL_ID = #{vslCallId}
+							</if>
+							<if test="scn != null and scn != ''">
+	              				AND bb.SHIP_CALL_NO			= #{scn}
+	              			</if>
+							<if test="etaFrom != null and etaFrom != ''">
+								AND CONVERT(DATE, bb.ETA)
+									BETWEEN CONVERT(DATE, #{etaFrom}, 103) AND CONVERT(DATE, #{etaTo}, 103)
+							</if>
+	            	) CG1
+						ON BL1.VSL_CALL_ID = CG1.VSLCALLID
+					LEFT JOIN (
+						SELECT
+							SN.VSL_CALL_ID,
+							SN.CBR_NO,
+							DG.DG_CHK
+						FROM
+							TMT_SHIPG_NOTE SN,
+							TMT_DG DG,
+							TMT_VSL_SCH bb
+						WHERE
+							SN.DG_SEQ = DG.SEQ
+						<if test="vslCallId != null and vslCallId != ''">
+							AND bb.VSL_CALL_ID = #{vslCallId}
+						</if>
+						<if test="scn != null and scn != ''">
+	              			AND bb.SHIP_CALL_NO			= #{scn}
+	              		</if>
+						<if test="etaFrom != null and etaFrom != ''">
+							AND CONVERT(DATE, bb.ETA)
+								BETWEEN CONVERT(DATE, #{etaFrom}, 103) AND CONVERT(DATE, #{etaTo}, 103)
+						</if>
+	            	) DG1
+						ON BL1.BL_NO = DG1.CBR_NO
+					INNER JOIN TMT_VSL_SCH schh
+						ON schh.VSL_CD = BL1.VSL_CD
+							AND schh.CALL_YEAR = BL1.CALL_YEAR
+							AND schh.CALL_SEQ = BL1.CALL_SEQ
+	        WHERE
+				1 = 1
+	        	/*BL1.DOC_ID = BL2.DOC_ID
+	            AND BL1.JOB_NO = BL2.JOB_NO
+	            AND BL1.DOC_ID = 'K4BL'
+	            AND BL1.MF_DOC_ID = MF1.DOC_ID(+)
+	            AND BL1.MF_JOB_NO = MF1.JOB_NO_MF1(+)
+	            AND BL1.BL_NO = CG1.BL_NO(+)
+	            AND BL1.BL_NO = DG1.CBR_NO(+)
+	            and schh.VSL_CD=BL1.VSL_CD
+	            and schh.CALL_YEAR=BL1.CALL_YEAR
+	            and schh.CALL_SEQ=BL1.CALL_SEQ*/
+				<if test="vslCallId != null and vslCallId != ''">
+	          		AND schh.VSL_CALL_ID = #{vslCallId}
+	          	</if>
+	          	<if test="scn != null and scn != ''">
+	              	AND schh.SHIP_CALL_NO			= #{scn}
+	            </if>
+		      	<if test="etaFrom != null and etaFrom != ''">
+					AND CONVERT(DATE, schh.ETA)
+					    BETWEEN CONVERT(DATE, #{etaFrom}, 103) AND CONVERT(DATE, #{etaTo}, 103)
+				</if>
+	        ) BL1
+			LEFT JOIN (
+				SELECT
+					BK_NO AS CBR_NO,
+					CUST_DECL_NO AS RELEASE_NO,
+					SCN AS SCN,
+					(CASE
+						WHEN CUST_MSG_TP = 'N' AND CUST_MSG_MODE = 'C'
+							THEN 'Release'
+						WHEN CUST_MSG_TP = 'N' AND CUST_MSG_MODE = 'B'
+							THEN 'Hold'
+						WHEN CUST_MSG_TP = 'P' AND CUST_MSG_MODE = 'C'
+							THEN 'Release'
+						WHEN CUST_MSG_TP = 'P' AND CUST_MSG_MODE = 'D'
+							THEN 'Hold'
+						WHEN CUST_MSG_TP = 'N' AND CUST_MSG_MODE = 'D'
+							THEN 'Hold'
+						WHEN CUST_MSG_TP = 'N' AND CUST_MSG_MODE = 'R'
+							THEN 'Release'
+						ELSE 'Hold'
+					END) AS STATUS,
+					BB.VSL_CD VSL_CD,
+					BB.CALL_YEAR CALL_YEAR,
+					BB.CALL_SEQ CALL_SEQ
+				FROM
+					TMT_GCS_RECV AA,
+					TMT_VSL_SCH BB
+				WHERE
+					SUBSTRING(CUST_DECL_NO, 8,1) = '1'
+					AND SUBSTRING(CUST_DECL_NO, 11,1) <![CDATA[<>]]> '6'
+					AND SCN IS NOT NULL
+					AND AA.SCN = BB.SHIP_CALL_NO
+					<if test="vslCallId != null and vslCallId != ''">
+						AND BB.VSL_CALL_ID = #{vslCallId}
+					</if>
+					<if test="scn != null and scn != ''">
+	              		AND BB.SHIP_CALL_NO			= #{scn}
+	              	</if>
+					<if test="etaFrom != null and etaFrom != ''">
+						AND CONVERT(DATE, BB.ETA)
+							BETWEEN CONVERT(DATE, #{etaFrom}, 103) AND CONVERT(DATE, #{etaTo}, 103)
+					</if>
+	        ) GCS
+				ON BL1.VSL_CD = GCS.VSL_CD
+					AND BL1.CALL_YEAR = GCS.CALL_YEAR
+					AND BL1.CALL_SEQ = GCS.CALL_SEQ
+					AND BL1.BL_NO = GCS.CBR_NO
+		WHERE
+		    1 = 1
+			/*SCH.VSL_CD = ZB551.VSL_CD(+)
+			AND SCH.CALL_YEAR = ZB551.CALL_YEAR(+)
+			AND SCH.CALL_SEQ = ZB551.CALL_SEQ(+)
+			AND ZB551.DOC_ID = ZB552.DOC_ID
+			AND ZB551.JOB_NO = ZB552.JOB_NO
+			AND ZB551.VSL_CD = BL1.VSL_CD(+)
+			AND ZB551.CALL_YEAR = BL1.CALL_YEAR(+)
+			AND ZB551.CALL_SEQ = BL1.CALL_SEQ(+)
+			AND BL1.VSL_CD = GCS.VSL_CD(+)
+			AND BL1.CALL_YEAR = GCS.CALL_YEAR(+)
+			AND BL1.CALL_SEQ = GCS.CALL_SEQ(+)
+			AND BL1.BL_NO = GCS.CBR_NO(+)*/
+			<if test="vslCallId != null and vslCallId != ''">
+				AND SCH.JPVC_NO = #{vslCallId}
+			</if>
+			<if test="scn != null and scn != ''">
+	             AND SCH.SHIP_CALL_NO			= #{scn}
+	        </if>
+			<if test="etaFrom != null and etaFrom != ''">
+				AND SCH.ETA
+				    BETWEEN CONVERT(DATE, #{etaFrom}, 103) AND CONVERT(DATE, #{etaTo}, 103)
+			</if>
+			<!--<if test="status != null and status != ''">
+				AND ZB552.DOC_STAT_CD = #{status}
+			</if>-->
+		GROUP BY
+			SCH.VSL_CALL_ID,
+			BL1.JOB_NO_BL1,
+			BL1.DOC_STAT_CD_BL1,
+	    	BL1.DOC_STAT_CD_MF1,
+	    	BL1.DOC_STAT_CD_CG1,
+	    	BL1.BL_NO,
+	    	GCS.STATUS,
+	    	GCS.RELEASE_NO,
+	    	GCS.SCN,
+	    	BL1.dgYn,
+	    	BL1.dgStatus
+	</select>
+
+	<!-- <select id = "selectCustomCleranceForExport"  parameterType = "checkListCustomClearanceParm" resultType = "checkListCustomClearanceItem">
+		SELECT /*checkListCustomClerance.selectCustomCleranceForExport*/
+			SHIPG_NOTE_NO 							AS snNo,
+			VS.VSL_CALL_ID 							AS vslCallId,
+			SHIPG_NOTE_NO 							AS cdNm,
+			CMDT_CD 								AS cmdtCd,
+			CASE
+				WHEN DELV_TP_CD = 'D' THEN 'Direct'
+				WHEN DELV_TP_CD = 'I' THEN 'Indirect'
+				WHEN DELV_TP_CD = 'B' THEN 'Both'
+				ELSE ''
+			END AS DELVTPCD,
+			(SELECT TOP(1)
+				CMDT.CMDT_DESC
+			FROM
+				TMT_CMDT CMDT
+			WHERE
+				CMDT.CMDT_CD = CMDT_CD ) 			AS cmdtNm,
+			CG_WGT 									AS docMt,
+			PKG_QTY 								AS docQty,
+			CUS.DOC_NO 								AS releaseNo,
+			CASE
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+					AND CUS.RELEASE_MT IS NULL OR CUS.RELEASE_MT ='' THEN  0
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+					AND CUS.RELEASE_MT IS NOT NULL AND CUS.RELEASE_MT <![CDATA[<>]]>''
+					AND CUS.CG_NO = SN.SHIPG_NOTE_NO THEN  CG_WGT - CUS.RELEASE_MT
+				ELSE CG_WGT
+			END 									AS balanceMt,
+			CASE
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+					AND CUS.RELEASE_MT IS NULL OR CUS.RELEASE_MT ='' THEN  0
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+					AND CUS.RELEASE_MT IS NOT NULL AND CUS.RELEASE_MT <![CDATA[<>]]>''
+					AND CUS.CG_NO = SN.SHIPG_NOTE_NO THEN  PKG_QTY - CUS.RELEASE_QTY
+            	ELSE PKG_QTY
+			END 									AS balanceQty,
+			CASE
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+					AND CUS.RELEASE_MT IS NULL OR CUS.RELEASE_MT ='' THEN  0
+                WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+					AND CUS.RELEASE_MT IS NOT NULL AND CUS.RELEASE_MT <![CDATA[<>]]>''
+					AND CUS.CG_NO = SN.SHIPG_NOTE_NO THEN  CG_WGT - CUS.RELEASE_MT
+                ELSE CG_WGT
+            END 									AS releaseMt,
+			CASE
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+					AND CUS.RELEASE_MT IS NULL OR CUS.RELEASE_MT ='' THEN  0
+                WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+					AND CUS.RELEASE_MT IS NOT NULL AND CUS.RELEASE_MT <![CDATA[<>]]>''
+					AND CUS.CG_NO = SN.SHIPG_NOTE_NO THEN  PKG_QTY - CUS.RELEASE_QTY
+                ELSE PKG_QTY
+			END 									AS releaseQty,
+			SN.SHIPG_AGNCY 							AS shaCd,
+			DBO.F_PTNR_SNM(SN.SHIPG_AGNCY, 'SHA') 	AS shaNm,
+			SN.FWRD 								AS fwdCd,
+			DBO.F_PTNR_SNM(SN.FWRD, 'FWD') 			AS fwdNm,
+			SN.SHPR 								AS cnsCd,
+			DBO.F_PTNR_SNM(SN.SHPR, 'CNS') 			AS cnsNm,
+			SN.CG_TP_CD 							AS cgTpCd
+		FROM
+			TMT_SHIPG_NOTE SN
+        INNER JOIN
+			TMT_VSL_SCH VS
+		ON
+			SN.VSL_CALL_ID = VS.VSL_CALL_ID
+      	LEFT OUTER JOIN (
+      		SELECT DISTINCT
+      			VSL_MANIFEST_NO,
+				DOC_NO,
+				CG_NO,
+				SUM(RELEASE_MT) OVER (PARTITION BY VSL_MANIFEST_NO, DOC_NO, CG_NO) 	RELEASE_MT,
+				SUM(RELEASE_QTY) OVER (PARTITION BY VSL_MANIFEST_NO, DOC_NO, CG_NO) RELEASE_QTY
+			FROM
+				TMT_CUSTOMS_RELEASE
+			WHERE
+				IX_CD IN ('EX')
+		) CUS
+        ON
+        	VS.VSL_CALL_ID = CUS.VSL_MANIFEST_NO
+        	AND ((ISNULL(CUS.CG_NO, '') = '' ) OR (ISNULL(CUS.CG_NO, '') != '' AND SN.SHIPG_NOTE_NO = CUS.CG_NO))
+        WHERE
+			1=1
+			AND SN.STAT_CD 			= 'AP'
+		<if test="vslCallId != null and vslCallId != ''" >
+			AND VS.VSL_CALL_ID 		= #{vslCallId}
+		</if>
+		<if test="snNo != null and snNo != ''" >
+			AND SN.SHIPG_NOTE_NO 	= #{snNo}
+		</if>
+	</select> -->
+
+	<select id = "selectCustomCleranceForExport"  parameterType = "SearchCustomerCleranceParm" resultType = "checkListCustomClearanceItem">
+		SELECT
+			SCH.VSL_CALL_ID  								AS vslCallId,
+			<!-- ,ZB551.JOB_NO 								AS jobNo
+			,ZB552.DOC_STAT_CD 								AS docStatCd -->
+			BL1.JOB_NO_BL1 									AS jobNoBl1,
+			BL1.DOC_STAT_CD_BL1 							AS docStatCdBl1,
+			/*,BL1.JOB_NO_MF1  								AS jobNoMf1*/
+		    BL1.DOC_STAT_CD_MF1  							AS docStatCdMf1,
+		    /*BL1.JOB_NO_CG1 									AS jobNoCg1,*/
+		    BL1.DOC_STAT_CD_CG1  							AS docStatCdCg1,
+		    BL1.BL_NO 										AS blNo,
+		    GCS.STATUS 										AS status,
+		    GCS.RELEASE_NO 									AS releaseNo,
+		    (SELECT TOP(1)
+		    	(CASE
+		    		WHEN gc.cust_msg_tp = 'N' AND gc.cust_msg_mode = 'C'
+		    			THEN 'Release'
+		    	    WHEN gc.cust_msg_tp = 'N' AND gc.cust_msg_mode = 'B'
+		    	        THEN 'Hold'
+		    	    WHEN gc.cust_msg_tp = 'P' AND gc.cust_msg_mode = 'C'
+		    	        THEN 'Release'
+                    WHEN gc.cust_msg_tp = 'P' AND gc.cust_msg_mode = 'D'
+                        THEN 'Hold'
+                    WHEN gc.cust_msg_tp = 'N' AND gc.cust_msg_mode = 'D'
+                        THEN 'Hold'
+                    WHEN gc.cust_msg_tp = 'N' AND gc.cust_msg_mode = 'R'
+                        THEN 'Release'
+		    	    ELSE 'Hold'
+		    	END) 										AS cust_mode
+            FROM
+            	tmt_gcs_recv gc,
+            	tmt_shipg_note sp,
+            	tmt_vsl_sch bb
+            WHERE
+            	gc.SCN = bb.ship_call_no
+             	AND gc.bk_no = sp.cbr_no
+              	<if test="vslCallId != null and vslCallId != ''">
+              		AND bb.VSL_CALL_ID 						= #{vslCallId}
+              	</if>
+              	<if test="scn != null and scn != ''">
+              		AND bb.SHIP_CALL_NO						= #{scn}
+              	</if>
+	         	<if test="etaFrom != null and etaFrom != ''">
+              		AND CONVERT(DATE, bb.ETA)
+              		    BETWEEN CONVERT(DATE, #{etaFrom}, 103) AND CONVERT(DATE, #{etaTo}, 103)
+            	</if>
+			) 												AS customsaprvstat,
+		    GCS.SCN 										AS scn,
+		    ISNULL(dgYn, 'N')								AS dgYn,
+		    dgStatus,
+		    BL1.BL_REG_NO           						AS blRegNo
+		FROM
+			TMT_VSL_SCH SCH,
+	        <!-- TFZ_ZB55 ZB551,
+	        TFZ_DOC_HDR ZB552, -->
+			(SELECT
+				BL1.JOB_NO 									AS JOB_NO_BL1,
+				BL2.DOC_STAT_CD 							AS DOC_STAT_CD_BL1,
+				/*MF1.JOB_NO_MF1,*/
+				MF1.DOC_STAT_CD_MF1,
+				/*CG1.JOB_NO_CG1,*/
+				CG1.DOC_STAT_CD_CG1,
+				BL1.VSL_CD,
+				BL1.CALL_YEAR,
+				BL1.CALL_SEQ,
+				CG1.CG2_REG_NO 								AS BL_REG_NO,
+				BL1.BL_NO 									AS BL_NO,
+				/*(CASE
+					WHEN BL1.BL_CLASS_CD = 'M' THEN BL1.BL_NO*/
+						/*ELSE BL1.HBL_NO
+				END) 										AS BL_NO,*/
+				(CASE
+					WHEN ISNULL(DG1.DG_CHK, 'N') = 'N'
+					    THEN 'N'
+					ELSE 'Y'
+				END) 										AS dgYn,
+			    (CASE
+			    	WHEN DG1.DG_CHK = 'Y'
+			    		THEN 'Confirmed'
+					WHEN DG1.DG_CHK = 'N'
+						THEN 'Canceled'
+					WHEN DG1.DG_CHK = 'R'
+						THEN 'Rejected'
+					ELSE ''
+				END) 										AS dgStatus
+	        FROM
+	        	TMT_BL BL1
+	        		INNER JOIN TMT_FZ_DOC_MST BL2
+	        			ON BL1.DOC_ID 						= BL2.DOC_ID
+	        				AND BL1.JOB_NO 					= BL2.JOB_NO
+	        	    LEFT JOIN (
+	        	    	SELECT
+							/*MF1.JOB_NO JOB_NO_MF1,*/
+	        	    		MF2.DOC_STAT_CD 				AS DOC_STAT_CD_MF1,
+	        	    		/*,MF1.DOC_ID*/
+	        	    		MF1.MF_DOC_ID
+	        	    	FROM
+	        	    		TMT_MF MF1,
+	        	    		TMT_FZ_DOC_MST MF2,
+	        	    		TMT_VSL_SCH bb
+	        	    	WHERE
+	        	    		1 = 1
+							/*MF1.DOC_ID = MF2.DOC_ID*/
+	                        /*AND MF1.JOB_NO = MF2.JOB_NO*/
+	                        <if test="vslCallId != null and vslCallId != ''">
+	        	    			AND bb.VSL_CALL_ID 			= #{vslCallId}
+	        	    	  	</if>
+	        	    	  	<if test="scn != null and scn != ''">
+              					AND bb.SHIP_CALL_NO			= #{scn}
+              				</if>
+			  	    	  	<if test="etaFrom != null and etaFrom != ''">
+	        	    	  		AND CONVERT(DATE, bb.ETA)
+	        	    	  			BETWEEN CONVERT(DATE, #{etaFrom}, 103) AND CONVERT(DATE, #{etaTo}, 103)
+	        	    		</if>
+	                        /*AND MF1.DOC_ID = 'K5'*/
+	        	    ) MF1
+	        	    	ON BL1.MF_DOC_ID 					= MF1.MF_DOC_ID
+	        	    LEFT JOIN (
+	        	    	SELECT
+	        	    		<!--CG1.JOB_NO JOB_NO_CG1,-->
+	        	    		CG2.DOC_STAT_CD 				DOC_STAT_CD_CG1,
+	        	    		<!-- CG1.BL_NO AS BL_NO,-->
+	        	    		CG2.REG_NO 						CG2_REG_NO,
+	        	    		CG2.VSL_CALL_ID 				AS VSLCALLID
+	                    FROM
+							<!-- TFZ_CG_DECL CG1, -->
+							TMT_FZ_DOC_MST CG2,
+							TMT_VSL_SCH bb
+	                    WHERE
+	                    	1 = 1
+							<!--  CG1.DOC_ID = CG2.DOC_ID
+							AND CG1.JOB_NO = CG2.JOB_NO -->
+							<if test="vslCallId != null and vslCallId != ''">
+	                    		AND bb.VSL_CALL_ID 			= #{vslCallId}
+							</if>
+							<if test="scn != null and scn != ''">
+              					AND bb.SHIP_CALL_NO			= #{scn}
+              				</if>
+							<if test="etaFrom != null and etaFrom != ''">
+								AND CONVERT(DATE, bb.ETA)
+								    BETWEEN CONVERT(DATE, #{etaFrom}, 103) AND CONVERT(DATE, #{etaTo}, 103)
+	                    	</if>
+                    		<!-- AND CG1.DOC_ID = 'ZB2' -->
+	                ) CG1
+	        	    	ON BL1.VSL_CALL_ID 					= CG1.VSLCALLID
+	                LEFT JOIN (
+	                	SELECT
+	                		SN.VSL_CALL_ID,
+	                		SN.CBR_NO,
+	                		DG.DG_CHK
+	                    FROM
+	                    	TMT_SHIPG_NOTE SN,
+	                        TMT_DG DG,
+							TMT_VSL_SCH bb
+	                    WHERE
+	                    	SN.DG_SEQ 						= DG.SEQ
+							<if test="vslCallId != null and vslCallId != ''">
+                       			AND bb.VSL_CALL_ID 			= #{vslCallId}
+							</if>
+							<if test="scn != null and scn != ''">
+              					AND bb.SHIP_CALL_NO			= #{scn}
+              				</if>
+							<if test="etaFrom != null and etaFrom != ''">
+								AND CONVERT(DATE, bb.ETA)
+									BETWEEN CONVERT(DATE, #{etaFrom}, 103) AND CONVERT(DATE, #{etaTo}, 103)
+							</if>
+	                ) DG1
+	                	ON BL1.BL_NO 						= DG1.CBR_NO
+					INNER JOIN TMT_VSL_SCH schh
+						ON schh.VSL_CD 						= BL1.VSL_CD
+							AND schh.CALL_YEAR 				= BL1.CALL_YEAR
+						    AND schh.CALL_SEQ 				= BL1.CALL_SEQ
+	        WHERE
+	        	1 = 1
+				<if test="vslCallId != null and vslCallId != ''">
+	        		AND schh.VSL_CALL_ID 					= #{vslCallId}
+				</if>
+				<if test="scn != null and scn != ''">
+              		AND schh.SHIP_CALL_NO					= #{scn}
+              	</if>
+				<if test="etaFrom != null and etaFrom != ''">
+	          		AND CONVERT(DATE, schh.ETA)
+	          			BETWEEN CONVERT(DATE, #{etaFrom}, 103) AND CONVERT(DATE, #{etaTo}, 103)
+				</if>
+			GROUP BY
+				BL1.JOB_NO,
+               	BL2.DOC_STAT_CD,
+               	MF1.DOC_STAT_CD_MF1,
+               	CG1.DOC_STAT_CD_CG1,
+               	BL1.VSL_CD,
+               	BL1.CALL_YEAR,
+               	BL1.CALL_SEQ,
+               	CG1.CG2_REG_NO,
+              	BL1.BL_NO,
+               	DG1.DG_CHK
+			) BL1
+			    LEFT JOIN (
+					SELECT
+					    BK_NO 								AS CBR_NO,
+					    CUST_DECL_NO 						AS RELEASE_NO,
+					    SCN 								AS SCN,
+					    (CASE
+					    	WHEN CUST_MSG_TP = 'N' AND CUST_MSG_MODE = 'C'
+					    		THEN 'Release'
+							WHEN CUST_MSG_TP = 'N' AND CUST_MSG_MODE = 'B'
+								THEN 'Hold'
+							WHEN CUST_MSG_TP = 'P' AND CUST_MSG_MODE = 'C'
+								THEN 'Release'
+							WHEN CUST_MSG_TP = 'P' AND CUST_MSG_MODE = 'D'
+								THEN 'Hold'
+							WHEN CUST_MSG_TP = 'N' AND CUST_MSG_MODE = 'D'
+								THEN 'Hold'
+							WHEN CUST_MSG_TP = 'N' AND CUST_MSG_MODE = 'R'
+								THEN 'Release'
+							ELSE 'Hold'
+					    END) 								AS STATUS,
+						BB.VSL_CD 							AS VSL_CD,
+						BB.CALL_YEAR 						AS CALL_YEAR,
+						BB.CALL_SEQ 						AS CALL_SEQ
+					FROM
+						TMT_GCS_RECV AA,
+						TMT_VSL_SCH BB
+					WHERE
+						SUBSTRING(CUST_DECL_NO, 8, 1) 		= '1'
+						AND SUBSTRING(CUST_DECL_NO, 11,1) <![CDATA[<>]]> '6'
+						AND SCN IS NOT NULL
+						AND AA.SCN 							= BB.SHIP_CALL_NO
+						<if test="vslCallId != null and vslCallId != ''">
+					  		AND BB.VSL_CALL_ID 				= #{vslCallId}
+					  	</if>
+					  	<if test="scn != null and scn != ''">
+              				AND BB.SHIP_CALL_NO				= #{scn}
+              			</if>
+						<if test="etaFrom != null and etaFrom != ''">
+					  		AND CONVERT(DATE, BB.ETA)
+					  			BETWEEN CONVERT(DATE, #{etaFrom}, 103) AND CONVERT(DATE, #{etaTo}, 103)
+						</if>
+				) GCS
+					ON BL1.VSL_CD 							= GCS.VSL_CD
+						AND BL1.CALL_YEAR 					= GCS.CALL_YEAR
+					    AND BL1.CALL_SEQ 					= GCS.CALL_SEQ
+					    AND BL1.BL_NO 						= GCS.CBR_NO
+	WHERE
+	    1 = 1
+	    <!-- SCH.VSL_CD = ZB551.VSL_CD(+)
+	    AND SCH.CALL_YEAR = ZB551.CALL_YEAR(+)
+	    AND SCH.CALL_SEQ = ZB551.CALL_SEQ(+)
+	    AND ZB551.DOC_ID = ZB552.DOC_ID
+	    AND ZB551.JOB_NO = ZB552.JOB_NO
+	    AND ZB551.VSL_CD = BL1.VSL_CD(+)
+	    AND ZB551.CALL_YEAR = BL1.CALL_YEAR(+)
+	    AND ZB551.CALL_SEQ = BL1.CALL_SEQ(+)
+	    SCH.VSL_CD = ZB551.VSL_CD(+)
+		AND BL1.VSL_CD = GCS.VSL_CD(+)
+		AND BL1.CALL_YEAR = GCS.CALL_YEAR(+)
+		AND BL1.CALL_SEQ = GCS.CALL_SEQ(+)
+		AND BL1.BL_NO = GCS.CBR_NO(+) -->
+		<if test="vslCallId != null and vslCallId != ''">
+			AND SCH.VSL_CALL_ID 							= #{vslCallId}
+		</if>
+		<if test="scn != null and scn != ''">
+        	AND SCH.SHIP_CALL_NO							= #{scn}
+       	</if>
+		<if test="etaFrom != null and etaFrom != ''">
+			AND CONVERT(DATE, SCH.ETA)
+				BETWEEN CONVERT(DATE, #{etaFrom}, 103) AND CONVERT(DATE, #{etaTo}, 103)
+		</if>
+		<!--<if test="status != null and status != ''">
+			AND ZB552.DOC_STAT_CD = #{status}
+		</if>-->
+	<!--ORDER BY
+		SCH.VSL_CALL_ID,
+		&lt;!&ndash; ,ZB551.JOB_NO
+	    ,ZB552.DOC_STAT_CD &ndash;&gt;
+	    BL1.JOB_NO_BL1,
+	    BL1.DOC_STAT_CD_BL1,
+		&lt;!&ndash; ,BL1.JOB_NO_MF1 &ndash;&gt;
+	    BL1.DOC_STAT_CD_MF1,
+	    /*BL1.JOB_NO_CG1,*/
+	    BL1.DOC_STAT_CD_CG1-->
+	GROUP BY
+		SCH.VSL_CALL_ID,
+		BL1.JOB_NO_BL1,
+		BL1.DOC_STAT_CD_BL1,
+		BL1.DOC_STAT_CD_MF1,
+		BL1.DOC_STAT_CD_CG1,
+		BL1.BL_NO,
+		GCS.STATUS,
+		GCS.RELEASE_NO,
+		GCS.SCN,
+		BL1.BL_REG_NO,
+		BL1.dgYn,
+		BL1.dgStatus
+	</select>
+
+	<select id = "selectCustomCleranceForTranshipment"  parameterType = "checkListCustomClearanceParm" resultType = "checkListCustomClearanceItem">
+		SELECT
+			SCH.VSL_CALL_ID  									as vslCallId,
+			/*ZB551.JOB_NO 										as jobNo,
+			ZB552.DOC_STAT_CD 									as docStatCd,*/
+			BL1.JOB_NO_BL1 										as jobNoBl1,
+		    BL1.DOC_STAT_CD_BL1 								as docStatCdBl1,
+		    /*BL1.JOB_NO_MF1  									as jobNoMf1,*/
+		    BL1.DOC_STAT_CD_MF1  								as docStatCdMf1,
+		    /*BL1.JOB_NO_CG1 									as jobNoCg1,*/
+		    BL1.DOC_STAT_CD_CG1  								as docStatCdCg1,
+		    BL1.BL_NO 											as blNo,
+		    GCS.STATUS 											as status,
+		    GCS.RELEASE_NO 										as releaseNo,
+		    GCS.SCN 											as scn,
+		    ISNULL(dgYn, 'N')									as dgYn,
+		    dgStatus
+		FROM
+			TMT_VSL_SCH 										SCH
+	        /*TFZ_ZB55 											ZB551,
+	        TFZ_DOC_HDR 										ZB552,*/
+			LEFT JOIN (
+				SELECT
+					BL1.JOB_NO 									AS JOB_NO_BL1,
+					BL2.DOC_STAT_CD 							AS DOC_STAT_CD_BL1,
+					/*MF1.JOB_NO_MF1,*/
+					MF1.DOC_STAT_CD_MF1,
+					/*CG1.JOB_NO_CG1,*/
+					CG1.DOC_STAT_CD_CG1,
+					BL1.VSL_CD,
+					BL1.CALL_YEAR,
+					BL1.CALL_SEQ,
+					BL1.BL_NO 									AS BL_NO,
+					(CASE
+						WHEN ISNULL(DG1.DG_CHK, 'N') = 'N'
+							THEN 'N'
+						ELSE 'Y'
+					END)        								AS dgYn,
+					(CASE
+						WHEN DG1.DG_CHK = 'Y'
+							THEN 'Confirmed'
+						WHEN DG1.DG_CHK = 'N'
+							THEN 'Canceled'
+						WHEN DG1.DG_CHK = 'R'
+							THEN 'Rejected'
+						ELSE ''
+					END)        								AS dgStatus
+				FROM
+					TMT_BL BL1
+					INNER JOIN TMT_FZ_DOC_MST BL2
+						ON BL1.DOC_ID 							= BL2.DOC_ID
+						AND BL1.JOB_NO 							= BL2.JOB_NO
+					LEFT JOIN (
+						SELECT
+							/*MF1.JOB_NO JOB_NO_MF1,*/
+							MF2.DOC_STAT_CD 					AS DOC_STAT_CD_MF1,
+							MF1.MF_DOC_ID
+						FROM
+							TMT_MF MF1,
+							TMT_FZ_DOC_MST MF2,
+							TMT_VSL_SCH bb
+						WHERE
+							/*MF1.DOC_ID = MF2.DOC_ID
+							AND MF1.JOB_NO = MF2.JOB_NO
+							AND MF1.DOC_ID = 'K6'*/
+							1 = 1
+							<if test="vslCallId != null and vslCallId != ''">
+								AND bb.VSL_CALL_ID 				= #{vslCallId}
+							</if>
+							<if test="scn != null and scn != ''">
+					             AND bb.SHIP_CALL_NO			= #{scn}
+					        </if>
+							<if test="etaFrom != null and etaFrom != ''">
+								AND CONVERT(DATE, bb.ETA)
+								    BETWEEN CONVERT(DATE, #{etaFrom}, 103) AND CONVERT(DATE, #{etaTo}, 103)
+							</if>
+					) MF1
+						ON BL1.MF_DOC_ID 						= MF1.MF_DOC_ID
+						/*AND BL1.MF_JOB_NO = MF1.JOB_NO_MF1*/
+					LEFT JOIN (
+						SELECT
+							CG2.DOC_STAT_CD 					AS DOC_STAT_CD_CG1,
+							CG2.VSL_CALL_ID 					AS VSLCALLID
+							/*CG1.JOB_NO JOB_NO_CG1,*/
+							/*,CG1.BL_NO*/
+						FROM
+							/*TFZ_CG_DECL CG1,*/
+							TMT_FZ_DOC_MST CG2,
+							TMT_VSL_SCH bb
+						WHERE
+							1 = 1
+							/*CG1.DOC_ID = CG2.DOC_ID
+							AND CG1.JOB_NO = CG2.JOB_NO
+							AND CG1.DOC_ID = 'ZB3'*/
+							<if test="vslCallId != null and vslCallId != ''">
+								AND bb.VSL_CALL_ID 				= #{vslCallId}
+							</if>
+							<if test="scn != null and scn != ''">
+					             AND bb.SHIP_CALL_NO			= #{scn}
+					        </if>
+							<if test="etaFrom != null and etaFrom != ''">
+								AND CONVERT(DATE, bb.ETA)
+								    BETWEEN CONVERT(DATE, #{etaFrom}, 103) AND CONVERT(DATE, #{etaTo}, 103)
+							</if>
+					) CG1
+						ON BL1.VSL_CALL_ID 						= CG1.VSLCALLID
+					LEFT JOIN (
+						SELECT
+							SN.VSL_CALL_ID,
+							SN.CBR_NO,
+							DG.DG_CHK
+						FROM
+							TMT_SHIPG_NOTE SN
+								INNER JOIN TMT_DG DG
+									ON SN.DG_SEQ 				= DG.SEQ
+								LEFT JOIN TMT_VSL_SCH bb
+									ON bb.VSL_CALL_ID 			= #{vslCallId}
+						WHERE
+							1 = 1
+							<if test="vslCallId != null and vslCallId != ''">
+								AND bb.VSL_CALL_ID 				= #{vslCallId}
+							</if>
+							<if test="scn != null and scn != ''">
+					             AND bb.SHIP_CALL_NO			= #{scn}
+					        </if>
+							<if test="etaFrom != null and etaFrom != ''">
+								AND CONVERT(DATE, bb.ETA)
+									BETWEEN CONVERT(DATE, #{etaFrom}, 103) AND CONVERT(DATE, #{etaTo}, 103)
+							</if>
+					) DG1
+						ON BL1.BL_NO 							= DG1.CBR_NO
+					INNER JOIN TMT_VSL_SCH schh
+						ON schh.VSL_CD 							= BL1.VSL_CD
+						AND schh.CALL_YEAR 						= BL1.CALL_YEAR
+						AND schh.CALL_SEQ 						= BL1.CALL_SEQ
+				WHERE
+					BL1.DOC_ID = 'K6BL'
+					/*AND BL1.MF_DOC_ID = MF1.DOC_ID(+)
+					AND BL1.MF_JOB_NO = MF1.JOB_NO_MF1(+)
+					AND BL1.BL_NO = CG1.BL_NO(+)
+					AND BL1.BL_NO = DG1.CBR_NO(+)*/
+					<if test="vslCallId != null and vslCallId != ''">
+						AND schh.VSL_CALL_ID 					= #{vslCallId}
+					</if>
+					<if test="scn != null and scn != ''">
+					    AND schh.SHIP_CALL_NO			= #{scn}
+					</if>
+					<if test="etaFrom != null and etaFrom != ''">
+						AND CONVERT(DATE, schh.ETA)
+							BETWEEN CONVERT(DATE, #{etaFrom}, 103) AND CONVERT(DATE, #{etaTo}, 103)
+					</if>
+	        ) BL1
+				ON SCH.VSL_CD 									= BL1.VSL_CD
+				AND SCH.CALL_YEAR 								= BL1.CALL_YEAR
+				AND SCH.CALL_SEQ 								= BL1.CALL_SEQ
+			LEFT JOIN (
+				SELECT
+					BK_NO 										AS CBR_NO,
+					CUST_DECL_NO 								AS RELEASE_NO,
+					SCN 										AS SCN,
+					(CASE
+						WHEN CUST_MSG_TP = 'N' AND CUST_MSG_MODE = 'C'
+							THEN 'Release'
+						WHEN CUST_MSG_TP = 'N' AND CUST_MSG_MODE = 'B'
+							THEN 'Hold'
+						WHEN CUST_MSG_TP = 'P' AND CUST_MSG_MODE = 'C'
+							THEN 'Release'
+						WHEN CUST_MSG_TP = 'P' AND CUST_MSG_MODE = 'D'
+							THEN 'Hold'
+						WHEN CUST_MSG_TP = 'N' AND CUST_MSG_MODE = 'D'
+							THEN 'Hold'
+						WHEN CUST_MSG_TP = 'N' AND CUST_MSG_MODE = 'R'
+							THEN 'Release'
+						ELSE 'Hold'
+					END) 										AS STATUS,
+					BB.VSL_CD 									AS VSL_CD,
+					BB.CALL_YEAR 								AS CALL_YEAR,
+					BB.CALL_SEQ 								AS CALL_SEQ
+				FROM
+					TMT_GCS_RECV AA
+						INNER JOIN TMT_VSL_SCH BB
+							ON AA.SCN							= BB.SHIP_CALL_NO
+				WHERE
+					SUBSTRING(CUST_DECL_NO, 8,1) 				= '1'
+					AND AA.SCN 									= BB.SHIP_CALL_NO
+					AND SUBSTRING(CUST_DECL_NO, 11,1) <![CDATA[<>]]> '6'
+					AND SCN IS NOT NULL
+					<if test="vslCallId != null and vslCallId != ''">
+						AND BB.VSL_CALL_ID 						= #{vslCallId}
+					</if>
+					<if test="scn != null and scn != ''">
+					    AND BB.SHIP_CALL_NO			= #{scn}
+					</if>
+					<if test="etaFrom != null and etaFrom != ''">
+						AND CONVERT(DATE, BB.ETA)
+							BETWEEN CONVERT(DATE, #{etaFrom}, 103) AND CONVERT(DATE, #{etaTo}, 103)
+					</if>
+	        ) GCS
+				ON BL1.VSL_CD 									= GCS.VSL_CD
+				AND BL1.CALL_YEAR 								= GCS.CALL_YEAR
+				AND BL1.CALL_SEQ 								= GCS.CALL_SEQ
+				AND BL1.BL_NO 									= GCS.CBR_NO
+		WHERE
+			1 = 1
+			<if test="vslCallId != null and vslCallId != ''">
+				AND SCH.VSL_CALL_ID 							= #{vslCallId}
+			</if>
+			<if test="scn != null and scn != ''">
+				AND SCH.SHIP_CALL_NO			= #{scn}
+			</if>
+			<if test="etaFrom != null and etaFrom != ''">
+				AND CONVERT(DATE, SCH.ETA)
+					BETWEEN CONVERT(DATE, #{etaFrom}, 103) AND CONVERT(DATE, #{etaTo}, 103)
+			</if>
+			/*SCH.VSL_CD = ZB551.VSL_CD(+)
+			AND SCH.CALL_YEAR = ZB551.CALL_YEAR(+)
+			AND SCH.CALL_SEQ = ZB551.CALL_SEQ(+)
+			AND ZB551.DOC_ID = ZB552.DOC_ID
+			AND ZB551.JOB_NO = ZB552.JOB_NO
+			AND ZB551.VSL_CD = BL1.VSL_CD(+)
+			AND ZB551.CALL_YEAR = BL1.CALL_YEAR(+)
+			AND ZB551.CALL_SEQ = BL1.CALL_SEQ(+)
+			AND BL1.VSL_CD = GCS.VSL_CD(+)
+			AND BL1.CALL_YEAR = GCS.CALL_YEAR(+)
+			AND BL1.CALL_SEQ = GCS.CALL_SEQ(+)
+			AND BL1.BL_NO = GCS.CBR_NO(+)*/
+			<!--<if test="status != null and status != ''">
+				/*AND ZB552.DOC_STAT_CD = #{status}*/
+			</if>-->
+		<!-- ORDER BY SCH.VSL_CALL_ID
+	        ,ZB551.JOB_NO
+	        ,ZB552.DOC_STAT_CD
+	        ,BL1.JOB_NO_BL1
+	        ,BL1.DOC_STAT_CD_BL1
+	        ,BL1.JOB_NO_MF1
+	        ,BL1.DOC_STAT_CD_MF1
+	        ,BL1.JOB_NO_CG1
+	        ,BL1.DOC_STAT_CD_CG1 -->
+	</select>
+</mapper>

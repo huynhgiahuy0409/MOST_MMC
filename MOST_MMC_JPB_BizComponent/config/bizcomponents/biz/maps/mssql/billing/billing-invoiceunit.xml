@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="invoiceUnit">
+	
+	<!--  ################ Result Map Define ######################################### -->
+
+	<!--  ################ Query Statement Define ######################################### -->
+	
+	<select id="selectInvoiceUnitCount" parameterType="InvoiceUnitParm" resultType="java.lang.String">
+	 	 SELECT /*invoiceUnit.selectInvoiceUnitCount*/
+			COUNT(*)
+         FROM 
+			(<include refid="getInvoiceUnit"/>) AS getInvoiceUnit
+	</select>
+	<select id="selectInvoiceUnit"  parameterType="InvoiceUnitParm" resultType="InvoiceUnitItem">
+  		<if test="pageNo != 0"> 
+             SELECT /*invoiceUnit.selectInvoiceUnit*/
+				* 
+			FROM 
+				(SELECT 
+					inner_querry.*, ROW_NUMBER() OVER(ORDER BY(SELECT NULL)) row_num 
+				FROM ( 
+		</if>
+				<include refid="getInvoiceUnit"/>
+		<if test="pageNo != 0"> 
+				)inner_querry 
+			)inner_querry 
+			WHERE 
+				inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+		</if>
+    </select>
+    <sql id="getInvoiceUnit">
+    	SELECT 	/*invoiceUnit.getInvoiceUnit*/
+			UNIT_CD 							AS unitCd,
+			UNIT_TP_CD 							AS unitTpCd,
+			(SELECT TOP(1)
+				S_CD_NM 
+			FROM 
+				TMT_CD_MSTD 
+			WHERE 
+				L_CD = 'MT' AND M_CD = 'INVUNITTP' 
+				AND S_CD = UNIT_TP_CD) 			AS unitTpNm,
+			DESCR 								AS Descr,
+			STAFF_CD 							AS userId,
+			UPDATE_TIME 						AS updateTimeField,  	
+			VERSION 							AS version
+		FROM   	
+			TMT_B_IV_UNIT
+		WHERE 1=1
+		<if test="unitCd != null and unitCd != ''">
+  				AND UPPER(UNIT_CD)  like '%'+ UPPER(#{unitCd}) + '%'
+		</if>
+		<if test="unitTpCd != null and unitTpCd != '' and unitTpCd != 'All' ">
+  				AND UNIT_TP_CD = #{unitTpCd}
+		</if>
+    </sql> 
+	
+	<select id="isItemExisted" parameterType="InvoiceUnitItem" resultType="java.lang.Integer">
+		SELECT TOP(1) /*invoiceUnit.isItemExisted*/
+			count(1) 
+		FROM 
+			TMT_B_IV_UNIT
+		WHERE 
+			1 = 1 
+		<if test="unitCd != null and unitCd != ''">
+			AND UNIT_CD 	= #{unitCd}
+		</if>
+	</select>
+	<select id="isUnitInUsed" parameterType="InvoiceUnitParm" resultType="TariffCodeItem">
+		SELECT TOP(1) /*invoiceUnit.isUnitInUsed*/
+			IV_UNIT1  
+		FROM 
+			TMT_B_TRF_CD
+		WHERE 
+			IV_UNIT1 		= #{unitCd} 
+			OR IV_UNIT2 	= #{unitCd} 
+			OR IV_UNIT3 	= #{unitCd}
+	</select>
+	<!--  ################ Insert Statement Define ######################################### -->			
+	<insert id="insertInvoiceUnit"  parameterType="InvoiceUnitItem">
+			INSERT INTO /*invoiceUnit.insertInvoiceUnit*/
+			TMT_B_IV_UNIT(
+				UNIT_CD,
+		 	   	UNIT_TP_CD,
+			   	DESCR,
+			   	STAFF_CD,
+			   	UPDATE_TIME,
+			   	VERSION
+			)
+			VALUES(
+    			#{unitCd},
+				#{unitTpCd},
+				#{descr},
+				#{userId},
+				SYSDATETIME(),
+				#{newVersion}
+			)
+	</insert>
+	<!--  ################ Update Statement Define ######################################### -->
+	<update id="updateInvoiceUnit"  parameterType="InvoiceUnitItem">
+		UPDATE 	/*invoiceUnit.updateInvoiceUnit*/
+			TMT_B_IV_UNIT
+		SET		
+			UNIT_TP_CD 		= #{unitTpCd},
+			DESCR 			= #{descr},
+			STAFF_CD 		= #{userId},
+			VERSION 		= #{newVersion},
+			UPDATE_TIME 	= SYSDATETIME()
+		WHERE	
+			UNIT_CD 		= #{unitCd}
+			AND VERSION 	= #{version}
+	</update>
+	<!--  ################ Delete Statement Define ######################################### -->
+	<update id="deleteInvoiceUnit"  parameterType="InvoiceUnitItem">
+		DELETE 	/*invoiceUnit.deleteInvoiceUnit*/
+			TMT_B_IV_UNIT
+		WHERE  
+			UNIT_CD 		= #{unitCd}
+			AND	VERSION 	= #{version} 
+	</update>
+	
+</mapper>

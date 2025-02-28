@@ -1,0 +1,131 @@
+/**
+* DelayCodeItem.java
+*
+* Created on   : 2008-03-28
+* Target OS    : Java VM 1.4.2 
+* CVS revision : $Revision: 1.4 $ 
+*
+* ------------------------------
+* CHANGE REVISION
+* ------------------------------
+* DATE           AUTHOR      	          REVISION    	
+* 2008-03-28   Miss Nam-Sook Chang 1.0    First release.
+* -------------------------------
+* CLASS DESCRIPTION
+* -------------------------------
+*
+*/
+package com.tsb.most.basebiz.dataitem.codes;
+
+import java.util.Date;
+
+import com.tsb.most.framework.dataitem.DataItem;
+
+public class DelayCodeItem extends DataItem {   
+    private String dlyCd;
+    private String oldDlyCd;
+    private String dlyCatgCd;
+    private String descr;
+    private String chagYN;
+    private String userId;
+    private String sytmId;
+    private Date updDt;
+    private String no;
+    private String bulkTp;
+    private String bulkTpNm;
+    private String updBy;
+    private String dlyTp;
+    private String opUseYn;
+    private String nonOpUseYn;
+    
+    public String getBulkTpNm() {
+        return bulkTpNm;
+    }
+    public void setBulkTpNm(String bulkTpNm) {
+        this.bulkTpNm = bulkTpNm;
+    }
+    public String getBulkTp() {
+        return bulkTp;
+    }
+    public void setBulkTp(String bulkTp) {
+        this.bulkTp = bulkTp;
+    }
+    public String getNo() {
+        return no;
+    }
+    public void setNo(String no) {
+        this.no = no;
+    }
+    public String getChagYN() {
+        return chagYN;
+    }
+    public void setChagYN(String chagYN) {
+        this.chagYN = chagYN;
+    }
+    public String getDescr() {
+        return descr;
+    }
+    public void setDescr(String descr) {
+        this.descr = descr;
+    }
+    public String getDlyCatgCd() {
+        return dlyCatgCd;
+    }
+    public void setDlyCatgCd(String dlyCatgCd) {
+        this.dlyCatgCd = dlyCatgCd;
+    }
+    public String getDlyCd() {
+        return dlyCd;
+    }
+    public void setDlyCd(String dlyCd) {
+        this.dlyCd = dlyCd;
+    }
+    public String getOldDlyCd() {
+        return oldDlyCd;
+    }
+    public void setOldDlyCd(String oldDlyCd) {
+        this.oldDlyCd = oldDlyCd;
+    }
+    public String getSytmId() {
+        return sytmId;
+    }
+    public void setSytmId(String sytmId) {
+        this.sytmId = sytmId;
+    }
+    public Date getUpdDt() {
+		return updDt;
+	}
+	public void setUpdDt(Date updDt) {
+		this.updDt = updDt;
+	}
+	public String getUserId() {
+        return userId;
+    }
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+    public String getUpdBy() {
+        return updBy;
+    }
+    public void setUpdBy(String updBy) {
+        this.updBy = updBy;
+    }
+    public String getDlyTp() {
+        return dlyTp;
+    }
+    public void setDlyTp(String dlyTp) {
+        this.dlyTp = dlyTp;
+    }
+    public String getOpUseYn() {
+        return opUseYn;
+    }
+    public void setOpUseYn(String opUseYn) {
+        this.opUseYn = opUseYn;
+    }
+    public String getNonOpUseYn() {
+        return nonOpUseYn;
+    }
+    public void setNonOpUseYn(String nonOpUseYn) {
+        this.nonOpUseYn = nonOpUseYn;
+    }
+}

@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="alertfunction">
+
+ 	<select id="selectAlertFunction"  parameterType="searchAlertFunctionParm" resultType="alertFunctionItem">
+		SELECT   
+			1 													AS OD, 
+			'Mega' 												AS PROPERTY, 
+			COUNT (*) + '' 										AS CNT
+		FROM (
+			SELECT 
+				A.MEGA_NO					AS MEGANO, 
+				A.STAT_CD 					AS STATCD
+			FROM 
+				TMT_MEGA 					A
+			INNER JOIN	
+				TMT_MEGA_DTL 				B
+			ON
+				A.MEGA_NO 					= B.MEGA_NO
+			INNER JOIN
+				TMT_VSL_SCH 				C
+			ON
+				A.VSL_CALL_ID 				= C.VSL_CALL_ID
+			WHERE 
+				B.DIV_CD 					= 'VO'
+				AND C.SUMMIT_STAT 			NOT IN ('CC','RC')
+				AND A.VSL_CALL_ID 			= C.VSL_CALL_ID
+				AND A.VSL_CALL_ID 			<![CDATA[ <> ]]>  'NONCALLID'
+				AND STAT_CD 				IN  ('SU','CF')
+				AND (   
+					A.SUMIT_BY 				LIKE '%' + #{userId} + '%'
+					OR EXISTS (
+						SELECT 
+							'1'
+						FROM  
+							TMT_PTNR_USER 	B
+						WHERE     
+							B.USER_ID 		= A.SUMIT_BY
+							AND B.USER_ID 	= #{userId}
+					)
+				)
+				AND (
+					A.MEGA_TP_CD 			IS NULL 
+					OR A.MEGA_TP_CD 		<![CDATA[ <> ]]>  'H'
+				)
+				AND DATEDIFF(DAY, CONVERT(DATE, A.WORK_YMD , 112), SYSDATETIME()) <![CDATA[ <= ]]>  180 
+			
+			UNION ALL
+
+			SELECT 
+				A.MEGA_NO 					AS MEGANO, 
+				A.STAT_CD 					AS STATCD
+			FROM 
+				TMT_MEGA 					A
+			INNER JOIN
+				TMT_MEGA_DTL 				B
+			ON
+				A.MEGA_NO 					= B.MEGA_NO
+			INNER JOIN
+				TMT_VSL_SCH 				C
+			ON
+				A.VSL_CALL_ID 				= C.VSL_CALL_ID
+			WHERE 
+				B.DIV_CD 				= 'VO'
+				AND C.SUMMIT_STAT 			NOT IN ('CC','RC')
+				AND A.VSL_CALL_ID 			<![CDATA[ <> ]]>  'NONCALLID'
+				AND STAT_CD 				IN  ('SU','CF')
+				AND (    
+					A.SUMIT_BY <![CDATA[ <> ]]>  #{userId}
+					AND NOT EXISTS (
+						SELECT 
+							'1'
+						FROM  
+							TMT_PTNR_USER 	B
+						WHERE     
+							B.USER_ID 		= A.SUMIT_BY
+							AND B.USER_ID 	= #{userId})
+				)
+				AND A.STAT_CD 				<![CDATA[ <> ]]>  'CR'
+				AND (
+					A.MEGA_TP_CD 			IS NULL 
+					OR A.MEGA_TP_CD 		<![CDATA[ <> ]]>  'H'
+				)
+				AND DATEDIFF(DAY, CONVERT(DATE, A.WORK_YMD , 112), SYSDATETIME()) <![CDATA[ <= ]]>  180 
+		)														AS MEGA	
+		
+		UNION ALL
+		
+		SELECT 
+			2 													AS OD, 
+			'Internal Mega' 									AS PROPERTY, 
+			COUNT(*) + '' 										AS CNT 
+		FROM (
+			SELECT                           
+				A.MEGA_NO 					AS MEGANO, 
+				B.SEQ 						AS SEQ
+			FROM 
+				TMT_MEGA 					A
+			INNER JOIN		
+				TMT_MEGA_DTL 				B
+			ON
+				A.MEGA_NO 					= B.MEGA_NO
+			INNER JOIN
+				TMT_VSL_SCH 				C
+			ON
+				A.VSL_CALL_ID 				= C.VSL_CALL_ID
+			INNER JOIN
+				TMT_VSL_PART 				D
+			ON
+				C.VSL_CD 					= D.VSL_CD
+			WHERE     
+				A.VSL_CALL_ID 				<![CDATA[ <> ]]>  'NonCallId'
+				AND A.STAT_CD 				IN ('RV', 'SU', 'CF')
+				AND A.WH_APPRV_YN 			= 'Y'
+				AND A.PURP_TP_CD IN (
+					SELECT 
+						S_CD
+					FROM 
+						TMT_CD_MSTD
+					WHERE 
+						L_CD 				= 'MT' 
+						AND M_CD 			= 'MGPURP' 
+						AND S_CD_LGV 		IN ('MP')
+				)
+				AND B.DIV_CD 				= 'EQ'
+				AND B.EQ_DIV_CD 			= 'FL'
+				AND A.PURP_TP_CD 			= 'MP0001'
+				AND ISNULL(B.WH_QTY, 0) 	= 0
+				AND DATEDIFF(DAY, CONVERT(DATE, A.WORK_YMD, 112), SYSDATETIME()) <![CDATA[ <= ]]>  180
+
+			UNION
+
+			SELECT                          
+					A.MEGA_NO 				AS MEGANO,
+					B.SEQ 					AS SEQ
+			FROM 
+				TMT_MEGA 					A
+			INNER JOIN
+				TMT_MEGA_DTL 				B
+			ON     
+				A.MEGA_NO 				= B.MEGA_NO
+			WHERE
+				A.VSL_CALL_ID 		= 'NonCallId'
+				AND A.STAT_CD 			IN ('RV', 'SU', 'CF')
+				AND A.WH_APPRV_YN 		= 'Y'
+				AND A.PURP_TP_CD IN (
+					SELECT 
+						S_CD
+					FROM 
+						TMT_CD_MSTD
+					WHERE 
+						L_CD 			= 'MT' 
+						AND M_CD 		= 'MGPURP' 
+						AND S_CD_LGV 	IN ('MP')
+				)
+				AND B.DIV_CD 			= 'EQ'
+				AND B.EQ_DIV_CD 		= 'FL'
+				AND A.PURP_TP_CD 		= 'MP0001'
+				AND ISNULL(B.WH_QTY, 0) = 0
+				AND DATEDIFF(DAY, CONVERT(DATE, A.WORK_YMD, 112), SYSDATETIME()) <![CDATA[ <= ]]>  180
+		)														AS INTERNAL_MEGA
+	</select> 
+ 	
+</mapper>

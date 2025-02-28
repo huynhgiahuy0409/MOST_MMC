@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="generalCargoDischargingList">
+	<resultMap id="generalCargoDischargingList" 	type="generalCargoDischargingListItem">
+   		<result property = "vslCd"					column = "VSL_CD"/>
+   		<result property = "callYear"				column = "CALL_YEAR"/>
+   		<result property = "callSeq"				column = "CALL_SEQ"/>
+   		<result property = "vslCallId"				column = "VSL_CALL_ID"/>
+   		<result property = "mfDocId"				column = "MF_DOC_ID"/>
+   		<result property = "blNo"					column = "BL_NO"/>
+   		<result property = "shippingAgent"			column = "SHIPG_AGENT"/>
+   		<result property = "cargoTypeCd"			column = "CMDT_GRP_CD"/>
+   		<result property = "cargoSubTypeCd"			column = "CMDT_CD"/>
+   		<result property = "commodityCd"			column = "PKGTP_CD"/>
+ 	</resultMap>
+ 	
+ 	<select id="selectVesselSchedule" parameterType="generalCargoDischargingListParm" resultMap="generalCargoDischargingList">
+ 		SELECT /*generalCargoDischargingList.selectVesselSchedule*/
+ 		    SCH.VSL_CD,
+       		SCH.CALL_YEAR,
+       		SCH.CALL_SEQ,
+       		SCH.VSL_CALL_ID,
+       		PART.SA_CORP_ID 			AS SHIPG_AGENT
+  		FROM
+  		    TMT_VSL_SCH SCH,
+			TMT_VSL_PART PART
+  		WHERE
+  		    VSL_CALL_ID 				= #{vslCallId}
+  		    AND SCH.VSL_CD 				= PART.VSL_CD
+    </select>  
+    
+    <select id="selectDuplicatedManifest" parameterType="generalCargoDischargingListParm" resultMap="generalCargoDischargingList">
+ 		SELECT /*generalCargoDischargingList.selectVesselSchedule*/
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			VSL_CALL_ID,
+			MF_DOC_ID
+		FROM
+		    TMT_MF
+        <if test="mfDocId != null and mfDocId != '' "> 
+        	WHERE
+        	    MF_DOC_ID     			= #{mfDocId}
+        </if>
+    </select>
+    
+    <select id="selectDuplicatedBL" parameterType="generalCargoDischargingListParm" resultMap="generalCargoDischargingList">
+ 		SELECT /*generalCargoDischargingList.selectDuplicatedBL*/
+			A.VSL_CD,
+		    A.CALL_YEAR,
+		    A.CALL_SEQ,
+		    A.VSL_CALL_ID,
+		    A.BL_NO
+		FROM
+		    TMT_BL A,
+			TMT_VSL_SCH B
+		WHERE
+		    A.VSL_CD      				= B.VSL_CD
+        	AND A.CALL_YEAR     		= B.CALL_YEAR
+        	AND A.CALL_SEQ      		= B.CALL_SEQ
+        	AND A.VSL_CALL_ID   		= B.VSL_CALL_ID
+        <if test="vslCallId != null and vslCallId != '' ">
+        	AND A.VSL_CALL_ID   		= #{vslCallId}
+        </if>
+        <if test="blNo != null and blNo != '' "> 
+			AND A.BL_NO 				= #{blNo}
+		</if>
+    </select> 
+    
+    <select id="selectCommodityHeredity" parameterType="generalCargoDischargingListParm" resultMap="generalCargoDischargingList">
+	     SELECT  /*generalCargoDischargingList.selectCommodityHeredity*/
+ 		    CG_TP_CD,			-- MISSING CG_TP COLUMN
+		    CMDT_GRP_CD,
+		    CMDT_GRP_DESC,	-- Selected column not found in resultMap or resultType
+		    PKGTP.CMDT_CD,
+		    CMDT_DESC,		-- Selected column not found in resultMap or resultType
+		    PKGTP_CD
+		FROM
+		    TMT_CMDT_PKGTP PKGTP,
+			TMT_CMDT CMDT
+		WHERE
+		    PKGTP.CMDT_CD 				= CMDT.CMDT_CD
+		ORDER BY
+ 		    CG_TP_CD,			-- MISSING CG_TP COLUMN
+		    CMDT_GRP_CD,
+		    PKGTP.CMDT_CD
+    </select>
+ 	
+ 	<insert id="insertMFItem" parameterType="generalCargoDischargingListItem">
+		INSERT /*generalCargoDischargingList.insertMFItem*/
+		INTO 
+			TMT_MF (
+	    		VSL_CD,
+	             CALL_SEQ,
+	             CALL_YEAR,
+	             VSL_CALL_ID,
+	             MF_DOC_ID,
+	             STAFF_CD,
+	             UPDATE_TIME,
+	             OP_CLASS_CD,
+	             VERSION
+			) VALUES (
+		          #{vslCd},
+		          #{callSeq},
+		          #{callYear},
+		          #{vslCallId},
+		          #{mfDocId},
+		          #{userId},
+		          SYSDATETIME(),
+		          #{opeClassCd},
+		          #{newVersion}
+        )
+  	</insert>
+  	
+  	<insert id="insertBLItem"  parameterType="generalCargoDischargingListItem">
+		INSERT /*generalCargoDischargingList.insertBLItem*/
+		INTO
+		    TMT_BL(
+	            VSL_CD,
+	            CALL_YEAR,
+	            CALL_SEQ,
+	            VSL_CALL_ID,
+	            MF_DOC_ID,
+	            BL_NO,
+	            OP_CLASS_CD,
+	            CATG_CD,
+	            CG_TP_CD,
+	            CMDT_GRP_CD,
+	            CMDT_CD,
+	            PKG_TP_CD,
+	            PKG_QTY,
+	            LENGTH,
+	            WIDTH,
+	            HEIGHT,
+	            EACH_WGT,
+	            EACH_VOL,
+	            CG_WGT,
+	            CG_VOL,
+	            FREIGHT_TON,
+	            POL,
+	            POD,
+	            FDEST,
+	            IMDG_CLASS,
+	            UNNO,
+	            MARK_NO,
+	            GDS_RMK,
+	            PARENT_ID,
+	            PARENT_CG_TP,
+	            DELV_TP_CD,
+	            CNSNE,
+	            FWRD,
+	            STAT_CD,
+	            UPDATE_TIME,
+	            STAFF_CD,
+	            VERSION,
+	            TSPT_TP_CD,
+	            SHPR,
+	            WGT_CHK
+		) VALUES (
+				#{vslCd},
+				#{callYear},
+				#{callSeq},
+				#{vslCallId},
+				#{mfDocId}, 
+				#{blNo},
+	            #{opeClassCd},
+	            'I',
+				#{cargoTypeCd},
+				#{cargoSubTypeCd},
+				#{commodityCd},
+				#{packageTypeCd},
+	            #{quantity},
+	            #{length},
+				#{width},
+				#{height},
+	            #{eachWeight},
+	            #{eachVolumn},
+	            #{totalWeight},
+	            #{totalVolumn},
+	            (CASE
+	                WHEN CAST(#{totalWeight} AS FLOAT) > CAST(#{totalVolumn} AS FLOAT) THEN #{totalWeight}
+	                ELSE #{totalVolumn}
+	            END),
+	            #{loadPort},
+	            #{dischargePort},
+	            #{cargoDest},
+	            <choose>
+	            	<when test="dgNo != null and dgNo != ''">
+			          SUBSTRING(#{dgNo}, 1, CHARINDEX('/', #{dgNo}, 1) - 1),
+			          SUBSTRING(#{dgNo}, CHARINDEX('/', #{dgNo}, 1) + 1, LEN(#{dgNo})),
+					</when>
+					<otherwise>
+						#{dgNo},
+						#{dgNo},
+					</otherwise>	
+				</choose>
+				#{mark},
+	            #{cargoDesc},
+	            #{parentId},
+	            #{parentCargoType},
+	            (CASE
+	            	WHEN #{deliveryMode} 	= 'Indirect' THEN 'I'
+					WHEN #{deliveryMode} 	= 'Direct' THEN 'D'
+					WHEN #{deliveryMode} 	= 'Both Direct and Indirect' THEN 'B'
+					ELSE NULL 
+				END),
+				#{consignee},
+				#{cargoAgent},
+				'AP',
+				SYSDATETIME(),
+				#{userId},
+				#{newVersion},
+				#{modeofOpCd},
+				#{shipper},
+				'N'
+		)
+    </insert>
+    
+    <insert id="insertBLDtlItem" parameterType="generalCargoDischargingListItem">
+     	INSERT /*generalCargoDischargingList.insertBLDtlItem*/
+     	INTO
+     	    TMT_BL_DTL (
+     	    	VSL_CALL_ID,
+     	        VSL_CD,
+     	        CALL_YEAR,
+     	        CALL_SEQ,
+     	        MF_DOC_ID,
+     	        BL_NO,
+     	        SEQ,
+     	        PKG_TP_CD,
+     	        CMDT_CD,
+     	        CG_WGT,
+     	        CG_VOL,
+     	        HATCH_NO,
+     	        UPDATE_TIME,
+     	        STAFF_CD
+			) VALUES (
+				#{vslCallId},
+				#{vslCd},
+				#{callYear},
+				#{callSeq},
+				#{mfDocId},
+				#{blNo},
+				(SELECT
+					CASE
+				 		WHEN MAX(SEQ) IS NULL OR MAX(SEQ) = 0 THEN 1
+				 		ELSE MAX(SEQ) + 1
+				 	END
+				FROM
+					TMT_BL_DTL
+				WHERE
+					BL_NO 				= #{blNo}),
+				#{packageTypeCd},
+				#{commodityCd},
+				null,
+				null,
+				#{hatchNo},
+				SYSDATETIME(),
+				#{userId}
+		)
+    </insert>
+    
+    <delete id="deleteMFItems" parameterType="generalCargoDischargingListItem">
+    	DELETE /*generalCargoDischargingList.deleteMFItems*/
+    	FROM
+    	    TMT_MF
+		WHERE
+		    VSL_CD      				= #{vslCd}
+       		AND CALL_YEAR     			= #{callYear}
+       		AND CALL_SEQ      			= #{callSeq}
+			AND VSL_CALL_ID   			= #{vslCallId}
+			AND MF_DOC_ID 	  			= #{mfDocId}
+ 			AND OPE_CLASS_CD  			= #{opeClassCd}		-- MISSING OPE_CLASS_CD COLUMN
+	 </delete>
+    
+    <delete id="deleteBLItems" parameterType="generalCargoDischargingListItem">
+    	DELETE /*generalCargoDischargingList.deleteBLItems*/
+    	FROM
+    	    TMT_BL
+		WHERE
+		    VSL_CD      				= #{vslCd}
+       		AND CALL_YEAR     			= #{callYear}
+       		AND CALL_SEQ      			= #{callSeq}
+			AND VSL_CALL_ID   			= #{vslCallId}
+			AND BL_NO 		  			= #{blNo}
+	 </delete>
+     
+    <delete id="deleteBLDtlItems" parameterType="generalCargoDischargingListItem">
+    	DELETE /*generalCargoDischargingList.deleteBLDtlItems*/
+    	FROM
+    	    TMT_BL_DTL
+		WHERE
+		    VSL_CD      				= #{vslCd}
+       		AND CALL_YEAR     			= #{callYear}
+       		AND CALL_SEQ      			= #{callSeq}
+			AND VSL_CALL_ID   			= #{vslCallId}
+			AND BL_NO 		  			= #{blNo}
+	 </delete>
+	 
+	 
+	 <delete id="deleteDgBLItem" parameterType="generalCargoDischargingListItem">
+    	DELETE /*generalCargoDischargingList.deleteDgBLItem*/
+    	FROM
+    	    TMT_DG
+		WHERE
+		    SEQ 						= #{dgSeq}
+	 </delete>
+ </mapper>

@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace = "checkListCustomClerance">
+	
+	<select id = "selectCustomCleranceForImport"  parameterType = "checkListCustomClearanceParm" resultType = "checkListCustomClearanceItem">
+		SELECT /*checkListCustomClerance.selectCustomCleranceForImport*/
+			BL_NO 							AS blNo,
+			VS.VSL_CALL_ID 					AS vslCallId,
+			CMDT_CD 						AS cmdtCd,
+			CASE
+				WHEN DELV_TP_CD = 'D' THEN 'Direct'
+				WHEN DELV_TP_CD = 'I' THEN 'Indirect'
+				WHEN DELV_TP_CD = 'B' THEN 'Both'
+				ELSE ''
+			END 							AS DELVTPCD,
+			(SELECT TOP(1) 
+				CMDT.CMDT_DESC 
+			FROM 
+				TMT_CMDT CMDT  
+			WHERE 
+				CMDT.CMDT_CD = CMDT_CD ) 	AS cmdtNm,
+			CG_WGT 							AS docMt,
+			PKG_QTY 						AS docQty,
+			CUS.DOC_NO 						AS releaseNo,
+			CASE 
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>'' 
+					AND CUS.RELEASE_MT IS NULL OR CUS.RELEASE_MT ='' THEN  0
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>'' 
+					AND CUS.RELEASE_MT IS NOT NULL AND CUS.RELEASE_MT <![CDATA[<>]]>'' 
+					AND CUS.CG_NO = BL.BL_NO THEN CG_WGT - CUS.RELEASE_MT
+		        ELSE  
+					CG_WGT
+			END 							AS balanceMt,    
+		    CASE 
+		    	WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>'' 
+					AND CUS.RELEASE_MT IS NULL OR CUS.RELEASE_MT ='' THEN  0
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>'' 
+					AND CUS.RELEASE_MT IS NOT NULL AND CUS.RELEASE_MT <![CDATA[<>]]>'' 
+					AND CUS.CG_NO = BL.BL_NO THEN  PKG_QTY - CUS.RELEASE_QTY
+				ELSE PKG_QTY
+			END 							AS balanceQty,
+			CASE 
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>'' 
+					AND CUS.RELEASE_MT IS NULL OR CUS.RELEASE_MT ='' THEN  0
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>'' 
+					AND CUS.RELEASE_MT IS NOT NULL AND CUS.RELEASE_MT <![CDATA[<>]]>'' 
+					AND CUS.CG_NO = BL.BL_NO THEN  CG_WGT - CUS.RELEASE_MT
+		        ELSE CG_WGT
+		    END 							AS releaseMt, 
+			CASE 
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>'' 
+					AND CUS.RELEASE_MT IS NULL OR CUS.RELEASE_MT ='' THEN  0
+		        WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>'' 
+					AND CUS.RELEASE_MT IS NOT NULL AND CUS.RELEASE_MT <![CDATA[<>]]>'' 
+					AND CUS.CG_NO = BL.BL_NO THEN  PKG_QTY - CUS.RELEASE_QTY
+		        ELSE PKG_QTY
+			END 							AS releaseQty,
+			FWRD 							AS fwdCd,
+			DBO.F_PTNR_SNM(BL.FWRD, 'FWD') 	AS fwdNm,
+			CNSNE AS cnsCd,
+			DBO.F_PTNR_SNM(BL.CNSNE, 'CNS') AS cnsNm,
+			CG_TP_CD 						AS cgTpCd
+		FROM 
+			TMT_BL BL
+		INNER JOIN 
+			TMT_VSL_SCH VS 
+		ON
+		 	BL.VSL_CALL_ID = VS.VSL_CALL_ID
+		LEFT OUTER JOIN (
+			SELECT DISTINCT 
+				VSL_MANIFEST_NO, 
+			  	DOC_NO,
+				CG_NO,
+				SUM(RELEASE_MT) OVER (PARTITION BY VSL_MANIFEST_NO, DOC_NO, CG_NO) RELEASE_MT,
+				SUM(RELEASE_QTY) OVER (PARTITION BY VSL_MANIFEST_NO, DOC_NO, CG_NO) RELEASE_QTY
+			FROM  
+				TMT_CUSTOMS_RELEASE
+			WHERE  
+				IX_CD IN ('IM', 'TS')
+		) CUS
+		ON 
+			VS.VSL_CALL_ID = CUS.VSL_MANIFEST_NO
+        	AND ((CUS.CG_NO IS NULL OR CUS.CG_NO ='') OR (CUS.CG_NO IS NOT NULL AND CUS.CG_NO <![CDATA[<>]]>'' AND BL.BL_NO = CUS.CG_NO))
+		WHERE 1=1
+		<if test="vslCallId != null and vslCallId != ''" >
+			AND VS.VSL_CALL_ID 	= #{vslCallId}
+		</if>
+		<if test="blNo != null and blNo != ''" >
+			AND BL.BL_NO 		= #{blNo}
+		</if>
+	</select>
+	
+	<select id = "selectCustomCleranceForExport"  parameterType = "checkListCustomClearanceParm" resultType = "checkListCustomClearanceItem">
+		SELECT /*checkListCustomClerance.selectCustomCleranceForExport*/
+			SHIPG_NOTE_NO 							AS snNo,
+			VS.VSL_CALL_ID 							AS vslCallId,
+			SHIPG_NOTE_NO 							AS cdNm,
+			CMDT_CD 								AS cmdtCd,
+			CASE
+				WHEN DELV_TP_CD = 'D' THEN 'Direct'
+				WHEN DELV_TP_CD = 'I' THEN 'Indirect'
+				WHEN DELV_TP_CD = 'B' THEN 'Both'
+				ELSE ''
+			END AS DELVTPCD,
+			(SELECT TOP(1) 
+				CMDT.CMDT_DESC 
+			FROM 
+				TMT_CMDT CMDT  
+			WHERE 
+				CMDT.CMDT_CD = CMDT_CD ) 			AS cmdtNm,
+			CG_WGT 									AS docMt,
+			PKG_QTY 								AS docQty,
+			CUS.DOC_NO 								AS releaseNo,
+			CASE 
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>'' 
+					AND CUS.RELEASE_MT IS NULL OR CUS.RELEASE_MT ='' THEN  0
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>'' 
+					AND CUS.RELEASE_MT IS NOT NULL AND CUS.RELEASE_MT <![CDATA[<>]]>'' 
+					AND CUS.CG_NO = SN.SHIPG_NOTE_NO THEN  CG_WGT - CUS.RELEASE_MT
+				ELSE CG_WGT
+			END 									AS balanceMt,    
+			CASE 
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>'' 
+					AND CUS.RELEASE_MT IS NULL OR CUS.RELEASE_MT ='' THEN  0
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>'' 
+					AND CUS.RELEASE_MT IS NOT NULL AND CUS.RELEASE_MT <![CDATA[<>]]>'' 
+					AND CUS.CG_NO = SN.SHIPG_NOTE_NO THEN  PKG_QTY - CUS.RELEASE_QTY
+            	ELSE PKG_QTY
+			END 									AS balanceQty,
+			CASE 
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>'' 
+					AND CUS.RELEASE_MT IS NULL OR CUS.RELEASE_MT ='' THEN  0
+                WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>'' 
+					AND CUS.RELEASE_MT IS NOT NULL AND CUS.RELEASE_MT <![CDATA[<>]]>'' 
+					AND CUS.CG_NO = SN.SHIPG_NOTE_NO THEN  CG_WGT - CUS.RELEASE_MT
+                ELSE CG_WGT
+            END 									AS releaseMt,    
+			CASE 
+				WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>'' 
+					AND CUS.RELEASE_MT IS NULL OR CUS.RELEASE_MT ='' THEN  0
+                WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>'' 
+					AND CUS.RELEASE_MT IS NOT NULL AND CUS.RELEASE_MT <![CDATA[<>]]>'' 
+					AND CUS.CG_NO = SN.SHIPG_NOTE_NO THEN  PKG_QTY - CUS.RELEASE_QTY
+                ELSE PKG_QTY
+			END 									AS releaseQty,
+			SN.SHIPG_AGNCY 							AS shaCd,
+			DBO.F_PTNR_SNM(SN.SHIPG_AGNCY, 'SHA') 	AS shaNm,
+			SN.FWRD 								AS fwdCd,
+			DBO.F_PTNR_SNM(SN.FWRD, 'FWD') 			AS fwdNm,
+			SN.SHPR 								AS cnsCd,
+			DBO.F_PTNR_SNM(SN.SHPR, 'CNS') 			AS cnsNm,
+			SN.CG_TP_CD 							AS cgTpCd
+		FROM 
+			TMT_SHIPG_NOTE SN
+        INNER JOIN 
+			TMT_VSL_SCH VS 
+		ON 
+			SN.VSL_CALL_ID = VS.VSL_CALL_ID
+      	LEFT OUTER JOIN (
+      		SELECT DISTINCT 
+      			VSL_MANIFEST_NO, 
+				DOC_NO,
+				CG_NO,
+				SUM(RELEASE_MT) OVER (PARTITION BY VSL_MANIFEST_NO, DOC_NO, CG_NO) 	RELEASE_MT,
+				SUM(RELEASE_QTY) OVER (PARTITION BY VSL_MANIFEST_NO, DOC_NO, CG_NO) RELEASE_QTY
+			FROM  
+				TMT_CUSTOMS_RELEASE
+			WHERE 
+				IX_CD IN ('EX')
+		) CUS
+        ON 
+        	VS.VSL_CALL_ID = CUS.VSL_MANIFEST_NO
+        	AND ((ISNULL(CUS.CG_NO, '') = '' ) OR (ISNULL(CUS.CG_NO, '') != '' AND SN.SHIPG_NOTE_NO = CUS.CG_NO))
+        WHERE 
+			1=1 
+			AND SN.STAT_CD 			= 'AP'
+		<if test="vslCallId != null and vslCallId != ''" >
+			AND VS.VSL_CALL_ID 		= #{vslCallId}
+		</if>
+		<if test="snNo != null and snNo != ''" >
+			AND SN.SHIPG_NOTE_NO 	= #{snNo}
+		</if>
+	</select>
+</mapper>

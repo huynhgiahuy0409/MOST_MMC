@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cargoManualCtlGatePass">
+	
+	<!--  ################ Query Statement Define ######################################### -->
+	<sql id="sqlGatepass">
+		SELECT
+			*
+		FROM (
+		     SELECT
+				ROW_NUMBER() OVER(ORDER BY (SELECT NULL))				AS RNUM,
+				A.*
+			FROM  (
+				SELECT 
+		  			   M.CG_NO											AS CGNO,
+				       M.OPE_CLASS_CD									AS CATGCD,
+					   (SELECT TOP 1
+							TCM.S_CD_NM
+						FROM
+							TMT_CD_MSTD 								TCM
+						WHERE
+							TCM.L_CD 									= 'MT'
+							AND TCM.M_CD 								= 'CATGTP'
+							AND TCM.S_CD 								= M.OPE_CLASS_CD
+						)												AS CATGNM,
+				       ISNULL(G.SEQ,0)									AS SEQ,
+				       G.CG_IN_OUT_CD									AS CGINOUTCD,
+				       ISNULL(J.CG_WGT,0)								AS WGT,
+				       G.CG_WGT_UNIT									AS WGTUNIT,
+				       ISNULL(J.CG_VOL,0)								AS MSRMT,
+				       G.CG_VOL_UNIT									AS MSRMTUNIT,
+				       ISNULL(J.PKG_QTY,0)								AS PKGQTY,
+				       G.PKG_TP_CD										AS PKGTPCD,
+				       G.CMDT_CD										AS CMDTCD,
+				       G.CG_TP_CD										AS CGTPCD,
+<!-- 				       G.DG_CG_IDT								AS DGCGIDT, -->
+				       G.GATE_IN_DT										AS GATEINDT,
+				       G.GATE_OUT_DT									AS GATEOUTDT,
+				       G.TSPT_TP_CD										AS TSPTTPCD,
+		               ''												AS DELVSTAT,
+				       G.GR_NO											AS GRNO,
+						(CASE M.OPE_CLASS_CD
+							WHEN 'I' THEN (SELECT TOP 1
+												A.TSPTR 				AS TSPTR
+											FROM
+												TMT_BL 					A
+											WHERE
+												A.VSL_CALL_ID 			= M.VSL_CALL_ID
+												AND A.BL_NO 			= M.CG_NO)
+							WHEN 'E' THEN (SELECT TOP 1
+												A.TSPT_COMP 			AS TSPTR
+											FROM
+												TMT_SHIPG_NOTE 			A,
+												TMT_GR 					C
+											WHERE
+												A.VSL_CALL_ID 			= C.VSL_CALL_ID
+												AND A.SHIPG_NOTE_NO 	= C.SHIPG_NOTE_NO
+												AND M.VSL_CALL_ID 		= C.VSL_CALL_ID
+												AND M.CG_NO 			= C.GR_NO
+												AND A.VSL_CALL_ID 		= M.VSL_CALL_ID)
+							ELSE NULL
+						END) 											AS TSPTR,
+				       G.LOC_ID											AS LOCID,
+				       G.RMK											AS RMK,
+				       G.LORRY_NO										AS LORRYNO,
+				       G.GATE_PASS_NO									AS GATEPASSNO,
+				       FORMAT(G.GATE_PASS_ISSUE_DT,
+								'dd/MM/yyyy HH:mm') 					AS GATEPASSISSUEDT,
+						(CASE
+							WHEN G.ISSUE_CNT IS NULL THEN 'N'
+							WHEN G.ISSUE_CNT = 0 THEN 'N'
+							ELSE 'Y'
+						END)											AS ISSUED,
+				       G.UPDATE_TIME									AS UPDDT,
+				       G.STAFF_CD										AS UPDUSERID,
+				       G.VERSION										AS VERSION,
+				       M.VSL_CALL_ID									AS VSLCALLID,
+					   ISNULL(G.ACTL_WGT,0)								AS ACTLWGT,
+						(CASE
+							WHEN (M.RHDL_MODE IS NULL OR M.RHDL_MODE = '') THEN 'N'
+							WHEN M.RHDL_MODE = 'N' THEN 'N'
+							ELSE 'Y'
+						END)											AS REHANDLE,
+					   ' '												AS HDLOUTDT,
+					   '' 												AS DELVTPNM,
+					   '' 												AS TSPTTPNM,
+<!-- 					   NVL (G.TRIP_NO, G.SEQ) 					AS NOTRIPS, -->
+					   ROW_NUMBER() OVER(ORDER BY G.GATE_PASS_NO)		AS RN,
+					   FORMAT(J.SHFT_DT, 'dd/MM/yyyy') 					AS SHFTDT,
+		               J.SHFT_ID 										AS SHFTID,
+		            	(SELECT
+							SHFT_NM
+			            FROM
+							TMT_SHFT
+			            WHERE
+							SHFT_ID 									= J.SHFT_ID
+						)        										AS SHFTNM,
+			           G.STAFF_CD 										AS CONFIRMBY,
+		               FORMAT(G.UPDATE_TIME, 'dd/MM/yyyy HH:mm') 		AS DATETIME
+	</sql>
+	
+	<sql id="vsl_gatepass">
+		FROM
+			TMT_CG_ARRV_DELV G
+				LEFT OUTER JOIN TMT_JOB J
+					ON G.JOB_NO 					= J.JOB_NO
+				RIGHT OUTER JOIN TMT_CG_MST M
+					ON G.VSL_CALL_ID 				= M.VSL_CALL_ID
+		WHERE
+			G.CG_NO 								= M.CG_NO
+			AND (G.GATE_PASS_NO IS NOT NULL AND G.GATE_PASS_NO <![CDATA[<>]]> '')
+		<if test="gatePassNo == null or gatePassNo == ''">
+			<if test="startDt != null and startDt != ''">
+		    	AND G.GATE_PASS_ISSUE_DT
+					BETWEEN CONVERT(DATETIME, (
+												CASE
+													WHEN CHARINDEX(':', #{startDt}) = 0 THEN #{startDt} + ' 00:00'
+													ELSE #{startDt}
+												END)
+									,103)
+							AND
+							CONVERT(DATETIME, (
+												CASE
+													WHEN CHARINDEX(':', #{endDt}) = 0 THEN #{endDt} + ' 23:59'
+													ELSE #{endDt}
+												END)
+									,103)
+			</if>
+		</if>
+		<if test="vslCallId != null and vslCallId != ''">
+	   		AND M.VSL_CALL_ID 						= #{vslCallId}
+		</if>
+		<if test="cgNo != null and cgNo != ''">
+	    	AND M.CG_NO 							= #{cgNo}
+		</if>
+		<if test="shipgNoteNo != null and shipgNoteNo != ''">
+	    	AND M.SHIPG_NOTE_NO 					= #{shipgNoteNo}
+		</if>
+		<if test="blNo != null and blNo != ''">
+	    	AND M.BL_NO 							= #{blNo}
+		</if>
+		<if test="gatePassNo != null and gatePassNo != ''">
+	    	AND G.GATE_PASS_NO LIKE '%' + #{gatePassNo} + '%'
+		</if>
+		<if test="lorryNo != null and lorryNo != ''">
+	    	AND G.LORRY_NO 							= #{lorryNo}
+		</if>
+		<if test="delvTpNm != null and delvTpNm != ''">
+	     	AND M.DELV_TP_CD 						= #{delvTpNm}
+		</if>
+		<if test="shftId != null and shftId != ''">
+	    	AND J.SHFT_ID 							= #{shftId}
+		</if>
+		<if test="shftDt != null and shftDt != ''">
+	     	AND FORMAT(J.SHFT_DT, 'dd/MM/yyyy') 	= #{shftDt}
+		</if>
+		<if test='issued == "Y"'>
+			AND G.ISSUE_CNT <![CDATA[ >= ]]> 1
+		</if>
+	</sql>
+	
+	<sql id="sqlGatepassAuth">
+		<if test='userType == "E"'>
+  			AND
+				(
+					EXISTS (SELECT
+								'1'
+							FROM
+								TMT_SHIPG_NOTE 				SN
+							 WHERE
+								SN.VSL_CALL_ID 				= M.VSL_CALL_ID
+							   	AND SN.SHIPG_NOTE_NO 		= M.SHIPG_NOTE_NO
+							<if test='authority == "FWD"'>
+          						AND SN.FWRD = #{ptnrCode}
+							</if>
+							<if test='authority == "BH"'>
+          						AND (SN.FWRD 				= #{ptnrCode}
+										OR
+									SN.SHIPG_AGNCY 			= #{ptnrCode})
+							</if>
+							   )
+				 OR EXISTS (SELECT
+								'1'
+							FROM
+								TMT_BL 						BL
+                            WHERE
+								BL.VSL_CALL_ID 				= M.VSL_CALL_ID
+								AND BL.BL_NO 				= M.BL_NO
+								AND BL.FWRD 				= #{ptnrCode})
+				 OR EXISTS (SELECT
+								'1'
+							FROM
+								TMT_BL 						BL
+							 WHERE
+								BL.VSL_CALL_ID 				= M.VSL_CALL_ID
+								AND BL.BL_NO 				= M.CG_NO
+								AND BL.TSPTR 				= #{ptnrCode})
+				 OR EXISTS (SELECT
+								'1'
+							FROM
+								TMT_SHIPG_NOTE 				SN,
+								TMT_GR 						GR
+							WHERE
+								SN.TSPT_COMP 				= #{ptnrCode}
+								AND SN.VSL_CALL_ID 			= GR.VSL_CALL_ID
+								AND SN.SHIPG_NOTE_NO 		= GR.SHIPG_NOTE_NO
+								AND GR.VSL_CALL_ID 			= M.VSL_CALL_ID
+								AND GR.GR_NO 				= M.CG_NO)
+				)
+		</if>
+	</sql>
+	
+	<sql id="sqlGatepassPaging">
+		ORDER BY
+			GATEPASSNO
+		OFFSET
+			(CASE 
+				WHEN 0 = '0' THEN 0 
+				ELSE CAST(0 AS INT) - 1 
+			END) * CAST(10 AS INT) ROWS FETCH
+			NEXT 
+				CAST(10 AS INT) ROWS ONLY) A
+		<if test="pagingSearchType != null and pagingSearchType != ''">
+    	  WHERE
+			ROWNUM <![CDATA[<=]]> ${test2}
+			) WHERE
+				RNUM >= ${test1}
+		</if>
+		<if test="pagingSearchType == null or pagingSearchType == ''">
+			) WHERE
+				ROWNUM <![CDATA[ <= ]]> 15000
+		</if>
+	</sql>
+	
+	<sql id="getCargoGatePassList">
+		<include refid="sqlGatepass"/>
+		<include refid="vsl_gatepass"/>
+		<include refid="sqlGatepassAuth"/>
+		<include refid="sqlGatepassPaging"/>
+	</sql>
+	
+	<select id="selectCargoGatePassList"  parameterType="cargoGatePassParm" resultType="cargoGatePassItem">
+		<if test="pageNo != 0"> 
+        	SELECT
+				*
+			FROM (SELECT
+					inner_query.*, ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num
+				FROM (
+		</if>
+				<include refid="getCargoGatePassList"/>
+		<if test="pageNo != 0"> 
+				) inner_query
+			) inner_query
+			WHERE
+				inner_query.row_num <![CDATA[>]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT) - 1) * CAST(#{sizePerPage} AS INT)
+		  		AND inner_query.row_num <![CDATA[<=]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT)) * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<select id="selectCargoGatePassListCount"  parameterType="cargoGatePassParm" resultType="java.lang.String">
+		SELECT
+			COUNT(*)
+        FROM
+			(<include refid="getCargoGatePassList"/>)
+	</select>
+	
+	<select id="selectBLComboList"  parameterType="cargoGatePassParm" resultType="cargoGatePassItem">
+		 SELECT
+			A.BL_NO 					AS BLNO
+		 FROM
+			TMT_BL 						A,
+			TMT_CG_ARRV_DELV 			D
+		 WHERE
+			A.VSL_CALL_ID 				= D.VSL_CALL_ID
+		  	AND A.BL_NO 				= D.CG_NO
+		<if test="gatePassNo != null and gatePassNo != ''">
+    		AND D.GATE_PASS_NO 			= #{gatePassNo}
+		</if>
+		<if test="vslCallId != null and vslCallId != ''">
+    		AND D.VSL_CALL_ID 			= #{vslCallId}
+		</if>
+		GROUP BY
+			A.BL_NO
+		ORDER BY
+			A.BL_NO
+	</select>
+	
+</mapper>

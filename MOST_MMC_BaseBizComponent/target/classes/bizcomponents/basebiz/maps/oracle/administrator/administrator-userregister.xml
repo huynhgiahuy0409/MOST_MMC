@@ -1,0 +1,556 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="userRegister">
+
+	<resultMap id="authGrpMap" type="userRegisterItem">
+		<result property="authGrp"   			column="AUTH_GRP" />
+		<result property="authGrpNm"  			column="AUTH_GRP_NM" />
+	</resultMap>
+	
+	<select id="selectUserList"   parameterType="userRegisterParm"  resultType="userRegisterItem">
+		<if test="pageNo != 0"> 
+			SELECT /*userRegister.selectUserList*/
+            	* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getUserList"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	
+	<select id="selectUserListCount" parameterType="userRegisterParm" resultType="java.lang.String" >
+    	SELECT COUNT(*)
+        	FROM (<include refid="getUserList"/>)
+	</select>
+	
+	<select id="checkUserDup" parameterType="userRegisterParm" resultType="userRegisterItem">
+		SELECT /*userRegister.checkUserDup*/
+			* FROM TMT_USER_INFO 
+		WHERE USE_YN <![CDATA[<>]]> 'R'
+		<if test="regUserId != '' and regUserId != null">
+			AND USER_ID = UPPER(#{regUserId})
+		</if>
+		<if test="idNo != '' and idNo != null">
+			AND ID_NO = #{idNo}
+		</if>
+	</select>
+	
+	<sql id="getUserList">
+	 	SELECT
+	 		USER_ID AS regUserId,
+            ENG_NM AS engNm,
+            MOBILE_NO AS mobileNo,
+            TEL_NO AS telNo,
+            EMAIL_ADDR AS emailAddr,
+            USE_YN AS useYn,
+            USER_TYPE AS regUserType,
+            USER_LEVEL AS regUserLevel,
+			(SELECT 
+				s_cd_nm
+            FROM TMT_CD_MSTD
+            WHERE l_cd = 'CM' 
+            AND M_cd = 'USERLVL' 
+            AND s_cd = USER_LEVEL) AS userLevelNm,
+            ID_NO AS idNo,
+            LAST_LOGIN AS lastLogin,
+            LAST_LOGIN_TIME AS lastLoginTime,
+            DESIGNATION AS designation,
+            TO_CHAR (UPDATE_TIME, 'DD/MM/YYYY HH24:MI:SS') AS updDt,
+            STAFF_CD AS updBy,
+            FAX_NO AS faxNo,
+            ADDR AS addr,
+            EXT_NO AS extNo,
+            PASSWORD AS password,
+            CASE USER_TYPE WHEN 'I' THEN '' WHEN 'E' THEN PTNR_CODE END AS ptnrCd,
+			PTNR_TYPE AS ptnrType,
+            ATTCHMENT_FILE AS attachFile,
+            USER_TYPE_NM AS userTypeNm,
+            PTNR_NM AS ptnrNm,
+            CASE USER_TYPE WHEN 'I' THEN '' WHEN 'E' THEN PTNR_TYPES END AS ptnrTypes,
+            TO_CHAR (EXPIRED_DT, 'DD/MM/YYYY') AS exprDt,
+            GRD_CD AS grdCd,
+            DEPT_CD AS deptCd,
+            JOB_TITLE AS jobTitle,
+            RMK AS rmk,
+            'U' AS workingStatus,
+            USER_IMG AS userImage
+		FROM ( /*UserList.selectUserList*/
+			SELECT 
+				ROWNUM RNUM,
+				INLINE_VIEW.*
+			FROM (
+				SELECT 
+					S1.*,
+	                F_CM_001 ('CM', 'USERTP', S1.USER_TYPE) USER_TYPE_NM,
+	                F_CM_001 ('CM', 'USERLVL', S1.USER_LEVEL) USER_LEVEL_NM,
+	               <!--  F_CM_007 (S1.PTNR_CODE, S1.PTNR_TYPE) PTNR_NM, -->
+	                F_CM_009 (
+	                	' SELECT PTNR_TYPE FROM TMT_AGENCY_INFO WHERE AGENCY_CODE = ''' 
+	                		|| S1.PTNR_CODE
+	                    	|| '''' 
+	                    	|| ' UNION ALL' 
+	                    	|| ' SELECT PTNR_TYPE FROM TMT_PTNR WHERE PTNR_CODE = '''
+	                        || S1.PTNR_CODE
+	                        || '''', '/') PTNR_TYPES
+				FROM (
+					SELECT
+						A.USER_ID,
+						A.ENG_NM,
+                        A.MOBILE_NO,
+                        A.TEL_NO,
+                        A.EMAIL_ADDR,
+                        A.USE_YN,
+                        A.USER_TYPE,
+                        A.USER_LEVEL,
+                        A.ID_NO,
+                        A.LAST_LOGIN,
+                        A.DESIGNATION,
+                        A.UPDATE_TIME,
+                        A.FAX_NO,
+                        A.ADDR,
+                        A.EXT_NO,
+                        A.PASSWORD,
+                        (SELECT ENG_SNM
+                           FROM TMT_PTNR PTNR, TMT_PTNR_USER PTNR_USER
+                          WHERE     PTNR.PTNR_CODE = PTNR_USER.PTNR_CODE AND PTNR_USER.USER_ID =  A.USER_ID
+                                AND ROWNUM = 1)
+                           PTNR_NM,
+                        (SELECT 
+                        	PTNR_CODE
+		                FROM TMT_PTNR_USER
+		                WHERE USER_ID = A.USER_ID AND ROWNUM = 1) PTNR_CODE,
+						F_CM_009 ('SELECT PTNR_TYPE   FROM TMT_PTNR_USER WHERE USER_ID ='''                                    
+                        || A.USER_ID
+                        || ''''   ,
+                        ',')  PTNR_TYPE,
+						A.EXPIRED_DT,
+                        A.GRD_CD,
+                        A.DEPT_CD,
+                        A.JOB_TITLE,
+                        A.STAFF_CD,
+                        A.RMK,
+						(SELECT 
+							TO_CHAR ( MAX (REG_DTTM), 'DD/MM/YYYY HH24:MI:SS')
+                        FROM TMT_OAUTH_CREDENTIAL_DTL
+                        WHERE USER_ID = A.USER_ID) LAST_LOGIN_TIME,
+                        ATTCHMENT_FILE,
+                        USER_IMG
+					FROM (SELECT 
+							*
+                         FROM TMT_USER_INFO US
+                         WHERE US.USER_ID > ' '
+                         AND US.USER_ID NOT LIKE '%SYS_USER%'
+                         AND US.USER_TYPE = 'I') A
+					WHERE USER_TYPE = 'I'
+                    <if test="regUserId != null and regUserId != ''">
+                    	AND A.USER_ID LIKE UPPER(#{regUserId})
+                    </if>
+                    <if test="useYn != null and useYn != ''">
+						AND A.USE_YN = #{useYn}
+					</if>
+					UNION ALL
+                	SELECT 
+                		B.USER_ID,
+                    	B.ENG_NM,
+	                   	B.MOBILE_NO,
+    	                B.TEL_NO,
+        	            B.EMAIL_ADDR,
+            	        B.USE_YN,
+                	    B.USER_TYPE,
+                    	B.USER_LEVEL,
+	                    B.ID_NO,
+    	                B.LAST_LOGIN,
+        	            B.DESIGNATION,
+            	        B.UPDATE_TIME,
+                	    B.FAX_NO,
+                    	B.ADDR,
+	                    B.EXT_NO,
+    	                B.PASSWORD,
+    	                (SELECT ENG_SNM
+                           FROM TMT_PTNR PTNR, TMT_PTNR_USER PTNR_USER
+                          WHERE     PTNR.PTNR_CODE = PTNR_USER.PTNR_CODE AND PTNR_USER.USER_ID =  B.USER_ID
+                                AND ROWNUM = 1)
+                           PTNR_NM,
+        	            (SELECT 
+            	        	PTNR_CODE
+		        	    FROM TMT_PTNR_USER
+		            	WHERE USER_ID = B.USER_ID AND ROWNUM = 1) PTNR_CODE,
+						F_CM_009 ('SELECT PTNR_TYPE   FROM TMT_PTNR_USER WHERE USER_ID ='''                                    
+                        	|| B.USER_ID
+                        	|| ''''   ,
+                        	',')  PTNR_TYPE,
+						B.EXPIRED_DT,
+                    	B.GRD_CD,
+	                    B.DEPT_CD,
+    	                B.JOB_TITLE,
+        	            B.STAFF_CD,
+            	        B.RMK,
+                	    (SELECT 
+                    		TO_CHAR (MAX (REG_DTTM), 'DD/MM/YYYY HH24:MI:SS')
+						FROM TMT_OAUTH_CREDENTIAL_DTL
+	                    WHERE USER_ID = B.USER_ID) LAST_LOGIN_TIME,
+						ATTCHMENT_FILE,
+                    	USER_IMG
+					FROM (SELECT 
+							*
+                         FROM TMT_USER_INFO US
+                         WHERE US.USER_ID > ' '
+                         AND US.USER_ID NOT LIKE '%SYS_USER%'
+                         AND US.USER_TYPE = 'E') B
+                    WHERE  1 = 1
+                    <if test="regUserId != null and regUserId != ''">
+                    	AND B.USER_ID LIKE UPPER(#{regUserId})
+                    </if>
+					<if test="useYn != null and useYn != ''">
+                    	AND B.USE_YN = #{useYn}
+                    </if>
+                ) S1  
+			WHERE 1 = 1
+            ORDER 
+            	BY PTNR_NM,
+            	S1.USER_ID
+            ) 
+		INLINE_VIEW )
+		<where>
+			<if test="regYn eq 'Y'.toString()">
+				LAST_LOGIN IS NULL
+			</if>
+			<if test="regYn eq 'N'.toString()">
+				LAST_LOGIN IS NOT NULL
+			</if>
+			<if test="registrySystem eq 'VCS'.toString() and status != '' and status != null">
+				AND VCS_AP = #{status}
+			</if>
+			<if test="ptnrCd != null and ptnrCd != ''">
+				AND PTNR_CODE = #{ptnrCd}
+			</if>
+			<if test="regUserId != null and regUserId != ''">
+				AND USER_ID LIKE UPPER(#{regUserId})
+			</if>
+			<if test="regUserNm != null and regUserNm != ''">
+				AND UPPER(ENG_NM) LIKE UPPER(#{regUserNm})
+			</if>
+			<if test="regUserType != null and regUserType != ''">
+				AND USER_TYPE = #{regUserType}
+			</if>
+			<if test="regUserLevel != null and regUserLevel != ''">
+				AND USER_LEVEL = #{regUserLevel}
+			</if>
+			<if test="useYn != null and useYn != ''">
+				AND USE_YN = #{useYn}
+			</if>
+			<if test="ptnrType != null and ptnrType != ''">
+				AND PTNR_TYPE = #{ptnrType}
+			</if>
+			<if test="frmDt != null and frmDt != ''">
+				AND TO_DATE(LAST_LOGIN_TIME, 'DD/MM/YYYY HH24:MI:SS') <![CDATA[>=]]> TO_DATE(#{frmDt}, 'DD/MM/YYYY HH24:MI:SS')
+			</if>
+			<if test="toDt != null and toDt != ''">
+				AND TO_DATE(LAST_LOGIN_TIME, 'DD/MM/YYYY HH24:MI:SS') <![CDATA[<=]]> TO_DATE(#{toDt} || '23:59:59', 'DD/MM/YYYY HH24:MI:SS')
+			</if>
+			<if test="idNo != null and idNo != ''">
+				AND ID_NO = UPPER(#{idNo})
+			</if>
+		</where>
+		ORDER BY USER_ID
+	</sql> 
+	
+	<select id="selectDepartmentList" parameterType="userRegisterParm" resultType="userRegisterItem">
+		SELECT /*userRegister.selectDepartmentList*/
+			DEPT_CD AS deptCd, 
+			DEPT_NM AS deptNm 
+		FROM TMT_DEPARTMENT
+		WHERE USE_YN = 'Y' ORDER BY DEPT_NM
+	</select>
+	
+	<select id="selectAuthGrpList" parameterType="userRegisterParm" resultMap="authGrpMap">
+		SELECT /*userRegister.selectAuthGrpList*/
+			AUTH_GRP, 
+			AUTH_GRP_NM
+		FROM TMT_AUTH_GROUP
+		WHERE USAGE='Y' AND GT_FLAG='G'
+	</select>
+	
+	<select id="selectUserAuth" parameterType="userRegisterParm" resultType="userRegisterItem">
+		SELECT /*userRegister.selectUserAuth*/
+			AUTH_GRP AS authGrp, 
+			F_CM_004(AUTH_GRP) AS authGrpNm, 
+			AUTH_CD AS authCd,
+			USER_ID AS regUserId, 
+			GRP_ORDER AS grpOrd
+		FROM TMT_USER_AUTH
+		<where>
+			<if test="regUserId != '' and regUserId != null">
+				USER_ID = #{regUserId}
+			</if>
+		</where>
+	</select>
+		
+	<select id="selectUserAuthCombo" parameterType="userRegisterParm" resultType="userRegisterItem">
+		<if test="userType eq 'I'.toString()">
+			SELECT /*userRegister.selectUserAuthCombo*/
+				AUTH_GRP AS authGrp,           
+                AUTH_GRP_NM AS authGrpNm  
+            FROM TMT_AUTH_GROUP 
+            WHERE GT_FLAG='G' 
+            AND USAGE = 'Y' ORDER BY AUTH_GRP
+		</if>
+		<if test="userType eq 'E'.toString()">
+			SELECT /*userRegister.selectUserAuthCombo*/
+				A.AUTH_GRP AS authGrp,          
+	            B.AUTH_GRP_NM AS authGrpNm 
+	      	FROM TMT_USER_AUTH A, TMT_AUTH_GROUP B 
+	        WHERE A.AUTH_GRP = B.AUTH_GRP 
+	        AND B.GT_FLAG='G' AND B.USAGE = 'Y' 
+	        AND A.USER_ID = #{userId}
+		</if>
+	</select>
+	
+	<select id="selectUserType" parameterType="codeMasterParm" resultType="CodeMasterItem">
+		SELECT /*userRegister.selectUserType*/
+			S_CD 	AS scd,
+			S_CD_NM AS scdNm 
+		FROM TMT_CD_MSTD 
+		WHERE L_CD = 'CM' AND M_cd = 'USERTP'
+	</select>
+	
+	<select id="selectJobTitle" parameterType="codeMasterParm" resultType="CodeMasterItem">
+		SELECT /*userRegister.selectJobTitle*/
+			S_CD 	AS scd,
+			S_CD_NM AS scdNm 
+		FROM TMT_CD_MSTD 
+		WHERE L_CD = 'CM' AND M_cd = 'POSITION'
+	</select>
+	
+	<select id="checkOldPassword" parameterType="userRegisterParm" resultType="userRegisterItem">
+		SELECT PASSWORD password
+		FROM TMT_USER_INFO 
+		WHERE USER_ID  = #{userId}
+	</select>
+	
+	<update id="updateUserItem" parameterType="userRegisterItem">
+		UPDATE	/*userRegister.updateUserItem*/
+		TMT_USER_INFO SET
+			ENG_NM = #{engNm},
+			PASSWORD = #{password},
+		    USE_YN = 'Y',  
+		    ADDR = #{addr},
+		    USER_TYPE = #{regUserType},
+		    TEL_NO = #{telNo	,jdbcType=VARCHAR},
+		    FAX_NO = #{faxNo	,jdbcType=VARCHAR},
+		    MOBILE_NO = #{mobileNo	,jdbcType=VARCHAR},
+		    EMAIL_ADDR = #{emailAddr	,jdbcType=VARCHAR},
+		    RMK = #{rmk	,jdbcType=VARCHAR},
+		    AGENCY_CODE = #{ptnrCd},
+		    USER_LEVEL = #{regUserLevel},
+		    <if test="exprDt != null and exprDt != ''">
+		    	EXPIRED_DT = TO_DATE (#{exprDt}, 'DD/MM/YYYY'),
+		    </if>
+		    ID_NO = #{idNo},
+		    JOB_TITLE = #{jobTitle	,jdbcType=VARCHAR},
+		    LAST_LOGIN = SYSDATE,
+		    ACCESS_COUNT = 0,
+		    DESIGNATION = #{designation	,jdbcType=VARCHAR},
+		    ATTCHMENT_FILE = #{attachFile},
+		    GRD_CD = #{grdCd},
+		    STAFF_CD = #{userId},
+		    USER_IMG = #{userImage	,jdbcType=BLOB},
+		    UPDATE_TIME = SYSDATE
+		WHERE USER_ID = #{regUserId}
+	</update>
+	
+	<insert id="insertUserItem" parameterType="userRegisterItem">
+		INSERT	/*userRegister.insertUserItem*/
+		INTO TMT_USER_INFO (
+			ACCESS_COUNT,
+            ACC_IP,
+            ADDR,
+            AGE,
+            AGENCY_CODE,
+            ATTCHMENT_FILE,
+            AUTH_CD,
+            BIRTHDAY,
+            CITY_CODE,
+            CMP_NAME,
+            CONTRY_CODE,
+            DEPT_CD,
+            DEPT_NM,
+            DESIGNATION,
+            EMAIL_ADDR,
+            EMP_ID,
+            ENG_NM,
+            EXPIRED_DT,
+            EXT_NO,
+            FAX_NO,
+            GENDER,
+            GRANT_CHK,
+            GRD_CD,
+            ID_NO,
+            UPDATE_TIME,
+            STAFF_CD,
+            JOB_TITLE,
+            LAST_LOGIN,
+            LCL_NM,
+            MOBILE_NO,
+            PASSWORD,
+            PWD_DATE,
+            PWD_INTERVAL,
+            REF_NO,
+            RMK,
+            ROLE_CD,
+            STATE_CODE,
+            STAT_CD,
+            TEL_NO,
+            TMNL_CODE,
+            USER_ID,
+            USER_LEVEL,
+            USER_TYPE,
+            USE_YN,
+            ZIP_CD,
+            USER_IMG
+		) VALUES (
+			'0',
+			'',
+			#{addr},
+			'',
+			#{ptnrCd},
+			#{attachFile},
+			'',
+			'',
+			'',
+			'',
+			'',
+			'',
+			'',
+			#{designation},
+			#{emailAddr},
+			'',
+			#{engNm},
+			#{exprDt ,jdbcType=DATE},
+			'',
+			#{faxNo},
+			'',
+			'Y',
+			#{grdCd},
+			#{idNo},
+			SYSDATE,
+			#{userId},
+			#{jobTitle	,jdbcType=VARCHAR},
+			'',
+			'',
+			#{mobileNo	,jdbcType=VARCHAR},
+			#{password},
+			<!-- '', -->
+			SYSDATE,
+			'',
+			'',
+			'',
+			'',
+			'',
+			'',
+			#{telNo	,jdbcType=VARCHAR},
+			'',
+			UPPER(#{regUserId}),
+			#{regUserLevel},
+			#{regUserType},
+			#{useYn},
+			'',
+			#{userImage, jdbcType=BLOB}
+		)
+	</insert>
+	
+	<insert id="insertUserAuth" parameterType="userRegisterItem">
+		INSERT /*userRegister.insertUserAuth*/
+		INTO TMT_USER_AUTH (
+			AUTH_GRP,
+			AUTH_CD,
+			USER_ID,
+			GRP_ORDER,
+			STAFF_CD,
+			UPDATE_TIME
+		) VALUES (
+			#{authGrp},
+			#{authCd},
+			UPPER(#{regUserId}),
+			#{grpOrd},
+			#{userId},
+			SYSDATE
+		)
+	</insert>
+	
+	<insert id="insertOauthCredentialMst" parameterType ="userRegisterItem">
+		INSERT /*userRegister.insertOauthCredentialMst*/
+		INTO TMT_OAUTH_CREDENTIAL_MST(
+			USER_ID, 
+			REFRESH_TOKEN, 
+			REVOKE_YN,
+			STAFF_CD,
+			UPDATE_TIME
+		) VALUES (
+			UPPER(#{regUserId}),
+			UPPER(#{regUserId}),
+			'N',
+			#{userId},
+			SYSDATE
+		)
+	</insert>
+	
+	<insert id="insertPartnerUser" parameterType="userRegisterItem">
+		INSERT /*userRegister.insertPartnerUser*/
+		INTO TMT_PTNR_USER (
+			USER_ID,
+			PTNR_CODE,
+			PTNR_TYPE,	
+			STAFF_CD,
+			UPDATE_TIME		      
+		) VALUES (
+ 		    UPPER(#{regUserId}),
+ 		   	#{ptnrCd},
+ 		   	#{ptnrType},
+ 		   	#{userId},
+ 		   	SYSDATE
+		)
+	</insert>
+	
+	<delete id="deleteUserAuth" parameterType="userRegisterItem">
+		DELETE /*userRegister.deleteUserAuth*/
+		FROM TMT_USER_AUTH
+		WHERE USER_ID = #{regUserId}
+	</delete>
+	
+	<delete id="deletePartnerUser" parameterType="userRegisterItem">
+		DELETE /*userRegister.deletePartnerUser*/
+		FROM TMT_PTNR_USER
+		WHERE USER_ID = #{regUserId}
+	</delete>
+	
+	<delete id="deleteUserItem" parameterType="userRegisterItem">
+		UPDATE	/*userRegister.deleteUserItem*/
+		TMT_USER_INFO SET
+			USE_YN = 'N'
+		WHERE 
+			USER_ID = #{regUserId}
+	</delete>
+	
+	<update id="updateUserPassword"  parameterType="userInfoDataItem">
+		UPDATE TMT_USER_INFO 
+		SET		PASSWORD 	= #{password},
+				UPDATE_TIME	= SYSDATE
+		WHERE	USER_ID  = #{userId}
+	</update>
+	
+	<update id="updateUserInfo"  parameterType="userRegisterItem">
+		UPDATE TMT_USER_INFO 
+		SET		ENG_NM 	= #{engNm},
+				EMAIL_ADDR = #{emailAddr},
+				ADDR = #{addr},
+				UPDATE_TIME 	= SYSDATE
+		WHERE	USER_ID  = #{userId}
+	</update>
+</mapper>

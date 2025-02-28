@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+<mapper namespace="unclosedOperationList">
+	<!--  ################ Query Statement Define ######################################### -->
+	<select id="selectUnclosedOperationList" parameterType="unclosedOperationListParm" resultType="unclosedOperationListItem">
+	 	<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getUnclosedOperationList"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+		
+	<select id="selectUnclosedOperationListCount" parameterType="unclosedOperationListParm" resultType="java.lang.String" >
+        SELECT COUNT(*)
+			FROM (<include refid="getUnclosedOperationList"/>)
+	</select>
+		
+	<sql id="getUnclosedOperationList">
+        <if test="pageType != null and pageType != ''">
+			<if test="pageType == 'UOL'">
+			SELECT * FROM
+				(
+		    		SELECT a.*, rownum r__
+		    		FROM
+		    			(
+			</if>
+		</if>
+
+	    /* LOAD END DATE IS NOT NULL : NO FINAL*/
+	    SELECT * 
+	    FROM (
+		    SELECT
+		        'Loading' CGOPTP,
+		        M.VSL_CALL_ID vslCallId,
+		        (SELECT VSL_NM FROM TMT_VSL_PART PART WHERE SC.VSL_CALL_ID = M.VSL_CALL_ID AND SC.VSL_CD = PART.VSL_CD) VSLNM,
+		        TO_CHAR(SC.ATB,'DD/MM/YYYY HH24:MM:SS') AS ATB,
+				TO_CHAR(SC.ATU,'DD/MM/YYYY HH24:MM:SS') AS ATU,
+		        M.SHIPG_NOTE_NO BLSN,
+		        NVL(BL.CG_WGT, 0) DOCMT,
+		        NVL(BL.CG_VOL, 0) DOCM3,
+		        NVL(BL.PKG_QTY, 0) DOCQTY,
+		        F_CM_012('MT', 'CGCOCD', C.JOB_CO_CD)  CGCOND,
+		        C.TO_LOC_ID WHLOC,
+		        <!-- F_GET_UNCLOSED_STATUS_REASON(M.STAT_CD) RSN, -->
+		        '' RSN,
+		        (
+		        	SELECT COUNT(JOB_GROUP) 
+		        	FROM (
+		        		SELECT DISTINCT 
+		        			JOB_GROUP , CG_NO , JOB_CO_CD 
+		        		FROM TMT_JOB 
+		        		WHERE VSL_CALL_ID = M.VSL_CALL_ID )
+       				WHERE CG_NO = M.CG_NO 
+       				AND JOB_CO_CD = C.JOB_CO_CD
+       			) JOBSTRIP,
+       			ACT.ACTMT 	AS ACTMT,
+		        ACT.ACTM3 	AS ACTM3,
+		        ACT.ACTQTY 	AS ACTQTYY
+		    FROM TMT_CG_MST M, TMT_VSL_SCH SC, TMT_BL BL, (
+		    	SELECT 
+		    		AA.VSL_CALL_ID, AA.CG_NO, AA.JOB_CO_CD, AA.TO_LOC_ID 
+		    	FROM TMT_JOB AA 
+		    	WHERE JOB_CO_CD IS NOT NULL 
+		    	AND ( AA.SP_CA_CO_CD &lt;> 'S' OR AA.SP_CA_CO_CD IS NULL ) 
+		    	GROUP BY VSL_CALL_ID, CG_NO, JOB_CO_CD, TO_LOC_ID
+		    ) C, (
+		    	SELECT IL.VSL_CALL_ID 	AS VSLCALLID,
+		    		   IL.CG_NO			AS CGNO,
+		    		   SUM(IL.CG_WGT)   AS ACTMT,
+	                   SUM(IL.CG_VOL)   AS ACTM3,
+	                   SUM(IL.PKG_QTY)  AS ACTQTY,
+	                   IL.VSL_CALL_ID   AS VSL_CALL_ID,
+	                   IL.CG_NO         AS CG_NO
+	            FROM TMT_INV_LOC IL, TMT_JOB JO
+	            WHERE IL.VSL_CALL_ID = JO.VSL_CALL_ID
+	            AND IL.CG_NO = JO.CG_NO
+	            AND IL.JOB_NO = JO.JOB_NO(+)
+	            AND IL.VSL_CALL_ID = #{vslCallId}
+	            AND JO.JOB_PURP_CD  = 'AW'
+	            AND (JO.RHDL_MODE IS NULL OR JO.RHDL_MODE = 'N')
+            	GROUP BY IL.VSL_CALL_ID, IL.CG_NO
+            ) ACT
+		    WHERE M.VSL_CALL_ID      = C.VSL_CALL_ID
+	        AND M.CG_NO          =   C.CG_NO
+	        AND M.VSL_CALL_ID = BL.VSL_CALL_ID 
+	        AND M.CG_NO = BL.BL_NO
+	        AND ACT.CGNO = BL.BL_NO
+	        AND SC.VSL_CALL_ID = M.VSL_CALL_ID
+	        AND SC.VSL_CALL_ID = ACT.VSL_CALL_ID
+	        <if test="vslCallId == null or vslCallId == ''">
+				AND TO_CHAR(SC.ATB, 'YYYYMMDD') BETWEEN TO_CHAR(TO_DATE(#{fromATB},'DD/MM/YYYY'), 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{toATB},'DD/MM/YYYY'), 'YYYYMMDD')
+				<if test="fromATU != null and fromATU != '' and toATU != null and toATU != ''">
+					AND TO_CHAR(SC.ATU, 'YYYYMMDD') BETWEEN TO_CHAR(TO_DATE(#{fromATU},'DD/MM/YYYY'), 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{toATU},'DD/MM/YYYY'), 'YYYYMMDD')
+	        	</if>
+	        </if>
+	        <if test="vslCallId != null and vslCallId != ''">
+				AND M.VSL_CALL_ID = #{vslCallId}
+	        </if>
+	        <if test="statCd != null and statCd != ''">
+				AND M.STAT_CD = #{statCd}
+	        </if>
+	        <if test="whLoc != null and whLoc != ''">
+				AND REGEXP_SUBSTR(C.TO_LOC_ID, '[^(]+', 1, 1) = #{whLoc}
+	        </if>     
+		    UNION
+		    SELECT
+		        'Discharging' CGOPTP,
+		        M.VSL_CALL_ID vslCallId,
+		        (SELECT VSL_NM FROM TMT_VSL_PART PART WHERE SC.VSL_CALL_ID = M.VSL_CALL_ID AND SC.VSL_CD = PART.VSL_CD) VSLNM,
+		        TO_CHAR(SC.ATB,'DD/MM/YYYY HH24:MM:SS') AS ATB,
+                TO_CHAR(SC.ATU,'DD/MM/YYYY HH24:MM:SS') AS ATU,
+		        M.CG_NO BLSN,
+		        SN.CG_WGT DOCMT,
+		        SN.CG_VOL DOCM3,
+		        SN.PKG_QTY DOCQTY,
+		        F_CM_012('MT', 'CGCOCD', C.JOB_CO_CD)  CGCOND,
+		        C.TO_LOC_ID WHLOC,
+     		    <!-- F_GET_UNCLOSED_STATUS_REASON(M.STAT_CD) RSN, -->
+     		    '' RSN,
+		        (
+		        	SELECT COUNT(JOB_GROUP) 
+		        	FROM ( 
+		        		SELECT DISTINCT 
+		        			JOB_GROUP , CG_NO , JOB_CO_CD 
+		        		FROM TMT_JOB 
+		        		WHERE VSL_CALL_ID = M.VSL_CALL_ID 
+		        	)
+       				WHERE CG_NO = M.CG_NO 
+       				AND JOB_CO_CD = C.JOB_CO_CD
+       			) JOBSTRIP,
+       			ACT.ACTMT 	AS ACTMT,
+		        ACT.ACTM3 	AS ACTM3,
+		        ACT.ACTQTY 	AS ACTQTYY
+		    FROM TMT_CG_MST M, TMT_VSL_SCH SC, TMT_SHIPG_NOTE SN, (
+		    	SELECT 
+		    		AA.VSL_CALL_ID, AA.CG_NO, AA.JOB_CO_CD, AA.TO_LOC_ID
+		    	FROM TMT_JOB AA 
+		    	WHERE JOB_CO_CD IS NOT NULL 
+		    	GROUP BY VSL_CALL_ID, CG_NO, JOB_CO_CD, TO_LOC_ID
+		    ) C, (
+		    	SELECT IL.VSL_CALL_ID 	AS VSLCALLID,
+		    		   IL.CG_NO			AS CGNO,
+		    		   SUM(IL.CG_WGT)   AS ACTMT,
+	                   SUM(IL.CG_VOL)   AS ACTM3,
+	                   SUM(IL.PKG_QTY)  AS ACTQTY,
+	                   IL.VSL_CALL_ID   AS VSL_CALL_ID,
+	                   IL.CG_NO         AS CG_NO
+	            FROM TMT_INV_LOC IL, TMT_JOB JO
+	            WHERE IL.VSL_CALL_ID = JO.VSL_CALL_ID
+	            AND IL.CG_NO = JO.CG_NO
+	            AND IL.JOB_NO = JO.JOB_NO(+)
+	            AND IL.VSL_CALL_ID = #{vslCallId}
+	            AND JO.JOB_PURP_CD  = 'AW'
+	            AND (JO.RHDL_MODE IS NULL OR JO.RHDL_MODE = 'N')
+            	GROUP BY IL.VSL_CALL_ID, IL.CG_NO
+		    ) ACT
+		    WHERE M.SHIPG_NOTE_NO IS NULL
+	        AND M.VSL_CALL_ID		= C.VSL_CALL_ID
+	        AND M.VSL_CALL_ID		= SN.VSL_CALL_ID
+	        AND M.CG_NO				= C.CG_NO
+	        AND ACT.CG_NO			= SN.SHIPG_NOTE_NO
+	        AND SC.VSL_CALL_ID = M.VSL_CALL_ID
+	        AND SC.VSL_CALL_ID = ACT.VSL_CALL_ID
+	        <if test="vslCallId == null or vslCallId == ''">
+          		AND TO_CHAR(SC.ATB, 'YYYYMMDD') BETWEEN TO_CHAR(TO_DATE(#{fromATB},'DD/MM/YYYY'), 'YYYYMMDD') and TO_CHAR(TO_DATE(#{toATB},'DD/MM/YYYY'), 'YYYYMMDD')
+          		<if test="fromATU != null and fromATU != '' and toATU != null and toATU != ''">
+					AND TO_CHAR(SC.ATU, 'YYYYMMDD') BETWEEN TO_CHAR(TO_DATE(#{fromATU},'DD/MM/YYYY'), 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{toATU},'DD/MM/YYYY'), 'YYYYMMDD')
+	        	</if>
+	        </if>
+	        <if test="vslCallId != null and vslCallId != ''">
+				AND	M.VSL_CALL_ID = #{vslCallId}
+	        </if>
+	        <if test="statCd != null and statCd != ''">
+				AND M.STAT_CD = #{statCd}
+	        </if>
+	        <if test="whLoc != null and whLoc != ''">
+				AND REGEXP_SUBSTR(C.TO_LOC_ID, '[^(]+', 1, 1) = #{whLoc}
+	        </if> 
+		)
+	    ORDER BY ATB, vslCallId, CGOPTP, BLSN
+        <if test="pageType != null and pageType != ''">
+	        <if test="pageType == 'UOL'">
+	       		) a )
+	        	<if test="fromRow != null and fromRow != ''">
+		       		<if test="toRow != null and toRow != ''">
+		        		WHERE r__ BETWEEN #{fromRow} AND #{toRow}
+		       		</if>
+	       		</if>
+	        </if>
+        </if>
+	</sql>
+</mapper>

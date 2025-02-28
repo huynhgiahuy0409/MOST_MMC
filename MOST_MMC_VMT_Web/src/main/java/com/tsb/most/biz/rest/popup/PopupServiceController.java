@@ -1,0 +1,534 @@
+package com.tsb.most.biz.rest.popup;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.tsb.most.basebiz.parm.common.SearchVesselCallListParm;
+import com.tsb.most.basebiz.parm.popup.SearchPopupServiceParm;
+import com.tsb.most.biz.parm.operation.SearchTruckAssignmentParm;
+import com.tsb.most.common.constant.PopupServiceConstant;
+import com.tsb.most.framework.constants.CommonConstants;
+import com.tsb.most.framework.dataitem.DataItemList;
+import com.tsb.most.framework.exception.ServiceException;
+import com.tsb.most.framework.response.RestResponse;
+import com.tsb.most.rest.base.RestBaseController;
+
+
+@Controller
+@RequestMapping("/v1/popup")
+public class PopupServiceController extends RestBaseController{
+	private static Logger logger = LoggerFactory.getLogger(PopupServiceController.class);
+
+
+	// Payer Code Type Popup
+	@RequestMapping(value = "/partnercodetypelist", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectPartnerCodeTypeList(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectPartnerCodeTypeList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+		
+	}
+	
+	@RequestMapping(value = "/partnercodetype", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectPartnerCodeType(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectPartnerCodeType",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+		
+	}
+	
+	// Code Master Popup
+	@RequestMapping(value = "/codeMaster", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectCodeMasterList(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectCodeMasterList",parm);
+		
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+		
+	}
+	
+	@RequestMapping(value = "/cmmcdpopupmultiselect", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectCommCodeMultiSelectList(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object result = null;
+		
+		if(parm.getSearchType() != null && parm.getSearchType().equals(PopupServiceConstant.POPUP_SCREEN_CMDT)) {
+			result = invokeService("MOST.popupService.selectCommodityCode",parm);
+		}else if(parm.getSearchType() != null && parm.getSearchType().equals(PopupServiceConstant.POPUP_SCREEN_CMDTGRP)){
+			result = invokeService("MOST.popupService.selectCommodityGroupCode",parm);
+		}else if(parm.getSearchType() != null && parm.getSearchType().equals(PopupServiceConstant.POPUP_SCREEN_IMDG)){
+			result = invokeService("MOST.popupService.selectImdgList",parm);
+		}else {
+			result = invokeService("MOST.popupService.selectCodeMasterList",parm);
+		}
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+	
+	@RequestMapping(value = "/masterblpopupmultiselect", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectImportManifestComboList(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse response = new RestResponse();
+		Object result = null;
+		
+		result = invokeService("MOST.popupService.selectImportManifestComboList",parm);
+		
+		response.setData(((DataItemList)result).getCollection());
+		
+		return response;
+	}
+	
+	
+	
+	@RequestMapping(value = "/group", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectGroupList(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectAuthorityGroupPopup",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+	
+	// Partner Type Info Popup
+	@RequestMapping(value = "/partnercdpopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse getPartnerCodeList(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectPartnerCodeList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+	
+	//SAgent Popup
+	@RequestMapping(value = "/sagentlist", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectSAgentList(SearchPopupServiceParm parm) throws ServiceException{
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectSAgentList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+	
+	//Tariff Code Popup
+	@RequestMapping(value = "/tariffcodelist", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectTariffCodeList(SearchPopupServiceParm parm) throws ServiceException{
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectTariffCodeList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+	
+	@RequestMapping(value = "/portcodelist", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectPortCodeList(SearchPopupServiceParm parm) throws ServiceException{
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectPortCodeList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+	
+	@RequestMapping(value = "/packagelist", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectPackageList(SearchPopupServiceParm parm) throws ServiceException{
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectPackageList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+	
+	@RequestMapping(value = "/unnolist", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectUnnoList(SearchPopupServiceParm parm) throws ServiceException{
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectUnnoList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+	
+	@RequestMapping(value = "/countrylist", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectCountryCodeList(SearchPopupServiceParm parm) throws ServiceException{
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectCountryCodeList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+	
+	@RequestMapping(value = "/lorryspopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectExternalTruckList(SearchPopupServiceParm parm) throws ServiceException{
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectExternalTruckList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+	
+	@RequestMapping(value = "/internaltruckpopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectInternalTruckList(SearchPopupServiceParm parm) throws ServiceException{
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectInternalTruckList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+	
+	@RequestMapping(value = "/driverspopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectExternalDriverList(SearchPopupServiceParm parm) throws ServiceException{
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectExternalDriverList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+	
+	@RequestMapping(value = "/chassispopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectChassisList(SearchPopupServiceParm parm) throws ServiceException{
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectChassisList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+	
+	@RequestMapping(value = "/internalchassispopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectInternalChassisList(SearchPopupServiceParm parm) throws ServiceException{
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectInternalChassisList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+	
+	@RequestMapping(value = "/assignmentyardtruckpopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectAssignmentYardTruckList(SearchPopupServiceParm parm) throws ServiceException{
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectAssignmentYardTruckList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+	
+	@RequestMapping(value = "/assignmenttruckpopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectAssignmentTruckList(SearchPopupServiceParm parm) throws ServiceException{
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectAssignmentTruckList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+	
+	@RequestMapping(value = "/gateintruckpopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectGateInTruckList(SearchPopupServiceParm parm) throws ServiceException{
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectGateInTruckList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+	
+	@RequestMapping(value = "/goodsreceiptpopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectGoodsReceiptList(SearchPopupServiceParm parm) throws ServiceException{
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectGoodsReceiptList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+	
+	@RequestMapping(value = "/subdeliveryorderpopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectSubDeliveryOrderList(SearchPopupServiceParm parm) throws ServiceException{
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectSubDeliveryOrderList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+	
+	@RequestMapping(value = "/gatepasspopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectGatePassList(SearchPopupServiceParm parm) throws ServiceException{
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectGatePassList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+	
+	@RequestMapping(value = "/locationCodeList", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectLocationCodeList(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object obj = invokeService("MOST.popupService.selectLocationCodeList",parm);
+		
+		res.setData(((DataItemList)obj).getCollection());
+		
+		return res;
+	}
+	
+	@RequestMapping(value = "/packagenolist", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectPackageNoList(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object obj = invokeService("MOST.popupService.selectPackageNoList",parm);
+		
+		res.setData(((DataItemList)obj).getCollection());
+		
+		return res;
+	}
+	
+	@RequestMapping(value = "/bargenolist", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectBargeNoList(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object obj = invokeService("MOST.popupService.selectBargeNoList",parm);
+		
+		res.setData(((DataItemList)obj).getCollection());
+		
+		return res;
+	}
+	
+	@RequestMapping(value = "/unitno", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectUnitNoList(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object obj = invokeService("MOST.popupService.selectUnitNoList",parm);
+		
+		res.setData(((DataItemList)obj).getCollection());
+		
+		return res;
+	}
+	
+	// Equipment List Combo
+	@RequestMapping(value = "/equipmentlistpopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse getEquipmentCodeList(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object obj = invokeService("MOST.popupService.selectEquipmentCodeList",parm);
+		res.setData(((DataItemList)obj).getCollection());
+		return res;
+		
+	}
+	
+	// Mechanical Equipment Popup List
+	@RequestMapping(value = "/mechanicalequipmentlistpopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse getMechanicalEquipmentList(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectEquipmentCodeList",parm);
+		res.setData(((DataItemList)result).getCollection());
+		return res;
+	}	
+	
+	@RequestMapping(value = "/mechanicalequipmentlistgear", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse getMechanicalEquipmentListGear(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectEquipmentCodeListGear",parm);
+		res.setData(((DataItemList)result).getCollection());
+		return res;
+	}
+	
+	@RequestMapping(value = "/serviceordersetting", method = RequestMethod.GET)
+    @ResponseBody
+    public RestResponse selectServiceOrderList(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectServiceOrderList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+    }
+	
+	
+	
+	/**
+	 *  HHT START
+	 * @param parm
+	 * @return
+	 * @throws ServiceException
+	 * @throws Exception
+	 */
+	
+	// Vessel Find Popup
+	@RequestMapping(value = "/vesselcalllistpopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectSearchVesselCallList(SearchVesselCallListParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object result = null;
+		
+		if(parm.getStorageVsl() != null && parm.getStorageVsl().equals(CommonConstants.Y)) {
+			result = invokeService("MOST.searchVesselCall.selectSearchNonVesselCallList",parm);
+		}else {
+			result = invokeService("MOST.searchVesselCall.selectSearchVesselCallList",parm);
+			
+		}
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+		
+	}
+		
+	
+	// Assignment Lorrys Popup
+	@RequestMapping(value = "/assignedlorrylistpopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectTruckAssignmentItems(SearchTruckAssignmentParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.truckAssignment.selectTruckAssignmentItems",parm);
+		res.setData(((DataItemList)result).getCollection());
+		return res;
+	}
+	
+	// List GateIn Popup
+	@RequestMapping(value = "/lorrygateinlistpopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectGateInLorryItems(SearchTruckAssignmentParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectGateInLorryItems",parm);
+		res.setData(((DataItemList)result).getCollection());
+		return res;
+	}
+			
+	@RequestMapping(value = "/yardtruckpopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectYardTruckPopupList(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectYardTruckPopupList",parm);
+		res.setData(((DataItemList)result).getCollection());
+		res.setLimit(((DataItemList)result).getTotalRowCount());
+		return res;
+	}
+	
+	@RequestMapping(value = "/apronyardtruckpopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectApronYardTruckPopupList(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectApronYardTruckPopupList",parm);
+		res.setData(((DataItemList)result).getCollection());
+		res.setLimit(((DataItemList)result).getTotalRowCount());
+		return res;
+	}
+	
+	@RequestMapping(value = "/packagetypelist", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectCommonCodeList(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object obj = invokeService("MOST.popupService.selectPackageTypeList",parm);
+		res.setData(((DataItemList)obj).getCollection());
+		return res;		
+	}
+	
+	@RequestMapping(value = "/usertypepopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse getUserTypeList(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object obj = invokeService("MOST.popupService.selectUserType",parm);
+		res.setData(((DataItemList)obj).getCollection());
+		return res;		
+	}
+	
+	@RequestMapping(value = "/checklistvsrpopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse getVSRPopupList(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectVSRPopupList",parm);
+		res.setData(((DataItemList)result).getCollection());
+		return res;
+	}
+	
+	@RequestMapping(value = "/selectDelayCodePopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectDelayCodeList(SearchPopupServiceParm parm) throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+		Object obj = invokeService("MOST.popupService.selectDelayCodePopup",parm);
+		res.setData(((DataItemList)obj).getCollection());
+		return res;
+	}
+	
+	
+//	// Shipping Note for Storage Popup List
+//	@RequestMapping(value = "/shippingnoteforstoragepopup", method = RequestMethod.GET)
+//	@ResponseBody
+//	public RestResponse getShippingNoteForStorageList(SearchShippingNoteParm parm) throws ServiceException, Exception {
+//		RestResponse res = new RestResponse();
+//		
+//		Object result = invokeService("MOST.shippingNote.selectShippingNoteList",parm);
+//		
+//		res.setData(((DataItemList)result).getCollection());
+//		res.setLimit(((DataItemList)result).getTotalRowCount());
+//		
+//		return res;
+//		
+//	}
+	
+	@RequestMapping(value = "/gateticketnopopup", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectGateTicketNoList(SearchPopupServiceParm parm) throws ServiceException{
+		RestResponse res = new RestResponse();
+		Object result = invokeService("MOST.popupService.selectGateTicketNoList",parm);
+		
+		res.setData(((DataItemList)result).getCollection());
+		
+		return res;
+	}
+}
+
+

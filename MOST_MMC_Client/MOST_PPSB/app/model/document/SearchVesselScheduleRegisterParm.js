@@ -1,0 +1,83 @@
+Ext.define('MOST.model.document.SearchVesselScheduleRegisterParm', {
+	extend: 'MOST.model.foundation.parm.BizParm',
+	fields: [
+		{
+			name:'userId',
+			type:'string'
+		},
+		{
+			name:'eta',
+			type: 'date',
+			dateFormat: 'time'
+		},
+		{
+			name:'etd',
+			type: 'date',
+			dateFormat: 'time'
+		},
+		{
+			name:'vslCallId',
+			type:'string'
+		},
+		{
+			name:'vslNm',
+			type:'string'
+		},
+		{
+			name:'scn',
+			type:'string'
+		},
+		{
+			name:'imoNo',
+			type:'string'
+		},
+		{
+			name:'shipOffNo',
+			type:'string'
+		},
+		{
+			name:'summitStt',
+			type:'string'
+		},
+		{
+			name:'rqFrshWt',
+			type:'string'
+		},
+		{
+			name:'rqChdl',
+			type:'string'
+		},
+		{
+			name:'locCd',
+			type:'string'
+		},
+		{
+			name:'berthCd',
+			type:'string'
+		},
+		{
+			name:'shipPort',
+			type:'string'
+		},
+		{
+			name:'saCorpId',
+			type:'string'
+		},
+		{
+			name:'rqQtyBkr',
+			type:'string'
+		},
+		{
+			name:'vslCd',
+			type:'string'
+		},
+		{
+			name:'timeP',
+			type:'string'
+		},
+		{
+			name:'shipPort',
+			type:'string'
+		}
+	]
+});

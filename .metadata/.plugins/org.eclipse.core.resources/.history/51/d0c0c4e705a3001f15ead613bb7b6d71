@@ -1,0 +1,926 @@
+Ext.define('MOST.view.operation.CargoManualCtl', {
+	extend: 'Ext.panel.Panel',
+	alias: 'widget.app-cargomanualctl',
+	requires: [
+		'MOST.view.operation.CargoManualCtlModel',
+		'MOST.view.operation.CargoManualCtlController',
+		'MOST.view.operation.cargomanualctl.CargoManualCtlTabGeneral',
+		'MOST.view.operation.cargomanualctl.CargoManualCtlTabExport',
+		'MOST.view.operation.cargomanualctl.CargoManualCtlTabImport',
+		'MOST.view.operation.cargomanualctl.CargoManualCtlTabGatePass'
+	],
+
+	controller: 'cargomanualctl',
+	
+	viewModel: {
+		type: 'cargomanualctl'
+	},
+	
+	listeners:{
+		afterrender: 'onLoad'
+	},
+	
+	
+	
+	layout : {type  : 'vbox', align : 'stretch'},
+
+	initComponent: function() {
+		var me = this;
+		
+		Ext.apply(me, {
+			items: [
+		        {
+		            xtype: 'tabpanel',
+		            flex: 1,
+		            listeners:{
+		            	tabchange:'onTabChange'
+		            },
+		            activeTab: 0,
+		            margin: '0 5 5 0',
+		            reference:'ctlCargoManualCtlTabPanel',
+		            items: [
+		                {
+		                    xtype: 'container',
+		                    title: ViewUtil.getLabel('general'),
+		                    name:'general',
+		                    scrollable: 'both',
+		                    layout: { type: 'vbox', align: 'stretch'},
+    						items : [
+	    						{
+	    							xtype: 'app-cargomanualctltabgeneral',
+	    				    		reference: 'refCargoManualCtlTabGeneral',
+	    				    		flex: 1
+	    						}
+    						]
+		                },
+		                {
+		                    xtype: 'container',
+		                    title: ViewUtil.getLabel('export'),
+		                    name:'export',
+		                    scrollable: 'both',
+		                    layout: { type: 'vbox', align: 'stretch'},
+    						items : [
+    							{
+	    							xtype: 'app-cargomanualctltabexport',
+	    				    		reference: 'refCargoManualCtlTabExport',
+	    				    		flex: 1
+	    						}
+    						]
+		                },
+		                {
+		                    xtype: 'container',
+		                    title: ViewUtil.getLabel('import'),
+		                    name:'import',
+		                    scrollable: 'both',
+		                    layout: { type: 'vbox', align: 'stretch'},
+    						items : [
+    							{
+	    							xtype: 'app-cargomanualctltabimport',
+	    				    		reference: 'refCargoManualCtlTabImport',
+	    				    		flex: 1
+	    						}
+    						]
+		                },
+		                {
+		                    xtype: 'container',
+		                    hidden: true,
+		                    title: ViewUtil.getLabel('gatePass'),
+		                    name:'gatePass',
+		                    scrollable: 'both',
+		                    layout: { type: 'vbox', align: 'stretch'},
+    						items : [
+    							{
+	    							xtype: 'app-cargomanualctltabgatepass',
+	    				    		reference: 'refCargoManualCtlTabGatePass',
+	    				    		flex: 1
+	    						}
+    						]
+		                }
+		            ]
+		        }
+			],
+		    
+		    dockedItems: [
+		    {//Toolbar Button:
+				xtype: 'toolbar',
+				margin: ' 0 0 0',
+				padding: '0 0 0 0',
+				enableOverflow: true,
+				defaults: {
+					labelAlign: 'right',
+					labelWidth: 60
+            	},
+				items: [
+				{
+					xtype: 'container',
+					style: { "background-color":"white" },
+					layout: {
+						align:'left'
+					},
+					marging: '0 0 0 0',
+					defaults: {
+						margin: '1 1 1 1'
+					},
+					items: [{
+                		xtype: 'button',
+                		itemId: 'inquiryItemId',
+                		text: ViewUtil.getLabel('search'),
+						iconCls: 'x-fa fa-search',
+						cls: 'search-button', 
+                		listeners: {
+                			click: 'onSearch'
+                		}
+					}]
+				},'-',
+                {
+                    xtype: 'button',
+                    disabled: true,
+                    reference:"ctlLoadingButton",
+                    text: ViewUtil.getLabel('loadingCtl'),
+                    iconCls: 'x-fa fa-level-up',
+					listeners: {
+						click: 'onLoading'
+					}		                    
+                },
+                {
+                    xtype: 'button',
+                    disabled: true,
+                    reference:"ctlDischargingButton",
+                    text: ViewUtil.getLabel('dischargingCtl'),
+                    iconCls: 'x-fa fa-level-down',
+					listeners: {
+						click: 'onDischarging'
+					}
+                },
+                {
+                    xtype: 'button',
+                    disabled: false,
+                    reference:"ctlWHCheckExportButton",
+                    text: ViewUtil.getLabel('warehouseCheckExportCtl'),
+                    iconCls: 'x-fa fa-level-up',
+					listeners: {
+						click: 'onWHCheckExport'
+					},
+					hidden: true		                    
+                },
+                {
+                    xtype: 'button',
+                    disabled: false,
+                    reference:"ctlWhCheckImportButton",
+                    text: ViewUtil.getLabel('warehouseCheckImportCtl'),
+                    iconCls: 'x-fa fa-level-down',
+					listeners: {
+						click: 'onWhCheckImport'
+					},
+					hidden: true
+                },
+                {
+                    xtype: 'button',
+                    disabled: true,
+                    reference:"ctlHandlingInButton",
+                    text: ViewUtil.getLabel('handlingIn'),
+                    iconCls: 'x-fa fa-sign-in',
+					listeners: {
+						click: 'onHandlingIn'
+					}
+                },
+                {
+                    xtype: 'button',
+                    disabled: true,
+                    reference:"ctlHandlingOutButton",
+                    text: ViewUtil.getLabel('handlingOut'),
+                    iconCls: 'x-fa fa-sign-out',
+					listeners: {
+						click: 'onHandlingOut'
+					}
+                },
+                {
+                    xtype: 'button',
+                    disabled: true,
+                    reference:"ctlMovementButton",
+                    text: ViewUtil.getLabel('movement'),
+                    iconCls: 'x-fa fa-retweet',
+					listeners: {
+						click: 'onMovement'
+					}
+                },{
+                    xtype: 'button',
+                    disabled: true,
+                    reference:"ctlNonManifestedButton",
+                    text: ViewUtil.getLabel('nonManifested'),
+					listeners: {
+						click: 'onWhCheckImport'
+					}
+                },{
+					xtype: 'button',
+					cls: 'column-setting-button',
+					iconCls: 'x-fa fa-columns',
+					text: ViewUtil.getLabel('column'),
+					listeners: {
+						click: 'onColumnSettingPopup',
+						args: [me.MAIN_GRID_REF_NAME]
+					}
+            	
+                }]
+			},
+			{//Toolbar Search Condition:
+				xtype: 'toolbar',
+				enableOverflow: true,
+				padding : '0 0 0 0',
+				margin: '0 0 5 0',
+				defaults: {
+					labelAlign: 'right',
+				},
+				items:[{
+					xtype: 'searchfieldset',
+					padding: '0 5 10 10',
+					margin: '0 5 0 0',
+					title: ViewUtil.getLabel('search'),
+					autoScroll: true,
+					collapsible:true,
+					flex:1,
+					layout: {
+						type: 'vbox',
+						align: 'stretch'
+					},
+					defaults:{
+						margin: '0 0 5 10',
+						labelAlign: 'right',
+					},
+					items: [
+						{ // 1st
+							xtype: 'container',
+							flex: 1,
+							layout: 'hbox',
+							enableOverflow: true,
+							defaults: {
+								labelAlign: 'right',
+								labelWidth: 70,
+								margin: '0 5 0 0'
+							},
+							items: [
+								{
+									xtype: 'container',
+									width: 100, 
+								},
+								{
+									xtype: 'shipcallnofield',
+									reference: 'ctlScn',
+									emptyText: ViewUtil.getLabel('shipCallNo'),
+									fieldLabel: ViewUtil.getLabel('shipCallNo'),
+									width: 372,
+									bind: {
+										value: '{theSearch.scn}',
+									},
+									
+								},
+								{
+									xtype: 'container',
+									flex: 1,
+									layout: {
+										type: 'hbox',
+										align: 'stretch'
+									},
+									defaults: {
+										labelAlign: 'right',
+										labelWidth: 70,
+									},
+									items: [
+										{
+											xtype: 'textfield',
+											reference: 'ctlVesselName',
+											flex: 1,
+											fieldLabel: ViewUtil.getLabel('vesselname'),
+											fieldStyle: 'text-transform:uppercase',
+										},
+										{
+											xtype: 'button',
+											margin: '0 0 0 5',
+											reference: 'ctlCargoManualCtlJpvcInfoButton',
+											enableToggle: true,
+											pressed: false,
+											iconCls: 'ticon-vessel-sail txt_blue',
+											handler: 'onJpvcInfoToggle'
+										},
+									]
+								},
+								/*
+								{
+									xtype: 'truckfield',
+									width: 250,
+									reference: 'txtTruckNo',
+									fieldLabel: ViewUtil.getLabel('lorryNo'),
+									params: {
+										flag: true,
+									},
+									bind: {
+										value: '{theSearch.lorryNo}',
+										lorryNo: '{theDetail.lorryNo}',
+										vslCallId: '{theVsl.vslCallId}',
+										blNo: '{theSearch.blNo}',
+										shipgNoteNo: '{theSearch.shipgNoteNo}',
+										searchDivCd : 'IN-GATE',
+		
+									},
+									editable: true,
+									readOnly: false,
+								},
+								*/
+								{
+									xtype: 'container',
+									flex: 1,
+									layout: {
+										type: 'hbox',
+										align: 'stretch'
+									},
+									defaults: {
+										labelAlign: 'right',
+										labelWidth: 70
+									},
+									items: [
+										{//Truck No
+											xtype: 'textfield',
+											reference: 'txtTruckNo',
+											fieldLabel: ViewUtil.getLabel('lorryNo'),
+											bind: {
+												value: '{theSearch.lorryNo}'
+											},
+											listeners: {
+												change: 'onChangeTruckNo'
+											},
+											triggers: {
+												someField: {
+													cls: 'fa-search',
+													scope: 'controller',
+													handler: 'onOpenTruckPopup'
+												}
+											},
+										},
+										{
+											xtype: 'checkboxfield',
+											margin: '0 0 0 5',
+											hidden: false,
+											reference: 'ctlCargoManualTruckType',
+											boxLabel: ViewUtil.getLabel('cmc_yardtruck'),
+											bind: '{truckTypeCheck}',
+											listeners: {
+												change: 'onChangeYardTruck'
+											}
+										},
+									]
+								},
+								{
+									xtype: 'container',
+									flex: 1,
+									layout: {
+										type: 'hbox',
+										align: 'stretch'
+									},
+									defaults: {
+										labelAlign: 'right'
+									},
+									items: [
+										{
+											xtype: 'combobox',
+											hidden: false,
+											flex: 1,
+											reference: 'ctlCargoManualCtlShiftDt',
+											fieldLabel: ViewUtil.getLabel('shiftDt'),
+											labelWidth: 70,
+											queryMode: 'local',
+											bind: {
+												store: '{cargoManualCtlForShiftDtCombo}'
+											},
+											displayField: 'shftDtDsp',
+											valueField: 'shftDt',
+											value: '',
+											editable: false,
+											listeners: {
+												change: 'onShiftDtComboChange'
+											}
+										},
+										{
+											xtype: 'combobox',
+											hidden: false,
+											flex: 0.6,
+											margin: '0 0 0 5',
+											reference: 'ctlCargoManualCtlShiftNo',
+											queryMode: 'local',
+											bind: {
+												store: '{cargoManualCtlForShiftNoCombo}'
+											},
+											displayField: 'shftNm',
+											valueField: 'shftId',
+											editable: false,
+											listeners: {
+												select: 'onShiftNoComboChange'
+											}
+										}
+									]
+								}
+							]
+						},
+						{
+							// 2rd
+							xtype: 'container',
+							flex: 1,
+							layout: 'hbox',
+							reference: 'ctlJpvcToolbar',
+							hidden: true,
+							overflowHandler: 'menu',
+							enableOverflow: true,
+							defaults: {
+								labelAlign: 'right',
+								margin: '0 5 0 0'
+							},
+							items: [
+								{
+									xtype: 'container',
+									width: 100,
+									layout: {
+										type: 'hbox',
+										align: 'stretch',
+										pack: 'end'
+									},
+									items: [
+										{
+											xtype: 'button',
+											iconCls: 'x-fa fa-close',
+											tooltip: 'Close Palette',
+											handler: 'onCloseForJpvcInfo'
+										},
+									]
+								},
+								{
+									xtype: 'textfield',
+									flex: 1,
+									fieldLabel: ViewUtil.getLabel('berthLoc'),
+									labelWidth: 70,
+									editable: false,
+									bind: '{theVsl.berthLoc}'
+								},
+								{
+									xtype: 'container',
+									layout: {
+										type: 'hbox',
+										align: 'stretch'
+									},
+									flex: 1,
+									items:[
+										{
+											xtype: 'datefield',
+											flex: 1,
+											labelAlign: 'right',
+											fieldLabel: ViewUtil.getLabel('etaEtd'),
+											labelWidth: 70,
+											format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+											bind: '{theVsl.eta}',
+											readOnly: true
+										},
+										{
+											xtype: 'datefield',
+											flex: 0.65,
+											margin: '0 0 0 5',
+											format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+											bind: '{theVsl.etd}',
+											readOnly: true
+										}
+									]
+								},
+								{
+									xtype: 'container',
+									flex: 1
+								},
+								{
+									xtype: 'container',
+									flex: 1
+								}
+							]
+						},
+						{
+							// 3nd
+							xtype: 'container',
+							flex: 1,
+							margin: '0 0 0 10',
+							layout: 'hbox',
+							enableOverflow: true,
+							defaults: {
+								labelAlign: 'right',
+								labelWidth: 60,
+								margin: '0 5 0 0'
+							},
+							items: [{
+								xtype: 'segmentedbutton',
+								width: 100,
+								reference: 'refCargoManualSearchMode',
+								vertical: false,
+								defaults: {
+									listeners: {
+										click: 'onSearchModeClick'
+									},
+									padding: '3 3 3 3',
+								},
+								items: [{
+									tooltip: ViewUtil.getLabel('sn'),
+									text: ViewUtil.getLabel('sn'),
+									value: 'SN',
+									pressed: true
+								}, {
+									tooltip: ViewUtil.getLabel('bl'),
+									text: ViewUtil.getLabel('bl'),
+									value: 'BL'
+								}]
+							},
+							{
+								xtype: 'container',
+								flex: 1,
+								reference: 'ctlSnContainer',
+								defaults: { margin: '0 0 0 5' },
+								overflowHandler: 'menu',
+								enableOverflow: true,
+								layout: {
+									type: 'hbox',
+									align: 'stretch'
+								},
+								defaults: {
+									labelAlign: 'right',
+									labelWidth: 70,
+									/*margin: '0 5 0 0'*/
+								},
+								items: [
+									{
+										xtype: 'vesselcalllistfield',
+										/*flex: 1,*/
+										width: 372,
+										fieldLabel: ViewUtil.getLabel('vslcallid'),
+										emptyText: ViewUtil.getLabel('vslcallid'),
+										reference: 'ctlCargoManualCtlJpvcfield',
+										allowBlank: true,
+										bind: {
+											value: '{theVsl.vslCallId}'
+										}
+									},
+									{//Booking Number
+										xtype: 'combobox',
+										/*flex: 1,*/
+										width: 376,
+										labelWidth: 75,
+										margin: '0 5 0 0',
+										reference: 'ctlCargoManualCtlBookingNo',
+										fieldLabel: ViewUtil.getLabel('cmc_bookingno'),
+										queryMode: 'local',
+										bind: {
+											store: '{cargoManualCtlForBookingNoCombo}',
+											value: '{theSearch.bookingNo}'
+										},
+										displayField: 'scdNm',
+										valueField: 'mfDocId',
+										emptyText: 'ALL',
+										forceSelection: true,
+										editable: true,
+										anyMatch: true,
+										listeners: {
+											select: 'onMasterBLBookingNoChange'
+										}
+									},
+									{
+										xtype: 'combobox',
+										/*flex: 1,*/
+										margin: '0 5 0 0',
+										width: 275,
+										reference: 'ctlCargoManualCtlSn',
+										fieldLabel: ViewUtil.getLabel('sn'),
+										queryMode: 'local',
+										bind: {
+											store: '{cargoManualCtlForSnCombo}',
+											value: '{theSearch.shipgNoteNo}'
+										},
+										displayField: 'scdNm',
+										valueField: 'shipgNoteNo',
+										emptyText: 'ALL',
+										forceSelection: true,
+										editable: true,
+										anyMatch: true,
+										listeners: {
+											select: 'onSnBlComboChange'
+										}
+									},
+									{
+										xtype: 'container',
+										/*flex: 1,*/
+										layout: {
+											type: 'hbox',
+											align: 'stretch'
+										},
+										defaults: {
+											labelAlign: 'right'
+										},
+										items: [
+											{
+												xtype: 'textfield',
+												margin: '0 5 0 0',
+												/*flex: 1,*/
+												reference: 'ctlCargoManualCtlGr',
+												fieldLabel: ViewUtil.getLabel('gr'),
+												labelWidth: 30,
+												width: 200,
+												fieldStyle: 'text-transform:uppercase',
+												listeners: {
+													change: 'onUpperCase'
+												},
+												bind: {
+													value: '{theSearch.cgNo}'
+												},
+											},
+											{
+												xtype: 'button',
+												reference: 'ctlCargoManualCtlGrButton',
+												text: ViewUtil.getLabel('go'),
+												iconCls: 'x-fa fa-pencil',
+												listeners: {
+													click: 'onGr'
+												}
+											},
+										]
+									},
+									{
+										xtype: 'combo',
+										/*flex: 1,*/
+										margin: '0 0 0 5',
+										fieldLabel: ViewUtil.getLabel('hatchNo'),
+										labelWidth: 55,
+										width: 202,
+										queryMode: 'local',
+										bind: {
+											store: '{hatchNoCombo}',
+											value: '{theSearch.hatchNo}',
+										},
+										/*listeners: {
+											change: 'onChangeSearchCondition'
+										},*/
+										displayField: 'cdNm',
+										valueField: 'cd',
+										reference: 'refCboHatchNoSn',
+										emptyText: ViewUtil.getLabel('gridemptytextAll'),
+										allowBlank: false,
+										forceSelection: true,
+										hidden: false
+									},
+								]
+							},
+							{
+								xtype: 'container',
+								flex: 1,
+								reference: 'ctlBlContainer',
+								defaults: { margin: '0 0 0 5' },
+								overflowHandler: 'menu',
+								enableOverflow: true,
+								layout: {
+									type: 'hbox',
+									align: 'stretch'
+								},
+								defaults: {
+									labelAlign: 'right',
+									labelWidth: 70,
+									margin: '0 5 0 0'
+								},
+								items: [
+									{
+										xtype: 'vesselcalllistfield',
+										/*flex: 1,*/
+										width: 372,
+										fieldLabel: ViewUtil.getLabel('vslcallid'),
+										emptyText: ViewUtil.getLabel('vslcallid'),
+										reference: 'ctlCargoManualCtlJpvcfield',
+										allowBlank: true,
+										bind: {
+											value: '{theVsl.vslCallId}'
+										}
+									},
+									{//Master BL :
+										xtype: 'combobox',
+										flex: 1,
+										reference: 'ctlCargoManualCtlMasterBL',
+										fieldLabel: ViewUtil.getLabel('cmc_masterbl'),
+										queryMode: 'local',
+										bind: {
+											store: '{cargoManualCtlForMasterBlCombo}',
+											value: '{theSearch.masterBL}'
+										},
+										displayField: 'scdNm',
+										valueField: 'mfDocId',
+										emptyText: 'ALL',
+										forceSelection: true,
+										listeners: {
+											select: 'onMasterBLBookingNoChange'
+										}
+									},
+									{
+										xtype: 'combobox',
+										flex: 1,
+										reference: 'ctlCargoManualCtlBl',
+										fieldLabel: ViewUtil.getLabel('bl'),
+										queryMode: 'local',
+										bind: {
+											store: '{cargoManualCtlForBlCombo}',
+											value: '{theSearch.blNo}'
+										},
+										displayField: 'scdNm',
+										valueField: 'blNo',
+										emptyText: 'ALL',
+										forceSelection: true,
+										listeners: {
+											select: 'onSnBlComboChange'
+										}
+									},
+									/*{
+										xtype: 'container',
+										flex: 1
+									},*/
+									{
+										xtype: 'combo',
+										flex: 1,
+										margin: '0 0 0 0',
+										fieldLabel: ViewUtil.getLabel('hatchNo'),
+										labelWidth: 70,
+										queryMode: 'local',
+										bind: {
+											store: '{hatchNoCombo}',
+											value: '{theSearch.hatchNo}',
+										},
+										/*listeners: {
+											change: 'onChangeSearchCondition'
+										},*/
+										displayField: 'cdNm',
+										valueField: 'cd',
+										reference: 'refCboHatchNoBl',
+										emptyText: ViewUtil.getLabel('gridemptytextAll'),
+										allowBlank: false,
+										forceSelection: true,
+										hidden: false
+									},
+									{
+										xtype: 'textfield',
+										hidden: true,
+										reference: 'ctlCargoManualCtlGp',
+										fieldLabel: ViewUtil.getLabel('gp'),
+										fieldStyle: 'text-transform:uppercase',
+										listeners: {
+											change: 'onUpperCaseGP'
+										}
+									},
+									{
+										xtype: 'button',
+										hidden: true,
+										reference: 'ctlCargoManualCtlGpButton',
+										text: ViewUtil.getLabel('go'),
+										iconCls: 'x-fa fa-pencil',
+										listeners: {
+											click: 'onGp'
+										}
+									}]
+							}]
+						},
+						//4th
+						{
+							xtype: 'container',
+							margin: '5 0 0 10',
+							flex: 1,
+							layout: 'hbox',
+							enableOverflow: true,
+							defaults: {
+								labelAlign: 'right',
+								labelWidth: 70,
+								margin: '0 5 0 0',
+							},
+							items: [
+								{
+									xtype: 'container',
+									width: 100
+								},
+								{
+									xtype: 'textfield',
+									reference: 'ctlUserRefNo',
+									/*flex: 1,*/
+									width: 373,
+									fieldLabel: ViewUtil.getLabel('userRefNo'),
+									fieldStyle: 'text-transform:uppercase',
+									listeners: {
+										change: 'onUpperCase'
+									},
+									bind: {
+										value: '{theSearch.userRefNo}'
+									},
+								},
+								{
+									xtype: 'textfield',
+									reference: 'ctlPkgNo',
+									flex: 1,
+									fieldLabel: ViewUtil.getLabel('packageNo'),
+									fieldStyle: 'text-transform:uppercase',
+									listeners: {
+										change: 'onUpperCase'
+									},
+									bind: {
+										value: '{theSearch.pkgNo}'
+									},
+								},
+								{
+									xtype: 'checkboxfield',
+									flex: 1,
+									hidden: false,
+									reference: 'ctlBargeOperationChk',
+									boxLabel: ViewUtil.getLabel('bargeOperation'),
+									bind: {
+										value: '{theSearch.bargeCheckYn}'
+									},
+									listeners: {
+										change: 'onBargeOperationChk'
+									}
+								},
+								{
+									xtype: 'container',
+									padding: '0 0 0 0',
+									layout: {
+										type: 'hbox',
+										align: 'stretch',
+										pack: 'end'
+									},
+									defaults: {
+										labelAlign: 'right',
+										labelWidth: 70, 
+									},
+									flex: 1,
+									items: [ 
+										{
+											xype: 'button',
+											hidden: true,
+											width: 26,
+											height: 26, 
+											text: 'Reset Windows',
+											iconCls: 'x-fa fa-windows',
+											tooltip: 'Reset State of Window',
+											listeners: {
+												afterrender: function (field) {
+													var inputEl = field.getEl().down('.x-panel-header-default-horizontal');
+													if (inputEl) {
+														inputEl.setStyle(
+															{
+																'padding': '3px 5px'
+															}
+														)
+													}
+												}
+											}, 
+											menu: [
+												{
+													text: 'Reset All',
+													handler: 'onResetWindowsState',
+													iconCls: 'x-fa fa-list',
+													value: 'all',
+												},
+												{
+													text: ViewUtil.getLabel('loadingCtl'),
+													handler: 'onResetWindowsState',
+													iconCls: 'x-fa fa-pencil',
+													value: 'app-confirmloadingpopup'
+												},
+												{
+													text: ViewUtil.getLabel('dischargingCtl'),
+													handler: 'onResetWindowsState',
+													iconCls: 'x-fa fa-sign-out',
+													value: 'app-confirmdischargingpopup'
+												},
+												{
+													text: ViewUtil.getLabel('handlingIn'),
+													handler: 'onResetWindowsState',
+													iconCls: 'x-fa fa-level-up',
+													value: 'app-confirmhandlinginpopup'
+												},
+												{
+													text: ViewUtil.getLabel('handlingOut'),
+													handler: 'onResetWindowsState',
+													iconCls: 'x-fa fa-level-down',
+													value: 'app-confirmhandlingoutpopup'
+												},
+												{
+													text: ViewUtil.getLabel('movement'),
+													handler: 'onResetWindowsState',
+													iconCls: 'x-fa fa-retweet',
+													value: 'app-confirmmovementpopup'
+												}
+											]
+										}
+											
+									]
+								}
+							]
+						},]
+				}]
+			}]
+		});
+		
+		me.callParent();
+	}
+});
+

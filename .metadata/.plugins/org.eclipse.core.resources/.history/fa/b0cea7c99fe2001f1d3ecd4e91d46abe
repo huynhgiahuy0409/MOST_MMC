@@ -1,0 +1,764 @@
+Ext.define('MOST.view.planning.megadetail.MegaDetailTabPortCrane', {
+	extend: 'Ext.panel.Panel',
+	alias: 'widget.app-megadetailtabportcrane',
+	
+	requires: [
+		'Ext.grid.plugin.RowEditing',
+	    'Ext.grid.plugin.Exporter',
+	    'Ext.grid.plugin.Clipboard',
+		'Ext.grid.filters.Filters',
+		'Ext.grid.selection.SpreadsheetModel'
+	],
+	
+	flex:1,
+	layout: {type: 'hbox', align: 'stretch'},
+
+	initComponent: function() {
+		var me = this;
+			
+		Ext.apply(me, {
+			items: [
+				{
+		            xtype: 'container',
+		            flex: 0.7,
+		            layout: {
+		                type: 'vbox',
+		                align: 'stretch'
+		            },
+		            items: [
+						{
+							xtype: 'fieldset',
+							layout: {
+								type: 'vbox',
+								align: 'stretch'
+							},
+							margin: '5 5 0 0',
+							padding: '10 10 10 10',
+							items: [
+								{
+									xtype: 'container',
+									layout: {
+										type: 'vbox',
+										align: 'stretch'
+									},
+									items: [
+										{
+											xtype: 'container',
+											layout: {
+												type: 'hbox'
+											}, 
+											items:[
+												{
+													xtype: 'radiogroup',
+													reference: 'ctlEqTypePortCrane',
+													cls: 'x-check-group-alt',
+													listeners : {
+														change: 'onEqRadioChangePortCrane'
+													},
+													items: [
+														{
+															xtype: 'radiofield',
+															margin: '0 0 5 30',
+															boxLabel: ViewUtil.getLabel('shipCrn'),
+															inputValue: 1,
+															name: 'radioRqBtn',
+														},
+														{
+															xtype: 'radiofield',
+															margin: '0 0 5 30',
+															boxLabel: ViewUtil.getLabel('portCrn'),
+															name: 'radioRqBtn',
+															checked: 'true',
+															inputValue : 2
+														}
+													]
+												}
+											]
+										},
+										{
+											xtype: 'container',
+											layout: {
+												type: 'hbox'
+											},
+											width: '100%',
+											defaults: {
+												margin: '0 0 5 0',
+												labelAlign: 'right'
+											},
+											items:[
+												{
+													xtype: 'combobox',	
+													reference: 'cboEqTypePortCrane',
+													queryMode:'local',
+													fieldLabel: ViewUtil.getLabel('capacityTp'),
+													labelWidth: 60,
+													emptyText:'--E/Q Type--',
+													bind: {
+														store: '{megaDetailEqTypeComboForPortCrane}'
+													},
+													displayField: 'scdNm',
+													valueField: 'scd',									
+													filter: 'string',
+													listeners: {
+														change: 'onEqTypeComboForPortCraneChange'
+													},
+													matchFieldWidth: true,
+													editable: true,
+													forceSelection: true,
+													flex: 1
+												},
+												{
+													xtype: 'combobox',	
+													reference: 'cboCapacityPortCrane',
+													margin: '0 0 0 5',
+													queryMode:'local',
+													emptyText:'--Capacity--',
+													bind: {
+														store: '{megaDetailPortCraneCapacityCombo}'
+													},
+													labelWidth: 60,
+													fieldLabel: ViewUtil.getLabel('capacityCapaQty'),
+													displayField: 'capaDesc',
+													valueField: 'capaCd',									
+													filter: 'string',
+													disabled: true,
+													editable: true,
+													forceSelection: true,
+													matchFieldWidth: true,
+													getDisplayValue: function() {
+														return Ext.String.htmlDecode(this.displayTpl.apply(this.displayTplData))
+													},	
+													flex: 1												
+												},
+												{
+													xtype: 'numberfield',
+													align: 'right',
+													value: 1,
+													placeholder: 0,
+													minValue: 0,
+													maxValue: 999999,
+													reference: 'reqQtyFieldPortCrane',
+													fieldLabel: ViewUtil.getLabel('requestQty'),
+													labelWidth: 80,
+													labelAlign: 'right',
+													listeners: {
+														blur: function(){
+															var me = this;
+															if(this.getValue() === null || this.getValue() === '')
+															{
+																this.setValue(0);
+															}
+														}
+													},
+													flex: 1
+												},
+												{
+													xtype: 'numberfield',
+													align: 'right',
+													value: 1,
+													placeholder: 0,
+													minValue: 0,
+													maxValue: 999999,
+													reference: 'confQtyFieldPortCrane',
+													fieldLabel: ViewUtil.getLabel('confirmQty'),
+													labelWidth: 80, 
+													labelAlign: 'right',
+													listeners: {
+														blur: function(){
+															var me = this;
+															if(this.getValue() === null || this.getValue() === '')
+															{
+																this.setValue(0);
+															}
+														}
+													},
+													flex: 1											
+												}	
+											]
+										},
+										{
+											xtype: 'container',
+											layout: {
+												type: 'hbox'
+											},
+											margin:'0 0 0 0',
+											items:[
+												{
+													xtype: 'container',
+													flex: 1,
+													layout: {
+														type: 'hbox'
+													},
+													defaults: {
+														margin: '0 0 0 0',
+														flex: 1,
+														labelWidth: 60,
+														labelAlign: 'right',
+
+													},
+													reference: 'cardTimeViewForPortCrane',
+													items: [
+														{
+															xtype: 'datetimefield',
+															fieldLabel: ViewUtil.getLabel('startTime'),
+															reference: 'refStartTimePortCrane',
+															editable: false,
+															format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds()
+														}, {
+															xtype: 'datetimefield',
+															fieldLabel: ViewUtil.getLabel('endTime'),
+															reference: 'refEndTimePortCrane',
+															editable: false,
+															format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds()
+														}
+													]
+												}
+											]
+										}
+									]
+								},
+								{
+									xtype: 'container',
+									layout: {
+										type: 'hbox',
+										align: 'right',
+										pack: 'end'
+									},
+									margin: '5 0 0 0',
+									reference: 'cardCudBtnViewForPortCrane',
+									defaults: {
+										margin: '0 0 0 5'
+									},
+									items: [
+										{
+											xtype: 'button',
+											reference: 'ctlMegaDetailAddForPortCrane',
+											iconCls: 'x-fa fa-plus',
+											text: ViewUtil.getLabel('add'),
+											listeners: {
+												click: 'onAddForPortCrane'
+											}
+										},
+										{
+											xtype: 'button',
+											reference: 'ctlMegaDetailUpdateForPortCrane',
+											ui: 'update-button',
+											iconCls: 'x-fa fa-plus',
+											text: ViewUtil.getLabel('update'),
+											listeners: {
+												click: 'onGridUpdateForPortCrane'
+											}
+										},
+										{
+											xtype: 'button',
+											reference: 'ctlMegaDetailDeleteForPortCrane',
+											ui: 'delete-button',
+											iconCls: 'x-fa fa-minus',
+											text: ViewUtil.getLabel('delete'),
+											listeners: {
+												click: 'onGridRemoveForPortCrane'
+											}
+										}
+									]
+								}
+								/*
+								{
+									xtype: 'container',
+									layout: {
+										type: 'hbox'
+									},
+									defaults:{
+										margin: '0 0 5 20',								
+									},
+									items:[
+										{
+											xtype: 'radiogroup',
+											reference: 'ctlEqTypePortCrane',
+											cls: 'x-check-group-alt',
+											listeners : {
+												change: 'onEqRadioChangePortCrane'
+											},
+											items: [
+												{
+													xtype: 'radiofield',
+													boxLabel: ViewUtil.getLabel('shipCrn'),
+													inputValue: 1,
+													name: 'radioRqBtn',
+												},
+												{
+													xtype: 'radiofield',
+													margin: '0 0 0 15',
+													boxLabel: ViewUtil.getLabel('portCrn'),
+													name: 'radioRqBtn',
+													checked: 'true',
+													inputValue : 2
+												}
+											]
+										}
+									]
+								},
+								{
+									xtype: 'container',
+									layout: {
+										type: 'hbox'
+									},
+									defaults:{
+										margin: '0 0 5 20',								
+									},
+									items:[
+										{
+											xtype: 'combobox',	
+											reference: 'cboEqTypePortCrane',
+											queryMode:'local',
+											emptyText:'--E/Q Type--',
+											bind: {
+												store: '{megaDetailEqTypeComboForPortCrane}'
+											},
+											displayField: 'scdNm',
+											valueField: 'scd',									
+											filter: 'string',
+											listeners: {
+												change: 'onEqTypeComboForPortCraneChange'
+											},
+											matchFieldWidth: true,
+											editable: true,
+											forceSelection: true,
+											width:180
+										},{
+											xtype: 'combobox',	
+											reference: 'cboCapacityPortCrane',
+											margin: '0 0 0 5',
+											queryMode:'local',
+											emptyText:'--Capacity--',
+											bind: {
+												store: '{megaDetailPortCraneCapacityCombo}'
+											},
+											displayField: 'capaDesc',
+											valueField: 'capaCd',									
+											filter: 'string',
+											disabled: true,
+											editable: true,
+											forceSelection: true,
+											matchFieldWidth: true,
+											getDisplayValue: function() {
+												return Ext.String.htmlDecode(this.displayTpl.apply(this.displayTplData))
+											},
+											width:280															
+										},{
+											xtype: 'numberfield',
+											align: 'right',
+											value: 1,
+											placeholder: 0,
+											minValue: 0,
+											maxValue: 999999,
+											reference: 'reqQtyFieldPortCrane',
+											fieldLabel: ViewUtil.getLabel('requestQty'),
+											labelWidth: 90,
+											width : 160,
+											labelAlign: 'right',
+											listeners: {
+												blur: function(){
+													var me = this;
+													if(this.getValue() === null || this.getValue() === '')
+													{
+														this.setValue(0);
+													}
+												}
+											}
+										},{
+											xtype: 'numberfield',
+											align: 'right',
+											value: 1,
+											placeholder: 0,
+											minValue: 0,
+											maxValue: 999999,
+											reference: 'confQtyFieldPortCrane',
+											fieldLabel: ViewUtil.getLabel('confirmQty'),
+											labelWidth: 90,
+											width : 160,
+											labelAlign: 'right',
+											listeners: {
+												blur: function(){
+													var me = this;
+													if(this.getValue() === null || this.getValue() === '')
+													{
+														this.setValue(0);
+													}
+												}
+											}
+										}	
+									]
+								},
+								{
+									xtype: 'container',
+									layout: {
+										type: 'hbox'
+									},
+									margin:'0 0 0 0',
+									items:[{
+											xtype :'container',
+											flex : 1,
+											layout: {
+												type: 'hbox'
+											},
+											defaults:{
+												margin: '0 0 0 0',	
+												width : 230,	
+												labelWidth:80,
+												labelAlign:'right',
+												
+											},	
+											reference: 'cardTimeViewForPortCrane',
+											items:[
+												{
+													xtype: 'datetimefield',
+													fieldLabel: ViewUtil.getLabel('startTime'),
+													reference: 'refStartTimePortCrane',
+													editable: false,
+													format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds()
+								                },{
+													xtype: 'datetimefield',
+													fieldLabel: ViewUtil.getLabel('endTime'),
+													reference: 'refEndTimePortCrane',
+													editable: false,
+													format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds()
+							            		}			
+										]},{
+											xtype :'container',
+											width : 250,
+											layout: {
+												type: 'hbox',
+												align: 'right',
+												pack: 'end'
+											},
+											margin : '0 0 0 0',
+											reference: 'cardCudBtnViewForPortCrane',
+											defaults:{
+												margin : '0 0 0 5'
+											},
+											items:[
+												{
+													xtype: 'button',
+													reference:'ctlMegaDetailAddForPortCrane',
+													iconCls: 'x-fa fa-plus',
+													text: ViewUtil.getLabel('add'),
+													listeners: {
+														click: 'onAddForPortCrane'
+													}
+												},{
+													xtype: 'button',
+													reference:'ctlMegaDetailUpdateForPortCrane',
+													ui: 'update-button',
+													iconCls: 'x-fa fa-plus',
+													text: ViewUtil.getLabel('update'),
+													listeners: {
+														click: 'onGridUpdateForPortCrane'
+													}
+												},{
+													xtype: 'button',
+													reference:'ctlMegaDetailDeleteForPortCrane',
+													ui: 'delete-button',
+													iconCls: 'x-fa fa-minus',
+													text: ViewUtil.getLabel('delete'),
+													listeners: {
+														click: 'onGridRemoveForPortCrane'
+													}
+												}	
+											]
+										}
+									]
+								}
+									*/
+							]
+						},
+						{
+							xtype: 'fieldset',
+							layout: {
+								type: 'vbox',
+								align: 'stretch'						
+							},
+							flex: 1,
+							margin: '5 5 0 0',
+							padding: '0 0 0 0',
+							items:[
+								{
+									xtype: 'tsb-datagrid',
+									reference: 'refMegaDetailPortCraneGrid',
+									usePagingToolbar : false,
+									flex : 1,							
+									margin: '0 0 0 0',
+									stateful : true,
+									stateId : 'stateMegaDetailTabPortCraneGrid',
+									plugins: [
+										'gridexporter',
+										'gridfilters',
+										'clipboard'
+									],
+									bind: {
+										store: '{megaDetailPortCrane}'
+									},
+									selModel: {
+										type: 'spreadsheet',
+										cellSelect: false
+									},
+									listeners: {
+										itemclick: 'onMasterSelectionChangeForPortCrane'
+									},
+									columns: {
+										defaults: {
+											style : 'text-align:center',
+											align : 'center',
+											
+										},
+										items:GridUtil.getGridColumns('MegaDetailPortCrane')
+									}
+								}
+							]
+						}
+		            ]
+		        },
+		        {
+		            xtype: 'container',
+		            flex: 0.3,
+		            layout: {
+		                type: 'vbox',
+		                align: 'stretch'
+		            },
+		            reference: 'ctlCompanyPortCrane',
+		            items: [
+						{	
+							xtype:	'fieldset',
+							layout: {
+								type: 'vbox',
+								align: 'stretch'
+							},
+							margin: '5 0 0 0',
+							padding: '10 10 10 10',
+							items:[
+								{
+									xtype: 'container',
+									layout: {
+										type: 'hbox',
+										align: 'stretch'
+									},
+									defaults: {
+										margin: '0 0 5 0',
+									},
+									width: '100%',
+									items: [
+										{
+											xtype: 'radiogroup',
+											reference: 'ctlContractorPortCrane',
+											cls: 'x-check-group-alt',
+											listeners: {
+												change: 'onContractorSelectedChangePortCrane'
+											},
+											items: [
+												{
+													xtype: 'radiofield',
+													boxLabel: ViewUtil.getLabel('jPB'),
+													inputValue: 1,
+													name: 'radioBtn',
+													checked: 'true'
+												},
+												{
+													xtype: 'radiofield',
+													margin: '0 0 0 10',
+													boxLabel: ViewUtil.getLabel('contractor'),
+													name: 'radioBtn',
+													inputValue: 2
+												}
+											]
+										},
+										{
+											xtype: 'partnercdfield',
+											reference: 'cboContractorPortCrane',
+											flex: 1,
+											params: {
+												searchPtyDivCd: 'CTT'
+											}
+										}
+									]
+								},														
+								{
+									xtype: 'container',
+									layout: {
+										type: 'hbox',
+										align: 'stretch'
+									},
+									margin: '0 0 0 0',
+									defaults: {
+										margin: '0 0 5 0',
+										flex: 1,
+										labelWidth: 70,
+									},
+									items: [
+										{
+											xtype: 'numberfield',
+											reference: 'ctlNoOfPortCrane',
+											fieldLabel: ViewUtil.getLabel('nosofDriver'),
+											minValue: 1,
+											maxValue: 99999,
+											value: 1,
+											placeholder: 0,
+											labelAlign: 'right',
+											listeners: {
+												blur: function () {
+													var me = this;
+													if (this.getValue() === null) {
+														this.setValue(1);
+													}
+												}
+											},
+										},
+										{
+											xtype: 'numberfield',
+											minValue: 1,
+											maxValue: 99999,
+											reference: 'ctlSypplyQtyPortCrane',
+											fieldLabel: ViewUtil.getLabel('supplyQty'),
+											value: 1,
+											placeholder: 0,
+											labelAlign: 'right',
+										}	
+									]
+								},
+								{
+									xtype: 'textfield',
+									reference: 'ctlRmkPortCranes',
+									fieldLabel: ViewUtil.getLabel('rmk'),
+									labelAlign: 'right',
+									labelWidth: 70,
+									flex: 1,
+									margin: '0 0 5 0',
+								},
+								{
+									xtype: 'container',
+									layout: {
+										type: 'vbox',
+										align: 'stretch'
+									},
+									margin: '0 0 0 0',
+									items: [
+										{
+											xtype: 'container',
+											layout: {
+												type: 'hbox',
+												pack: 'end'
+											},
+											margin: '0 0 0 0',
+											defaults: {
+												margin: '0 0 0 5',
+											},
+											items: [
+												{
+													xtype: 'button',
+													reference: 'ctlMegaDetailAddForPortCraneCompany',
+													iconCls: 'x-fa fa-plus',
+													text: ViewUtil.getLabel('add'),
+													listeners: {
+														click: 'onAddForPortCraneCompany'
+													}
+												},
+												{
+													xtype: 'button',
+													reference: 'ctlMegaDetailUpdateForPortCraneCompany',
+													ui: 'update-button',
+													iconCls: 'x-fa fa-plus',
+													text: ViewUtil.getLabel('update'),
+													listeners: {
+														click: 'onGridUpdateForPortCraneCompany'
+													}
+												},
+												{
+													xtype: 'button',
+													reference: 'ctlMegaDetailDeleteForPortCraneCompany',
+													ui: 'delete-button',
+													iconCls: 'x-fa fa-minus',
+													text: ViewUtil.getLabel('delete'),
+													listeners: {
+														click: 'onGridRemoveForPortCraneCompany'
+													}
+												},
+												{
+													xtype: 'button',
+													reference:'ctlMegaDetailDenyForPortCraneCompany',
+													iconCls: 'x-fa fa-close black',
+													ui: 'denie-button',
+													text: ViewUtil.getLabel('deny'),
+													listeners: {
+														click: 'onContractorDeny'
+													}
+												}	
+											]
+										}
+									]
+								}
+							]		
+						},{	
+							xtype: 'fieldset',
+							layout: {
+								type: 'vbox',
+								align: 'stretch'						
+							},
+							flex: 1,
+							margin: '5 0 0 0',
+							padding: '0 0 0 0',
+							items:[{
+								xtype: 'tsb-datagrid',
+								reference: 'refMegaDetailPortCraneCompanyGrid',
+								usePagingToolbar : false,
+								flex : 1,
+								margin: '0 0 0 0',
+								stateful : true,
+								stateId : 'stateMegaDetailTabPortCraneCompanyGrid',
+								plugins: [
+									'gridexporter',
+									'gridfilters',
+									'clipboard'
+								],
+								bind: {
+									store: '{megaDetailTabPortCraneCompany}'
+								},
+								selModel: {
+									type: 'spreadsheet',
+									cellSelect: false
+								},
+								listeners: {
+									selectionchange: 'onCompanySelectionChangeForPortCrane'
+								},
+								columns: {
+									defaults: {
+										style : 'text-align:center',
+										align : 'center'
+									},
+									items:GridUtil.getGridColumns('MegaDetailTabPortCraneCompany')
+								}
+							}]
+						}
+		            ]
+		        },
+		        {
+		            xtype: 'container',
+		            reference:'ctlDetailPortCraneImage',
+		            flex: 0.3,
+		            defaults: {
+		                margin: '5 5 5 5'
+		            },
+		            layout: 'auto',
+		            items: [
+		            	{
+	                        xtype: 'image',
+	                        src:'resources/images/mega/MegaDtl_PortCrn.gif',
+	                        region:'center',
+							width: '100%',
+							height: 'auto'
+	                    }
+		            ]
+		        }
+			]
+		});
+		
+		me.callParent();
+	}
+});

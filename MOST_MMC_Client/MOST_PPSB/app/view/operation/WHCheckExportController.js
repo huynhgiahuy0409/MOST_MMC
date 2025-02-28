@@ -1,0 +1,1179 @@
+Ext.define('MOST.view.operation.WHCheckExportController', {
+	extend : 'MOST.view.foundation.BaseViewController',
+
+	requires : [],
+
+	alias : 'controller.whcheckexport',
+
+	/**
+	 * =========================================================================================================================
+	 * CONSTANT START
+	 */
+	WAREHOUSE_CHECK_EXPORT_PROXY_URL : MOST.config.Locale.getRestApiDestUrl()
+			+ '/v1/whcheckexport/warehousecheckforexport',
+	WAREHOUSE_POPUP_ALIAS : 'app-warehousepopup',
+	prevDate : {
+		startDt : null,
+		endDt : null
+	},
+	prevWhItems: null,
+	CUST_RELEASE: 'RELEASE', //CUSTOMS MODE
+	
+	prevData:null,
+	DAMAGE_STORE: 'damageStore',
+	DAMAGE_CHECK_STORE: 'damageCheckStore',
+	DIMENSION_STORE: 'dimensionStore',
+	UPLOAD_STORE: 'uploadStore',
+	isWhAllocation: false,
+
+	packageItems : new Array(),
+	whType: '',
+	/**
+	 * CONSTANT END
+	 * =========================================================================================================================
+	 */
+	
+	/**
+	 * =========================================================================================================================
+	 * INITIALIZE START
+	 */
+	onLoad: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var recvData = me.getView().recvData;
+		var params = me.getSearchCondition();
+		
+		me.isWhAllocation = false;
+		
+		params['shftDt'] = Ext.Date.format(new Date(), MOST.config.Locale.getDefaultDateFormatWithNoSeconds());
+
+		var store = me.getStore('warehouseCheckForExportList');
+		
+		me.prevData = recvData.clone();
+		me.booleanDirSpr = false;
+		
+		store.load({
+			params:params,
+			callback: function(record, operation, success) {
+				if(success){
+					if(record != null && record.length > 0){
+						me.setDetailInitialize(record[0]);
+					}
+				}
+			}
+		});
+	},
+
+
+	/**
+	 * =========================================================================================================================
+	 * INITIALIZE END
+	 */
+
+
+	/**
+	 * =========================================================================================================================
+	 * EVENT HANDLER START
+	 */
+	 onWarehouseDeAllocation : function(controlName){
+		var me = this;
+		var refs = me.getReferences();
+		var detailItem = me.getViewModel().get('theDetail');
+		
+		if(controlName === 'cltWHCheckExportDeAllocation'){      
+			if(!me.onValidateAmtDeAlloc()){
+				return;
+			}			
+			selection = Ext.create('MOST.model.operation.WHCheckExport', {
+				vslCallId: detailItem.get('vslCallId'),
+				whTpCd:'G',
+				blSn: detailItem.get('shipgNoteNo'),
+				hdlInDt: detailItem.get('endDt'),
+				cgNo: detailItem.get('grNo'),
+				cgTpCd: detailItem.get('cgTpCd'),
+				grMt: detailItem.get('loadMt'),
+				grM3: detailItem.get('loadM3'),
+				grQty: detailItem.get('loadQty'),
+				catgCd : detailItem.get('catgCd'),
+				eachMt : detailItem.get('eachMt'),
+				eachM3 : detailItem.get('eachM3'),
+				deAllocation: 'Y',
+				shipgNoteNo: detailItem.get('shipgNoteNo'),
+			});
+		}
+		selection.title = 'Warehouse De-Allocation';
+		me.openCodePopup('app-warehouseofgc',controlName, selection);		
+	},
+
+
+
+	onChangeHandlingAmt: function(clt, newValue, oldValue, eOpts){
+		var me = this;
+		var refs = me.getReferences();
+		var detailItem = me.getViewModel().get('theDetail');
+		
+		var cgTpCd = detailItem.get('cgTpCd');
+		
+		var cgTpNeedToCheck = ['BBK', 'DBN', 'DBE', 'BT'];
+		
+		//Auto Calculate with BBK:
+		if(clt.reference === 'ctlLoadQty' 
+			&& cgTpNeedToCheck.includes(cgTpCd)){
+			var eachWgt = detailItem.get('eachMt') == 0 ? detailItem.get('snMt') / detailItem.get('snQty') : detailItem.get('eachMt');
+			var eachMsrmt = detailItem.get('eachM3') == 0 ? detailItem.get('snM3') / detailItem.get('snQty') : detailItem.get('eachM3');
+			var inputQty = Number(newValue);
+
+			if (inputQty == detailItem.get('whBalQty')) {
+				var mt =  detailItem.get('whBalMt');
+				var m3 =  detailItem.get('whBalM3');
+			}
+			else {
+				var mt = (eachWgt * inputQty).toFixed(3);
+				var m3 = (eachMsrmt * inputQty).toFixed(3);
+			}
+			
+			detailItem.set('loadMt', mt);
+			detailItem.set('loadM3', m3);
+		}
+
+//		if(cgTpCd === CodeConstants.MT_CGTP_DBN){
+//			var mt =Number(refs.ctlLoadMt.getValue()).toFixed(3),
+//				qty = Number(refs.ctlLoadQty.getValue()),
+//				m3 =Number(refs.ctlLoadM3.getValue()).toFixed(3),
+//
+//				balanceMt = Number(detailItem.get('whBalMt')).toFixed(3),
+//				balanceM3 = Number(detailItem.get('whBalM3')).toFixed(3),
+//				balanceQty = Number(detailItem.get('whBalQty')),
+//
+//				refsQty = refs.ctlLoadQty,
+//				refsMt = refs.ctlLoadMt,
+//				refsM3 = refs.ctlLoadM3;
+//	
+//			if(mt - balanceMt > 0){
+//				MessageUtil.warning('warning_msg', 'confirmhandlingout_mt_exceed_msg');
+//				refsMt.setValue(0);
+//				return;
+//			}
+//			if(m3 - balanceM3 > 0){
+//				MessageUtil.warning('warning_msg', 'confirmhandlingout_m3_exceed_msg');
+//				refsM3.setValue(0);
+//				return;
+//			}
+//			if(qty - balanceQty > 0){
+//				refsQty.setValue(0);
+//				MessageUtil.warning('warning_msg', 'confirmhandlingoutg_qty_exceed_msg');
+//				return;
+//			}
+//		}
+
+		//If change Amount after set DeAllocation => has to Re-DeAllocation with new Amount
+		if(detailItem.get('locId') != '' || me.prevWhItems != null){
+			detailItem.set('locId', '');
+			me.prevWhItems = null;
+		}
+		
+		if(detailItem.get('projectCargo') != 'Y'){
+			me.autoDeAllocation();
+		}
+	},
+
+	onSave:function(){
+		var me = this;
+		var detailItem = me.getViewModel().get('theDetail');
+		var lorrysPopupStore = me.getStore('confirmLoadingAssignmentLorrysPopup');
+		var infoForm = me.getView().form;
+
+		if(infoForm.isValid()){
+			MessageUtil.mandatoryFieldInValid();
+			return;			
+		}
+		
+		
+		
+		if(detailItem.get('locId') == '' || me.prevWhItems == null){
+			MessageUtil.warning('warning_msg', "warehousecheckexport_deAlloc_msg");
+			return;
+		}
+		/* Mantis: 0166806
+		if(me.isWhAllocation == false){
+			MessageUtil.warning('warning_msg', "Please select location by manual");
+			return;
+		}
+		*/
+		if(detailItem.get('cgTpCd') == CodeConstants.MT_CGTP_LQN){
+			if(detailItem.get('tsptTpCd') != null && detailItem.get('tsptTpCd') != '' && detailItem.get('tsptTpCd') == 'PL'){
+				//Check Yard Truck
+				if(StringUtil.isNullorEmpty(detailItem.get('lorryNo'))){
+					MessageUtil.question('info_msg', 'This cargo lorry is empty. Do you want to keep this confirmation?',null,
+							function(button){
+								if(button == 'ok'){
+									//Bonded WH validation
+									if(!StringUtil.isNullorEmpty(me.whType) && me.whType == CodeConstants.MT_WHTP_BW){
+										if(Token.getCustomHoldChk() === 'Y') {
+											me.onBondedWhValidation();
+										} else {
+											me.onWeightingScaleValidation();
+										}
+									}else {
+										me.onWeightingScaleValidation();
+									}
+								}else{
+									return;
+								}
+							});
+				}else{
+					//Bonded WH validation
+					if(!StringUtil.isNullorEmpty(me.whType) && me.whType == CodeConstants.MT_WHTP_BW){
+						if(Token.getCustomHoldChk() === 'Y') {
+							me.onBondedWhValidation();
+						} else {
+							me.onWeightingScaleValidation();
+						}
+					}else {
+						me.onWeightingScaleValidation();
+					}
+				}
+			}else{
+				// if(StringUtil.isNullorEmpty(detailItem.get('lorryNo'))){
+				// 	MessageUtil.warning("warning_msg", "mandatoryField_msg", ViewUtil.getLabel('yardTruck'));
+				// 	return;
+				// }
+				//Bonded WH validation
+				if(!StringUtil.isNullorEmpty(me.whType) && me.whType == CodeConstants.MT_WHTP_BW){
+					if(Token.getCustomHoldChk() === 'Y') {
+						me.onBondedWhValidation();
+					} else {
+						me.onWeightingScaleValidation();
+					}
+				}else {
+					me.onWeightingScaleValidation();
+				}
+			}
+		}else{
+			//Check Yard Truck
+			// if(StringUtil.isNullorEmpty(detailItem.get('lorryNo'))){
+			// 	MessageUtil.warning("warning_msg", "mandatoryField_msg", ViewUtil.getLabel('yardTruck'));
+			// 	return;
+			// }
+			
+			//Bonded WH validation
+			if(!StringUtil.isNullorEmpty(me.whType) && me.whType == CodeConstants.MT_WHTP_BW){
+				if(Token.getCustomHoldChk() === 'Y') {
+					me.onBondedWhValidation();
+				} else {
+					me.onWeightingScaleValidation();
+				}
+			}else {
+				me.onWeightingScaleValidation();
+			}
+		}
+		
+	},
+
+//	onOpenYardTruckPopup: function() {
+//		var me = this;
+//		var refs = me.getReferences();
+//		var detailItem = me.getViewModel().get('theDetail');
+//		var params = {
+//				vslCallId : detailItem.get('vslCallId'),
+//				shipgNoteNo : detailItem.get('shipgNoteNo')
+//			}
+//		me.openCodePopup('popup-assignmentyardtruckpopup','ctlYardTruck', params);
+//	},
+	
+//	onCheckAutoDeAllocate: function(){		
+//		var me = this;
+//		var detailItem = me.getViewModel().get('theDetail');
+//		var store = me.getStore('checkAmoutLocation');
+//		
+//		var whBalQty = detailItem.get('whBalQty');
+//		var whBalMt = detailItem.get('whBalMt');
+//		var whBalM3 = detailItem.get('whBalM3');
+//		
+//		var actMT = detailItem.get('loadMt');
+//		var actM3 = detailItem.get('loadM3');
+//		var actQty = detailItem.get('loadQty');
+//		
+//		var params = {
+//				vslCallId : detailItem.get('vslCallId'),
+//				grNo : detailItem.get('grNo'),
+//				shipgNoteNo : detailItem.get('shipgNoteNo'),
+//				loadMt : actMT,
+//				loadM3 : actM3,
+//				loadQty : actQty
+//			};
+//		
+//		store.load({
+//			params:params,
+//			callback: function(record, operation, success) {
+//				if(success){
+//					if(record != null && record.length > 0
+//							&& record[0].get('locCount') > 0){
+//						
+//						detailItem.set('autoLocFlag', 'true');
+//						detailItem.set('autoNorLocFlag', 'true')
+//						
+//						me.prevSaveCheck();
+//					}else{
+//						MessageUtil.warning('warning_msg', "warehousecheckexport_deny_autoDeAlloc_msg");
+//						return;
+//					}
+//				}
+//			}
+//		});
+//	},
+//
+//	idrLocValidation: function(){
+//		var me = this;
+//		var detailItem = me.getViewModel().get('theDetail');
+//		
+//		var whBalQty = detailItem.get('whBalQty');
+//		var whBalMt = detailItem.get('whBalMt');
+//		var whBalM3 = detailItem.get('whBalM3');
+//		
+//		var actMT = detailItem.get('loadMt');
+//		var actM3 = detailItem.get('loadM3');
+//		var actQty = detailItem.get('loadQty');
+//
+//		
+//		//BBK: just input Qty => ato calculate MT M3 by eachWgt eachM3:
+//		if(detailItem.get('cgTpCd') && detailItem.get('cgTpCd') === CodeConstants.MT_CGTP_BBK){
+//			if(actMT <= 0){
+//				MessageUtil.warning('warning_msg', 'confirmhandlingin_amount_qty_zero');
+//				return false;
+//			}
+//			if(actQty > whBalQty){
+//				MessageUtil.warning('warning_msg', 'confirmhandlingin_amount_qty');
+//				return false;
+//			}
+//		}
+//		
+//		//DBN: DryBulk
+//		if(detailItem.get('cgTpCd') && detailItem.get('cgTpCd') === CodeConstants.MT_CGTP_DBN){
+//			if(actMT > whBalMt || actQty > whBalQty || actM3 > whBalM3){
+//				MessageUtil.warning('warning_msg', 'confirmhandlingin_amount_mt');
+//				return false;
+//			}
+//		}	
+//
+//	},
+	
+	onOpenPkgNoPopup: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailItem = me.getViewModel().get('theDetail');
+		
+		var params = {
+				vslCallId: detailItem.get('vslCallId'),
+				shipgNoteNo: detailItem.get('shipgNoteNo'),
+				ixCd: 'X',
+				jobPurpCd: 'WA'
+		}
+		
+		me.openCodePopup('popup-packagenomultipopup', 'cltPkgNo', params);
+	},
+
+	onDimension_clickHandler: function(){
+		var me = this;
+		var refs = me.getReferences();
+		me.openCodePopup('app-dimensioncheckregistration', 'btnDimension', me.prevData);
+	},
+	
+	onDamage_clickHandler: function(){
+		var me = this;
+		var refs = me.getReferences();
+
+		me.prevData.set('locCd', 'YARD')
+		me.prevData.set('isOperationScreen', true)
+		me.openCodePopup('app-damagecheckregistration', 'btnDamage', me.prevData);
+	},
+	/**
+	 * =========================================================================================================================
+	 * EVENT HANDLER END
+	 */
+
+	
+	/**
+	 * GENERAL METHOD START
+	 * =========================================================================================================================
+	 */
+	// Search Condition
+	getSearchCondition : function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var recvData = me.getView().recvData;
+    	
+    	var params = {
+			vslCallId : recvData.get('vslCallId'),
+			grNo : recvData.get('grNo'),
+			cgNo : recvData.get('cgNo'),
+			stat : recvData.get('stat'),
+			cgTpCd : recvData.get('cgTpCd'),
+			shftDt : recvData.get('shftDt'),
+			shftId : recvData.get('shftId'),
+			shipgNoteNo : recvData.get('shipgNoteNo'),
+			delvTpCd : recvData.get('delvTpCd')
+		};
+    	
+    	return params;
+	},
+
+	setDetailInitialize: function(masterItem){
+		var me = this;
+		var refs = me.getReferences();
+		var recvData = me.prevData;
+		var modeOfOprCombo = me.getStore('confirmLoadingForModeOfOprCombo');
+		var deliveryCombo = me.getStore('confirmLoadingForDeliveryCombo');
+		var cargoTypeCombo = me.getStore('confirmLoadingForCargoTypeCombo');
+
+		if(recvData.get('cgTpCd') == CodeConstants.MT_CGTP_BBK){
+			refs.ctlLoadQty.setAllowBlank(false);
+			refs.ctlLoadMt.setAllowBlank(true);
+			refs.ctlLoadQty.setReadOnly(false);
+			refs.ctlLoadMt.setReadOnly(true);
+			refs.ctlLoadM3.setReadOnly(true);
+		}else{
+			refs.ctlLoadMt.setAllowBlank(false);
+			refs.ctlLoadQty.setReadOnly(false);
+			refs.ctlLoadMt.setReadOnly(false);
+			refs.ctlLoadM3.setReadOnly(false);
+		}
+
+		if(!masterItem){
+			return;
+		}
+//		masterItem.set('pkgNo',recvData.get('pkgNo'))	
+		masterItem.set('repkgTypeCd',recvData.get('pkgTpCd'))	
+		me.prevData.set('vslCd', masterItem.get('vslCd'))
+		me.prevData.set('scn', masterItem.get('scn'))
+		me.prevData.set('callSeq', masterItem.get('callSeq'))
+		me.prevData.set('callYear', masterItem.get('callYear'))
+		me.getViewModel().setData({theDetail:masterItem});
+
+		var detailItem = me.getViewModel().get('theDetail');
+
+
+		detailItem.set('startDt', new Date());
+		
+//		detailItem.set('shftNm', recvData.get('shftNm'));
+//		detailItem.set('shftId', recvData.get('shftId'));
+//		detailItem.set('shftDt', recvData.get('shftDt'));
+
+		var cgTpCd = detailItem.get('cgTpCd');
+		var isDBK = (cgTpCd === CodeConstants.MT_CGTP_DBN || cgTpCd === CodeConstants.MT_CGTP_LQN);
+		
+		refs.ctlLoadMt.setEditable(isDBK);
+		refs.ctlLoadM3.setEditable(isDBK);
+
+	},
+	
+	afterSetCodePopupData:function(xtype, targetControl, returnValue){
+		var me = this;
+		var refs = me.getReferences();
+		var detailItem = me.getViewModel().get('theDetail');
+		
+		if(targetControl == 'cltWHCheckExportDeAllocation') {
+			var control = me.lookupReference(targetControl);
+			control.setValue(returnValue.data.locId);
+			detailItem.set('locId', returnValue.data.locId);
+	
+			var whItems = new Array();
+			for(var i = 0; i < returnValue.data.whConfigurationMap.data.items.length; i++){
+				var invLocItem = returnValue.data.whConfigurationMap.data.items[i];
+				var handlingItem = Ext.create('MOST.model.configuration.WhConfiguration', {
+					locTpCd: invLocItem.data.locTpCd,
+					whId: invLocItem.data.whId,
+					locId : invLocItem.data.locId,
+					vslCallId : invLocItem.data.vslCallId,
+					cgNo : invLocItem.data.cgNo,
+					wgt: invLocItem.data.wgt,
+					msrmt: invLocItem.data.msrmt,
+					pkgQty: invLocItem.data.pkgQty,
+					whTpCd : invLocItem.data.whTpCd,
+					whTpCdNm : invLocItem.data.whwhTpCdNmId,
+					spCaCoCd :''
+				});
+				whItems.push(handlingItem.data);
+				me.whType = invLocItem.data.locTpCd;
+			}
+	
+			me.prevWhItems = whItems;
+			me.isWhAllocation = true;
+		}
+		else if(targetControl === 'cltPkgNo'){
+			if(returnValue){
+				var packageItems = new Array();
+				for(var i = 0; i < returnValue.item.length; i++){
+					var returnItem = returnValue.item[i];
+					var pkgItem = Ext.create('MOST.model.operation.PackageJobItem', {
+						vslCallId: returnItem.vslCallId,
+						mfDocId : returnItem.mfDocId,
+						refNo: returnItem.refNo,
+						pkgNo: returnItem.packageNo
+					});
+					packageItems.push(pkgItem.data);
+				}
+				me.packageItems = packageItems;
+				refs.cltPkgNo.setValue(returnValue.code);
+				
+				var qty = 0;
+				var mt = 0;
+				var m3 = 0;
+
+				for(select of returnValue.item){
+					qty += 1;
+					mt += Number(select.mt);
+					m3 += Number(select.m3);
+				}
+
+				detailItem.set('loadQty', qty);
+				detailItem.set('loadMt', mt);
+				detailItem.set('loadM3', m3);
+			} else{
+				me.packageItems = new Array();
+				refs.cltPkgNo.setValue();
+			}
+			
+		}
+		else if(targetControl === 'ctlYardTruck'){
+			if(returnValue){
+				detailItem.set('wbTransactionNo', returnValue.item.get('wbTransactionNo'));
+				detailItem.set('driverId', returnValue.item.get('driverId'));
+			}
+			else {
+				detailItem.set('wbTransactionNo', '');
+			}
+		} else if(xtype === 'popup-packagenomultipopup'){
+			if(returnValue){
+				var qty = 0;
+				var mt = 0;
+				var m3 = 0;
+				
+				for(select of returnValue.item){
+					qty += 1;
+					mt += Number(select.mt);
+					m3 += Number(select.m3);
+				}
+				
+				detailItem.set('loadQty', qty);
+				detailItem.set('loadMt', mt);
+				detailItem.set('loadM3', m3);
+			}
+		}else if(targetControl === 'btnDamage'){
+			var {modifiedFileUploads, damageChecks, theDmg} = returnValue
+			var uploadedFileDamageStore = me.getStore('uploadedFileDamageStore'),
+				damageCheckDetail = me.getStore('damageCheckDetail')
+				uploadedFileDamageStore.removeAll()
+				damageCheckDetail.removeAll()
+
+				uploadedFileDamageStore.setData(modifiedFileUploads)
+				uploadedFileDamageStore.commitChanges()
+				damageCheckDetail.setData(damageChecks)
+				damageCheckDetail.commitChanges()
+				me.getViewModel().set('theDmg', theDmg)
+		}
+
+	},	
+	
+	
+	autoDeAllocation: function () {
+		var me = this, searchType,
+		 	recvData = me.getView().recvData,
+			refs = me.getReferences();
+		var viewPlanInfoStore = me.getStore('WhViewList');
+		searchType = 'viewPlanInfo';
+		viewPlanInfoStore.load({
+			params: {
+				searchType: searchType,
+				whId: '',
+				bayQty: 0,
+				rowQty: 0,
+				vslCallId: recvData.data.vslCallId,
+				shipgNoteNo: recvData.data.shipgNoteNo,
+			},
+			callback: function(records, operation, success) {
+				var loadQty = refs.ctlLoadQty.getValue();
+		 		var balQty = refs.ctlBalQty.getValue();
+				if(records && records.length > 0 && records[0].data.locId){
+					if (records.length > 1 && loadQty < balQty) {
+						var loc = records[0].data.locId,
+							sameLoc = true,
+							whItems = new Array();
+						for(var i = 0; i < records.length; i++){
+							if(loc != records[i].data.locId)
+							{
+								sameLoc = false;
+								me.prevWhItems = null;
+								refs.cltWHCheckExportDeAllocation.setValue();
+								return;
+							}
+						}
+						if (sameLoc) {
+							var qtyLoad = loadQty;
+							for(var i = 0; i < records.length; i++){
+								var invLocItem = records[i];
+								if (qtyLoad > 0) {
+									if (invLocItem.data.pkgQty <= qtyLoad) {
+										var handlingItem = Ext.create('MOST.model.configuration.WhConfiguration', {
+											locTpCd: invLocItem.data.locTpCd,
+											whId: invLocItem.data.whId,
+											locId : invLocItem.data.locId,
+											vslCallId : invLocItem.data.vslCallId,
+											cgNo : invLocItem.data.cgNo,
+											wgt: invLocItem.data.wgt,
+											msrmt: invLocItem.data.msrmt,
+											pkgQty: invLocItem.data.pkgQty,
+											whTpCd : invLocItem.data.whTpCd,
+											whTpCdNm : invLocItem.data.whwhTpCdNmId,
+											spCaCoCd :''
+										});
+										whItems.push(handlingItem.data);
+									}
+									else {
+										var eachMt = (Number(invLocItem.data.wgt)/Number(invLocItem.data.pkgQty)).toFixed(3),
+											eachM3 = (Number(invLocItem.data.msrmt)/Number(invLocItem.data.pkgQty)).toFixed(3),
+											newMt = (Number(eachMt) * Number(qtyLoad)).toFixed(3),
+											newM3 = (Number(eachM3) * Number(qtyLoad)).toFixed(3);
+										var handlingItem = Ext.create('MOST.model.configuration.WhConfiguration', {
+												locTpCd: invLocItem.data.locTpCd,
+												whId: invLocItem.data.whId,
+												locId : invLocItem.data.locId,
+												vslCallId : invLocItem.data.vslCallId,
+												cgNo : invLocItem.data.cgNo,
+												wgt: newMt,
+												msrmt: newM3,
+												pkgQty: qtyLoad,
+												whTpCd : invLocItem.data.whTpCd,
+												whTpCdNm : invLocItem.data.whwhTpCdNmId,
+												spCaCoCd :''
+											});
+											whItems.push(handlingItem.data);
+									}
+									qtyLoad = Number(qtyLoad) - Number(invLocItem.data.pkgQty);
+								}
+								me.whType = invLocItem.data.locTpCd;
+							}
+	
+							me.prevWhItems = whItems;
+	
+							var res = records[0].data.locId.split('-'),
+								locId = records[0].data.whLocId;
+							locId += '(' + res[1] + ',' + 1 + ')';
+	
+							refs.cltWHCheckExportDeAllocation.setValue(locId);
+						}
+						else {
+							me.prevWhItems = null;
+							refs.cltWHCheckExportDeAllocation.setValue();
+							return;
+						}
+					}
+					else if(records.length > 1 && loadQty == balQty){
+
+						var whItems = new Array();
+						for(var i = 0; i < records.length; i++){
+							var invLocItem = records[i];
+							var handlingItem = Ext.create('MOST.model.configuration.WhConfiguration', {
+								locTpCd: invLocItem.data.locTpCd,
+								whId: invLocItem.data.whId,
+								locId : invLocItem.data.locId,
+								vslCallId : invLocItem.data.vslCallId,
+								cgNo : invLocItem.data.cgNo,
+								wgt: invLocItem.data.wgt,
+								msrmt: invLocItem.data.msrmt,
+								pkgQty: invLocItem.data.pkgQty,
+								whTpCd : invLocItem.data.whTpCd,
+								whTpCdNm : invLocItem.data.whwhTpCdNmId,
+								spCaCoCd :''
+							});
+							whItems.push(handlingItem.data);
+							me.whType = invLocItem.data.locTpCd;
+						}
+
+						me.prevWhItems = whItems;
+
+						var res = records[0].data.locId.split('-');
+						
+						var locId = records[0].data.whLocId;
+						locId += '(' + res[1] + ',' + records.length + ')';
+
+						refs.cltWHCheckExportDeAllocation.setValue(locId);
+					} 
+					else {
+						var whItems = new Array();
+						for(var i = 0; i < records.length; i++){
+							var invLocItem = records[i];
+							var handlingItem = Ext.create('MOST.model.configuration.WhConfiguration', {
+								locTpCd: invLocItem.data.locTpCd,
+								whId: invLocItem.data.whId,
+								locId : invLocItem.data.locId,
+								vslCallId : invLocItem.data.vslCallId,
+								cgNo : invLocItem.data.cgNo,
+								wgt: refs.ctlLoadMt.getValue(),
+								msrmt: refs.ctlLoadM3.getValue(),
+								pkgQty: refs.ctlLoadQty.getValue(),
+								whTpCd : invLocItem.data.whTpCd,
+								whTpCdNm : invLocItem.data.whwhTpCdNmId,
+								spCaCoCd :''
+							});
+							whItems.push(handlingItem.data);
+							me.whType = invLocItem.data.locTpCd;
+						}
+						me.prevWhItems = whItems;
+
+						var res = records[0].data.locId.split('-');
+						
+						var locId = records[0].data.whLocId;
+						locId += '(' + res[1] + ',' + records.length + ')';
+
+						refs.cltWHCheckExportDeAllocation.setValue(locId);
+					}
+				}
+			}
+		});
+	},
+	
+	saveProcess : function() {
+		var me = this;
+		var window = me.getView().up('window');
+		var refs = me.getReferences();
+		var damageCheckDetail = me.getStore('damageCheckDetail')
+		var detailItem = me.getViewModel().get('theDetail');
+		detailItem.set('whConfigurationItems', me.prevWhItems);
+		detailItem.set('packageItems', me.packageItems);
+		
+		var currentTime = new Date();
+		var startDtStr =  refs.refStartDt.getValue();
+		var endDtStr = currentTime;
+
+		detailItem.set('endDt', endDtStr);
+		detailItem.set('userId', MOST.config.Token.getUserId());
+
+		// Forklift & Prime Mover
+		if(refs.ctlConfirmDischargingForklift.getValue() != '' || refs.ctlConfirmDischargingForklift.getValue() != null) {
+			detailItem.set('forkliftNo', refs.ctlConfirmDischargingForklift.getValue());
+		}
+		
+		if(refs.ctlConfirmDischargingPrime.getValue() != '' || refs.ctlConfirmDischargingPrime.getValue() != null) {
+			detailItem.set('primeNo', refs.ctlConfirmDischargingPrime.getValue());
+		}
+		
+		var proxy = detailItem.getProxy();
+		proxy.url = me.WAREHOUSE_CHECK_EXPORT_PROXY_URL;
+		detailItem.save({
+			callback: function(records, operation, success) {
+				if (success) {
+					me.saveDimension(records);
+					detailItem.commit();
+					// me.saveDamage(records);
+					if(damageCheckDetail.getCount() > 0){
+						me.checkDamageCheck(records)
+						window.close();
+					}else{
+						MessageUtil.saveSuccess(); // Success Message
+						var parentView = me.getParentView();
+						if(parentView.getController().onSearch){
+							if(parentView.getController().onCallBackFromOperationScreen){
+								parentView.getController().onCallBackFromOperationScreen();
+							}
+							
+							parentView.getController().onSearch();
+						}
+						window.close(); 
+					}
+				}
+			}
+		});
+		
+	},
+	
+	checkDamageCheck: function(insertedJob){
+		var me = this,
+		refs = me.getReferences(),
+		uploadedFileDamageStore = me.getStore('uploadedFileDamageStore'),
+		damageCheckDetail = me.getStore('damageCheckDetail'),
+		frm = refs.fileForm,
+		formData = new FormData(frm)		
+		
+		damageCheckDetail.each(function(record) {
+			if(record.data.workingStatus === WorkingStatus.INSERT){
+				record.data.jobNo = insertedJob.data.jobNo
+			}
+		});
+		damageCheckDetail.commitChanges()
+		if(uploadedFileDamageStore.getCount() > 0){
+			uploadedFileDamageStore.each(function(record, index){
+				if(record.get('workingStatus') === WorkingStatus.INSERT){
+					formData.append(record.data.fileName, record.data.fileStream);
+				}
+			});
+			me.fileDamageCheckUpload(formData);
+		} else {
+			me.saveDamageCheckProcess(); 
+		}
+	},
+
+	fileDamageCheckUpload : function(formData) {
+		var me = this;
+		var uploadedFileDamageStore = me.getStore('uploadedFileDamageStore')
+    	var xhr = new XMLHttpRequest();
+    	
+    	xhr.addEventListener('loadend', function() {
+    		if(xhr.status === 200) {
+    			var rtnData = JSON.parse(xhr.responseText); // get filename - uuid
+    			uploadedFileDamageStore.each(function(record, index, array) {
+					if(record.get('workingStatus') === WorkingStatus.INSERT){
+						record.set('ufileName', rtnData[record.get('fileName')]);
+					}
+    	    	});
+				uploadedFileDamageStore.commitChanges()
+                me.saveDamageCheckProcess();
+    		}else{
+    			MessageUtil.warning('warning_msg', 'fail_msg');
+    		}
+    		
+    	});
+    	
+    	xhr.open('POST',MOST.config.Locale.getRestApiDestUrl() + '/file/manage/fileupload');
+    	xhr.setRequestHeader('Authorization', MOST.config.Token.getTokenType() + ' ' + MOST.config.Token.getAccessToken());
+    	xhr.send(formData);
+    	
+	},
+
+	saveDamageCheckProcess: function () {
+        var me = this,
+			refs = me.getReferences(),
+			window = me.getView().up('window');
+			theDamageStore = me.getStore('theDamageStore'),
+			currentUploadStore = me.getStore('uploadedFileDamageStore'),
+			damageCheckDetailStore = me.getStore('damageCheckDetail'),
+			detailItem = me.getViewModel().get('theDmg'),
+			sendArray = new Array(),
+			uploadList = new Array()
+		;
+
+		damageCheckDetailStore.data.items.forEach(item => {
+			sendArray.push(item.data)
+		})
+
+		if(currentUploadStore.data.length > 0) {
+			for(var i = 0; i < currentUploadStore.data.length; i++) {
+				var uploadItem = currentUploadStore.data.items[i];
+				var recordUpload = Ext.create('MOST.model.common.FileUpload');
+				recordUpload.set('ufileName', uploadItem.get('ufileName'));
+				recordUpload.set('pgmId', 'mpct239');
+				recordUpload.set('fileName', uploadItem.get('fileName'));
+				recordUpload.set('fileSize', uploadItem.get('fileSize'));
+				recordUpload.set('fileStream', null);
+				recordUpload.set('workingStatus', uploadItem.get('workingStatus'));
+				recordUpload.set('catgCd', uploadItem.get('catgCd'))
+				uploadList.push(recordUpload.data);
+			}
+			
+		}
+
+		var proxy = detailItem.getProxy();
+		proxy.url = theDamageStore.getProxy().url;
+		detailItem.phantom = false;
+		detailItem.set("items", sendArray);
+		detailItem.set('uploadItems', uploadList);
+		detailItem.set('workingStatus', WorkingStatus.convertInt(WorkingStatus.UPDATE));
+		detailItem.save({
+			success : function(records,success){
+				MessageUtil.saveSuccess(); // Success Message
+				var parentView = me.getParentView();
+				if(parentView.getController().onSearch){
+					if(parentView.getController().onCallBackFromOperationScreen){
+						parentView.getController().onCallBackFromOperationScreen();
+					}
+					
+					parentView.getController().onSearch();
+				}
+				window.close(); 
+			}
+		});
+		
+    },
+
+	saveDimension : function(obj){
+		var me = this;
+		var refs = me.getReferences();
+		var dimensionStore = me.getStore(me.DIMENSION_STORE);
+		if(dimensionStore.data.length > 0){
+			var item = dimensionStore.data.items[0];
+			if(obj){
+				item.set('jobNo', obj.get('jobNo'))
+			}
+			
+			var updateParm = Ext.create('MOST.model.foundation.parm.UpdateBizParm');
+			updateParm.getProxy().url = dimensionStore.getProxy().url;
+			updateParm.phantom = true;
+			updateParm.set('workingStatus', WorkingStatus.INSERT);
+			updateParm.set('item', item.data);
+			updateParm.save({
+				callback: function(record, operation, success) {
+					if(success){
+						
+					}
+				}
+			});
+		}
+	},
+	
+	saveDamage : function(obj){
+		var me = this;
+		var refs = me.getReferences();
+		var damageStore = me.getStore(me.DAMAGE_STORE);
+		
+		if(damageStore.data.length > 0){
+			var insertItem = damageStore.data.items[0];
+			var isCreated = true;
+			var updateParm = Ext.create('MOST.model.foundation.parm.UpdateBizParm');
+			
+			if(obj){
+				insertItem.set('jobNo', obj.get('jobNo'))
+			}
+			
+			updateParm.getProxy().url = damageStore.getProxy().url;
+			updateParm.phantom = isCreated;
+			updateParm.set('workingStatus', isCreated ? WorkingStatus.INSERT : WorkingStatus.UPDATE);
+			updateParm.set('userId', MOST.config.Token.getUserId());
+			updateParm.set('item', insertItem.data);
+			updateParm.save({
+				callback: function(record, operation, success) {
+					if(success){
+						
+					}
+				}
+			});
+		}
+	},
+	/**
+	 * GENERAL METHOD END
+	 * =========================================================================================================================
+	 */
+	
+	/**
+	 * VALIDATION METHOD START
+	 * =========================================================================================================================
+	 */
+	
+	//1-BONDED WH VALIDATION
+	onBondedWhValidation : function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailItem = me.getViewModel().get('theDetail');
+		
+		var store = me.getStore('validationCheck');
+		store.load({
+			params : {
+				tyCd: 'BONDED_WH_VALIDATION',
+				col1: detailItem.get('vslCallId'),
+				col2: detailItem.get('mfDocId'),
+				col3: 'O'
+			},
+			
+			callback: function(records, operation, success) {
+				if (success) {
+					if(records.length > 0){
+						if(records[0].get('isValidated') == 'N'){
+							MessageUtil.warning('warning_msg', 'BondedWH_validation_msg');
+							return;
+						}
+						else {
+							me.onWeightingScaleValidation();
+						}
+					}
+					else {
+						me.onWeightingScaleValidation();
+					}
+				}
+			}
+		});
+	},
+	
+	//02: WEIGHTING SCALE VALIDATION
+	//WA job: 1st scaled Internal truck + Previous trip has been done full process (LOADED)
+	//**Result: N - has been done 2 times scaling/ Y: just passed 1st time scaling
+	onWeightingScaleValidation: function (){
+		var me = this;
+		var refs = me.getReferences();
+		var detailItem = me.getViewModel().get('theDetail');
+		
+		if(!StringUtil.isNullorEmpty(detailItem.get('wbTransactionNo'))) {
+			var store = me.getStore('validationCheck');
+			var params = {
+				tyCd: '2ND_WEIGHTED_VALIDATION',
+				col1: detailItem.get('wbTransactionNo')
+			};
+			store.load({
+				params : params,
+				
+				callback: function(records, operation, success) {
+					if (success) {
+						if(records.length > 0){
+							if(records[0].get('isValidated') == 'Y'){
+								me.onPassedWeightingScaleValidation();
+							}
+							else {
+								MessageUtil.question('info_msg', 'truckValidation_msg01', null,
+										function(button){
+											if(button == 'ok'){
+												me.onPassedWeightingScaleValidation();
+											}
+										}
+									);
+							}
+						}
+						else {
+							me.onPassedWeightingScaleValidation();
+						}
+					}
+				}
+			});
+		}
+		else {
+			me.onPassedWeightingScaleValidation();
+		}
+	},
+	
+	onPassedWeightingScaleValidation: function(){
+		var me = this;
+		var detailItem = me.getViewModel().get('theDetail');
+		
+		me.onInternalTruckJobValidation();
+	},
+	
+	//02.1: 
+	//WA job: Previous trip has been done full process (LOADED)
+	//Result: 'N' - blocked since the truck do not finish previous trip yet
+	onInternalTruckJobValidation: function (){
+		var me = this;
+		var refs = me.getReferences();
+		var detailItem = me.getViewModel().get('theDetail');
+		
+		if(!StringUtil.isNullorEmpty(detailItem.get('lorryNo'))) {
+			var store = me.getStore('validationCheck');
+			var params = {
+				tyCd: 'INTERNALTRUCK_APRON_OPE_VALIDATION',
+				col1: detailItem.get('lorryNo')
+			};
+			store.load({
+				params : params,
+				
+				callback: function(records, operation, success) {
+					if (success) {
+						if(records.length > 0){
+							if(records[0].get('isValidated') == 'Y'){
+								me.onPassedInternalTruckJobValidation();
+							}
+							else {
+								MessageUtil.question('info_msg', 'truckValidation_msg02', null,
+										function(button){
+											if(button == 'ok'){
+												me.onPassedInternalTruckJobValidation();
+											}
+										}
+									);
+							}
+							
+						}
+						else {
+							me.onPassedInternalTruckJobValidation();
+						}
+					}
+				}
+			});
+		}
+		else {
+			me.onPassedInternalTruckJobValidation();
+		}
+	},
+	
+	onPassedInternalTruckJobValidation: function(){
+		var me = this;
+		var detailItem = me.getViewModel().get('theDetail');
+		
+		//Amount validation
+		if(!me.onValidateAmtDeAlloc()){
+			return;
+		}
+		
+		me.prevSaveCheck();
+	},
+	
+	//3- AMOUNT VALIDATION
+	onValidateAmtDeAlloc: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailItem = me.getViewModel().get('theDetail');
+		var cgTpCd = detailItem.get('cgTpCd');
+
+		var whBalQty = detailItem.get('whBalQty');
+		var whBalMt = detailItem.get('whBalMt');
+		var whBalM3 = detailItem.get('whBalM3');
+
+		var loadQty = detailItem.get('loadQty');
+		var loadMt = detailItem.get('loadMt');
+		var loadM3 = detailItem.get('loadM3');
+		
+		if(cgTpCd === CodeConstants.MT_CGTP_BBK){
+			if (refs.ctlLoadQty.getValue() <= 0) {
+                MessageUtil.warning(
+                    "warning_msg",
+                    "warehousecheckexport_qty_msg"
+                );
+                return false;
+            }
+			if(refs.ctlLoadQty.getValue() > whBalQty){
+				MessageUtil.warning('warning_msg', 'warehousecheckexport_bbk_exceed_msg');
+				return false;
+			}
+			
+			//Validate with package items
+			if(me.packageItems.length > 0){
+				if(refs.ctlLoadQty.getValue() != me.packageItems.length){
+					MessageUtil.warning('warning_msg', 'packageItemValidationMsg'); // CT1210060012
+					return false;
+				}
+			}
+		}else if(cgTpCd === CodeConstants.MT_CGTP_LQN){
+			if(loadM3 == null || loadM3 == 0){
+				MessageUtil.warning('warning_msg', 'shippingNoteInquiry_DM101026');
+				return false;
+			}
+			if(loadM3 > whBalM3){
+				MessageUtil.warning('warning_msg', 'Measurement cannot exceed the measurement in Warehouse Balance Amount.');
+				return false;
+			}
+		}
+
+		return true;
+	},
+	
+	prevSaveCheck: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailItem = me.getViewModel().get('theDetail');
+		
+		//Remove the 60 MT checking logic.
+		me.saveProcess();
+		
+//		if(detailItem.get('whBalMt') - detailItem.get('loadMt') < CommonConstants.WH_BALANCE_MT) {
+//			MessageUtil.question('warning_msg', 'warehousecheckexport_whBalance_msg', CommonConstants.WH_BALANCE_MT,
+//					function(button){
+//						if (button === 'ok') {
+//							me.saveProcess();
+//						}
+//					}
+//				);
+//		}
+//		else {
+//			me.saveProcess();
+//		}
+	},
+	/**
+	 * VALIDATION METHOD END
+	 * =========================================================================================================================
+	 */
+});

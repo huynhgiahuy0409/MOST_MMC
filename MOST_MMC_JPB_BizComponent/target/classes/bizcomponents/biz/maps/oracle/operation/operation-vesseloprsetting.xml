@@ -1,0 +1,683 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="vesselOprSetting">
+	
+	<!--  ################ Query Statement Define ######################################### -->
+	<sql id="getVesselOprSetting">
+		SELECT	/* vesselOprSetting.selectVesselOprSettingList */	
+				B.VSL_CALL_ID 				as vslCallId,
+				B.SHFT_ID 					as shftId ,
+				B.GANG_NO					as gangNo,
+				(SELECT F.SHFT_NM 	FROM TMT_SHFT F 
+			    WHERE F.SHFT_METH_CD = 'Standard'
+				AND F.VLD_YN = 'Y'
+				AND B.SHFT_ID = F.SHFT_ID)	as shftNm,
+				B.CG_TP_CD					as cgTpCd ,
+				TO_CHAR(B.SEQ)				as seq ,
+				NVL(B.RS_DIV_CD,'')		as rsDivCd ,
+				NVL(B.HATCH_DRT_CD,'') 	as hatchDrtCd ,
+				NVL(B.ROLE_CD,'')			as roleCd ,
+				NVL((SELECT E.S_CD_NM
+					FROM TMT_CD_MSTD E
+      				WHERE E.M_CD = 'ROLECD' 
+      				AND E.S_CD_LGV = 'E'
+<!--       				AND (E.COL1 ='S' OR E.COL1 ='T')								  -->
+              	  		AND  E.S_CD= B.ROLE_CD ),'')			as roleCdNm ,
+				NVL(B.COMP_TP_CD,'')		as compTpCd ,
+				NVL(B.COMP_CD,'')			as workComp ,
+				NVL(C.EQ_TP_CD,'')			as eqTpCd,
+				NVL(B.HATCH_NO,'')			as hatchNo,	
+				NVL2(B.WORK_YMD,TO_DATE(B.WORK_YMD,'YYYYMMDD'),'') 	as workYmd,
+				NVL2(B.WKER_QTY,TO_CHAR(B.WKER_QTY),'')									as wkerQty,
+				NVL(B.EQ_FAC_NO,'')		as eqFacNo,
+				NVL(C.EQ_FAC_NM,'')		as eqFacNm,
+				NVL(B.EQ_FAC_NO2,'') 		as facility,
+				(SELECT S_CD_NM FROM TMT_CD_MSTD WHERE S_CD = B.EQ_FAC_NO2 AND M_CD = 'EQFCTPCD' AND S_CD_LGV = 'FC') as facilityName,
+				NVL(B.WORK_ST_DT,'') as workStDt,
+                      NVL(B.WORK_END_DT,'') as workEndDt,						
+				(CASE WHEN NVL(CLN_CD,'')= 'Y' THEN 'CLEAN'
+					  WHEN NVL(TOP_CG_CD,'')='Y' THEN 'TOP'
+					  ELSE ''
+				 END)						as topClean,
+				B.RMK						as remark,
+				B.DPT_AGENT                 AS dptAgent	
+				, B.VSL_SHFT_SEQ			as vslShiftingSeq
+				, CASE WHEN B.VSL_SHFT_SEQ IS NULL
+						THEN (SELECT TO_CHAR(E.ATB,'DD/MM/YYYY hh24:mi') FROM TMT_VSL_SCH E WHERE E.VSL_CALL_ID = B.VSL_CALL_ID)	
+					   ELSE (SELECT TO_CHAR(E.ATB_DT,'DD/MM/YYYY hh24:mi') FROM TMT_VSL_SHFT E WHERE E.VSL_CALL_ID = B.VSL_CALL_ID AND E.SEQ = B.VSL_SHFT_SEQ)	
+				  END AS atb 
+				, CASE WHEN B.VSL_SHFT_SEQ IS NULL
+						THEN (SELECT TO_CHAR(E.ATU,'DD/MM/YYYY hh24:mi') FROM TMT_VSL_SCH E WHERE E.VSL_CALL_ID = B.VSL_CALL_ID)	
+					   ELSE (SELECT TO_CHAR(E.ATU_DT,'DD/MM/YYYY hh24:mi') FROM TMT_VSL_SHFT E WHERE E.VSL_CALL_ID = B.VSL_CALL_ID AND E.SEQ = B.VSL_SHFT_SEQ)	
+				  END AS atu 
+				, DECODE(NVL(B.VSL_SHFT_SEQ, 0), 0, 'N', 'Y') AS vslShiftingYN 
+	  	FROM 	TMT_VSL_OPE_RPT A, TMT_VSL_OPE_RPT_DTL B , TMT_EQ_FAC C , 	TMT_EQ_FAC D 
+	  	WHERE 	A.VSL_CALL_ID(+) = B.VSL_CALL_ID 
+	  			AND A.SHFT_ID(+)= B.SHFT_ID 
+	  			AND A.WORK_YMD(+) = B.WORK_YMD 
+	  			AND B.EQ_FAC_NO = C.EQ_FAC_NO(+)
+	  			AND B.EQ_FAC_NO2 = D.EQ_FAC_NO(+)
+	  			AND (B.CG_TP_CD ='BBK' OR B.CG_TP_CD='DBK' OR B.CG_TP_CD='RORO')
+	  			
+  			  	<if test="rsDivCd != null and rsDivCd != ''">
+					AND B.RS_DIV_CD = #{rsDivCd}
+			  	</if>
+  			  	
+				<if test="vslCallId != null and vslCallId != ''">
+					AND B.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="cgTpCd != null and cgTpCd != ''">
+					AND B.CG_TP_CD = #{cgTpCd}
+				</if>	
+			
+				<if test="shift != null and shift != ''">
+					AND A.SHFT_ID = #{shift}
+				</if>
+				<if test="hatchNo != null and hatchNo != ''">
+					AND B.HATCH_NO = #{hatchNo}
+				</if>
+				<if test="workYmd != null and workYmd != ''">
+					AND A.WORK_YMD    = TO_CHAR(TO_DATE(#{workYmd}, 'DD/MM/YYYY'), 'YYYYMMDD')
+				</if>
+			
+		ORDER BY B.WORK_YMD , B.SHFT_ID , B.CG_TP_CD
+	</sql>
+	
+	<select id="selectVesselOprSettingList"  parameterType="vesselOprSettingParm" resultType="vesselOprSettingItem">
+		<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+			<include refid="getVesselOprSetting"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	
+	<select id="selectVesselOprSettingListCount" parameterType="vesselOprSettingParm" resultType="java.lang.String" >
+        SELECT COUNT(*)
+          FROM (<include refid="getVesselOprSetting"/>)
+	</select>
+	
+	<select id="selectShift" parameterType="vesselOprSettingParm" resultType="vesselOprSettingItem">
+		SELECT	DISTINCT SHFT_NM AS SHFTNM,
+			   	SHFT_ID AS SHFTID,
+			   	FM_HHMM AS FMHHMM,
+			   	TO_HHMM AS TOHHMM
+		FROM 	TMT_SHFT
+		WHERE 	SHFT_METH_CD = 'Standard'
+				AND VLD_YN = 'Y'
+		ORDER BY SHFT_NM
+	</select>
+	
+	<select id="selectEquipmentList" parameterType="vesselOprSettingParm" resultType="vesselOprSettingItem">
+		SELECT 	DISTINCT	 
+			   	A.EQ_NO         				eqFacNo,
+			   	(SELECT B.EQ_FAC_NM
+			   		FROM TMT_EQ_FAC B 
+			   		WHERE B.EQ_FAC_NO = A.EQ_NO AND ROWNUM=1) eqFacNm
+		FROM	TMT_DEPY A
+		WHERE
+				<![CDATA[A.EQ_TP_CD <> 'FC' ]]>	 
+				AND	 A.RS_DIV_CD = 'EQ'
+				AND (A.EQ_NO IS NOT NULL) 
+				AND  A.EQ_NO IN (SELECT C.EQ_FAC_NO FROM TMT_EQ_FAC C
+                         		WHERE C.VLD_YN = 'Y' AND C.EQ_TP_CD != 'FL')
+				<if test="workYmd != null and workYmd != ''">
+    				AND A.WORK_YMD    = TO_CHAR(TO_DATE(#{workYmd}, 'DD/MM/YYYY'), 'YYYYMMDD')
+				</if>
+			   <if test="vslCallId != null and vslCallId != ''">
+      				AND A.VSL_CALL_ID = #{vslCallId}
+			   	</if>		   
+			   <if test="shift != null and shift != ''">
+      				AND A.SHFT_ID = #{shift}
+			   	</if>   		   	
+		ORDER BY  A.EQ_NO
+	</select>
+	
+	<select id="selectRole" parameterType="vesselOprSettingParm" resultType="vesselOprSettingItem">
+		SELECT	A.S_CD AS roleCd ,
+	           	A.S_CD_NM AS roleCdNm
+		FROM 	TMT_CD_MSTD	A
+	    WHERE 	A.M_CD = 'ROLECD' 
+	      		AND A.S_CD_LGV = 'E'
+<!-- 	      		AND (A.COL1 ='S' OR A.COL1 ='T') -->
+<!-- 				<if test='rsDivCd == "S"'> -->
+<!-- 					AND A.COL1 ='S'  -->
+<!-- 				</if>	 -->
+<!-- 				<if test='rsDivCd == "T"'> -->
+<!-- 					AND A.COL1 ='T'  -->
+<!-- 				</if>		       -->
+	</select>
+	
+	<select id="selectOverlappedWithFinitePeriodHHT" parameterType="vesselOprSettingParm" resultType="vesselOprSettingItem">
+		SELECT	COUNT(*) AS COUNT 
+		FROM 	TMT_VSL_OPE_RPT_DTL
+		WHERE 	ROWNUM = 1  
+				<if test="vslCallId != null and vslCallId != ''">
+					AND
+					VSL_CALL_ID = #{vslCallId} 
+				</if>
+				<if test="workYmd != null">
+					AND
+					WORK_YMD = #{workYmd}
+				</if>
+				<if test="shftId != null and shftId != ''">
+					AND
+					SHFT_ID = #{shftId}
+				</if>
+				<if test="cgTpCd != null and cgTpCd != ''">
+					AND
+					CG_TP_CD = #{cgTpCd} 
+				</if>
+				<if test="hatchNo != null and hatchNo != ''">
+					AND
+					HATCH_NO = #{hatchNo} 
+				</if>
+				<if test="hatchDrtCd != null and hatchDrtCd != ''">
+					AND
+					HATCH_DRT_CD = #{hatchDrtCd} 
+				</if>
+				<if test="eqFacNo != null and eqFacNo != ''">
+					AND
+					EQ_FAC_NO = #{eqFacNo}  
+				</if>			
+				<if test="seq != null and seq != ''">
+					AND
+					SEQ <![CDATA[<>]]> TO_NUMBER(#{seq})  
+				</if>
+				<if test="workStDt != null">
+					AND
+					(
+					<if test="workEndDt != null">
+					WORK_ST_DT IS NOT NULL AND
+					WORK_END_DT IS NOT NULL AND
+					(TO_DATE(#{workStDt}, 'dd/mm/yyyy hh24:mi'), TO_DATE(#{workEndDt}, 'dd/mm/yyyy hh24:mi')) OVERLAPS (NVL(WORK_ST_DT, SYSDATE), NVL(WORK_END_DT, SYSDATE))
+					</if>
+					<if test="workEndDt == null">
+					WORK_END_DT IS NOT NULL AND 
+					WORK_END_DT <![CDATA[>]]> #{workStDt}
+					</if>
+					)
+				</if>
+	</select>
+	
+	<select id="selectVORDryBreakBulkForStevAndTrim"  parameterType="vesselOprSettingParm" resultType="vesselOprSettingItem">
+		SELECT	/* CT208 */
+				F.vslCallId									as vslCallId,
+				F.shftId									as shftId ,						
+				( SELECT G.SHFT_NM 	FROM TMT_SHFT G 
+			      WHERE G.SHFT_METH_CD = 'Standard'
+				     AND G.VLD_YN = 'Y'
+				     AND F.shftId = G.SHFT_ID)				as shftNm,
+				F.workYmd 									as workYmd ,
+				F.hatchDrtCd			 					as hatchDrtCd ,
+				F.cgTpCd									as cgTpCd  ,
+				F.hatchNo									as hatchNo ,
+				DECODE(F.cwDiv,'Y','Y','N')					as shipsCrewYn,
+				DECODE(F.cwDiv,'Y','Ship''s Crew',
+								   E.workComp)				as workComp	,
+				F.gearsYn									as withGears,				
+				E.hatchNo									as hatchNo,	
+				E.rsDivCd 		 							as rsDivCd ,
+				E.general									as general ,
+				E.winch										as winch ,
+				E.hoper										as hoper ,
+				E.signal									as signal ,
+				E.deck										as deck ,
+				E.supervisor								as supervisor ,
+				E.spr										as spr ,
+				E.nonworker									as nonworker ,
+				E.general									as general ,
+				F.cwDiv										as cwDiv,
+				DECODE(F.cwDiv,'Y',F.lashingCompCd,E.lashingCompCd) lashingCompCd,
+       			DECODE(F.cwDiv,'Y',F.lashingGangNos,E.lashingGangNos) lashingGangNos
+
+		FROM 	(SELECT	DISTINCT 
+						B.VSL_CALL_ID 				as vslCallId,
+						B.SHFT_ID 					as shftId ,						
+						NVL(B.HATCH_DRT_CD,' ') 		as hatchDrtCd ,
+						NVL2(B.WORK_YMD, TO_DATE(B.WORK_YMD,'YYYYMMDD'),'') as workYmd ,
+						B.WORK_YMD,
+						NVL(B.HATCH_NO,' ')			as hatchNo,	
+						B.CG_TP_CD					as cgTpCd,
+						B.CW_DIV						as cwDiv,
+						B.GEARS_YN                    as gearsYn
+						, DECODE(B.LASHING_COMP_CD,'0','',B.LASHING_COMP_CD) lashingCompCd
+						, DECODE(B.LASHING_GANG_NO,'0','',B.LASHING_GANG_NO) lashingGangNos
+				FROM 	TMT_VSL_OPE_RPT A, TMT_VSL_OPE_RPT_DTL B
+		  		WHERE 	A.VSL_CALL_ID(+) = B.VSL_CALL_ID 
+		  			  	AND A.SHFT_ID(+)= B.SHFT_ID 
+		  			    AND A.WORK_YMD(+) = B.WORK_YMD 
+		  			    AND (B.CG_TP_CD ='BBK' OR B.CG_TP_CD='DBK' OR B.CG_TP_CD='RORO')
+		  			    <if test="vslCallId != null and vslCallId != ''">
+               				AND B.VSL_CALL_ID = #{vslCallId}
+						</if>
+						<if test="cgTpCd != null and cgTpCd != ''">
+       						AND B.CG_TP_CD = #{cgTpCd}
+						</if>	
+						<if test="shift != null and shift != ''">
+       						AND B.SHFT_ID = #{shift}
+						</if>
+						<if test="workYmd != null and workYmd != ''">
+       						AND B.WORK_YMD    = TO_CHAR(TO_DATE(#{workYmd}, 'DD/MM/YYYY'), 'YYYYMMDD')
+						</if>
+		  			    AND B.RS_DIV_CD = 'EQ') F,
+					
+				(SELECT	D.VSL_CALL_ID 						as vslCallId,
+						D.SHFT_ID 									as shftId ,
+						D.CG_TP_CD									as cgTpCd  ,
+						NVL(D.HATCH_NO,' ')							as hatchNo,	
+						NVL(D.HATCH_DRT_CD,' ') 					as hatchDrtCd ,
+						NVL(D.COMP_CD,' ')							as workComp	,
+						NVL2(D.WORK_YMD, TO_DATE(D.WORK_YMD,'YYYYMMDD'),'') as workYmd ,
+						D.RS_DIV_CD 	 							as rsDivCd ,
+						SUM(CASE  WHEN D.ROLE_CD ='GW'  
+							 	 THEN D.WKER_QTY ELSE 0 END)		as general ,
+						SUM(CASE   WHEN D.ROLE_CD ='WM' 
+							 	 THEN D.WKER_QTY ELSE 0 END)		as winch ,
+						SUM(CASE  WHEN D.ROLE_CD ='HM' 
+							 	 THEN D.WKER_QTY ELSE 0 END)		as hoper ,
+						SUM(CASE  WHEN D.ROLE_CD ='SM' 
+							 	 THEN D.WKER_QTY ELSE 0 END)		as signal ,
+						SUM(CASE  WHEN D.ROLE_CD ='DM' 
+							 	 THEN D.WKER_QTY ELSE 0 END)		as deck ,
+						SUM(CASE  WHEN D.ROLE_CD ='AS' 
+							 	 THEN D.WKER_QTY ELSE 0 END)		as supervisor,
+						SUM(CASE  WHEN D.ROLE_CD ='MS' 
+							 	 THEN D.WKER_QTY ELSE 0 END)		as spr ,
+						SUM(CASE  WHEN D.ROLE_CD ='TW'  
+							 	 THEN D.WKER_QTY ELSE 0 END)		as nonworker 
+						, DECODE(D.LASHING_COMP_CD,'0','',D.LASHING_COMP_CD) as lashingCompCd
+                   		, DECODE(D.LASHING_GANG_NO,'0','',D.LASHING_GANG_NO) as lashingGangNos
+		  		FROM  	TMT_VSL_OPE_RPT C, TMT_VSL_OPE_RPT_DTL D
+		  		WHERE 	C.VSL_CALL_ID(+) = D.VSL_CALL_ID 
+  						AND C.SHFT_ID(+)= D.SHFT_ID 
+  						AND C.WORK_YMD(+) = D.WORK_YMD            		
+						AND D.RS_DIV_CD = 'WC'
+     					AND (D.CG_TP_CD ='BBK' OR D.CG_TP_CD='DBK' OR D.CG_TP_CD='RORO')
+     					AND D.USE_YN = 'Y'
+						<if test="vslCallId != null and vslCallId != ''">
+    						AND
+							D.VSL_CALL_ID = #{vslCallId}
+						</if>
+						<if test="cgTpCd != null and cgTpCd != ''">
+    						AND
+							D.CG_TP_CD = #{cgTpCd}
+						</if>	
+						<if test="shift != null and shift != ''">
+		    				AND
+							C.SHFT_ID = #{shift}
+						</if>
+						<if test="workYmd != null and workYmd != ''">
+		    				AND
+							C.WORK_YMD    = TO_CHAR(TO_DATE(#{workYmd}, 'DD/MM/YYYY'), 'YYYYMMDD')
+						</if>
+				GROUP BY D.VSL_CALL_ID, D.WORK_YMD , D.SHFT_ID , D.CG_TP_CD	,NVL(D.HATCH_DRT_CD,' '),
+					 NVL(D.HATCH_NO,' ') ,D.RS_DIV_CD ,NVL(D.COMP_CD,' ')
+					 , LASHING_COMP_CD
+					 , LASHING_GANG_NO
+				ORDER BY D.VSL_CALL_ID, D.WORK_YMD , D.SHFT_ID , D.CG_TP_CD ,NVL(D.HATCH_DRT_CD,' '),
+					 NVL(D.HATCH_NO,' ') ,D.RS_DIV_CD  , NVL(D.COMP_CD,' ')) E
+		WHERE	F.vslCallId = E.vslCallId(+)
+				AND F.shftId = E.shftId(+)
+				AND F.hatchDrtCd = E.hatchDrtCd(+)
+				AND F.workYmd = E.workYmd(+)
+				AND F.hatchNo = E.hatchNo(+)
+				AND F.cgTpCd = E.cgTpCd(+)
+      	ORDER BY F.WORK_YMD, SHFTNM, F.HATCHNO
+	</select>
+
+	<insert id="insertVesselOprSetting" parameterType="vesselOprSettingItem">
+		/*vesselOprSetting.insertVesselOprSetting*/
+		BEGIN
+		INSERT INTO TMT_VSL_OPE_RPT_DTL(
+				VSL_CALL_ID, 
+				WORK_YMD,
+				SHFT_ID, 
+				CG_TP_CD,
+				SEQ, 
+				RS_DIV_CD, 
+				LOC_DIV_CD, 
+				ROLE_CD, 
+				EMP_ID, 
+				EQ_TP_CD,
+				COMP_TP_CD,				
+				WKER_QTY,
+				HATCH_NO,
+				CG_REF_NO,
+				WORK_ST_DT,
+				WORK_END_DT,
+				CMDT_CD,
+				JOB_TP_CD,
+				PKG_QTY,
+				CG_VOL,
+				CLN_CD,
+				TOP_CG_CD,
+				UPDATE_TIME,
+               	STAFF_CD,
+               	USE_YN,
+               	EQ_FAC_NO,
+               	PURP_CD,
+               	COMP_CD,
+               	HATCH_DRT_CD,
+               	EQ_FAC_NO2,
+               	GANG_NO,
+               	RMK,
+               	DPT_AGENT,
+               	VSL_SHFT_SEQ,
+               	VERSION
+			) VALUES (
+				#{vslCallId},
+				TO_CHAR(#{workYmd}, 'YYYYMMDD'),
+				#{shftId},
+				#{cgTpCd},
+				(SELECT DECODE(MAX(SEQ), NULL, 1, MAX(SEQ)+ 1) FROM TMT_VSL_OPE_RPT_DTL WHERE VSL_CALL_ID = #{vslCallId}  
+																	AND WORK_YMD = TO_CHAR(#{workYmd}, 'YYYYMMDD')
+																	AND SHFT_ID = #{shftId}),
+				#{rsDivCd},
+				#{workLoc},
+				#{roleCd},
+				#{driverId},
+				#{eqTpCd},
+				#{compTpCd},				
+				NVL2(#{wkerQty},TO_NUMBER(#{wkerQty}),null),
+				#{hatchNo},
+				#{cgRefNo},
+				#{workStDt},
+				#{workEndDt},
+				#{cmdtCd},
+				#{jobTpCd},
+				#{pkgQty},
+				#{measurement},
+				<if test='topClean == "CLEAN"'>
+					'Y', NULL,
+				</if>
+				<if test='topClean == "TOP"'>
+					NULL , 'Y',
+				</if>
+				<if test="topClean == null or topClean == ''">				
+					#{clnCd},
+					#{topCgCd},
+				</if>
+				SYSDATE,
+				NVL(#{userId},'SYSTEM'),
+				DECODE(NVL(#{useYN},'true'), 'false', 'N', 'Y'),	
+				#{eqFacNo},
+				#{purpCd},
+				#{workComp},
+				#{hatchDrtCd},
+				<if test='cgTpCd == "DBK"'>	
+					#{facility},
+				</if>
+				<if test="cgTpCd != 'DBK'">	
+					NULL,
+				</if>
+				#{gangNo},
+				#{remark},
+				#{dptAgent},
+				#{vslShiftingSeq},
+				#{newVersion}
+			) ;
+			
+			MERGE INTO TMT_VSL_OPE_RPT A
+			USING (SELECT '00000' as costCd FROM dual)B ON (
+				A.VSL_CALL_ID=#{vslCallId} 
+				AND	A.WORK_YMD = TO_CHAR(#{workYmd}, 'YYYYMMDD')
+				AND A.SHFT_ID = #{shftId} AND B.costCd = '00000')
+			WHEN MATCHED THEN
+				UPDATE SET A.UPDATE_TIME = SYSDATE
+	     	WHEN NOT MATCHED THEN
+			INSERT (
+				VSL_CALL_ID,				
+				WORK_YMD,
+				SHFT_ID,
+				CG_TP_CD,
+				UPDATE_TIME,
+				STAFF_CD
+			) VALUES (
+				#{vslCallId},				
+				TO_CHAR(#{workYmd}, 'YYYYMMDD'),
+				#{shftId},
+				#{cgTpCd},
+				SYSDATE,
+				NVL(#{userId},'SYSTEM')				
+			);				
+		END;
+	</insert>
+	
+	<update id="updateVesselOprSetting" parameterType="vesselOprSettingItem">
+		/*vesselOprSetting.updateVesselOprSetting*/
+		UPDATE	TMT_VSL_OPE_RPT_DTL
+		SET 
+				UPDATE_TIME = SYSDATE,
+				GANG_NO = #{gangNo} ,
+				WKER_QTY = NVL2(#{wkerQty},TO_NUMBER(#{wkerQty}),NULL),  
+				<if test="workComp != null and workComp != ''">
+					COMP_CD = #{workComp} ,
+				</if>
+				CG_TP_CD = #{cgTpCd},
+				<if test="workStDt != null">
+					WORK_ST_DT = TO_DATE(#{workStDtStr}, 'DD/MM/YYYY hh24:mi'),
+				</if>
+				<if test="workStDt == null">
+					WORK_ST_DT = NULL ,
+				</if>
+				<if test="workEndDt != null">
+					WORK_END_DT = TO_DATE(#{workEndDtStr}, 'DD/MM/YYYY hh24:mi'),
+				</if>
+				<if test="workEndDt == null">
+					WORK_END_DT = NULL ,
+				</if>
+				EQ_FAC_NO = #{eqFacNo},
+				<if test='cgTpCd == "DBK"'>	
+					EQ_FAC_NO2 = #{facility},
+				</if>
+				<if test='cgTpCd == "BBK"'>	
+					EQ_FAC_NO2 = null,
+				</if>										
+				HATCH_DRT_CD=#{hatchDrtCd},
+				HATCH_NO = #{hatchNo},			
+				<if test='topClean == "CLEAN"'>
+				    CLN_CD = 'Y',
+               		TOP_CG_CD = 'N' ,						
+				</if>
+				<if test='topClean == "TOP"'>
+				    CLN_CD = 'N',
+               		TOP_CG_CD = 'Y',						
+				</if>			
+				<if test="topClean == null or topClean == ''">
+					CLN_CD = NULL,
+               		TOP_CG_CD = NULL,
+				</if>	
+						
+				RMK = #{remark},
+				STAFF_CD = NVL(#{userId},'SYSTEM'),
+				DPT_AGENT = #{dptAgent},
+				VERSION = #{newVersion}
+		WHERE  	VSL_CALL_ID = #{vslCallId} 
+				AND	WORK_YMD = TO_CHAR(#{workYmd}, 'YYYYMMDD')
+				AND SHFT_ID = #{shftId}
+				<if test="seq != null and seq != ''">
+					AND SEQ = TO_NUMBER(#{seq})
+				</if>				
+				AND RS_DIV_CD = #{rsDivCd}
+	</update>
+	
+	<update id="updateDblBankingActualTime"  parameterType="vesselOprSettingItem">
+		UPDATE 	TMT_DBL_BNK MAIN
+		SET 	MAIN.ATW = (SELECT MIN(A.ATW)
+						    FROM (SELECT RPT.VSL_CALL_ID  AS VSLCALLID
+								 		 ,RPT.WORK_ST_DT AS ATW
+								  FROM TMT_VSL_OPE_RPT_DTL RPT
+								  WHERE RPT.VSL_CALL_ID=#{vslCallId}
+								  ) A				
+							GROUP BY A.VSLCALLID)
+				,MAIN.ATC = (SELECT MAX(B.ATC)
+						    FROM (SELECT RPT.VSL_CALL_ID   AS VSLCALLID
+								 		 ,RPT.WORK_END_DT  AS ATC  
+								  FROM TMT_VSL_OPE_RPT_DTL RPT
+								   WHERE RPT.VSL_CALL_ID=#{vslCallId}
+								  ) B
+							GROUP BY B.VSLCALLID)
+		WHERE 	MAIN.VSL_CALL_ID=#{vslCallId}
+	</update>
+	
+	<update id="updateDblBankingActualTime1"  parameterType="vesselOprSettingItem">
+		UPDATE	TMT_DBL_BNK MAIN
+		SET 	MAIN.SHIP1_ATW = (SELECT MIN(A.ATW)
+						    FROM (SELECT RPT.VSL_CALL_ID  AS VSLCALLID
+								 		 ,RPT.WORK_ST_DT AS ATW
+								  FROM TMT_VSL_OPE_RPT_DTL RPT
+								  WHERE RPT.VSL_CALL_ID=#{vslCallId}
+								  ) A				
+							GROUP BY A.VSLCALLID)
+				,MAIN.SHIP1_ATC = (SELECT MAX(B.ATC)
+						    FROM (SELECT RPT.VSL_CALL_ID   AS VSLCALLID
+								 		 ,RPT.WORK_END_DT  AS ATC  
+								  FROM TMT_VSL_OPE_RPT_DTL RPT
+								   WHERE RPT.VSL_CALL_ID=#{vslCallId}
+								  ) B
+							GROUP BY B.VSLCALLID)
+		WHERE  	MAIN.DBL_BNK_SHIP1=#{vslCallId}
+	</update>
+	
+	<update id="updateDblBankingActualTime2"  parameterType="vesselOprSettingItem">
+		UPDATE	TMT_DBL_BNK MAIN
+		SET 	MAIN.SHIP2_ATW = (SELECT MIN(A.ATW)
+						    FROM (SELECT RPT.VSL_CALL_ID  AS VSLCALLID
+								 		 ,RPT.WORK_ST_DT AS ATW
+								  FROM TMT_VSL_OPE_RPT_DTL RPT
+								  WHERE RPT.VSL_CALL_ID=#{vslCallId}
+								  ) A				
+							GROUP BY A.VSLCALLID)
+				,MAIN.SHIP2_ATC = (SELECT MAX(B.ATC)
+						    FROM (SELECT RPT.VSL_CALL_ID   AS VSLCALLID
+								 		 ,RPT.WORK_END_DT  AS ATC  
+								  FROM TMT_VSL_OPE_RPT_DTL RPT
+								   WHERE RPT.VSL_CALL_ID=#{vslCallId}
+								  ) B
+							GROUP BY B.VSLCALLID)
+		WHERE 	MAIN.DBL_BNK_SHIP2=#{vslCallId}
+	</update>
+	
+	<update id="updateAtwAtc4Vsl"  parameterType="vesselOprSettingItem">
+		<if test="vslShiftingSeq != null and vslShiftingSeq != ''">
+			UPDATE TMT_VSL_SHFT MAIN
+			SET MAIN.ATW_DT = (	SELECT MIN(A.ATW)
+						    	FROM (
+						    		SELECT 	RPT.VSL_CALL_ID  AS VSLCALLID,
+						    				RPT.WORK_ST_DT AS ATW
+								  	FROM 	TMT_VSL_OPE_RPT_DTL RPT
+								  	WHERE 	RPT.VSL_CALL_ID=#{vslCallId}
+									AND 	RPT.VSL_SHFT_SEQ = #{vslShiftingSeq}
+									UNION ALL
+									SELECT 	RPT.VSL_CALL_ID  AS VSLCALLID,
+											RPT.ST_DT AS ATW
+									FROM 	TMT_LQDCG_OPE RPT
+									WHERE 	RPT.VSL_CALL_ID=#{vslCallId}
+									AND 	RPT.VSL_SHFT_SEQ = #{vslShiftingSeq}
+								  ) A				
+							GROUP BY A.VSLCALLID)
+				,MAIN.ATC_DT= (	SELECT MAX(B.ATC)
+						    	FROM (
+						    			SELECT 	RPT.VSL_CALL_ID   AS VSLCALLID,
+						    					RPT.WORK_END_DT  AS ATC  
+								  		FROM 	TMT_VSL_OPE_RPT_DTL RPT
+								   		WHERE 	RPT.VSL_CALL_ID=#{vslCallId}
+								   		AND 	RPT.VSL_SHFT_SEQ = #{vslShiftingSeq}
+								   		UNION ALL
+								   		SELECT 	RPT.VSL_CALL_ID   AS VSLCALLID,
+								   				RPT.END_DT  AS ATC  
+										FROM 	TMT_LQDCG_OPE RPT
+										WHERE 	RPT.VSL_CALL_ID=#{vslCallId}
+										AND RPT.VSL_SHFT_SEQ = #{vslShiftingSeq}
+								  ) B
+							GROUP BY B.VSLCALLID)
+				WHERE 
+				  		MAIN.VSL_CALL_ID=#{vslCallId}
+                  		AND MAIN.SEQ = #{vslShiftingSeq}
+			</if>
+			<if test="vslShiftingSeq == null or vslShiftingSeq == ''">
+				UPDATE TMT_VSL_SCH MAIN
+				SET MAIN.ATW = (SELECT MIN(A.ATW)
+							    FROM (
+							    		SELECT 	RPT.VSL_CALL_ID  AS VSLCALLID,
+							    				RPT.WORK_ST_DT AS ATW
+									  	FROM 	TMT_VSL_OPE_RPT_DTL RPT
+									  	WHERE 	RPT.VSL_CALL_ID=#{vslCallId}
+										AND 	RPT.VSL_SHFT_SEQ IS NULL
+									  	UNION ALL
+									  	SELECT 	RPT.VSL_CALL_ID  AS VSLCALLID,
+									  			RPT.ST_DT AS ATW
+									  	FROM 	TMT_LQDCG_OPE RPT
+									  	WHERE 	RPT.VSL_CALL_ID=#{vslCallId}
+										AND 	RPT.VSL_SHFT_SEQ IS NULL
+									  ) A				
+								GROUP BY A.VSLCALLID)
+					,MAIN.ATC= (SELECT MAX(B.ATC)
+							    FROM (	
+							    		SELECT 	RPT.VSL_CALL_ID   AS VSLCALLID,
+							    				RPT.WORK_END_DT  AS ATC  
+									  	FROM 	TMT_VSL_OPE_RPT_DTL RPT
+									   	WHERE 	RPT.VSL_CALL_ID=#{vslCallId}
+										AND 	RPT.VSL_SHFT_SEQ IS NULL
+										UNION ALL
+										SELECT 	RPT.VSL_CALL_ID   AS VSLCALLID,
+												RPT.END_DT  AS ATC  
+									  	FROM 	TMT_LQDCG_OPE RPT
+									   	WHERE 	RPT.VSL_CALL_ID=#{vslCallId}
+										AND 	RPT.VSL_SHFT_SEQ IS NULL								   		
+									  ) B
+								GROUP BY B.VSLCALLID)
+				WHERE MAIN.VSL_CALL_ID=#{vslCallId}
+			</if>
+	</update>
+	
+	<delete id="deleteVesselOprSetting"  parameterType="vesselOprSettingItem">
+		BEGIN
+			DELETE 
+			  FROM TMT_VSL_OPE_RPT_DTL
+			 WHERE VSL_CALL_ID = #{vslCallId}
+					AND WORK_YMD = TO_CHAR(#{workYmd}, 'YYYYMMDD')
+					AND SHFT_ID = #{shftId}
+					<if test='rsDivCd == "WC"'>
+						AND ROLE_CD = #{roleCd}
+						AND RS_DIV_CD = #{rsDivCd}
+						AND CG_TP_CD = #{cgTpCd}
+						<if test="hatchDrtCd != null and hatchDrtCd != ''">
+							AND HATCH_DRT_CD=#{hatchDrtCd}
+						</if>
+						AND HATCH_NO = #{hatchNo} 
+					</if>
+					<if test='rsDivCd != "WC"'>
+						AND SEQ = TO_NUMBER(#{seq}) 
+					</if>
+					<if test="version != null and version != ''">
+						AND
+						VERSION = #{version} 
+					</if>
+					;
+			DELETE 
+			  FROM TMT_VSL_OPE_RPT A
+			 WHERE A.VSL_CALL_ID = #{vslCallId}
+					AND A.WORK_YMD = TO_CHAR(#{workYmd}, 'YYYYMMDD')
+					AND A.SHFT_ID = #{shftId}
+					AND ((SELECT COUNT(B.VSL_CALL_ID) FROM TMT_VSL_OPE_RPT_DTL B 
+							WHERE
+									B.VSL_CALL_ID = #{vslCallId}
+									AND B.WORK_YMD = TO_CHAR(#{workYmd}, 'YYYYMMDD')
+									AND B.SHFT_ID = #{shftId}
+									) = 0)
+					<if test="version != null and version != ''">
+						AND
+						VERSION = #{version} 
+					</if>;
+		END;
+	</delete>
+</mapper>

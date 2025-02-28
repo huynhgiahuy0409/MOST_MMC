@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="freshWaterService">
+	<select id="selectFreshWaterServiceList" parameterType="freshWaterServiceParm" resultType="freshWaterServiceItem">
+		<if test="pageNo != 0"> 
+            SELECT /*freshWaterService.selectFreshWaterServiceList*/
+             	* 
+			FROM 
+				(SELECT inner_querry.*, ROW_NUMBER() OVER(ORDER BY REQDT) row_num FROM ( 
+		</if>
+			<if test="searchType == 'List'">
+				<include refid="sqlFreshWaterInfo"/>
+			</if>
+			<if test="searchType == 'ListNonJPVC'">
+				<include refid="sqlFreshWaterInfoNonJPVC"/>
+			</if>
+		<if test="pageNo != 0"> 
+				)inner_querry 
+			)inner_querry 
+			WHERE 
+				inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+		</if>		
+	</select>
+	<sql id="sqlFreshWaterList">
+		<include refid="sqlFreshWaterInfo"/>
+	    <if test="alertYn == 'Y'.toString()">
+	        AND A.STAT_CD = 'RQ'
+	        AND A.REQ_DT >= DATEADD(MONTH, -6, GETDATE())
+	    </if>
+	    <if test="searchType != 'reportList'">
+	        <if test="alertYn != 'Y'.toString()">
+	            <if test="ptnrCd != null and ptnrCd != ''">
+	                AND CRT_BY IN (
+	                    SELECT USER_ID
+	                    FROM TMT_USER_INFO
+	                    WHERE AGENCY_CODE = #{ptnrCd}
+	                )
+	            </if>
+	            <if test="userRole == 'CS'">
+	                UNION 
+	                <include refid="sqlFreshWaterInfo"/>
+	                AND CRT_BY <![CDATA[ <> ]]> #{userId}
+	                AND STAT_CD <![CDATA[ <> ]]> 'CA'
+	            </if>
+	            <if test="userRole == 'PS'">
+	                UNION 
+	                <include refid="sqlFreshWaterInfo"/>
+	                AND CRT_BY <![CDATA[ <> ]]> #{userId}
+	                AND STAT_CD IN ('AP', 'CP')
+	            </if>
+	            <if test="userRole == 'BS'">
+	                UNION 
+	                <include refid="sqlFreshWaterInfo"/>
+	                AND CRT_BY <![CDATA[ <> ]]> #{userId}
+	                AND STAT_CD <![CDATA[ <> ]]> 'CA'
+	            </if>
+	        </if>
+	    </if>
+	</sql>
+	<sql id="sqlFreshWaterInfo">
+	    SELECT /*freshWaterService.sqlFreshWaterInfo*/
+	        ISNULL(A.VSL_CALL_ID, '') 									AS VSLCALLID,
+	        ISNULL(A.DOC_NO, '')      									AS DOCNO,
+	        A.SA                      									AS comp,
+	        A.SA_TYPE                 									AS saType,
+	        (
+	            SELECT TOP 1 ACC_NO
+	            FROM TMT_AGENCY_INFO B
+	            WHERE B.AGENCY_CODE 		= A.SA
+	              AND B.PTNR_TYPE 			= A.SA_TYPE
+	            UNION
+	            SELECT TOP 1 ACC_NO
+	            FROM TMT_PTNR C
+	            WHERE C.PTNR_CODE 			= A.SA
+	              AND C.PTNR_TYPE 			= A.SA_TYPE
+	        ) 															AS SA,
+	        (
+	            SELECT TOP 1 ENG_SNM
+	            FROM TMT_AGENCY_INFO D
+	            WHERE D.AGENCY_CODE 		= A.SA
+	              AND D.PTNR_TYPE 			= A.SA_TYPE
+	            UNION
+	            SELECT TOP 1 ENG_SNM
+	            FROM TMT_PTNR E
+	            WHERE E.PTNR_CODE 			= A.SA
+	              AND E.PTNR_TYPE 			= A.SA_TYPE
+	        ) 															AS SANM,
+	        A.REQ_AMT 													AS REQAMT,
+	        C.VSL_NM            										AS vslNm,
+	        C.CALL_SIGN         										AS callSign,
+	        ISNULL(CONVERT(VARCHAR(16), B.ATB, 120), '') 				AS atb,
+	        B.BERTH_LOC         										AS berthloc,
+	        ISNULL(CONVERT(VARCHAR(16), A.REQ_DT, 120), '') 			AS REQDT,
+	        LTRIM(RTRIM(
+				STR(
+					TRY_CAST(A.METER_NO AS FLOAT), 
+					13, 
+					3
+				)
+			))															AS METERNO,
+	        ISNULL(CONVERT(VARCHAR(16), A.SPLY_ST_DT, 120), '') 		AS SPLYSTDT,
+	        ISNULL(CONVERT(VARCHAR(16), A.SPLY_END_DT, 120), '') 		AS SPLYENDDT,
+	        CAST(ISNULL(A.BEF_AMT,0) AS DECIMAL(10,3)) 					AS BEFAMT,
+	        CAST(ISNULL(A.AFR_AMT,0) AS DECIMAL(10,3)) 					AS AFRAMT,
+	        ISNULL(A.REQ_BY,'')											AS REQBY,
+<!-- 	        ISNULL(CONVERT(VARCHAR(16), A.ACK_DT,120),'') 				AS ACKDT, -->
+<!-- 	        ISNULL(A.ACK_BY,'')  										AS ACKBY, -->
+<!-- 	        ISNULL(CONVERT(VARCHAR(16), A.CMP_DT,120),'') 				AS CMPDT, -->
+<!-- 	        ISNULL(A.CMP_BY,'')  										AS CMPBY, -->
+<!-- 	        ISNULL(CONVERT(VARCHAR(16), A.CNCL_DT,120),'') 				AS CNCLDT, -->
+<!-- 	        ISNULL(A.CNCL_BY,'') 										AS CNCLBY, -->
+<!-- 	        ISNULL(CONVERT(VARCHAR(19), A.REJ_DT,120),'') 				AS REJDT, -->
+<!-- 	        ISNULL(A.REJ_BY,'')  										AS REJBY, -->
+	        ISNULL(A.RMK,'')     										AS RMK,
+<!-- 	        ISNULL(A.UPD_USER_ID,'') 									AS USERID, -->
+	        ISNULL(A.STAT_CD,'') 										AS STATCD,
+	        CASE WHEN A.STAT_CD = 'RQ' THEN 'Request' ELSE 'Other' END 	AS STATCDNM,
+	        ISNULL(ROUND(DATEDIFF(MINUTE, A.SPLY_ST_DT, A.SPLY_END_DT) / 60.0, 2), 0) 	AS TOTALHRS,
+			ROUND(ISNULL(A.AFR_AMT, 0) - ISNULL(A.BEF_AMT, 0), 0) 						AS QTYSPLY,
+			ROUND(
+			  DATEDIFF(MINUTE, A.SPLY_ST_DT, A.SPLY_END_DT) * 1.0 
+			  / CASE WHEN (A.AFR_AMT - A.BEF_AMT) = 0 THEN 1 ELSE (A.AFR_AMT - A.BEF_AMT) END,
+			 2
+			) AS CHARGE,
+			
+	        ISNULL(A.LOC_ID,'')  										AS LOCID,
+<!-- 	        ISNULL(A.UNIT_PRC,0) 										AS unitPrc, -->
+	        A.VERSION            										AS VERSION,
+	        ''															AS ABC,
+<!-- 	        ISNULL(CONVERT(VARCHAR(16), A.CRT_DT,120),'') 				AS SUBMIT, -->
+<!-- 	        A.CRT_BY             										AS SUBMITBY, -->
+	        ISNULL(CONVERT(VARCHAR(16), A.REQ_DT,120),'') 				AS REQUEST
+<!-- 	        ISNULL(A.CASHPAYMENT,'N') 									AS cashPayment, -->
+<!-- 	        CASE WHEN CRT_BY = #{userId} THEN 'Y' ELSE 'N' END 			AS OWNERYN -->
+	    FROM TMT_FW_SVC_DTL A
+	         JOIN TMT_VSL_SCH B 
+	         						ON A.VSL_CALL_ID = B.VSL_CALL_ID
+	         JOIN TMT_VSL_PART C 
+	         						ON B.VSL_CD = C.VSL_CD
+	    WHERE A.VSL_CALL_ID <![CDATA[ <> ]]> 'STRG'
+	      <if test="vslCallId != null and vslCallId != ''">
+	        AND A.VSL_CALL_ID = #{vslCallId}
+	      </if>
+	      <if test="vslCallId != null and vslCallId != ''">
+	        AND A.SHIP_CALL_NO = #{scn}
+	      </if>
+	      <if test="statCd != null and statCd != ''">
+	        AND A.STAT_CD = #{statCd}
+	      </if>
+	      <if test="splyStDt != null and splyStDt != ''">
+	        AND A.REQ_DT 
+	            BETWEEN CONVERT(DATETIME, #{splyStDt} + ' 00:00:00', 103) 
+	            AND CONVERT(DATETIME, #{splyEndDt} + ' 23:59:59', 103)
+	      </if>
+	      <if test="docNo != null and docNo != ''">
+	        AND doc_no = #{docNo}
+	      </if>
+	</sql>
+	<sql id="sqlFreshWaterInfoNonJPVC">
+	    SELECT /*freshWaterService.sqlFreshWaterInfoNonJPVC*/
+	        ISNULL(A.VSL_CALL_ID, '')                  AS VSLCALLID,
+	        ISNULL(A.DOC_NO, '')                       AS DOCNO,
+	        ''                                         AS vslNm,
+	        ''                                         AS berthloc,
+	        A.SA                                       AS comp,
+	        A.SA_TYPE                                  AS saType,
+	        (
+	            SELECT TOP 1 ACC_NO
+		            FROM TMT_AGENCY_INFO B
+		            WHERE B.AGENCY_CODE 		= A.SA
+		              AND B.PTNR_TYPE 			= A.SA_TYPE
+		            UNION
+		            SELECT TOP 1 ACC_NO
+		            FROM TMT_PTNR C
+		            WHERE C.PTNR_CODE 			= A.SA
+		              AND C.PTNR_TYPE 			= A.SA_TYPE
+	        ) AS SA,
+	        (
+	            SELECT TOP 1 ENG_SNM
+		            FROM TMT_AGENCY_INFO D
+		            WHERE D.AGENCY_CODE 		= A.SA
+		              AND D.PTNR_TYPE 			= A.SA_TYPE
+		            UNION
+		            SELECT TOP 1 ENG_SNM
+		            FROM TMT_PTNR E
+		            WHERE E.PTNR_CODE 			= A.SA
+		              AND E.PTNR_TYPE 			= A.SA_TYPE
+	        ) AS SANM,
+	        ISNULL(A.REQ_AMT, 0)                       					AS REQAMT,
+	        ISNULL(CONVERT(VARCHAR(16), A.REQ_DT, 120),'') 				AS reqdt,
+	        LTRIM(RTRIM(
+				STR(
+					TRY_CAST(A.METER_NO AS FLOAT), 
+					13, 
+					3
+				)
+			))															AS METERNO,
+	        ISNULL(CONVERT(VARCHAR(16), A.SPLY_ST_DT, 120), '') 		AS SPLYSTDT,
+	        ISNULL(CONVERT(VARCHAR(16), A.SPLY_END_DT, 120), '') 		AS SPLYENDDT,
+	        LTRIM(RTRIM(STR(ISNULL(A.BEF_AMT, 0), 13, 3)))  			AS BEFAMT,
+	        LTRIM(RTRIM(STR(ISNULL(A.AFR_AMT, 0), 13, 3)))  			AS AFRAMT,
+	        ISNULL(A.REQ_BY, '')                       					AS REQBY,
+<!-- 	        ISNULL(CONVERT(VARCHAR(16), A.ACK_DT,120),'')     AS ACKDT, -->
+<!-- 	        ISNULL(A.ACK_BY, '')                       AS ACKBY, -->
+<!-- 	        SNULL(CONVERT(VARCHAR(16), A.CMP_DT,120),'')     AS CMPDT, -->
+<!-- 	        ISNULL(A.CMP_BY, '')                       AS CMPBY, -->
+<!-- 	        ISNULL(CONVERT(VARCHAR(16), A.CNCL_DT,120),'')    AS CNCLDT, -->
+<!-- 	        ISNULL(A.CNCL_BY, '')                      AS CNCLBY, -->
+<!-- 	        ISNULL(CONVERT(VARCHAR(16), A.REJ_DT,120),'')     AS REJDT, -->
+<!-- 	        ISNULL(A.REJ_BY, '')                       AS REJBY, -->
+	        ISNULL(A.RMK, '')                          					AS RMK,
+<!-- 	        ISNULL(A.UPD_USER_ID, '')                  AS USERID, -->
+	        ISNULL(A.STAT_CD, '')                      					AS STATCD,
+<!-- 	         Replace GET_COMMON_CD_NM(...) with equivalent SQL Server UDF or logic if needed: -->
+<!-- 	         e.g. dbo.GET_COMMON_CD_NM('MT', 'DOCSTAT', A.STAT_CD) -->
+<!-- 	        '<<Replace GET_COMMON_CD_NM function>>'      AS STATCDNM, -->
+	        ISNULL(
+	            ROUND(
+	                DATEDIFF(MINUTE, A.SPLY_ST_DT, A.SPLY_END_DT) / 60.0,
+	                2
+	            ),
+	            0
+	        ) 															AS TOTALHRS,
+	        ROUND(ISNULL(A.AFR_AMT, 0) - ISNULL(A.BEF_AMT, 0), 0) AS QTYSPLY,
+	        CAST(
+	            ISNULL(
+	                ROUND(
+	                    DATEDIFF(MINUTE, A.SPLY_ST_DT, A.SPLY_END_DT) * 1.0
+	                    / CASE WHEN (A.AFR_AMT - A.BEF_AMT) = 0 THEN 1 ELSE (A.AFR_AMT - A.BEF_AMT) END,
+	                    3
+	                ),
+	            0) AS DECIMAL(10,2)
+	        ) 															AS CHARGE,
+<!-- 	        CASE WHEN CRT_BY = #{userId} THEN 'Y' ELSE 'N' END AS OWNERYN, -->
+	        ISNULL(A.LOC_ID, '')                        				AS LOCID,
+	        A.VERSION                                   				AS VERSION,
+<!-- 	        ISNULL(CONVERT(VARCHAR(16), A.CRT_DT, 120),'') AS SUBMIT, -->
+<!-- 	        A.CRT_BY                                    AS SUBMITBY, -->
+	        ISNULL(CONVERT(VARCHAR(16), A.REQ_DT,120),'') 				AS REQUEST,
+	        ISNULL(A.CASH_PAYMENT,'N')                   				AS cashPayment
+	    FROM TMT_FW_SVC_DTL A
+	    WHERE A.VSL_CALL_ID = 'STRG'
+	      <if test="statCd != null and statCd != ''">
+	        AND A.STAT_CD = #{statCd}
+	      </if>
+	      <if test="splyReq != null and splyReq != ''">
+	        AND A.REQ_DT BETWEEN CONVERT(DATETIME, #{splyReq} + ' 00:00:00', 103)
+	                         AND CONVERT(DATETIME, #{splyEndReq} + ' 23:59:59', 103)
+	      </if>
+	      <if test="splyStDt != null and splyStDt != ''">
+	        AND A.REQ_DT BETWEEN CONVERT(DATETIME, #{splyStDt} + ' 00:00:00', 103)
+	                         AND CONVERT(DATETIME, #{splyEndDt} + ' 23:59:59', 103)
+	      </if>
+	      <if test="docNo != null and docNo != ''">
+	        AND doc_no = #{docNo}
+	      </if>
+	</sql>
+	<select id="selectFreshWaterServiceListCount" parameterType="freshWaterServiceParm" resultType="java.lang.String" >
+        SELECT /*freshWaterService.selectFreshWaterServiceCount*/
+			COUNT(*)
+        FROM 
+        	<if test="searchType == 'List'">
+        		(<include refid="sqlFreshWaterInfo"/>) AS sqlFreshWaterInfo
+			</if>
+			<if test="searchType == 'ListNonJPVC'">
+			     (<include refid="sqlFreshWaterInfoNonJPVC"/>) AS sqlFreshWaterInfoNonJPVC
+			</if>
+			
+	</select>
+</mapper>

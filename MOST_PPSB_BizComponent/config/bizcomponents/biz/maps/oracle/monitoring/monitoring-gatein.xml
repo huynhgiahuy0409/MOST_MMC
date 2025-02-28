@@ -1,0 +1,552 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+<mapper namespace="gateIn">
+	<sql id="getListOfGateIn">
+		<include refid="getGateInList"/>
+	</sql>
+	
+	<sql id="sqlShipgNote">
+		SELECT	/* gateIn.xml  ListOfGateIn CT125 */
+                DL.VSL_CALL_ID					AS VSLCALLID
+               	,GR.SHIPG_NOTE_NO				AS SHIPGNOTENO 
+               	,GR.GR_NO						AS GRNO 
+               	,MAX(GR.TSPT_TP_CD) 			AS TSPTTPCD
+               	,F_CM_012('MT', 'DELVTP', MAX(NVL(CM.DELV_TP_CD,SN.DELV_TP_CD))) 	AS DELVTPCD
+               	,MAX(CM.STAT_CD)				AS STATCD 
+               	,TO_CHAR(MAX(DECODE(CM.TSPT_TP_CD,'CV',
+                       CM.LOAD_ST_DT, DL.GATE_IN_DT)),'DD/MM/YYYY HH24:MI') 		AS FIRSTGATEINDT
+               	,TO_CHAR(MAX(DECODE(CM.TSPT_TP_CD,'CV',  
+                       CM.LOAD_END_DT, DL.GATE_OUT_DT)), 'DD/MM/YYYY HH24:MI') 		AS LASTGATEOUTDT
+               	,TO_CHAR(NVL(MAX(CM.HDL_IN_END_DT), MAX(CM.HDL_IN_ST_DT)), 'DD/MM/YYYY HH24:MI') AS HDLINENDDT
+               	,MAX(JB.TO_LOC_ID)				AS WHLOCID
+               	,MAX(JB.TO_LOC_ID) 				AS WHLOCNM 
+               	,TO_CHAR(MAX(CM.LOAD_END_DT),'DD/MM/YYYY HH24:MI') AS LOADENDDT
+               	,MAX(NVL(CM.CMDT_CD,GR.CMDT_CD)) AS DESCR 
+               	,MAX(NVL(CM.FWR_AGNT,SN.FWRD)) 	AS FWRAGNT
+               	,MAX(GR.CG_WGT) 				AS WGT
+               	,MAX(GR.CG_VOL)					AS MSRMT
+               	,MAX(GR.PKG_QTY)				AS PKGQTY
+               	,MAX(NVL(DL.LORRY_NO,GR.LORRY_NO)) AS LORRYNO
+               	,F_CM_012('MT', 'GATECD', DL.GATE_CD)  AS GATENM
+              	,'' 							AS ISDGCARGO
+               	,'' 							AS DGAPPRSTAT
+               	,MAX(NVL (WBR.TRK_GRS_WGT, '')) AS SCALEAMT
+               	,MAX(DL.STAFF_CD)				AS GATEINBY
+               	,'' 							AS BLNO
+         	   	,'' 							AS DONO
+         	   	,DL.SEQ 						AS SEQ
+         	   	,INV.WH_LOC_ID 					AS WHLOC
+		FROM 	TMT_VSL_SCH VS, 
+          		TMT_CG_MST CM, 
+          		TMT_GR GR, 
+          		TMT_CG_ARRV_DELV DL,
+          		TMT_LOC_DEF LOC , 
+          		TMT_WEIGHTBRIDGE WBR,
+                TMT_SHIPG_NOTE SN , 
+                TMT_INV_LOC INV, 
+                TMT_JOB JB
+		WHERE   DL.VSL_CALL_ID = VS.VSL_CALL_ID(+)
+          		AND DL.CG_IN_OUT_CD = 'I'
+            	AND GR.VSL_CALL_ID = WBR.VSL_CALL_ID (+)
+            	AND GR.SHIPG_NOTE_NO = WBR.SHIPG_NOTE_NO (+)
+            	AND GR.GR_NO = WBR.GR_NO (+)
+            	AND DL.VSL_CALL_ID=GR.VSL_CALL_ID
+            	AND DL.CG_NO = GR.GR_NO(+) 
+            	AND GR.VSL_CALL_ID = CM.VSL_CALL_ID(+)
+            	AND GR.GR_NO = CM.CG_NO(+)              
+            	AND DL.LOC_ID = LOC.LOC_ID(+)
+            	AND SN.VSL_CALL_ID = GR.VSL_CALL_ID
+            	AND GR.SHIPG_NOTE_NO=SN.SHIPG_NOTE_NO(+) 
+            	AND CM.CG_NO = INV.CG_NO(+)
+            	AND CM.VSL_CALL_ID = INV.VSL_CALL_ID(+)
+            	AND INV.JOB_NO = JB.JOB_NO (+)
+				<if test="vslCallId != null and vslCallId != ''">
+	   				AND GR.VSL_CALL_ID =  #{vslCallId} 
+			   	</if>
+				<if test="shipgNoteNo != null and shipgNoteNo != ''">
+	   				AND GR.SHIPG_NOTE_NO = #{shipgNoteNo}
+				</if>		
+				<if test="fwrAgent != null and fwrAgent != ''">
+	   				AND (SN.FWRD = #{fwrAgent} OR CM.FWR_AGNT = #{fwrAgent})
+				</if>
+				<if test="lorryNo != null and lorryNo != ''">
+	   				AND DL.LORRY_NO = #{lorryNo}
+				</if>
+				<if test="whLoc != null and whLoc != ''">
+	   				AND DL.LORRY_NO = #{whLoc}
+				</if>
+				<if test="gateInStDt != null and gateInStDt != ''">
+	  	 			AND
+			 		<![CDATA[
+						DL.GATE_IN_DT >= TO_DATE(#{gateInStDt} || '00:00:00', 'DD/MM/YYYY HH24:MI:SS')
+			 		]]>  
+				</if>			
+				<if test="gateInEndDt != null and gateInEndDt != ''">
+	   				AND
+			 		<![CDATA[
+						DL.GATE_IN_DT <= TO_DATE(#{gateInEndDt} || '23:59:59', 'DD/MM/YYYY HH24:MI:SS')
+			 		]]>  
+				</if>		
+           GROUP BY DL.VSL_CALL_ID, GR.SHIPG_NOTE_NO, GR.GR_NO, DL.GATE_CD, DL.SEQ, INV.WH_LOC_ID
+	</sql>
+	
+	<select id="selectListOfGateIn" parameterType="gateInParm" resultType="gateInItem">
+	 	<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getListOfGateIn"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	 
+	<select id="selectListOfGateInCount" parameterType="gateInParm" resultType="java.lang.String">
+	 	SELECT COUNT(*)
+          FROM (<include refid="getListOfGateIn"/>)
+	</select>
+	 
+	<select id="selectListOfGateIn2" parameterType="gateInParm" resultType="gateInItem">
+	 	<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getListOfGateIn2"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	
+	<select id="selectListOfGateIn2Count" parameterType="gateInParm" resultType="java.lang.String">
+	 	SELECT COUNT(*)
+          FROM (<include refid="getListOfGateIn2"/>)
+	</select>
+	
+	<sql id="getListOfGateIn2">
+		SELECT                   
+		      	B.VSL_CALL_ID AS VSLCALLID,
+		       	E.GATE_PASS_NO AS GATEPASSNO,
+		      	B.BL_NO AS BLNO,
+		       	D.DO_NO AS DELVODRNO,
+		       	'EMPTY' AS GRNO,
+		       	'' AS SHIPGNOTENO,
+		       	E.LORRY_NO AS LORRYNO,
+		       	C.TSPT_TP_CD AS TSPTTPCD,
+		       	F_CM_012 ('MT', 'GATECD', E.GATE_CD_OUT) AS GATENM,
+		       	F_CM_012 ('MT', 'DELVTP', C.DELV_TP_CD) AS DELVTPCD,
+		       	C.CMDT_CD AS DESCR,
+		       	DECODE (E.FNL_YN,  NULL, 'N',  'N', 'N',  'Y') AS STATCD,
+		       	CASE WHEN B.DG_SEQ IS NOT NULL THEN 
+		       			'Y'
+		       		ELSE 
+		       			'N'
+		       		END AS ISDGCARGO,
+		       	DECODE (D.DG_CHK,
+		               'Y', 'APPROVAL',
+		               'N', 'SUBMIT',
+		               'C', 'CANCEL',
+		               '')
+		          AS DGAPPRSTAT,
+			   	C.WGT AS WGT,
+		       	C.MSRMT AS MSRMT,
+		       	C.PKG_QTY AS PKGQTY,
+		       	TO_CHAR (NVL (C.DIS_END_DT, J.WORK_END_DT), 'DD/MM/YYYY HH24:MI')
+		          AS DISENDDT,
+		       	TO_CHAR (C.HDL_OUT_END_DT, 'DD/MM/YYYY HH24:MI') AS HDLOUTENDDT,
+		       	DECODE (
+		          B.TSPT_TP_CD,
+		          'CV', DECODE (C.DIS_ST_DT,
+		                        NULL, '',
+		                        TO_CHAR (C.DIS_ST_DT, 'DD/MM/YYYY HH24:MI')),
+				DECODE (E.GATE_IN_DT,
+		                  NULL, '',
+		                  TO_CHAR (E.GATE_IN_DT, 'DD/MM/YYYY HH24:MI')))
+		          AS FIRSTGATEINDT,
+		       	DECODE (
+		          B.TSPT_TP_CD,
+		          'CV', DECODE (C.DIS_END_DT,
+		                        NULL, '',
+		                        TO_CHAR (C.DIS_END_DT, 'DD/MM/YYYY HH24:MI')),
+				DECODE (E.GATE_OUT_DT,
+		                  NULL, '',
+		                  TO_CHAR (E.GATE_OUT_DT, 'DD/MM/YYYY HH24:MI')))
+		          AS LASTGATEOUTDT,
+		       	'' AS HDLINENDDT,
+		       	NVL (C.FWR_AGNT, NVL (B.FWRD, ' ')) AS FWRAGNT,
+		       	E.LOC_ID AS WHLOCNM,
+		       	'' AS WHLOCID,
+		       	'' AS LOADENDDT,
+		       	F_GET_SCALE_AMNT (B.VSL_CALL_ID, B.BL_NO) AS SCALEAMT,
+		       	E.STAFF_CD AS GATEINBY
+		FROM 	TMT_VSL_SCH A,
+		       	TMT_BL B,
+		       	TMT_DO D,
+		       	TMT_CG_MST C,
+		       	TMT_DG D,
+		       	TMT_CG_ARRV_DELV E,
+		       	TMT_JOB J
+		WHERE   E.VSL_CALL_ID = A.VSL_CALL_ID
+		       	AND E.VSL_CALL_ID = B.VSL_CALL_ID
+		       	AND E.VSL_CALL_ID = D.VSL_CALL_ID
+		       	AND E.BL_NO = B.BL_NO
+		       	AND E.CG_NO = B.BL_NO
+		       	AND E.VSL_CALL_ID = C.VSL_CALL_ID(+)
+		       	AND E.CG_NO = C.CG_NO(+)
+		       	AND B.DG_SEQ = D.SEQ(+)
+		       	AND E.JOB_NO = J.JOB_NO(+)
+		       	AND E.GATE_OUT_DT IS NOT NULL
+			    <if test="vslCallId != null and vslCallId != ''">
+	      			AND E.VSL_CALL_ID = #{vslCallId}
+			   	</if>
+				<if test="fwrAgent != null and fwrAgent != ''">
+    				AND B.FWRD = #{fwrAgent}
+				</if>
+				<if test="delvOdrNo != null and delvOdrNo != ''">
+					AND D.DO_NO = #{delvOdrNo}
+				</if>
+				<if test="blNo != null and blNo != ''">
+					AND B.BL_NO = #{blNo}
+				</if>
+				<if test="lorryNo != null and lorryNo != ''">
+					AND E.LORRY_NO = #{lorryNo}
+				</if>
+				<if test="gateInStDt != null and gateInStDt != ''">
+				   	AND
+					<![CDATA[
+						TO_CHAR (E.GATE_OUT_DT, 'YYYYMMDD') >=TO_CHAR (TO_DATE (#{gateInStDt}, 'DD/MM/YYYY'), 'YYYYMMDD')
+					]]>  
+				</if>
+				<if test="gateInEndDt != null and gateInEndDt != ''">
+	   				AND
+			 		<![CDATA[
+						TO_CHAR (E.GATE_OUT_DT, 'YYYYMMDD') <=TO_CHAR (TO_DATE (#{gateInEndDt}, 'DD/MM/YYYY'), 'YYYYMMDD')
+			 		]]>  
+				</if>
+		UNION ALL
+		SELECT                          
+		      	DL.VSL_CALL_ID AS VSLCALLID,
+		       	'' AS GATEPASS,
+		       	'' AS BLNO,
+		       	'' AS DELVODRNO,
+		       	GR.GR_NO AS GRNO,
+		       	GR.SHIPG_NOTE_NO AS SHIPGNOTENO,
+		       	MAX (NVL (DL.LORRY_NO, GR.LORRY_NO)) AS LORRYNO,
+		       	MAX (GR.TSPT_TP_CD) AS TSPTTPCD,
+		       	F_CM_012 ('MT', 'GATECD', DL.GATE_CD) GATENM,
+		       	F_CM_012 ('MT',
+		                         'DELVTP',
+		                         MAX (NVL (CM.DELV_TP_CD, SN.DELV_TP_CD)))
+		          AS DELVTPCD,
+		       	MAX (NVL (CM.CMDT_CD, GR.CMDT_CD)) AS DESCR,
+		       	MAX (CM.STAT_CD) AS STATCD,
+		       	MAX (F_GET_DMG_YN (VS.VSL_CD,
+		                        VS.CALL_YEAR,
+		                        VS.CALL_SEQ,
+		                        GR.SHIPG_NOTE_NO))
+		          AS ISDGCARGO,
+		       	'' AS DGAPPRSTAT,
+		       	MAX (GR.WGT) AS WGT,
+		       	MAX (GR.MSRMT) AS MSRMT,
+		       	MAX (GR.PKG_QTY) AS PKGQTY,
+		       	'' AS DISENDDT,
+		       	'' AS HDLOUTENDDT,
+		       	TO_CHAR (
+		          MAX (DECODE (CM.TSPT_TP_CD, 'CV', CM.LOAD_ST_DT, DL.GATE_IN_DT)),
+		          'DD/MM/YYYY HH24:MI')
+		          AS FIRSTGATEINDT,
+		       	TO_CHAR (
+		          MAX (DECODE (CM.TSPT_TP_CD, 'CV', CM.LOAD_END_DT, DL.GATE_OUT_DT)),
+		          'DD/MM/YYYY HH24:MI')
+		          AS LASTGATEOUTDT,
+		       	TO_CHAR (NVL (MAX (CM.HDL_IN_END_DT), MAX (CM.HDL_IN_ST_DT)),
+		                'DD/MM/YYYY HH24:MI')
+		          AS HDLINENDDT,
+		       	MAX (NVL (CM.FWR_AGNT, SN.FWRD)) AS FWRAGNT,
+		       	MAX (JB.TO_LOC_ID) AS WHLOCNM,
+		       	MAX (JB.TO_LOC_ID) AS WHLOCID,
+		       	TO_CHAR (MAX (CM.LOAD_END_DT), 'DD/MM/YYYY HH24:MI') AS LOADENDDT,
+		       	MAX (NVL (WBR.TRK_GRS_WGT, '')) SCALEAMT,
+		       	MAX (DL.STAFF_CD) GATEINBY
+		FROM 	TMT_VSL_SCH VS,
+		       	TMT_CG_MST CM,
+		       	TMT_GR GR,
+		       	TMT_CG_ARRV_DELV DL,
+		       	TMT_LOC_DEF LOC,
+		       	TMT_WEIGHTBRIDGE WBR,
+		       	TMT_SHIPG_NOTE SN,
+		       	TMT_INV_LOC INV,
+		       	TMT_JOB JB
+		WHERE   DL.VSL_CALL_ID = VS.VSL_CALL_ID
+		       	AND GR.VSL_CALL_ID = WBR.VSL_CALL_ID(+)
+		       	AND GR.SHIPG_NOTE_NO = WBR.SHIPG_NOTE_NO(+)
+		       	AND GR.GR_NO = WBR.GR_NO(+)
+		       	AND DL.VSL_CALL_ID = GR.VSL_CALL_ID
+		       	AND DL.CG_NO = GR.GR_NO(+)
+		       	AND GR.VSL_CALL_ID = CM.VSL_CALL_ID(+)
+		       	AND GR.GR_NO = CM.CG_NO(+)
+		       	AND DL.LOC_ID = LOC.LOC_ID(+)
+		       	AND SN.VSL_CALL_ID = GR.VSL_CALL_ID
+		       	AND GR.SHIPG_NOTE_NO = SN.SHIPG_NOTE_NO(+)
+		       	AND CM.CG_NO = INV.CG_NO(+)
+		       	AND CM.VSL_CALL_ID = INV.VSL_CALL_ID(+)
+		       	AND INV.JOB_NO = JB.JOB_NO(+)
+		       	AND INV.VSL_CALL_ID = JB.VSL_CALL_ID(+)
+			    <if test="vslCallId != null and vslCallId != ''">
+	      			AND GR.VSL_CALL_ID =  #{vslCallId} 
+			   	</if>
+				<if test="shipgNoteNo != null and shipgNoteNo != ''">
+	   				AND GR.SHIPG_NOTE_NO = #{shipgNoteNo}
+				</if>
+				<if test="grNo != null and grNo != ''">
+	   				AND GR.GR_NO = #{grNo}
+				</if>			
+				<if test="fwrAgent != null and fwrAgent != ''">
+	   				AND (SN.FWRD = #{fwrAgent} OR CM.FWR_AGNT = #{fwrAgent})
+				</if>
+				<if test="lorryNo != null and lorryNo != ''">
+	   				AND DL.LORRY_NO = #{lorryNo}
+				</if>
+			    <if test="gateInStDt != null and gateInStDt != ''">
+	      			AND
+			 		<![CDATA[
+						TO_CHAR(DL.GATE_IN_DT,'YYYYMMDD') >= TO_CHAR(TO_DATE(#{gateInStDt}, 'DD/MM/YYYY'), 'YYYYMMDD')
+			 		]]>  
+				</if>
+			    <if test="gateInEndDt != null and gateInEndDt != ''">
+	      			AND
+			 		<![CDATA[
+						TO_CHAR(DL.GATE_IN_DT,'YYYYMMDD') <= TO_CHAR(TO_DATE(#{gateInEndDt}, 'DD/MM/YYYY'), 'YYYYMMDD')
+			 		]]>  
+				</if>	
+		GROUP BY DL.VSL_CALL_ID,
+		         GR.SHIPG_NOTE_NO,
+		         GR.GR_NO,
+		         DL.GATE_CD
+	</sql>
+	
+	<sql id = "getGateInList">
+		<if test="shipgNoteNo == null or shipgNoteNo == ''">
+			<include refid="getGateInBlList"/>
+		</if>
+		<if test="shipgNoteNo == null or shipgNoteNo == ''">
+			<if test="blNo == null or blNo == ''">
+			UNION ALL
+			</if>
+		</if>
+		<if test="blNo == null or blNo == ''">
+			<include refid="getGateInSnList"/>
+		</if> 
+	</sql>
+	
+	<sql id="getGateInBlList">
+		SELECT DISTINCT 
+		        BL.VSL_CALL_ID 								AS VSLCALLID,
+		        ''											AS BOOKINGNO,
+		        '' 											AS SHIPGNOTENO,
+		        '' 											AS GRNO,
+		        BL.MF_DOC_ID								AS MFDOCID,
+		        BL.BL_NO 									AS BLNO,
+		        BL.LOT_NO									AS LOTNO,
+		        F_GET_PTNR_SNM(BL.CNSNE)					AS CNSNENM,
+		        F_GET_PTNR_SNM(BL.SHPR)						AS SHPRNM,
+		        SDO.DO_NO 									AS DONO,
+		        SDO.SDO_NO									AS SDONO,
+		        SDO.RMK										AS RMK,
+		        F_CM_012 ('MT', 'DELVTP', SDO.DELV_TP_CD) 	AS DELVTPCD,
+		        BL.TSPT_TP_CD 								AS TSPTTPCD,
+		        GT.LORRY_NO 								AS LORRYNO,  
+		        F_CM_012('MT', 'GATECD', GT.GATE_CD)  		AS GATENM,
+		        (SELECT CMDT_DESC FROM TMT_CMDT WHERE CMDT_CD = GT.CMDT_CD AND ROWNUM = 1) AS DESCR,
+		        GT.GATE_IN_DT 								AS FIRSTGATEINDT,
+		        ABS(WB.FIRST_WGT - WB.SECOND_WGT) 			AS SCALEAMT,
+		        GT.STAFF_CD 								AS GATEINBY,
+		        JB.TO_LOC_ID               					AS WHLOCID,
+		        JB.TO_LOC_ID                				AS WHLOCNM,
+		        INV.WH_LOC_ID               				AS WHLOC,
+		        GT.GATE_OUT_DT  							AS LASTGATEOUTDT,
+		        NVL(CM.FWR_AGNT,BL.FWRD)					AS FWRAGNT,
+		        BL.CG_WGT 									AS WGT,
+		        BL.CG_VOL 									AS MSRMT,
+		        BL.PKG_QTY  								AS PKGQTY,
+		        CM.STAT_CD               					AS STATCD,
+		        TO_CHAR(NVL(CM.HDL_IN_END_DT, CM.HDL_IN_ST_DT), 'DD/MM/YYYY HH24:MI') AS HDLINENDDT,
+		        AT.CHASSIS_NO 								AS CHASSISNO,
+		        TO_CHAR(CM.LOAD_END_DT,'DD/MM/YYYY HH24:MI')	AS LOADENDDT
+         
+		FROM 	TMT_CG_ARRV_DELV GT
+                INNER JOIN TMT_DO_DTL SDO
+                   ON     GT.VSL_CALL_ID = SDO.VSL_CALL_ID
+                      AND GT.CG_NO = SDO.BL_NO
+                      AND GT.SDO_NO = SDO.SDO_NO
+                INNER JOIN TMT_BL BL
+                   ON     GT.VSL_CALL_ID = BL.VSL_CALL_ID
+                      AND GT.CG_NO = BL.BL_NO
+                LEFT OUTER JOIN TMT_JOB JB
+					ON     GT.VSL_CALL_ID = JB.VSL_CALL_ID
+					   AND GT.GATE_TXN_NO = JB.GATE_TXN_NO
+					   AND JB.JOB_PURP_CD NOT IN ('IO', 'OI')
+                LEFT OUTER JOIN TMT_ASSIGN_TRANSPORT AT
+                   ON     AT.VSL_CALL_ID = GT.VSL_CALL_ID
+                      AND AT.BL_NO = BL.BL_NO
+                      AND GT.LORRY_NO = AT.LORRY_NO
+                LEFT OUTER JOIN TMT_CG_MST CM
+                   ON     GT.VSL_CALL_ID = CM.VSL_CALL_ID
+                      AND GT.CG_NO = CM.CG_NO
+                
+                LEFT OUTER JOIN TMT_WEIGHTBRIDGE WB
+                   ON     GT.VSL_CALL_ID = WB.VSL_CALL_ID
+                      AND GT.GATE_TXN_NO = WB.GATE_TICKET_NO
+                      AND GT.SDO_NO = WB.SDO_NO
+                LEFT OUTER JOIN TMT_INV_LOC INV
+                   ON GT.CG_NO = INV.CG_NO AND JB.JOB_NO = INV.JOB_NO
+		
+		WHERE 	GT.GATE_IN_DT IS NOT NULL
+				<if test="vslCallId != null and vslCallId != ''">
+	   				AND BL.VSL_CALL_ID =  #{vslCallId} 
+			   	</if>		
+			   	<if test="mfDocId != null and mfDocId != ''">
+	   				AND BL.MF_DOC_ID =  #{mfDocId} 
+			   	</if>
+			   	<if test="blNo != null and blNo != ''">
+	   				AND BL.BL_NO =  #{blNo} 
+			   	</if>
+				<if test="fwrAgent != null and fwrAgent != ''">
+	   				AND CM.FWR_AGNT = #{fwrAgent} OR BL.FWRD = #{fwrAgent}
+				</if>
+				<if test="lorryNo != null and lorryNo != ''">
+	   				AND GT.LORRY_NO = #{lorryNo}
+				</if>
+				<if test="whLoc != null and whLoc != ''">
+	   				AND INV.WH_LOC_ID = #{whLoc}
+				</if>
+				<if test="gateInStDt != null and gateInStDt != ''">
+	  	 			AND
+			 		<![CDATA[
+						GT.GATE_IN_DT >= TO_DATE(#{gateInStDt}, 'DD/MM/YYYY HH24:MI')
+			 		]]>  
+				</if>			
+				<if test="gateInEndDt != null and gateInEndDt != ''">
+	   				AND
+			 		<![CDATA[
+						GT.GATE_IN_DT <= TO_DATE(#{gateInEndDt}, 'DD/MM/YYYY HH24:MI')
+			 		]]>  
+				</if>	
+	</sql>
+	
+	<sql id="getGateInSnList">
+		SELECT DISTINCT 
+		        GT.VSL_CALL_ID 								AS VSLCALLID,
+		        (SELECT MF_DOC_ID 
+		        FROM TMT_SHIPG_NOTE  
+		        WHERE SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO 
+		        AND ROWNUM = 1)								AS BOOKINGNO,
+		        GR.SHIPG_NOTE_NO 							AS SHIPGNOTENO,
+		        GR.GR_NO 									AS GRNO,
+		        ''											AS MFDOCID,
+		        '' 											AS BLNO,
+		        (SELECT LOT_NO 
+		        FROM TMT_SHIPG_NOTE  
+		        WHERE SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO 
+		        AND ROWNUM = 1)								AS LOTNO,
+		        F_GET_PTNR_SNM((SELECT CNSNE 
+		        FROM TMT_SHIPG_NOTE  
+		        WHERE SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO 
+		        AND ROWNUM = 1))							AS CNSNENM,
+		        F_GET_PTNR_SNM((SELECT SHPR 
+		        FROM TMT_SHIPG_NOTE  
+		        WHERE SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO 
+		        AND ROWNUM = 1))							AS SHPRNM,
+		        '' 											AS DONO,
+		        ''											AS SDONO,  
+		        GR.RMK										AS RMK,
+		        F_CM_012 ('MT', 'DELVTP', 
+		        (SELECT SN.DELV_TP_CD 
+		        FROM TMT_SHIPG_NOTE SN 
+		        WHERE SN.SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO 
+		        AND ROWNUM = 1)) 							AS DELVTPCD,
+		        (SELECT SN.TSPT_TP_CD 
+		        FROM TMT_SHIPG_NOTE SN 
+		        WHERE SN.SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO 
+		        AND ROWNUM = 1) 							AS TSPTTPCD,
+		        GT.LORRY_NO 								AS LORRYNO,
+		        F_CM_012('MT', 'GATECD', GT.GATE_CD)  		AS GATENM,
+		        (SELECT CMDT_DESC FROM TMT_CMDT WHERE CMDT_CD = GT.CMDT_CD AND ROWNUM = 1) AS DESCR,
+		         GT.GATE_IN_DT 								AS FIRSTGATEINDT,
+		        ABS(WB.FIRST_WGT - WB.SECOND_WGT) 			AS SCALEAMT,
+		        GT.STAFF_CD 								AS GATEINBY,
+		        JB.TO_LOC_ID                				AS WHLOCID,
+		        JB.TO_LOC_ID                 				AS WHLOCNM,
+		        INV.WH_LOC_ID               				AS WHLOC,
+		        GT.GATE_OUT_DT  							AS LASTGATEOUTDT,
+		        NVL(CM.FWR_AGNT,
+		        (SELECT SN.FWRD 
+		        FROM TMT_SHIPG_NOTE SN 
+		        WHERE SN.SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO 
+		        AND ROWNUM = 1))     						AS FWRAGNT,
+		        GR.CG_WGT 									AS WGT,
+		        GR.CG_VOL 									AS MSRMT,
+		        GR.PKG_QTY  								AS PKGQTY,
+		        CM.STAT_CD                					AS STATCD,
+		        TO_CHAR(NVL(CM.HDL_IN_END_DT, CM.HDL_IN_ST_DT), 'DD/MM/YYYY HH24:MI') AS HDLINENDDT,
+		        AT.CHASSIS_NO 								AS CHASSISNO,
+		        TO_CHAR(CM.LOAD_END_DT,'DD/MM/YYYY HH24:MI')	AS LOADENDDT
+		        
+		FROM 	TMT_CG_ARRV_DELV GT
+                INNER JOIN TMT_GR GR
+                   ON     GT.VSL_CALL_ID = GR.VSL_CALL_ID
+                      AND GT.GR_NO = GR.GR_NO
+                INNER JOIN TMT_ASSIGN_TRANSPORT AT
+                   ON     AT.VSL_CALL_ID = GT.VSL_CALL_ID
+                      AND AT.SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO
+                      AND GT.LORRY_NO = AT.LORRY_NO
+                LEFT OUTER JOIN TMT_JOB JB
+					ON     GT.VSL_CALL_ID = JB.VSL_CALL_ID
+					   AND GT.GATE_TXN_NO = JB.GATE_TXN_NO
+					   AND JB.JOB_PURP_CD NOT IN ('IO', 'OI')
+                LEFT OUTER JOIN TMT_CG_MST CM
+                   ON     GT.VSL_CALL_ID = CM.VSL_CALL_ID
+                      AND GT.CG_NO = CM.CG_NO                       
+                LEFT OUTER JOIN TMT_WEIGHTBRIDGE WB
+                   ON     GT.VSL_CALL_ID = WB.VSL_CALL_ID
+                      AND GT.GATE_TXN_NO = WB.GATE_TICKET_NO
+                      AND GT.GR_NO = WB.GR_NO
+                LEFT OUTER JOIN TMT_INV_LOC INV
+                   ON GT.CG_NO = INV.CG_NO AND JB.JOB_NO = INV.JOB_NO
+		
+		WHERE 	GT.GATE_IN_DT IS NOT NULL
+				<if test="vslCallId != null and vslCallId != ''">
+	   				AND GR.VSL_CALL_ID =  #{vslCallId} 
+			   	</if>
+				<if test="shipgNoteNo != null and shipgNoteNo != ''">
+	   				AND GR.SHIPG_NOTE_NO = #{shipgNoteNo}
+				</if>		
+				<if test="fwrAgent != null and fwrAgent != ''">
+	   				AND CM.FWR_AGNT = #{fwrAgent} OR (SELECT SN.FWRD FROM TMT_SHIPG_NOTE SN WHERE SN.SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO AND ROWNUM = 1) = #{fwrAgent}
+				</if>
+				<if test="lorryNo != null and lorryNo != ''">
+	   				AND GT.LORRY_NO = #{lorryNo}
+				</if>
+				<if test="whLoc != null and whLoc != ''">
+	   				AND INV.WH_LOC_ID = #{whLoc}
+				</if>
+				<if test="gateInStDt != null and gateInStDt != ''">
+	  	 			AND
+			 		<![CDATA[
+						GT.GATE_IN_DT >= TO_DATE(#{gateInStDt}, 'DD/MM/YYYY HH24:MI')
+			 		]]>  
+				</if>			
+				<if test="gateInEndDt != null and gateInEndDt != ''">
+	   				AND
+			 		<![CDATA[
+						GT.GATE_IN_DT <= TO_DATE(#{gateInEndDt}, 'DD/MM/YYYY HH24:MI')
+			 		]]>  
+				</if>		
+	</sql>
+</mapper>

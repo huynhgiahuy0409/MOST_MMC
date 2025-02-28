@@ -1,0 +1,1507 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="consolDeconsolidation">
+	<select id="selectConsolDeconsolidationList" parameterType="consolDeconsolidationParm" resultType="consolDeconsolidationItem">
+		<include refid="getConsolDeconsolidationList"/>
+		<choose>
+		
+		 	<when test="pageNo != 0"> 
+				SELECT /*consolDeconsolidation.selectConsolDeconsolidationList*/
+					* 
+				FROM 
+					(SELECT 
+						*, 
+						ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num 
+					FROM 
+						getConsolDeconsolidationList
+					)inner_querry 
+				WHERE 
+					inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+					AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+			</when>				
+				
+			<otherwise> 
+				SELECT /*consolDeconsolidation.selectConsolDeconsolidationList*/
+					*
+				FROM 
+					getConsolDeconsolidationList
+			</otherwise>
+		</choose>
+	</select>
+
+	<sql id="getConsolDeconsolidationList">
+	WITH /*consolDeconsolidation.getConsolDeconsolidationList*/
+		STORE_DISCHARGE AS (
+			SELECT 
+				SUM(ISNULL(INV.CG_WGT, 0)) 	AS MT,
+				SUM(ISNULL(INV.CG_VOL, 0)) 	AS M3,
+				SUM(ISNULL(INV.PKG_QTY, 0))	AS QTY,
+				INV.VSL_CALL_ID 		   	AS VSLCALLID,
+				INV.CG_NO			  		AS CGNO
+			FROM 
+				TMT_INV_LOC INV 
+			INNER JOIN 
+				TMT_JOB JOB 
+			ON 
+				JOB.VSL_CALL_ID 			= INV.VSL_CALL_ID 
+				AND JOB.CG_NO 				= INV.CG_NO 
+				AND JOB.JOB_NO 				= INV.JOB_NO
+			WHERE 
+				JOB.JOB_PURP_CD 			= 'AW'
+			GROUP BY 
+				INV.VSL_CALL_ID, INV.CG_NO
+			),
+			
+		GET_IN_BALANCE_AMT_BL AS (
+			SELECT 
+				SUM(ISNULL(INV.CG_WGT, 0)) 	AS MT,
+				SUM(ISNULL(INV.CG_VOL, 0)) 	AS M3,
+				SUM(ISNULL(INV.PKG_QTY, 0))	AS QTY,
+				INV.VSL_CALL_ID 		   	AS VSLCALLID,
+				INV.CG_NO			  		AS CGNO,
+				INV.LOC_ID					AS LOCID
+			FROM 
+				TMT_INV_LOC INV 
+			INNER JOIN 
+				TMT_JOB JOB 
+			ON 
+				JOB.VSL_CALL_ID 			= INV.VSL_CALL_ID 
+				AND JOB.CG_NO 				= INV.CG_NO 
+				AND JOB.JOB_NO 				= INV.JOB_NO
+			WHERE
+				1 = 1
+				<if test="scn != null and scn != ''">
+					AND INV.SHIP_CALL_NO 	= #{scn}
+				</if>
+				<if test="vslCallId != null and vslCallId != ''">
+					AND INV.VSL_CALL_ID 	= #{vslCallId}	
+				</if>
+	        	<if test="blNo != null and blNo != ''">
+	        		AND INV.CG_NO 			= #{blNo}
+	        	</if>
+			GROUP BY 
+				INV.VSL_CALL_ID, INV.CG_NO, INV.LOC_ID
+			),
+						
+		TOTAL_DISCHARGED AS (
+			SELECT 
+				SUM(ISNULL(CG_WGT, 0)) 		AS MT,
+				SUM(ISNULL(CG_VOL, 0)) 		AS M3,
+				SUM(ISNULL(PKG_QTY, 0)) 	AS QTY,
+				VSL_CALL_ID 		   		AS VSLCALLID,
+				CG_NO			   			AS CGNO
+			FROM 
+				TMT_JOB
+			WHERE 
+				JOB_PURP_CD IN ('WG', 'VB', 'AB')
+			GROUP BY 
+				VSL_CALL_ID, CG_NO
+			),
+		
+		STORE_LOADED AS(
+			SELECT 
+				MT,
+				M3,
+				QTY,
+				VSLCALLID,
+				SHIPGNOTENO
+			FROM 
+				(SELECT DISTINCT
+					 SUM (ISNULL (INV.CG_WGT, 0)) 	AS MT,
+					 SUM (ISNULL (INV.CG_VOL, 0)) 	AS M3,
+					 SUM (ISNULL (INV.PKG_QTY, 0)) 	AS QTY,
+					 INV.VSL_CALL_ID 				AS VSLCALLID,
+					 GR.SHIPG_NOTE_NO 				AS SHIPGNOTENO
+      			FROM 
+					TMT_INV_LOC INV
+           		INNER JOIN 
+					TMT_GR GR
+             	ON 
+					INV.VSL_CALL_ID 				= GR.VSL_CALL_ID
+             		AND INV.CG_NO 					= GR.GR_NO
+             	INNER JOIN 
+					TMT_JOB JOB 
+				ON 
+					JOB.VSL_CALL_ID 				= INV.VSL_CALL_ID 
+					AND JOB.CG_NO 					= INV.CG_NO 
+					AND JOB.JOB_NO 					= INV.JOB_NO
+				WHERE 
+					JOB.JOB_PURP_CD 				= 'GW'
+      			GROUP BY 
+					INV.VSL_CALL_ID, GR.SHIPG_NOTE_NO) AS sub_query
+			),
+			
+		TOTAL_LOADED AS(
+			SELECT 
+				MT,
+				M3,
+				QTY,
+				VSLCALLID,
+				SHIPGNOTENO
+			FROM 
+				(SELECT 
+					SUM (ISNULL (JOB.CG_WGT, 0)) 	AS MT,
+					SUM (ISNULL (JOB.CG_VOL, 0)) 	AS M3,
+					SUM (ISNULL (JOB.PKG_QTY, 0)) 	AS QTY,
+					JOB.VSL_CALL_ID 				AS VSLCALLID,
+					GR.SHIPG_NOTE_NO 				AS SHIPGNOTENO
+      			FROM 
+					TMT_JOB JOB
+           		INNER JOIN 
+					TMT_GR GR
+             	ON 
+					JOB.VSL_CALL_ID 				= GR.VSL_CALL_ID
+             		AND JOB.CG_NO 					= GR.GR_NO
+             	WHERE 
+					JOB.JOB_PURP_CD IN ('GV', 'BV', 'AV')
+      			GROUP BY 
+					JOB.VSL_CALL_ID, GR.SHIPG_NOTE_NO) AS sub_query
+			),
+			
+		GET_IN_BALANCE_AMT_SN AS(
+			SELECT 
+				MT,
+				M3,
+				QTY,
+				VSLCALLID,
+				SHIPGNOTENO,
+				LOCID
+			FROM 
+				(SELECT DISTINCT
+					 SUM (ISNULL (INV.CG_WGT, 0)) 	AS MT,
+					 SUM (ISNULL (INV.CG_VOL, 0)) 	AS M3,
+					 SUM (ISNULL (INV.PKG_QTY, 0)) 	AS QTY,
+					 INV.VSL_CALL_ID 				AS VSLCALLID,
+					 GR.SHIPG_NOTE_NO 				AS SHIPGNOTENO,
+					 INV.LOC_ID						AS LOCID
+      			FROM 
+					TMT_INV_LOC INV
+           		INNER JOIN 
+					TMT_GR GR
+             	ON 
+					INV.VSL_CALL_ID 				= GR.VSL_CALL_ID
+             		AND INV.CG_NO 					= GR.GR_NO
+             	INNER JOIN 
+					TMT_JOB JOB 
+				ON 
+					JOB.VSL_CALL_ID 				= INV.VSL_CALL_ID
+					AND JOB.JOB_NO 					= INV.JOB_NO
+				WHERE
+					1 = 1
+					<if test="scn != null and scn != ''">
+						AND INV.SHIP_CALL_NO 		= #{scn}
+					</if>
+					<if test="vslCallId != null and vslCallId != ''">
+						AND INV.VSL_CALL_ID 		= #{vslCallId}
+					</if>
+					<if test="snNo != null and snNo != ''">
+						AND GR.SHIPG_NOTE_NO 		= #{snNo}
+					</if>
+      			GROUP BY 
+					INV.VSL_CALL_ID, GR.SHIPG_NOTE_NO, INV.LOC_ID) AS sub_query
+			),
+			
+		INV_LOC_WITH_SN AS(
+			SELECT DISTINCT
+				  INV.*, GR.SHIPG_NOTE_NO
+			FROM 
+				TMT_INV_LOC INV
+			INNER JOIN 
+				TMT_GR GR
+			ON 
+				INV.VSL_CALL_ID 	= GR.VSL_CALL_ID 
+				AND INV.CG_NO 		= GR.GR_NO			     
+		),
+		
+		EXIST_OPE_SN AS(
+			SELECT DISTINCT 
+				G.SHIPG_NOTE_NO 	AS SHIPGNOTENO, 
+				J.VSL_CALL_ID 		AS VSLCALLID 
+			FROM 
+				TMT_JOB J 
+			INNER JOIN 
+				TMT_GR G 
+			ON 
+				G.VSL_CALL_ID 		= J.VSL_CALL_ID 
+				AND G.GR_NO 		= J.CG_NO
+		),
+		
+		TOTAL_GET_IN_SN AS(
+			SELECT 
+				G.SHIPG_NOTE_NO 		AS SHIPGNOTENO, 
+				J.VSL_CALL_ID 			AS VSLCALLID, 
+				ISNULL(J.CG_WGT, 0) 	AS WGT, 
+				ISNULL(J.CG_VOL, 0) 	AS M3, 
+				ISNULL(J.PKG_QTY, 0) 	AS QTY 
+			FROM 
+				TMT_JOB J 
+			INNER JOIN 
+				TMT_GR G 
+			ON 
+				G.VSL_CALL_ID 			= J.VSL_CALL_ID 
+				AND G.GR_NO 			= J.CG_NO
+			WHERE 
+				J.JOB_TP_CD = 'CD' 
+				AND J.JOB_PURP_CD = 'GI'
+		),
+		
+		TOTAL_GET_IN_BL AS(
+			SELECT 
+				CG_NO 					AS CGNO, 
+				VSL_CALL_ID 			AS VSLCALLID, 
+				ISNULL(CG_WGT, 0) 		AS WGT,  
+				ISNULL(CG_VOL, 0) 		AS M3, 
+				ISNULL(PKG_QTY, 0) 		AS QTY
+			FROM 
+				TMT_JOB 
+			WHERE 
+				JOB_TP_CD 				= 'CD' 
+				AND JOB_PURP_CD 		= 'GI'
+		),
+		
+		GET_IN_JOB_BL AS (
+			SELECT DISTINCT 
+				CG_NO 					AS CGNO, 
+				VSL_CALL_ID 			AS VSLCALLID, 
+				TO_LOC_ID 				AS TOLOCID
+			FROM 
+				TMT_JOB
+			WHERE 
+				JOB_TP_CD 				= 'DS' 
+				AND TSPT_TP_CD 			= 'GI' 
+				AND JOB_PURP_CD 		= 'AW'
+		),
+          
+     	GET_IN_JOB_SN AS (
+			SELECT DISTINCT 
+				J.VSL_CALL_ID 			AS VSLCALLID, 
+				G.SHIPG_NOTE_NO 		AS SHIPGNOTENO, 
+				J.TO_LOC_ID 			AS TOLOCID
+           	FROM 
+				TMT_JOB J 
+			INNER JOIN 
+				TMT_GR G 
+			ON 
+				G.VSL_CALL_ID 			= J.VSL_CALL_ID 
+				AND G.GR_NO 			= J.CG_NO
+          	WHERE 
+				J.JOB_TP_CD 			= 'LF' 
+				AND J.TSPT_TP_CD 		= 'GI'
+		),
+        
+        STATUS_BL AS (
+        	SELECT DISTINCT
+        		CASE 
+					WHEN (SELECT 
+							CG_NO 
+		        		FROM 
+							(SELECT TOP(1) 
+								CG_NO 
+							FROM 
+								TMT_JOB 
+							WHERE 
+								VSL_CALL_ID 			= B.VSL_CALL_ID
+								AND CG_NO 				= B.BL_NO
+								AND TSPT_TP_CD 			= 'GI' ) AS cg_no) IS NOT NULL
+							AND (SELECT 
+									CG_NO 
+								FROM 
+									(SELECT TOP(1) 
+										CG_NO 
+		        					FROM 
+										TMT_JOB 
+		        					WHERE 
+										VSL_CALL_ID 	= B.VSL_CALL_ID 
+										AND CG_NO 		= B.BL_NO
+										AND TSPT_TP_CD 	= 'GO' ) AS cg_no
+								) IS NULL THEN 'ST'
+        			WHEN (SELECT 
+							CG_NO 
+        				FROM 
+							(SELECT TOP(1) 
+								CG_NO 
+							FROM 
+								TMT_JOB 
+							WHERE 
+								VSL_CALL_ID 	= B.VSL_CALL_ID
+								AND CG_NO 		= B.BL_NO
+								AND TSPT_TP_CD 	= 'GO' ) AS cg_no
+						) IS NOT NULL THEN 'DV'
+					ELSE 'RS'
+				END 			AS STATUS,
+				B.BL_NO 		AS BLNO,
+				B.VSL_CALL_ID 	AS VSLCALLID
+			FROM 
+				TMT_BL B
+			WHERE
+				1 = 1
+				<if test="scn != null and scn != ''">
+					AND B.SHIP_CALL_NO 					= #{scn}
+				</if>
+				<if test="vslCallId != null and vslCallId != ''">
+					AND B.VSL_CALL_ID 					= #{vslCallId} 
+				</if>
+				<if test="blNo != null and blNo != ''">
+					AND B.BL_NO = #{blNo}
+				</if>
+        ),
+        
+        STATUS_SN AS (
+        	SELECT DISTINCT
+        		CASE
+					WHEN (SELECT 
+							CG_NO 
+						FROM 
+							(SELECT TOP(1) 
+								J.CG_NO 
+							FROM 
+								TMT_JOB J
+							INNER JOIN 
+								TMT_GR G
+							ON 
+								J.VSL_CALL_ID 			= G.VSL_CALL_ID
+								AND J.CG_NO 			= G.GR_NO
+							WHERE 
+								J.VSL_CALL_ID = S.VSL_CALL_ID
+								AND G.SHIPG_NOTE_NO 	= S.SHIPG_NOTE_NO
+								AND J.TSPT_TP_CD 		= 'GI' ) AS cg_no
+						) IS NOT NULL
+						AND 
+						(SELECT 
+							CG_NO FROM 
+								(SELECT TOP(1) 
+									J.CG_NO 
+								FROM 
+									TMT_JOB J
+								INNER 
+									JOIN TMT_GR G
+								ON 
+									J.VSL_CALL_ID 		= G.VSL_CALL_ID
+									AND J.CG_NO 		= G.GR_NO
+								WHERE 
+									J.VSL_CALL_ID 		= S.VSL_CALL_ID 
+									AND G.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO
+									AND J.TSPT_TP_CD 	= 'GO' ) AS cg_no
+						) IS NULL THEN 'ST'
+        			WHEN 
+						(SELECT 
+							CG_NO 
+						FROM 
+							(SELECT TOP(1) 
+								J.CG_NO 
+							FROM 
+								TMT_JOB J
+							INNER JOIN 
+								TMT_GR G
+							ON 
+								J.VSL_CALL_ID 			= G.VSL_CALL_ID
+								AND J.CG_NO 			= G.GR_NO
+							WHERE 
+								J.VSL_CALL_ID 			= S.VSL_CALL_ID
+								AND G.SHIPG_NOTE_NO 	= S.SHIPG_NOTE_NO
+								AND J.TSPT_TP_CD 		= 'GO' ) AS cg_no
+					) IS NOT NULL THEN 'LD'
+					ELSE 'RS'
+				END 			AS STATUS,
+				S.VSL_CALL_ID 	AS VSLCALLID,
+				S.SHIPG_NOTE_NO AS SNNO
+			FROM 
+				TMT_SHIPG_NOTE S 
+			WHERE
+				1 = 1
+				<if test="scn != null and scn != ''">
+					AND S.SHIP_CALL_NO 					= #{scn}
+				</if>
+				<if test="vslCallId != null and vslCallId != ''">
+					AND S.VSL_CALL_ID 					= #{vslCallId}
+				</if>
+				<if test="snNo != null and snNo != ''">
+					AND S.SHIPG_NOTE_NO = #{snNo}
+				</if>
+        ),
+          	
+		<if test="blNo == null or blNo == ''">
+			<if test="snNo == null or snNo == ''">
+				<include refid="getConsolDeconsolidationBlList"/>
+				UNION ALL
+				<include refid="getConsolDeconsolidationSnList"/>)
+			</if>
+		</if>
+		<if test="blNo == null or blNo == ''">
+			<if test="snNo != null and snNo != ''">
+			getConsolDeconsolidationList AS (
+				<include refid="getConsolDeconsolidationSnList"/>)
+			</if>
+		</if>
+		<if test="blNo != null and blNo != ''">
+				<include refid="getConsolDeconsolidationBlList"/>)
+		</if>
+	</sql>
+	
+	<sql id="getConsolDeconsolidationBlList">	
+	getConsolDeconsolidationList	AS (
+		SELECT DISTINCT /*consolDeconsolidation.getConsolDeconsolidationBlList*/
+			   (SELECT TOP(1) 
+					S_CD_NM 
+				FROM 
+					TMT_CD_MSTD 
+				WHERE 
+					L_CD 		= 'MT' 
+					AND M_CD 	= 'CATGTP' 
+					AND S_CD 	= BL.OP_CLASS_CD  ) 									AS OPCLASSNM,
+			   BL.OP_CLASS_CD															AS OPCLASSCD,
+			   BL.SHIP_CALL_NO 															AS SCN,
+			   BL.VSL_CALL_ID 															AS VSLCALLID,
+			   BL.VSL_CD																AS VSLCD,
+			   BL.CALL_YEAR																AS CALLYEAR,
+			   BL.CALL_SEQ																AS CALLSEQ,
+			   BL.MF_DOC_ID 															AS MFDOCID,
+			   BL.BL_NO 																AS BLSNNO,
+			   (SELECT TOP(1) 
+					S_CD_NM 
+				FROM TMT_CD_MSTD 
+				WHERE 
+					L_CD 		= 'MT' 
+					AND M_CD 	= 'CGSTATUS' 
+					AND S_CD 	= ISNULL(STAT.STATUS, 'RS') ) 							AS DOCSTATNM,
+			   ISNULL(STAT.STATUS, 'RS') 												AS DOCSTATCD,
+			   CM.SHIPG_AGNT															AS SHACD,
+			   DBO.F_GET_PTNR_SNM(CM.SHIPG_AGNT)										AS SHANM,
+			   CM.FWR_AGNT																AS FWDCD,
+			   DBO.F_GET_PTNR_SNM(CM.FWR_AGNT)											AS FWDNM,
+			   BL.CNSNE																	AS CNSNE,
+			   DBO.F_GET_PTNR_SNM(BL.CNSNE)												AS CNSNENM,
+			   BL.SHPR																	AS SHPR,
+			   DBO.F_GET_PTNR_SNM(BL.SHPR)												AS SHPRNM,
+			   FORMAT(ISNULL(BL.CG_WGT, 0), '0.000')									AS DOCMT,
+			   FORMAT(ISNULL(BL.CG_VOL, 0), '0.000')									AS DOCM3,
+			   FORMAT(ISNULL(BL.PKG_QTY, 0), '0.000')									AS DOCQTY,
+			   FORMAT(ISNULL(SD.MT, 0), '0.000')										AS STOREDMT,
+			   FORMAT(ISNULL(SD.M3, 0), '0.000')										AS STOREDM3,
+			   FORMAT(ISNULL(SD.QTY, 0), '0.000')										AS STOREDQTY,
+			   CASE 
+					WHEN JOB.CG_NO IS NULL THEN FORMAT(ISNULL(BL.CG_WGT, 0) - ISNULL(GIWGT.WGT, 0), '0.000')
+			   		ELSE FORMAT(ISNULL(BALGI.MT, 0), '0.000')
+			   END																		AS BALMT,
+			   CASE 
+					WHEN JOB.CG_NO IS NULL THEN FORMAT(ISNULL(BL.CG_VOL, 0) - ISNULL(GIWGT.M3, 0), '0.000') 
+			   		ELSE FORMAT(ISNULL(BALGI.M3, 0), '0.000')
+			   END																		AS BALM3,
+			   CASE 
+					WHEN JOB.CG_NO IS NULL THEN FORMAT(ISNULL(BL.PKG_QTY, 0) - ISNULL(GIWGT.QTY, 0), '0.000') 
+			   		ELSE FORMAT(ISNULL(BALGI.QTY, 0), '0.000')
+			   END																		AS BALQTY,
+			   ''																		AS LOADEDMT,
+			   ''																		AS LOADEDM3,
+			   ''																		AS LOADEDQTY,
+			   FORMAT(ISNULL(TD.MT, 0), '0.000')										AS DISCHARGEDMT,
+			   FORMAT(ISNULL(TD.M3, 0), '0.000')										AS DISCHARGEDM3,
+			   FORMAT(ISNULL(TD.QTY, 0), '0.000')										AS DISCHARGEDQTY,
+			   (SELECT 
+					STRING_AGG (WH_LOC_ID, ', ') 
+				WITHIN GROUP 
+					(ORDER BY 
+						WH_LOC_ID)
+  			    FROM 
+					(SELECT DISTINCT 
+						WH_LOC_ID
+          			 FROM 
+						TMT_INV_LOC
+         			 WHERE 
+						VSL_CALL_ID = BL.VSL_CALL_ID 
+						AND CG_NO = BL.BL_NO)as sub)									AS WHLOC,
+         		CASE 
+					WHEN JOB.CG_NO IS NULL THEN 'N'
+         			ELSE 'Y'
+         		END																		AS EXISTOPE,
+         		'NULL'																	AS SNNO,
+         		BL.BL_NO																AS BLNO,
+         		BL.POD																	AS POD,
+         		BL.POL																	AS POL,
+         		BL.FDEST																AS FDEST,
+         		BL.TSPT_TP_CD															AS TSPTTPCD,
+         		BL.DELV_TP_CD															AS DELVTPCD,
+				BL.PKG_TP_CD															AS PKGTPCD,
+				BL.CMDT_CD																AS CMDTCD,
+				BL.FWRD																	AS FWRD,
+				''																		AS SHIPGAGNCY,
+				BL.CG_TP_CD																AS CGTPCD,
+				BL.DOMESTIC_CHK															AS DOMESTICCHK,
+				BL.TSPTR																AS TSPTCOMP,
+				CASE WHEN JOBGI.CGNO IS NOT NULL THEN 'Y' ELSE 'N' END					AS ISGETIN,
+				CASE 
+					WHEN (SELECT 
+							CG_NO 
+						FROM (
+							SELECT TOP(1) 
+								CG_NO 
+							FROM 
+								TMT_JOB 
+							WHERE 
+								VSL_CALL_ID 	= BL.VSL_CALL_ID 
+								AND CG_NO 		= BL.BL_NO
+								AND (TSPT_TP_CD IS NULL OR TSPT_TP_CD NOT IN ('GI', 'GO'))) AS cg_no
+									) IS NOT NULL THEN 'N'
+					 ELSE 'Y'
+				END 																	AS CANGETIN,
+				JOBGI.TOLOCID 															AS TOLOCID
+				
+		FROM 
+			TMT_BL BL 
+		LEFT OUTER JOIN 
+			TMT_CG_MST CM 
+		ON 
+			BL.VSL_CALL_ID 	= CM.VSL_CALL_ID 
+			AND BL.BL_NO 	= CM.BL_NO
+			
+		LEFT OUTER JOIN 
+			STORE_DISCHARGE SD
+		ON 
+			BL.VSL_CALL_ID 	= SD.VSLCALLID 
+			AND BL.BL_NO 	= SD.CGNO
+		 
+		LEFT OUTER JOIN 
+			TOTAL_DISCHARGED TD
+		ON 
+			BL.VSL_CALL_ID 	= TD.VSLCALLID 
+			AND BL.BL_NO 	= TD.CGNO
+			
+		LEFT OUTER JOIN 
+			TMT_JOB JOB
+		ON 
+			BL.VSL_CALL_ID 	= JOB.VSL_CALL_ID 
+			AND BL.BL_NO 	= JOB.CG_NO
+			
+		LEFT OUTER JOIN 
+			TOTAL_GET_IN_BL GIWGT
+		ON 
+			BL.VSL_CALL_ID 	= GIWGT.VSLCALLID 
+			AND BL.BL_NO 	= GIWGT.CGNO 
+		
+		LEFT OUTER JOIN 
+			GET_IN_JOB_BL JOBGI
+		ON 
+			BL.VSL_CALL_ID 	= JOBGI.VSLCALLID 
+			AND BL.BL_NO 	= JOBGI.CGNO
+          	
+		LEFT OUTER JOIN 
+			STATUS_BL STAT 
+		ON 
+			STAT.VSLCALLID 	= BL.VSL_CALL_ID 
+			AND STAT.BLNO 	= BL.BL_NO
+		
+		LEFT OUTER JOIN 
+			GET_IN_BALANCE_AMT_BL BALGI 
+		ON 
+			BALGI.VSLCALLID = BL.VSL_CALL_ID 
+			AND BALGI.CGNO 	= BL.BL_NO 
+			AND BALGI.LOCID = (SELECT TOP(1) 
+									I.LOC_ID 
+								FROM 
+									TMT_INV_LOC I 
+								INNER JOIN 
+									TMT_JOB J 
+								ON 
+									J.VSL_CALL_ID 		= I.VSL_CALL_ID 
+									AND J.CG_NO 		= I.CG_NO 
+									AND J.JOB_NO 		= I.JOB_NO
+								WHERE 
+									J.TSPT_TP_CD 		= 'GI'
+									AND I.VSL_CALL_ID 	= BL.VSL_CALL_ID
+									AND I.CG_NO 		= BL.BL_NO)
+          		
+		WHERE
+			1 = 1
+			<if test="scn != null and scn != ''">
+				AND BL.SHIP_CALL_NO						= #{scn}
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+				AND BL.VSL_CALL_ID 						= #{vslCallId} 
+			</if>
+			AND BL.STAT_CD 								= 'AP' 
+			AND (BL.DELV_TP_CD 							= 'I' 
+			OR BL.DELV_TP_CD 							= 'B')
+			<if test="mfDocId != null and mfDocId != ''">
+				AND BL.MF_DOC_ID 	= #{mfDocId}
+			</if>
+			<if test="blNo != null and blNo != ''">
+				AND BL.BL_NO 		= #{blNo}
+			</if>
+			<if test="cargoStatus != null and cargoStatus != ''">
+				AND CM.STAT_CD 		= #{cargoStatus}
+			</if>
+	</sql>
+	
+	<sql id="getConsolDeconsolidationSnList">
+		SELECT DISTINCT /*consolDeconsolidation.getConsolDeconsolidationSnList*/
+			   (SELECT TOP(1) 
+					S_CD_NM 
+				FROM 
+					TMT_CD_MSTD 
+				WHERE 
+					L_CD = 'MT' 
+					AND M_CD = 'CATGTP' 
+					AND S_CD = SN.CATG_CD ) 												AS OPCLASSNM,
+			   SN.CATG_CD																	AS OPCLASSCD,
+			   SN.SHIP_CALL_NO 																AS SCN,
+			   SN.VSL_CALL_ID 																AS VSLCALLID,
+			   SN.VSL_CD																	AS VSLCD,
+			   SN.CALL_YEAR																	AS CALLYEAR,
+			   SN.CALL_SEQ																	AS CALLSEQ,
+			   SN.MF_DOC_ID 																AS MFDOCID,
+			   SN.SHIPG_NOTE_NO 															AS BLSNNO,
+			   (SELECT TOP(1) 
+					S_CD_NM 
+				FROM 
+					TMT_CD_MSTD 
+				WHERE 
+					L_CD = 'MT' 
+					AND M_CD = 'CGSTATUS' 
+					AND S_CD = ISNULL(STAT.STATUS, 'RS') ) 									AS DOCSTATNM,
+			   ISNULL(STAT.STATUS, 'RS') 													AS DOCSTATCD,
+			   CM.SHIPG_AGNT																AS SHACD,
+			   DBO.F_GET_PTNR_SNM(CM.SHIPG_AGNT)											AS SHANM,
+			   CM.FWR_AGNT																	AS FWDCD,
+			   DBO.F_GET_PTNR_SNM(CM.FWR_AGNT)												AS FWDNM,
+			   SN.CNSNE																		AS CNSNE,
+			   DBO.F_GET_PTNR_SNM(SN.CNSNE)													AS CNSNENM,
+			   SN.SHPR																		AS SHPR,
+			   DBO.F_GET_PTNR_SNM(SN.SHPR)													AS SHPRNM,
+			   FORMAT(ISNULL(SN.CG_WGT, 0), '0.000')										AS DOCMT,
+			   FORMAT(ISNULL(SN.CG_VOL, 0), '0.000')										AS DOCM3,
+			   FORMAT(ISNULL(SN.PKG_QTY, 0), '0.000')										AS DOCQTY,
+			   FORMAT(ISNULL(SL.MT, 0), '0.000')											AS STOREDMT,
+			   FORMAT(ISNULL(SL.M3, 0), '0.000')											AS STOREDM3,
+			   FORMAT(ISNULL(SL.QTY, 0), '0.000')											AS STOREDQTY,
+			   CASE 
+					WHEN OPE.SHIPGNOTENO IS NULL THEN FORMAT(ISNULL(SN.CG_WGT, 0) - ISNULL(GIWGT.WGT, 0), '0.000')
+			   		ELSE FORMAT(ISNULL(BALGI.MT, 0), '0.000')	
+			   END																			AS BALMT,
+			   CASE 
+					WHEN OPE.SHIPGNOTENO IS NULL THEN FORMAT(ISNULL(SN.CG_VOL, 0) - ISNULL(GIWGT.M3, 0), '0.000')
+			   		ELSE FORMAT(ISNULL(BALGI.M3, 0), '0.000')
+			   END																			AS BALM3,
+			   CASE WHEN OPE.SHIPGNOTENO IS NULL THEN FORMAT(ISNULL(SN.PKG_QTY, 0) - ISNULL(GIWGT.QTY, 0), '0.000')
+			   		ELSE FORMAT(ISNULL(BALGI.QTY, 0), '0.000')
+			   END																			AS BALQTY,
+			   FORMAT(ISNULL(TL.MT, 0), '0.000')											AS LOADEDMT,
+			   FORMAT(ISNULL(TL.M3, 0), '0.000')											AS LOADEDM3,
+			   FORMAT(ISNULL(TL.QTY, 0), '0.000')											AS LOADEDQTY,
+			   ''																			AS DISCHARGEDMT,
+			   ''																			AS DISCHARGEDM3,
+			   ''																			AS DISCHARGEDQTY,
+			   (SELECT 
+					STRING_AGG (WH_LOC_ID, ', ') 
+				WITHIN GROUP 
+					(ORDER BY 
+						WH_LOC_ID)
+  			    FROM (SELECT DISTINCT 
+						WH_LOC_ID
+          			  FROM 
+						INV_LOC_WITH_SN
+         			  WHERE 
+						VSL_CALL_ID 		= SN.VSL_CALL_ID 
+						AND SHIPG_NOTE_NO 	= SN.SHIPG_NOTE_NO) AS wh_loc_id) 				AS WHLOC,
+         		CASE 
+					WHEN OPE.SHIPGNOTENO IS NULL THEN 'N'
+         			 ELSE 'Y'
+         		END																			AS EXISTOPE,
+         		SN.SHIPG_NOTE_NO															AS SNNO,
+         		'NULL'																		AS BLNO,
+         		SN.POD																		AS POD,
+         		SN.POL																		AS POL,
+         		SN.FDEST																	AS FDEST,
+         		SN.TSPT_TP_CD																AS TSPTTPCD,
+         		SN.DELV_TP_CD																AS DELVTPCD,
+				SN.PKG_TP_CD																AS PKGTPCD,
+				SN.CMDT_CD																	AS CMDTCD,
+				SN.FWRD																		AS FWRD,
+				SN.SHIPG_AGNCY																AS SHIPGAGNCY,
+				SN.CG_TP_CD																	AS CGTPCD,
+				SN.DOMESTIC_CHK																AS DOMESTICCHK,
+				SN.TSPT_COMP																AS TSPTCOMP,
+				CASE WHEN JOBGI.SHIPGNOTENO IS NOT NULL THEN 'Y' ELSE 'N' END				AS ISGETIN,
+				CASE WHEN (SELECT 
+								CG_NO 
+							FROM 
+								(SELECT TOP(1) 
+									J.CG_NO 
+								FROM 
+									TMT_JOB J
+								INNER JOIN 
+									TMT_GR G
+								ON 
+									J.VSL_CALL_ID 		= G.VSL_CALL_ID
+									AND J.CG_NO 		= G.GR_NO
+								WHERE 
+									J.VSL_CALL_ID 		= SN.VSL_CALL_ID 
+									AND G.SHIPG_NOTE_NO = SN.SHIPG_NOTE_NO
+									AND (J.TSPT_TP_CD IS NULL OR J.TSPT_TP_CD NOT IN ('GI', 'GO'))) AS cg_no
+							) IS NOT NULL THEN 'N'
+					 ELSE 'Y'
+				END 																		AS CANGETIN,
+				JOBGI.TOLOCID 																AS TOLOCID
+				
+		FROM 
+			TMT_SHIPG_NOTE SN 
+		LEFT OUTER JOIN 
+			TMT_CG_MST CM 
+		ON 
+			SN.VSL_CALL_ID 			= CM.VSL_CALL_ID 
+			AND SN.SHIPG_NOTE_NO 	= CM.SHIPG_NOTE_NO
+			
+		LEFT OUTER JOIN 
+			STORE_LOADED SL
+		ON 
+			SN.VSL_CALL_ID 			= SL.VSLCALLID 
+			AND SN.SHIPG_NOTE_NO 	= SL.SHIPGNOTENO
+		 
+		LEFT OUTER JOIN 
+			TOTAL_LOADED TL
+		ON 
+			SN.VSL_CALL_ID 			= TL.VSLCALLID 
+			AND SN.SHIPG_NOTE_NO 	= TL.SHIPGNOTENO
+			
+		LEFT OUTER JOIN 
+			EXIST_OPE_SN OPE
+		ON 
+			SN.VSL_CALL_ID 			= OPE.VSLCALLID
+			AND SN.SHIPG_NOTE_NO 	= OPE.SHIPGNOTENO
+			
+		LEFT OUTER JOIN 
+			TOTAL_GET_IN_SN GIWGT
+		ON 
+			SN.VSL_CALL_ID 			= GIWGT.VSLCALLID 
+			AND SN.SHIPG_NOTE_NO 	= GIWGT.SHIPGNOTENO
+					
+		LEFT OUTER JOIN 
+			GET_IN_JOB_SN JOBGI
+		ON 
+			SN.VSL_CALL_ID 			= JOBGI.VSLCALLID 
+			AND SN.SHIPG_NOTE_NO 	= JOBGI.SHIPGNOTENO
+			
+		LEFT OUTER JOIN 
+			STATUS_SN STAT 
+		ON 
+			STAT.VSLCALLID 			= SN.VSL_CALL_ID 
+			AND STAT.SNNO 			= SN.SHIPG_NOTE_NO
+		 
+		LEFT OUTER JOIN 
+			GET_IN_BALANCE_AMT_SN BALGI 
+		ON 
+			BALGI.VSLCALLID 		= SN.VSL_CALL_ID 
+			AND BALGI.SHIPGNOTENO 	= SN.SHIPG_NOTE_NO 
+			AND BALGI.LOCID 		= (SELECT TOP(1) 
+											I.LOC_ID FROM TMT_INV_LOC I 
+										INNER JOIN 
+											TMT_JOB J 
+										ON 
+											J.VSL_CALL_ID 		= I.VSL_CALL_ID 
+											AND J.CG_NO 		= I.CG_NO 
+											AND J.JOB_NO 		= I.JOB_NO
+										INNER JOIN 
+											TMT_GR G 
+										ON
+											G.VSL_CALL_ID 		= I.VSL_CALL_ID 
+											AND G.GR_NO 		= I.CG_NO
+										WHERE 
+											J.TSPT_TP_CD 		= 'GI' 
+											AND I.VSL_CALL_ID 	= SN.VSL_CALL_ID
+											AND G.SHIPG_NOTE_NO = SN.SHIPG_NOTE_NO)
+				
+		WHERE
+			1 = 1
+			<if test="scn != null and scn != ''">
+				AND SN.SHIP_CALL_NO								= #{scn} 
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+				AND SN.VSL_CALL_ID 								= #{vslCallId} 
+			</if>
+			AND SN.STAT_CD = 'AP' 
+			AND SN.DELV_TP_CD = 'I'
+			<if test="mfDocId != null and mfDocId != ''">
+				AND SN.MF_DOC_ID 		= #{mfDocId}
+			</if>
+			<if test="snNo != null and snNo != ''">
+				AND SN.SHIPG_NOTE_NO 	= #{snNo}
+			</if>
+			<if test="cargoStatus != null and cargoStatus != ''">
+				AND CM.STAT_CD 			= #{cargoStatus}
+			</if>
+	</sql>
+	
+	<select id="selectConsolDeconsolidationListCount" parameterType="consolDeconsolidationParm" resultType="java.lang.String" >
+		<include refid="getConsolDeconsolidationList"/>
+    	SELECT  /*consolDeconsolidation.selectConsolDeconsolidationListCount*/
+			COUNT(*)
+        FROM 
+			 getConsolDeconsolidationList
+	</select>
+	
+	<select id="selectCargoStatusCombo" parameterType="consolDeconsolidationParm" resultType="consolDeconsolidationItem">
+	 	SELECT /*consolDeconsolidation.selectCargoStatusCombo*/
+			S_CD AS SCD, 
+			S_CD_NM AS SCDNM 
+		FROM 
+			TMT_CD_MSTD 
+		WHERE 
+			L_CD 		= 'MT' 
+			AND M_CD 	= 'CGSTATUS' 
+			AND S_CD NOT IN ('DO')
+	</select>
+	
+	<select id="selectCgNoForSn" parameterType="consolDeconsolidationItem" resultType="consolDeconsolidationItem">
+	 	SELECT DISTINCT /*consolDeconsolidation.selectCgNoForSn*/
+		 	INV.VSL_CALL_ID 	AS VSLCALLID, 
+		 	INV.CG_NO 			AS CGNO, 
+		 	INV.JOB_NO 			AS JOBNO, 
+		 	INV.LOC_ID 			AS WHLOC, 
+		 	INV.CG_WGT 			AS DOCMT, 
+		 	INV.CG_VOL 			AS DOCM3, 
+		 	INV.PKG_QTY 		AS DOCQTY
+	 	FROM 
+			TMT_INV_LOC INV 
+		INNER JOIN 
+			TMT_GR GR 
+		ON 
+			GR.VSL_CALL_ID 		= INV.VSL_CALL_ID 
+			AND GR.GR_NO 		= INV.CG_NO 
+		INNER JOIN 
+			TMT_JOB J 
+		ON 
+			J.VSL_CALL_ID 		= INV.VSL_CALL_ID 
+			AND J.CG_NO 		= INV.CG_NO 
+			AND J.JOB_NO 		= INV.JOB_NO
+	 	WHERE 
+			INV.VSL_CALL_ID 		= #{vslCallId} 
+			AND GR.SHIPG_NOTE_NO 	= #{blSnNo} 
+			AND J.JOB_PURP_CD 		= 'GW' 
+			AND J.TSPT_TP_CD 		= 'GI'
+	</select>
+	
+	<select id="selectCgNoForBl" parameterType="consolDeconsolidationItem" resultType="consolDeconsolidationItem">
+	 	SELECT DISTINCT /*consolDeconsolidation.selectCgNoForBl*/
+			INV.VSL_CALL_ID 		AS VSLCALLID, 
+		 	INV.CG_NO 				AS CGNO, 
+		 	INV.JOB_NO 				AS JOBNO, 
+		 	INV.LOC_ID 				AS WHLOC, 
+		 	INV.CG_WGT 				AS DOCMT, 
+		 	INV.CG_VOL 				AS DOCM3, 
+		 	INV.PKG_QTY 			AS DOCQTY 
+	 	FROM 
+			TMT_INV_LOC INV 
+	 	INNER JOIN 
+			TMT_JOB J 
+		ON 
+			J.VSL_CALL_ID 			= INV.VSL_CALL_ID 
+			AND J.CG_NO 			= INV.CG_NO 
+			AND J.JOB_NO 			= INV.JOB_NO
+	 	WHERE 
+			INV.VSL_CALL_ID 		= #{vslCallId} 
+			AND INV.CG_NO 			= #{blSnNo} 
+			AND J.JOB_PURP_CD 		= 'AW' 
+			AND J.TSPT_TP_CD 		= 'GI'
+	</select>
+	
+	<update id="updateGetOutStatusForSnCgMst"  parameterType="consolDeconsolidationItem">
+		UPDATE /*consolDeconsolidation.updateGetOutStatusForSnCgMst*/
+			TMT_CG_MST SET
+			STAT_CD 				= 'LD',
+		    STAFF_CD 				= #{userId},
+		    VERSION 				= #{newVersion},
+		    UPDATE_TIME 			= SYSDATETIME()	
+		WHERE 
+			VSL_CALL_ID 			= #{vslCallId} 
+			and CG_NO 				= #{cgNo}		
+	</update>
+	
+	<update id="updateGetOutStatusForBlCgMst"  parameterType="consolDeconsolidationItem">
+		UPDATE /*consolDeconsolidation.updateGetOutStatusForBlCgMst*/
+			TMT_CG_MST SET
+			STAT_CD 				= 'DD',
+		    STAFF_CD 				= #{userId},
+		    VERSION 				= #{newVersion},
+		    UPDATE_TIME 			= SYSDATETIME()	
+		WHERE 
+			VSL_CALL_ID 			= #{vslCallId} 
+			and CG_NO 				= #{cgNo}	
+	</update>
+	
+	<insert id="updateGetOutStatusForSnBlJobAV"  parameterType="consolDeconsolidationItem">
+		<selectKey order="BEFORE" resultType="consolDeconsolidationItem" keyProperty="jobNo" >
+			SELECT 
+				'J' + FORMAT(GETDATE(), 'yyMMdd') + RIGHT('000000000' + ISNULL(CONCAT(MAX(CAST(RIGHT(JOB_NO, 9) AS INT)) + 1, ''), '000000000'), 9) AS jobNo
+			FROM  
+				TMT_JOB
+		</selectKey>
+		
+		INSERT INTO /*consolDeconsolidation.updateGetOutStatusForSnBlJobAV*/
+		TMT_JOB(
+			<!--Missing Columns  -->
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			MF_DOC_ID,
+			<!--Missing Columns  -->
+			JOB_NO,
+			JOB_TP_CD,		
+			CG_NO,
+			VSL_CALL_ID,
+			JOB_GROUP,
+			JOB_PURP_CD,
+			JOB_CO_CD,
+			DELV_TP_CD,
+			OPE_CLASS_CD,
+			TSPT_TP_CD,
+			WORK_ST_DT,
+			WORK_END_DT,
+			PKG_TP_CD,
+			PKG_QTY,
+			CG_WGT,
+			CG_VOL,
+			STAT_CD,
+			DMG_YN,
+			SHU_YN,
+		    VERSION,
+		    STAFF_CD,
+		    UPDATE_TIME
+		) VALUES (
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{mfDocId},
+			#{jobNo},					
+			'LD',
+			#{cgNo}, 
+			#{vslCallId},
+			CONVERT(VARCHAR, CAST(ISNULL((SELECT MAX(JOB_GROUP) FROM TMT_JOB), 0) + 1 AS INT)),
+			'AV',
+			'G',
+			#{delvTpCd},
+			#{opClassCd}, 
+			'GO',
+			SYSDATETIME(),
+			SYSDATETIME(),
+			#{pkgTpCd},
+			#{balQty}, 
+			#{balMt},
+			#{balM3},
+			'COM',
+			'N',
+			'N',			
+			#{newVersion},
+			#{userId},
+			SYSDATETIME()
+		)
+	</insert>
+	
+	<insert id="updateGetOutStatusForSnBlJob"  parameterType="consolDeconsolidationItem">
+		<selectKey order="BEFORE" resultType="consolDeconsolidationItem" keyProperty="jobNo" >
+			SELECT 
+				'J' + FORMAT(GETDATE(), 'yyMMdd') + RIGHT('000000000' + ISNULL(CONCAT(MAX(CAST(RIGHT(JOB_NO, 9) AS INT)) + 1, ''), '000000000'), 9) AS jobNo
+			FROM  
+				TMT_JOB
+			  
+		</selectKey>
+		
+		INSERT INTO /*consolDeconsolidation.updateGetOutStatusForSnBlJob*/
+		TMT_JOB(
+			SHIP_CALL_NO,
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			MF_DOC_ID,
+			JOB_NO,
+			JOB_TP_CD,		
+			CG_NO,
+			VSL_CALL_ID,
+			JOB_GROUP,
+			JOB_PURP_CD,
+			JOB_CO_CD,
+			DELV_TP_CD,
+			OPE_CLASS_CD,
+			TSPT_TP_CD,
+			WORK_ST_DT,
+			WORK_END_DT,
+			PKG_TP_CD,
+			PKG_QTY,
+			CG_WGT,
+			CG_VOL,
+			STAT_CD,
+			DMG_YN,
+			SHU_YN,
+		    VERSION,
+		    STAFF_CD,
+		    UPDATE_TIME,
+		    TO_LOC_ID
+		) VALUES (
+			#{scn},
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{mfDocId},
+			#{jobNo},					
+			<if test='blNo.equals("NULL")'>
+				'LD',
+			</if>
+			<if test="blNo != 'NULL'">
+				'LO',
+			</if> 
+			#{cgNo}, 
+			#{vslCallId},
+			CONVERT(VARCHAR, CAST(ISNULL((SELECT MAX(JOB_GROUP) FROM TMT_JOB), 0) + 1 AS INT)),
+			<if test='blNo.equals("NULL")'>
+				'WA',
+			</if>
+			<if test="blNo != 'NULL'">
+				'WG',
+			</if>	
+			'G',
+			#{delvTpCd},
+			#{opClassCd}, 
+			'GO',
+			SYSDATETIME(),
+			SYSDATETIME(),
+			#{pkgTpCd},
+			#{balQty}, 
+			#{balMt},
+			#{balM3},
+			'COM',
+			'N',
+			'N',			
+			#{newVersion},
+			#{userId},
+			SYSDATETIME(),
+			#{toLocId}
+		)
+	</insert>
+	
+	<insert id="updateGetOutStatusForSnBlInv"  parameterType="consolDeconsolidationItem">
+		INSERT INTO  /*consolDeconsolidation.updateGetOutStatusForSnBlInv*/
+		TMT_INV_LOC(
+			SHIP_CALL_NO,
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			VSL_CALL_ID,
+			LOC_ID,
+			CG_NO,
+			JOB_NO,
+			WH_LOC_ID,
+			SEQ,
+			PKG_QTY,
+			CG_WGT,
+			CG_VOL,
+			WH_TP_CD,
+		    VERSION,
+		    STAFF_CD,
+		    UPDATE_TIME,
+		    WH_LOC_TP,
+		    <!-- REF_NO, --> <!--MISSING COLUMN  -->
+		    MF_DOC_ID
+		) VALUES (
+			#{scn},
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{vslCallId},
+			#{whLoc}, 
+			#{cgNo}, 
+			#{jobNo},
+			(SELECT ISNULL((SELECT SUBSTRING (#{whLoc}, 1, CHARINDEX('-' ,#{whLoc}) - 1)  ), #{whLoc})  ),
+			1,
+			-CAST(#{balQty} AS NUMERIC(10,0)), 
+			-CAST(#{balMt} 	AS NUMERIC(15,3)),
+			-CAST(#{balM3} 	AS NUMERIC(15,3)),
+			'G',
+			#{newVersion},
+			#{userId},
+			SYSDATETIME(),
+			(SELECT TOP(1) 
+				LOC_TP_CD 
+			FROM 
+				TMT_LOC_DEF 
+			WHERE 
+				LOC_ID = #{whLoc} ),
+			<!-- #{blSnNo}, REFER TO REF_NO IS MISSING -->
+			#{mfDocId}		
+		)
+	</insert>
+	
+	<insert id="updateGetInStatusForSnBlInsertGr"  parameterType="consolDeconsolidationItem">
+		<selectKey order="BEFORE" resultType="consolDeconsolidationItem" keyProperty="cgNo" >
+			SELECT 
+				'R' + FORMAT(GETDATE(), 'yyMM') +
+				RIGHT('0000' + ISNULL(
+					TRIM(FORMAT(ISNULL(MAX(CAST(SUBSTRING(GR_NO, LEN(GR_NO) - 3, 4) AS INT)), 0) + 1, '0000')), '0000'), 4) AS cgNo
+			FROM 
+				TMT_GR 
+			WHERE 
+				GR_NO LIKE 'R' + FORMAT(GETDATE(), 'yyMM') + '%'
+
+		</selectKey>
+		INSERT INTO /*consolDeconsolidation.updateGetInStatusForSnBlInsertGr*/
+		TMT_GR(	
+			VSL_CD,	
+			CALL_YEAR,
+			CALL_SEQ,
+			VSL_CALL_ID,
+			MF_DOC_ID,
+			SHIPG_NOTE_NO,
+			GR_NO,
+			PKG_QTY,
+			PKG_TP_CD,
+			CG_WGT,
+			CG_VOL,
+			CMDT_CD,
+		    VERSION,
+		    STAFF_CD,
+		    UPDATE_TIME,
+		    DOMESTIC_CHK,
+		    TSPT_COMP,
+		    TSPT_TP_CD			
+		) VALUES (
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{vslCallId},
+			#{mfDocId},
+			#{snNo},
+			#{cgNo}, 
+			#{docQty}, 
+			#{pkgTpCd},
+			#{docMt},
+			#{docM3},
+			#{cmdtCd},
+			#{newVersion},
+			#{userId},
+			SYSDATETIME(),
+			#{domesticChk},
+			#{tsptComp},
+			'GI'
+		)
+	</insert>
+	
+	<insert id="updateGetInStatusForSnBlCgMst"  parameterType="consolDeconsolidationItem">
+		INSERT INTO /*consolDeconsolidation.updateGetInStatusForSnBlCgMst*/
+		TMT_CG_MST(
+			SHIP_CALL_NO,
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			MF_DOC_ID,
+			VSL_CALL_ID,
+			CG_NO,
+			OPE_CLASS_CD,
+			TSPT_TP_CD,
+			STAT_CD,
+			PKG_QTY,
+			PKG_TP_CD,
+			CG_WGT,
+			CG_VOL,
+			DELV_TP_CD,
+			CG_TP_CD,
+			CMDT_CD,
+			SHIPG_AGNT,
+			FWR_AGNT,
+			SHPR,
+			SHPR_NM,
+			CNSNE,
+			CNSNE_NM,
+			PORT_OF_LOAD,
+			PORT_OF_DIS,
+			FDEST,
+			SHIPG_NOTE_NO,
+			BL_NO,
+		    STAFF_CD,
+		    VERSION,
+		    UPDATE_TIME
+		) VALUES (
+			#{scn},
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{mfDocId},
+			#{vslCallId},			
+			<if test='blNo.equals("NULL")'>
+				#{cgNo},
+			</if>
+			<if test="blNo != 'NULL'">
+				#{blSnNo}, 
+			</if> 
+			#{opClassCd}, 
+			#{tsptTpCd}, 
+			'ST',
+			#{docQty}, 
+			#{pkgTpCd},
+			#{docMt},
+			#{docM3},
+			#{delvTpCd},
+			#{cgTpCd},
+			#{cmdtCd},
+			#{shipgAgncy},
+			#{fwrd},
+			#{shpr},
+			#{shprNm},
+			#{cnsne},
+			#{cnsneNm},
+			#{pol},
+			#{pod},
+			#{fdest},
+			#{snNo},
+			#{blNo},
+			#{userId},
+			#{newVersion},
+			SYSDATETIME()
+		)
+	</insert>
+	
+	<insert id="updateGetInStatusForSnBlInsertVAJob"  parameterType="consolDeconsolidationItem">
+		<selectKey order="BEFORE" resultType="consolDeconsolidationItem" keyProperty="jobNo" >
+			SELECT 
+				'J' + FORMAT(GETDATE(), 'yyMMdd') 
+				+ RIGHT('000000000' + ISNULL(CONCAT(MAX(CAST(RIGHT(JOB_NO, 9) AS INT)) + 1, ''), '000000000'), 9) AS jobNo
+			FROM  
+				TMT_JOB
+		</selectKey>
+		
+		INSERT INTO /*consolDeconsolidation.updateGetInStatusForSnBlInsertVAJob*/
+		TMT_JOB(
+			SHIP_CALL_NO,
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			MF_DOC_ID,
+			JOB_NO,
+			JOB_TP_CD,		
+			CG_NO,
+			VSL_CALL_ID,
+			JOB_GROUP,
+			JOB_PURP_CD,
+			JOB_CO_CD,
+			DELV_TP_CD,
+			OPE_CLASS_CD,
+			TSPT_TP_CD,
+			WORK_ST_DT,
+			WORK_END_DT,
+			PKG_TP_CD,
+			PKG_QTY,
+			CG_WGT,
+			CG_VOL,
+			STAT_CD,
+			DMG_YN,
+			SHU_YN,
+		    VERSION,
+		    STAFF_CD,
+		    UPDATE_TIME
+		) VALUES (
+			#{scn},
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{mfDocId},
+			(SELECT 
+				'J' + FORMAT(GETDATE(), 'yyMMdd') 
+				+ RIGHT('000000000' + ISNULL(CONCAT(MAX(CAST(RIGHT(JOB_NO, 9) AS INT)) + 1, ''), '000000000'), 9)
+			FROM  
+				TMT_JOB
+			  ),
+			'DS',
+			#{blSnNo},
+			#{vslCallId},
+			CONVERT(VARCHAR, CAST(ISNULL((SELECT MAX(JOB_GROUP) FROM TMT_JOB), 0) + 1 AS INT)),
+			'VA',
+			'G',
+			#{delvTpCd},
+			#{opClassCd}, 
+			'GI',
+			SYSDATETIME(),
+			SYSDATETIME(),
+			#{pkgTpCd},
+			#{docQty}, 
+			#{docMt},
+			#{docM3},
+			'COM',
+			'N',
+			'N',			
+			#{newVersion},
+			#{userId},
+			SYSDATETIME()
+		)
+	</insert>
+	
+	<insert id="updateGetInStatusForSnBlJob"  parameterType="consolDeconsolidationItem">
+		<selectKey order="BEFORE" resultType="consolDeconsolidationItem" keyProperty="jobNo" >
+			SELECT 
+				'J' + FORMAT(GETDATE(), 'yyMMdd') 
+				+ RIGHT('000000000' + ISNULL(CONCAT(MAX(CAST(RIGHT(JOB_NO, 9) AS INT)) + 1, ''), '000000000'), 9) AS jobNo
+			FROM  
+				TMT_JOB
+		</selectKey>
+		
+		INSERT INTO  /*consolDeconsolidation.updateGetInStatusForSnBlJob*/
+		TMT_JOB(
+			SHIP_CALL_NO,
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			MF_DOC_ID,
+			JOB_NO,
+			JOB_TP_CD,		
+			CG_NO,
+			VSL_CALL_ID,
+			JOB_GROUP,
+			JOB_PURP_CD,
+			JOB_CO_CD,
+			DELV_TP_CD,
+			OPE_CLASS_CD,
+			TSPT_TP_CD,
+			WORK_ST_DT,
+			WORK_END_DT,
+			PKG_TP_CD,
+			PKG_QTY,
+			CG_WGT,
+			CG_VOL,
+			STAT_CD,
+			DMG_YN,
+			SHU_YN,
+		    VERSION,
+		    STAFF_CD,
+		    UPDATE_TIME,
+		    TO_LOC_ID
+		) VALUES (
+			#{scn},
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{mfDocId},
+			(SELECT 
+				'J' + FORMAT(GETDATE(), 'yyMMdd') 
+				+ RIGHT('000000000' + ISNULL(CONCAT(MAX(CAST(RIGHT(JOB_NO, 9) AS INT)) + 1, ''), '000000000'), 9)
+			FROM  
+				TMT_JOB
+			  ),					
+			<if test='blNo.equals("NULL")'>
+				'LF',
+				#{cgNo},
+			</if>
+			<if test="blNo != 'NULL'">
+				'DS',
+				#{blSnNo},
+			</if> 
+			#{vslCallId},
+			CONVERT(VARCHAR, CAST(ISNULL((SELECT MAX(JOB_GROUP) FROM TMT_JOB), 0) + 1 AS INT)),
+			<if test='blNo.equals("NULL")'>
+				'GW',
+			</if>
+			<if test="blNo != 'NULL'">
+				'AW',
+			</if>	
+			'G',
+			#{delvTpCd},
+			#{opClassCd}, 
+			'GI',
+			SYSDATETIME(),
+			SYSDATETIME(),
+			#{pkgTpCd},
+			#{docQty}, 
+			#{docMt},
+			#{docM3},
+			'COM',
+			'N',
+			'N',			
+			#{newVersion},
+			#{userId},
+			SYSDATETIME(),
+			#{whLoc} + '(A1,1)'
+		)
+	</insert>
+	
+	<insert id="updateGetInStatusForSnBlInv"  parameterType="consolDeconsolidationItem">
+		INSERT INTO /*consolDeconsolidation.updateGetInStatusForSnBlInv*/
+		TMT_INV_LOC(
+			SHIP_CALL_NO,
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			VSL_CALL_ID,
+			LOC_ID,
+			CG_NO,
+			JOB_NO,
+			WH_LOC_ID,
+			SEQ,
+			PKG_QTY,
+			CG_WGT,
+			CG_VOL,
+			WH_TP_CD,
+		    VERSION,
+		    STAFF_CD,
+		    UPDATE_TIME,
+		    WH_LOC_TP,
+		    REF_NO, 
+		    MF_DOC_ID
+		) VALUES (
+			#{scn},
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{vslCallId},
+			#{whLoc} + '-A1',
+			<if test='blNo.equals("NULL")'>
+				#{cgNo},
+			</if>
+			<if test="blNo != 'NULL'">
+				#{blSnNo}, 
+			</if> 
+			#{jobNo}, 
+			#{whLoc},
+			1,
+			#{docQty}, 
+			#{docMt},
+			#{docM3},
+			'G',
+			#{newVersion},
+			#{userId},
+			SYSDATETIME(),
+			(SELECT TOP(1) 
+				LOC_TP_CD 
+			FROM 
+				TMT_LOC_DEF 
+			WHERE 
+				LOC_ID = #{whLoc} ),
+			#{blSnNo},
+			#{mfDocId}		
+		)
+	</insert>
+	
+	<update id="updateNextJobForVA"  parameterType="consolDeconsolidationItem">
+		UPDATE 	/*updateNextJobForVA*/
+			 TMT_JOB 
+		SET     
+			UPDATE_TIME 	= SYSDATETIME(),
+			STAFF_CD 		= #{userId},
+			VERSION 		= #{newVersion},
+			NEXT_JOB_NO 	= #{jobNo}
+		 WHERE	
+			VSL_CALL_ID 	= #{vslCallId}
+			AND CG_NO 		= #{blSnNo}
+			AND JOB_PURP_CD = 'VA'
+			AND TSPT_TP_CD 	= 'GI'
+	</update>
+	
+	<update id="updateNextJobForWA"  parameterType="consolDeconsolidationItem">
+		UPDATE 	/*updateNextJobForWA*/
+			TMT_JOB 
+		SET     
+			UPDATE_TIME 	= SYSDATETIME(),
+			STAFF_CD 		= #{userId},
+			VERSION 		= #{newVersion},
+			NEXT_JOB_NO 	= #{jobNo}
+		 WHERE	
+			VSL_CALL_ID 	= #{vslCallId}
+			AND CG_NO 		= #{cgNo}
+			AND JOB_PURP_CD = 'WA'
+			AND TSPT_TP_CD 	= 'GO'
+	</update>
+</mapper>

@@ -1,0 +1,406 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="generalCargoLoadingList">
+	<resultMap 	id="generalCargoLoadingList" 	type="generalCargoLoadingListItem">
+   		<result property = "vslCd"				column = "VSL_CD"/>
+   		<result property = "callYear"			column = "CALL_YEAR"/>
+   		<result property = "callSeq"			column = "CALL_SEQ"/>
+   		<result property = "vslCallId"			column = "VSL_CALL_ID"/>
+   		<result property = "mfDocId"			column = "MF_DOC_ID"/>
+   		<result property = "shipgNoteNo"		column = "SHIPG_NOTE_NO"/>
+   		<result property = "shippingAgent"		column = "SHIPG_AGNCY"/>
+   		<result property = "cargoTypeCd"		column = "CMDT_GRP_CD"/>
+   		<result property = "cargoSubTypeCd"		column = "CMDT_CD"/>
+   		<result property = "commodityCd"		column = "PKGTP_CD"/>
+ 	</resultMap>
+ 	
+	<select id="selectVesselSchedule" parameterType="generalCargoLoadingListParm" resultMap="generalCargoLoadingList">
+ 		SELECT /*generalCargoLoadingList.selectVesselSchedule*/
+ 		    SCH.VSL_CD,
+ 		    SCH.CALL_YEAR,
+ 		    SCH.CALL_SEQ,
+ 		    SCH.VSL_CALL_ID,
+ 		    PART.SA_CORP_ID 			AS SHIPG_AGNCY
+  		FROM
+  		    TMT_VSL_SCH SCH,
+  		    TMT_VSL_PART PART
+  		WHERE
+  		    VSL_CALL_ID 				= #{vslCallId}
+  		    AND SCH.VSL_CD 				= PART.VSL_CD
+    </select>    
+    
+   	<select id="selectDuplicatedManifest" parameterType="generalCargoLoadingListParm" resultMap="generalCargoLoadingList">
+ 		SELECT /*generalCargoLoadingList.selectDuplicatedManifest*/
+ 			VSL_CD,
+		    CALL_YEAR,
+		    CALL_SEQ,
+		    VSL_CALL_ID,
+		    MF_DOC_ID
+		FROM
+		    TMT_MF
+        <if test="mfDocId != null and mfDocId != '' "> 
+        	WHERE
+        	    MF_DOC_ID				= #{mfDocId}
+        </if>
+    </select>
+    
+    <select id="selectDuplicatedShippingNote" parameterType="generalCargoLoadingListParm" resultMap="generalCargoLoadingList">
+ 		SELECT /*generalCargoLoadingList.selectDuplicatedShippingNote*/
+ 		    A.VSL_CD,
+		    A.CALL_YEAR,
+		    A.CALL_SEQ,
+		    A.VSL_CALL_ID,
+		    A.SHIPG_NOTE_NO
+		FROM
+		    TMT_SHIPG_NOTE A,
+		    TMT_VSL_SCH B
+		WHERE
+		    A.VSL_CD      				= B.VSL_CD
+        	AND A.CALL_YEAR     		= B.CALL_YEAR
+        	AND A.CALL_SEQ      		= B.CALL_SEQ
+        	AND A.VSL_CALL_ID   		= B.VSL_CALL_ID
+        <if test="vslCallId != null and vslCallId != '' ">
+        	AND A.VSL_CALL_ID   		= #{vslCallId}
+        </if>
+        <if test="shipgNoteNo != null and shipgNoteNo != '' "> 
+			AND A.SHIPG_NOTE_NO 		= #{shipgNoteNo}
+		</if>
+    </select> 
+    
+    <select id="selectCommodityHeredity" parameterType="generalCargoLoadingListParm" resultMap="generalCargoLoadingList">
+	    SELECT  /*generalCargoLoadingList.selectVesselSchedule*/
+ 		    CG_TP_CD,
+		    CMDT_GRP_CD,
+		    CMDT_GRP_DESC,	-- Selected column not found in resultMap or resultType
+		    PKGTP.CMDT_CD,
+		    CMDT_DESC,		-- Selected column not found in resultMap or resultType
+		    PKGTP_CD
+		FROM
+		    TMT_CMDT_PKGTP PKGTP,
+		    TMT_CMDT CMDT
+		WHERE
+		    PKGTP.CMDT_CD 				= CMDT.CMDT_CD
+		ORDER BY
+ 		    CG_TP_CD,
+		    CMDT_GRP_CD,
+		    PKGTP.CMDT_CD
+    </select>
+    
+  	<insert id="insertMFItem" parameterType="generalCargoLoadingListItem">
+		INSERT /*generalCargoLoadingList.insertMFItem*/
+		INTO
+		    TMT_MF (
+		            VSL_CD,
+		            CALL_SEQ,
+		            CALL_YEAR,
+		            VSL_CALL_ID,
+		            MF_DOC_ID,
+		            STAFF_CD,
+		            UPDATE_TIME,
+		            OP_CLASS_CD,
+		            VERSION
+			) VALUES (
+					#{vslCd},
+   					#{callSeq},
+   					#{callYear},
+   					#{vslCallId},
+       				#{mfDocId},
+       				#{userId},
+       				SYSDATETIME(),
+       				#{opeClassCd},
+       				#{newVersion}
+        )
+  	</insert>
+  	
+    <insert id="insertShippingNoteItem"  parameterType="generalCargoLoadingListItem">
+		INSERT /*generalCargoLoadingList.insertShippingNoteItem*/
+		INTO
+		    TMT_SHIPG_NOTE (
+		    	VSL_CD,
+		        CALL_YEAR,
+		        CALL_SEQ,
+		        VSL_CALL_ID,
+		        MF_DOC_ID,
+		        SHIPG_NOTE_NO,
+		        CATG_CD,
+		        CG_TP_CD,
+		        CMDT_GRP_CD,
+		        CMDT_CD,
+		        PKG_TP_CD,
+		        MARK_NO,
+		        PKG_NO,
+		        PKG_QTY,
+		        LENGTH,
+		        WIDTH,
+		        HEIGHT,
+		        EACH_WGT,
+		        EACH_VOL,
+		        CG_WGT,
+		        CG_VOL,
+		        FREIGHT_TON,
+		        POL,
+		        POD,
+		        FDEST,
+		        IMDG,
+		        UNNO,
+		        GDS_RMK,
+		        DELV_TP_CD,
+		        TSPT_COMP,
+		        TSPT_TP_CD,
+		        CNSNE,
+ 		        CNSNE_NM,
+		        SHPR,
+ 		        SHPR_NM,
+		        FWRD,
+		        SHIPG_AGNCY,
+		        STAT_CD,
+		        UPDATE_TIME,
+		        STAFF_CD,
+		        VERSION,
+		        EST_ARRV_DT,
+		        WGT_CHK
+			) VALUES (
+				#{vslCd},
+				#{callYear},
+				#{callSeq},
+				#{vslCallId},
+				#{mfDocId},
+				#{shipgNoteNo},
+            	#{opeClassCd},
+            	#{cargoTypeCd},
+            	#{cargoSubTypeCd},
+            	#{commodityCd},
+            	#{packageTypeCd},
+            	#{mark},
+            	#{packageNumber},
+            	#{quantity},
+            	#{length},
+				#{width},
+				#{height},
+            	#{eachWeight},
+            	#{eachVolumn},
+            	#{totalWeight},
+            	#{totalVolumn},
+            	(SELECT
+            	     CASE
+            	         WHEN CAST(#{totalWeight} AS FLOAT) > CAST(#{totalVolumn} AS FLOAT) THEN #{totalWeight}
+            	         ELSE #{totalVolumn}
+            	     END),
+            	#{loadPort},
+            	#{dischargePort},
+            	#{cargoDest},
+           		<choose>
+            			<when test="dgNo != null and dgNo != ''">
+							SUBSTRING(#{dgNo}, 1, CHARINDEX('/', #{dgNo}, 1) - 1),
+							SUBSTRING(#{dgNo}, CHARINDEX('/', #{dgNo}, 1) + 1, LEN(#{dgNo})),
+						</when>
+						<otherwise>
+							#{dgNo},
+							#{dgNo},
+						</otherwise>
+				</choose>
+            	#{cargoDesc},
+            	#{deliveryModeCd},
+            	#{transporter},
+            	#{modeofOpCd},
+            	#{consignee},
+             	DBO.F_PTNR_SNM(#{consignee}, 'CNS'),
+            	#{shipper},
+             	DBO.F_PTNR_SNM(#{shipper}, 'CNS'),
+            	#{cargoAgent},
+            	#{shippingAgent},
+            	'AP',
+				SYSDATETIME(),
+				#{userId},
+				#{newVersion},
+				#{estimateArrivalDate},
+				'N'
+		)
+    </insert>
+    
+    <insert id="insertShippingNoteAmtItems" parameterType="generalCargoLoadingListItem">
+		INSERT /* generalCargoLoadingList.insertShippingNoteAmtItems */
+		INTO TMT_SHIPG_NOTE_AMT (
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			VSL_CALL_ID,
+			SHIPG_NOTE_NO,
+			MF_DOC_ID,
+			CG_WGT,
+			CG_VOL,
+			PKG_QTY,
+			D_MT,
+			D_M3,
+			D_QTY,
+			D_LR_MT,
+			D_LR_M3,
+			D_LR_QTY,
+			D_VSL_MT,
+			D_VSL_M3,
+			D_VSL_QTY,
+			I_MT,
+			I_M3,
+			I_QTY,
+			UPDATE_TIME,
+			STAFF_CD
+		) VALUES (
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{vslCallId},
+			#{shipgNoteNo},
+			UPPER(#{mfDocId}),
+			TRY_CONVERT(NUMERIC(15,3), #{totalWeight}),		
+			TRY_CONVERT(NUMERIC(15,3), #{totalVolumn}),
+			TRY_CONVERT(NUMERIC(10,0), #{quantity}),
+			CASE
+				WHEN #{deliveryModeCd} = 'D' THEN TRY_CONVERT(NUMERIC(15,3), #{totalWeight})
+				ELSE 0
+			END,
+			CASE
+				WHEN #{deliveryModeCd} = 'D' THEN TRY_CONVERT(NUMERIC(15,3), #{totalVolumn})
+				ELSE 0
+			END,
+			CASE
+				WHEN #{deliveryModeCd} = 'D' THEN TRY_CONVERT(NUMERIC(10,0), #{quantity})
+				ELSE 0
+			END,
+			CASE
+				WHEN #{deliveryModeCd} = 'D' AND #{modeofOpCd} = 'LR' THEN TRY_CONVERT(NUMERIC(15,3), #{totalWeight})
+				ELSE 0
+			END,		
+			CASE
+				WHEN #{deliveryModeCd} = 'D' AND #{modeofOpCd} = 'LR' THEN TRY_CONVERT(NUMERIC(15,3), #{totalVolumn})
+				ELSE 0
+			END,
+			CASE
+				WHEN #{deliveryModeCd} = 'D' AND #{modeofOpCd} = 'LR' THEN TRY_CONVERT(NUMERIC(10,0), #{quantity})
+				ELSE 0
+			END,
+			CASE
+				WHEN #{deliveryModeCd} = 'D' AND #{modeofOpCd} = 'VSL' THEN TRY_CONVERT(NUMERIC(15,3), #{totalWeight})
+				ELSE 0
+			END,		
+			CASE
+				WHEN #{deliveryModeCd} = 'D' AND #{modeofOpCd} = 'VSL' THEN TRY_CONVERT(NUMERIC(15,3), #{totalVolumn})
+				ELSE 0
+			END,
+			CASE
+				WHEN #{deliveryModeCd} = 'D' AND #{modeofOpCd} = 'VSL' THEN TRY_CONVERT(NUMERIC(10,0), #{quantity})
+				ELSE 0
+			END,
+			CASE
+				WHEN #{deliveryModeCd} = 'I' THEN TRY_CONVERT(NUMERIC(15,3), #{totalWeight})
+				ELSE 0
+			END,		
+			CASE
+				WHEN #{deliveryModeCd} = 'I' THEN TRY_CONVERT(NUMERIC(15,3), #{totalVolumn})
+				ELSE 0
+			END,
+			CASE
+				WHEN #{deliveryModeCd} = 'I' THEN TRY_CONVERT(NUMERIC(10,0), #{quantity})
+				ELSE 0
+			END,
+			SYSDATETIME(),
+			#{userId}
+		) 
+	</insert>
+    
+    <insert id="insertShippingNoteDtlItem" parameterType="generalCargoLoadingListItem">
+     	INSERT /*generalCargoLoadingList.insertShippingNoteDtlItem*/
+     	INTO
+     	    TMT_SHIPG_NOTE_DTL (
+     	    	VSL_CALL_ID,
+     	    	VSL_CD,
+     	    	CALL_YEAR,
+     	    	CALL_SEQ,
+     	    	SHIPG_NOTE_NO,
+     	    	MF_DOC_ID,
+     	    	SEQ,
+     	    	CMDT_CD,
+     	    	PKG_QTY,
+     	    	PKG_TP_CD,
+     	    	CG_WGT,
+     	    	CG_VOL,
+     	    	TSPT_TP_CD,
+     	    	HATCH_NO,
+     	    	UPDATE_TIME,
+     	    	STAFF_CD
+			) VALUES (
+			 	#{vslCallId},
+			 	#{vslCd},
+			 	#{callYear},
+			 	#{callSeq},
+			 	#{shipgNoteNo},
+			 	#{mfDocId},
+			 	(SELECT
+			 		CASE
+						WHEN MAX(SEQ) IS NULL OR MAX(SEQ) = 0 THEN 1
+			 	 		ELSE MAX(SEQ) + 1
+			 	 	END
+			 	FROM
+			 		TMT_SHIPG_NOTE_DTL
+			 	WHERE
+			 		SHIPG_NOTE_NO 		= #{shipgNoteNo}
+			 	),
+			 	#{cargoSubTypeCd},
+			 	NULL,
+			 	#{commodityCd},
+			 	NULL,
+			 	NULL,
+			 	#{modeofOpCd},
+			 	#{hatchNo},
+			 	SYSDATETIME(),
+			 	#{userId}
+        )
+    </insert>
+    
+    <delete id="deleteMFItems" parameterType="generalCargoLoadingListItem">
+    	DELETE /*generalCargoLoadingList.deleteMFItems*/
+    	FROM
+    		TMT_MF
+		WHERE
+		    VSL_CD      				= #{vslCd}
+       		AND CALL_YEAR     			= #{callYear}
+       		AND CALL_SEQ      			= #{callSeq}
+			AND VSL_CALL_ID   			= #{vslCallId}
+			AND MF_DOC_ID 				= #{mfDocId}
+ 			AND OPE_CLASS_CD 			= #{opeClassCd}			-- MISSING OPE_CLASS_CD COLUMN
+	</delete>
+    
+    <delete id="deleteShippingNoteItems" parameterType="generalCargoLoadingListItem">
+    	DELETE /*generalCargoLoadingList.deleteShippingNoteItems*/
+    	FROM
+    	    TMT_SHIPG_NOTE
+		WHERE
+		    VSL_CD      				= #{vslCd}
+       		AND CALL_YEAR     			= #{callYear}
+       		AND CALL_SEQ      			= #{callSeq}
+			AND VSL_CALL_ID   			= #{vslCallId}
+			AND SHIPG_NOTE_NO 			= #{shipgNoteNo}
+	</delete>
+     
+    <delete id="deleteShippingNoteDtlItems" parameterType="generalCargoLoadingListItem">
+    	DELETE /*generalCargoLoadingList.deleteShippingNoteDtlItems*/
+    	FROM
+    	    TMT_SHIPG_NOTE_DTL
+		WHERE
+		    VSL_CD      				= #{vslCd}
+       		AND CALL_YEAR     			= #{callYear}
+       		AND CALL_SEQ      			= #{callSeq}
+			AND VSL_CALL_ID   			= #{vslCallId}
+			AND SHIPG_NOTE_NO 			= #{shipgNoteNo}
+	</delete>
+	 
+	<delete id="deleteDgShippingNoteItem" parameterType="generalCargoLoadingListItem">
+    	DELETE /*generalCargoLoadingList.deleteDgShippingNoteItem*/
+    	FROM
+    	    TMT_DG
+		WHERE
+		    SEQ 						= #{dgSeq}
+	</delete>
+</mapper>

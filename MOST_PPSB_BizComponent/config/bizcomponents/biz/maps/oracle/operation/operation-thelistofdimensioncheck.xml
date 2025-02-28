@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="theListOfDimensionCheck">
+
+ 	<resultMap 	id="resultGCDimensionCheckMap" type="dimensionCheckItem">
+   		<result property = "vslCallId"		column = "VSL_CALL_ID"/>
+   		<result property = "vslCd"			column = "VSL_CD"/>
+   		<result property = "callSeq"		column = "CALL_SEQ"/> 
+   		<result property = "callYear"		column = "CALL_YEAR"/>
+		<result property = "blNo" 			column = "BLNO"/>
+		<result property = "shipgNoteNo" 	column = "SNNO"/>
+		<result property = "cgNo" 			column = "CG_NO"/>
+		<result property = "snDocLength" 	column = "SN_DOC_LENGTH"/>
+		<result property = "snDocWidth" 	column = "SN_DOC_WIDTH"/>
+		<result property = "snDocHeight" 	column = "SN_DOC_HEIGHT"/>
+		<result property = "blDocLength" 	column = "BL_DOC_LENGTH"/>
+		<result property = "blDocWidth" 	column = "BL_DOC_WIDTH"/>
+		<result property = "blDocHeight" 	column = "BL_DOC_HEIGHT"/>
+		<result property = "actLength" 		column = "ACT_LENGTH"/>
+		<result property = "actWidth" 		column = "ACT_WIDTH"/>
+		<result property = "actHeight" 		column = "ACT_HEIGHT"/>
+		<result property = "checkedDt" 		column = "CHK_DT"/>
+		<result property = "checkedBy" 		column = "STAFF_CD"/>
+		<result property = "ixCd" 			column = "IX_CD"/>
+		<result property = "cgTpCd" 		column = "CG_TP_CD"/>
+		<result property = "cgTpNm" 		column = "CG_TP_NM"/>
+		<result property = "catgCd" 		column = "CATG_CD"/>
+		<result property = "catgNm" 		column = "CATG_NM"/>
+		<result property = "shaCd" 			column = "SHIPG_AGNT"/>
+		<result property = "shaNm" 			column = "SHA_NM"/>
+		<result property = "fwdCd" 			column = "FWRD"/>
+		<result property = "fwdNm" 			column = "FWRD_NM"/>
+		<result property = "dimensionRemark" 		column = "RMK"/>
+		<result property = "jobNo" 			column = "JOB_NO"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultGCDimensionDtlDmgMap" type="dimensionCheckItem">
+   		<result property = "vslCallId"		column = "VSL_CALL_ID"/>				
+		<result property = "cgNo" 			column = "CG_NO"/>
+		<result property = "actLength" 		column = "LENGTH"/>
+		<result property = "actWidth" 		column = "WIDTH"/>
+		<result property = "actHeight" 		column = "HEIGHT"/>
+		<result property = "checkedDt" 		column = "CHK_DT"/>		
+		<result property = "dimensionRemark" 		column = "RMK"/>		
+ 	</resultMap>
+ 	
+	<select id="selectGCDimensionCheckItems" parameterType="dimensionCheckParm" resultMap="resultGCDimensionCheckMap">
+	 	<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getGCDimensionCheckListItems"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	 </select>
+	 <select id="selectGCDimensionCheckItemsCount" parameterType="dimensionCheckParm" resultType="java.lang.String">
+	 	SELECT COUNT(*)
+          FROM (<include refid="getGCDimensionCheckListItems"/>)
+	 </select>
+	 <sql id="getGCDimensionCheckListItems">
+	 SELECT * FROM 
+	 (
+	 	SELECT    /* CargoDimensionCheck.getCargoDimensionCheckListItems */
+           DC.VSL_CALL_ID,
+           DC.VSL_CD,
+           DC.CALL_SEQ,
+           DC.CALL_YEAR,
+           R.BL_NO AS BLNO,
+           R.SHIPG_NOTE_NO AS SNNO,
+           DC.CG_NO,
+           SN.LENGTH AS SN_DOC_LENGTH,
+           SN.WIDTH AS SN_DOC_WIDTH,
+           SN.HEIGHT AS SN_DOC_HEIGHT,
+           BL.LENGTH AS BL_DOC_LENGTH,
+           BL.WIDTH AS BL_DOC_WIDTH,
+           BL.HEIGHT AS BL_DOC_HEIGHT,  
+           DC.LENGTH AS ACT_LENGTH,
+           DC.WIDTH AS ACT_WIDTH,
+           DC.HEIGHT AS ACT_HEIGHT,
+           TO_CHAR(DC.CHK_DT, 'DD/MM/YYYY HH24:MI') AS CHK_DT,
+           DC.STAFF_CD,
+           DC.IX_CD,
+           R.OPE_CLASS_CD CATG_CD,
+           F_CM_001('MT', 'CATGTP', R.OPE_CLASS_CD) AS CATG_NM,
+           R.CG_TP_CD,
+           F_CM_001('MT', 'CGTP', R.CG_TP_CD) AS CG_TP_NM,
+           R.SHIPG_AGNT,
+           F_GET_PARTNER_INFO(R.SHIPG_AGNT, 'ENG_SNM') AS SHA_NM,
+           R.FWR_AGNT AS FWRD,
+           F_GET_PARTNER_INFO(R.FWR_AGNT, 'ENG_SNM') AS FWRD_NM,
+           DC.RMK,
+           DC.JOB_NO
+        FROM TMT_DIMENSION_CHECK DC
+        INNER JOIN TMT_CG_MST R ON DC.VSL_CALL_ID = R.VSL_CALL_ID AND DC.CG_NO = R.CG_NO
+        LEFT JOIN TMT_BL BL ON DC.VSL_CALL_ID = BL.VSL_CALL_ID AND BL.BL_NO = R.BL_NO
+        LEFT JOIN TMT_SHIPG_NOTE SN ON SN.VSL_CALL_ID = SN.VSL_CALL_ID AND SN.SHIPG_NOTE_NO = R.SHIPG_NOTE_NO
+        
+        <if test="checkDtFrom != null and checkDtFrom != ''">
+			WHERE CHK_DT BETWEEN TO_DATE(#{checkDtFrom},'DD/MM/YYYY HH24:MI') AND TO_DATE(#{checkDtTo}, 'DD/MM/YYYY HH24:MI')		
+		</if>          	
+	 )
+	  <where>	 		 		
+		 	<if test="vslCallId != null and vslCallId != ''">
+		 		VSL_CALL_ID = #{vslCallId}
+		 	</if>		 	
+		 	<if test="blNo != null and blNo != ''">
+		 		<if test="snNo != null and snNo != ''">
+		 			AND (BLNO = #{blNo} OR SNNO = #{snNo})
+		 		</if>
+		 		<if test="snNo == null or snNo == ''">
+		 			AND BLNO = #{blNo}
+		 		</if>
+		 	</if>		 	
+		 	<if test="blNo == null or blNo == ''">
+		 		<if test="snNo != null and snNo != ''">
+		 			AND SNNO = #{snNo}
+		 		</if>
+		 	</if>		 	
+		 	<if test="catgCd != null and catgCd != ''">
+		 		AND CATG_CD = #{catgCd}
+		 	</if>		 			 			   
+	 </where>			 	 	
+	</sql>	
+	
+	<select id="selectGCDimensionDtlDmgItems" parameterType="dimensionCheckParm" resultMap="resultGCDimensionDtlDmgMap">
+	 	<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getGCDimensionDtlDmgItems"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	 </select>
+	<select id="selectGCDimensionDtlDmgItemsCount" parameterType="dimensionCheckParm" resultType="java.lang.String">
+	 	SELECT COUNT(*)
+          FROM (<include refid="getGCDimensionDtlDmgItems"/>)
+	 </select>
+	 
+	 <sql id="getGCDimensionDtlDmgItems">
+		SELECT    /* CargoDimensionCheck.getGCDimensionDtlDmgItems */
+                DM.VSL_CALL_ID,                
+                DM.CG_NO,
+                DM.LENGTH,
+                DM.WIDTH,
+                DM.HEIGHT,
+                DM.CHK_DT,                                             
+                DM.RMK                                                
+        FROM    TMT_DIMENSION_CHECK DM               
+        WHERE   DM.VSL_CALL_ID = #{vslCallId}
+                AND DM.CG_NO = #{cgNo}				
+	</sql>
+	
+	<delete id="deleteGCDimensionItem" parameterType="dimensionCheckItem">
+		DELETE	TMT_DIMENSION_CHECK
+		WHERE   VSL_CALL_ID = #{vslCallId}
+				AND CG_NO = #{cgNo}
+				<if test="jobNo != null and jobNo != ''">
+			 		AND JOB_NO = #{jobNo}
+			 	</if>		
+	</delete>
+	
+</mapper>

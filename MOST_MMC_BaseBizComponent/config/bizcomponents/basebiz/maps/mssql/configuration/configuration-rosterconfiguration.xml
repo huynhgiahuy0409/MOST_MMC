@@ -1,0 +1,694 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="rosterConfiguration">
+    
+    <select id="selectStaffInfoList" parameterType="rosterConfigurationParm" resultType="rosterConfigurationItem">
+	 	<if test="pageNo != 0"> 
+        	SELECT /*rosterConfiguration.selectStaffInfoList*/
+            	* 
+			FROM (
+				SELECT 
+					ROW_NUMBER() OVER(ORDER BY EMPID, ENGNM ASC) AS ROW_NUM,
+					innerTable.* 
+				FROM ( 
+		</if>
+				<include refid="getStaffInfoList"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable 
+			WHERE 
+				innerTable.ROW_NUM <![CDATA[>]]> (CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) * CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM <![CDATA[<=]]> CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	 
+	<select id="selectStaffInfoListCount" parameterType="rosterConfigurationParm" resultType="java.lang.String">
+	 	SELECT /*rosterConfiguration.selectStaffInfoListCount*/
+			COUNT(*) 
+        FROM 
+			(<include refid="getStaffInfoList"/>) AS innerTable
+	</select>
+    
+	<sql id="getStaffInfoList">
+		SELECT /*rosterConfiguration.getStaffInfoList*/
+			A.EMP_ID 															AS EMPID, 
+			SUBSTRING(A.EMP_ID, 3, 6) 											AS hiddenEmpId,
+			ISNULL(ENG_NM, ' ') 												AS ENGNM, 
+			ISNULL(USER_ID, ' ') 												AS TUSERID, 
+			ISNULL((SELECT
+						ENG_NM 
+					FROM 
+						TMT_USER_INFO 
+					WHERE 
+						USER_ID = A.USER_ID), ' ') 								AS TUSERNM, 
+			ISNULL(A.ROLE_CD, ' ') 												AS PROLECD,
+			ISNULL(GRD_CD, ' ') 												AS GRDCD,
+			dbo.F_CM_CODE_NM('CM', 'GRADE', GRD_CD) 							AS GRDCDNM,
+			ISNULL(USE_YN, ' ') 												AS useYn,
+			dbo.F_CM_CODE_NM('CM', 'EMPSTAT', 
+				(CASE
+					WHEN USE_YN = 'Y' 
+						THEN ISNULL((
+									SELECT TOP(1)
+										'UA' 
+									FROM 
+										TMT_EMP_NON_AVAIL_LOG
+									WHERE 
+										FM_YMD = FORMAT(SYSDATETIME(), 'yyyyMMdd')
+										AND EMP_ID = A.EMP_ID
+									), 'AV')
+					ELSE 'UA'
+				END))															AS STATCDNM,
+			ISNULL(WORK_LOC_CD, ' ') 											AS WORKLOCCD, 
+			dbo.F_CM_CODE_NM('CM', 'WORKLOCCD',  WORK_LOC_CD) 					AS WORKLOCCDNM,
+			ISNULL(CONTT_DIV, ' ') 												AS CONTTDIV,
+			dbo.F_CM_CODE_NM('MT', 'CONTTDIV', CONTT_DIV) 						AS CONTTDIVNM,
+			ISNULL(A.COST_CENT_CD, ' ') 										AS COSTCENTCD,
+			ISNULL((SELECT 
+						DESCR 
+					FROM 
+						TMT_B_COSTCENT 
+					WHERE 
+						COST_CENT_CD = A.COST_CENT_CD), ' ') 					AS COSTCENTNM,
+			dbo.F_GET_EMP_ROLE_CD(A.EMP_ID) 									AS ROLECD,
+			ISNULL(A.EMAIL, ' ') 												AS EMAIL,
+			ISNULL(A.RMK, ' ') 													AS REMARK, 
+			ISNULL(RATE, ' ')             										AS rate,
+			ISNULL(B.SHFT_GRP_CD, ' ') 											AS SHFTGROUPCD,
+			(SELECT
+				(CASE
+					WHEN SHFT_GRP_NM = 'N' THEN '-'
+					ELSE SHFT_GRP_NM
+				END)
+			FROM 
+				TMT_GROUP 
+			WHERE 
+				SHFT_GRP_CD = B.SHFT_GRP_CD) 									AS SHFTGROUPNM,
+			ISNULL(A.VERSION, ' ') 												AS VERSION,
+			FORMAT(A.UPDATE_TIME, 'dd/MM/yyyy HH:mm')			  				AS updDt,
+			A.STAFF_CD 															AS updBy,
+			ISNULL(A.UNIT_DIV,' ') 												AS unitDiv
+		FROM 
+			TMT_STAFF 															A
+		LEFT OUTER JOIN
+			TMT_SHFT_GRP_EMP 													B 
+				ON A.EMP_ID 													= B.EMP_ID
+		WHERE 
+			A.USE_YN 															IS NOT NULL
+			AND A.USE_YN														<![CDATA[<>]]> ''
+		<if test="roleCd != null and roleCd != ''">
+  			AND A.ROLE_CD 														= #{roleCd}
+		</if>
+		<if test="empId != null and empId != ''">
+  			AND A.EMP_ID 														LIKE '${empId}%'
+		</if>
+		<if test="useYn != null and useYn != ''">
+ 			AND  A.USE_YN 														= #{useYn}
+		</if>
+		<if test="conttDiv != null and conttDiv != ''">
+  			AND A.CONTT_DIV 													= #{conttDiv}
+		</if>
+		<if test="costCentCd != null and costCentCd != ''">
+  			AND A.COST_CENT_CD 													= #{costCentCd}
+		</if>
+		<if test="empName != null and empName != ''">
+  			AND UPPER(A.ENG_NM) 												LIKE '${empName}%'
+		</if>
+	    <if test="searchType == 'group'">
+     		AND A.WORK_LOC_CD 													= 'NE'
+	    </if>
+	    <if test="tUserId != null and tUserId != ''">
+     		AND A.USER_ID 														LIKE '${tUserId}%'
+	    </if>
+	</sql>
+  	
+	<select id="selectInternalStaffMngUser" parameterType="rosterConfigurationParm" resultType="rosterConfigurationItem">
+		SELECT /*rosterConfiguration.selectInternalStaffMngUser*/
+			USER_ID												AS USERID,
+			ENG_NM 												AS ENGNM 
+		FROM 
+			TMT_USER_INFO 
+		WHERE 
+			USE_YN 												= 'Y' 
+			AND USER_TYPE 										= 'I' 
+		ORDER BY 
+			USERID, ENGNM ASC
+	</select>
+
+	<select id="selectGroupList"  parameterType="rosterConfigurationParm" resultType="rosterConfigurationItem">
+		SELECT /*rosterConfiguration.selectGroupList*/
+			A.SHFT_DIV_CD										AS SHFTTPCD, 
+			A.SHFT_GRP_CD 										AS SHFTGROUPCD,
+			A.SHFT_GRP_NM 										AS SHFTGROUPNM
+		FROM 
+			TMT_GROUP A
+		WHERE 
+			A.SHFT_DIV_CD 										= #{cmDivCd}
+			AND A.VLD_YN 										= 'Y'
+		ORDER BY 
+			A.SHFT_GRP_CD
+	</select>
+
+	<select id="selectInternalStaffMngCheck" parameterType="rosterConfigurationParm" resultType="rosterConfigurationItem">
+		<if test="empId != null and empId != ''">
+		SELECT /*rosterConfiguration.selectInternalStaffMngCheck*/
+			EMP_ID 						AS EMPID 
+		FROM 
+			TMT_STAFF 
+		WHERE 
+			EMP_ID = #{empId}
+		</if>
+	</select>
+	
+	<select id="selectInternalStaffMngLog" parameterType="rosterConfigurationParm" resultType="rosterConfigurationItem">
+		SELECT /*rosterConfiguration.selectInternalStaffMngLog*/
+			A.EMP_ID 															AS EMPID, 
+			(SELECT 
+				S_CD_NM 
+			FROM 
+				TMT_CD_MSTD B 
+			WHERE 
+				B.L_CD 				= 'MT' 
+				AND B.M_CD 			= 'STATRSN' 
+				AND A.RSN_CD 		= B.S_CD ) 									AS RSNCDNM,
+			A.RSN_CD 															AS RSNCD,
+			A.RSN_CD 															AS REMOVERSNCD,			   
+			CAST(A.FM_YMD AS DATE)												AS FMYMDKEY,
+			CAST(A.TO_YMD AS DATE) 												AS TOYMDKEY,
+			CONVERT(VARCHAR, CONVERT(DATE, A.FM_YMD, 112), 103)					AS REMOVEFMYMD,
+			CONVERT(VARCHAR, CONVERT(DATE, A.TO_YMD, 112), 103) 				AS REMOVETOYMD,
+			DATEDIFF(DAY, CAST(A.FM_YMD AS DATE), CAST(A.TO_YMD AS DATE)) + 1 	AS DAYS
+		FROM 
+			TMT_EMP_NON_AVAIL_LOG 												A
+	 	WHERE 
+			1 = 1
+	 	<if test="page == 'PN111'"> 
+	 	 	AND SUBSTRING(EMP_ID,3,6) 											= #{empId}
+	 	</if>
+	 	<if test="page != 'PN111'">
+	 	 	AND EMP_ID 															= #{empId}
+	 	</if>
+	 	ORDER BY 
+			A.FM_YMD DESC, 
+			A.RSN_CD DESC
+	</select>
+	
+	<select id="selectGroupItem"  parameterType="rosterConfigurationParm" resultType="rosterConfigurationItem">
+		SELECT /*rosterConfiguration.selectGroupItem*/
+			SHFT_GRP_CD											AS SHFTGRPCD
+		FROM 
+			TMT_GROUP
+		WHERE 
+			SHFT_GRP_CD    										= #{shftGrpCd}
+			AND VLD_YN    										= 'Y'
+	</select>
+	
+	<select id="selectShiftGroupDefShiftMegaList"  parameterType="rosterConfigurationParm" resultType="rosterConfigurationItem">
+		SELECT /* rosterConfiguration.selectShiftGroupDefShiftMegaList  PN105TAB*/
+		       SHFT_ID             AS SHFTID,
+		       SHFT_DIV_CD         AS SHFTDIVCD,
+		       SHFT_NM             AS SHFTNM,
+		       FM_HHMM             AS FMHHMM,
+		       TO_HHMM             AS TOHHMM,
+		       VERSION             AS VERSION
+		FROM TMT_SHFT
+		WHERE VLD_YN = 'Y'
+		<if test="divCd != null and divCd != ''">
+  			AND
+				SHFT_DIV_CD = #{divCd}
+		</if>
+		   	AND SHFT_METH_CD = #{shftMethCd}
+ 		ORDER BY SHFTNM
+	</select>
+	
+	<select id="selectShiftGroupListOnly"  parameterType="rosterConfigurationParm" resultType="rosterConfigurationItem">
+		SELECT /*rosterConfiguration.selectShiftGroupListOnly*/
+			SUBSTRING(A.EMP_ID, 3, 6) 							AS hiddenEmpId,
+		    A.EMP_ID       										AS EMPID,
+		    A.ENG_NM       										AS ENGNM,
+			(A.ROLE_CD + 
+			CASE 
+				WHEN dbo.F_GET_EMP_ROLE_CD(A.EMP_ID) 
+					= ' ' THEN ''
+				ELSE ','
+			END 
+			+ dbo.F_GET_EMP_ROLE_CD(A.EMP_ID)) 					AS ROLECDNM,
+			B.SHFT_GRP_CD  										AS SHFTGRPCD,
+			B.VERSION      										AS VERSION,
+			B.SHFT_DIV_CD  										AS SHFTDIVCD,
+			B.APLY_FM_YMD  										AS APLYFMYMD,
+			B.APLY_TO_YMD  										AS APLYTOYMD		   
+		FROM 
+			TMT_STAFF 											A, 
+			TMT_SHFT_GRP_EMP 									B
+		WHERE 
+			A.EMP_ID 											= B.EMP_ID
+			AND B.SHFT_GRP_CD 									= #{shftGrpCd}
+		ORDER BY 
+			A.EMP_ID ASC
+	</select>
+	
+	<select id="selectShiftDef"  parameterType="rosterConfigurationParm" resultType="rosterConfigurationItem">
+		SELECT /*rosterConfiguration.selectShiftDef*/
+			SHFT_ID												AS SHFTID,
+		    SHFT_DIV_CD         								AS SHFTDIVCD,
+		    SHFT_IDX            								AS SHFTIDX,
+		    SHFT_METH_CD        								AS SHFTMETHCD,
+		    SHFT_NM             								AS SHFTNM,
+		    APLY_FM_YMD         								AS APLYFMYMD,
+		    APLY_TO_YMD         								AS APLYTOYMD,
+		    FM_HHMM             								AS FMHHMM,
+		    TO_HHMM             								AS TOHHMM,
+			VLD_YN             									AS USEYN,
+			ISNULL(RMK, ' ')      								AS RMK,
+			VERSION             								AS VERSION
+		FROM 
+			TMT_SHFT
+		WHERE 
+			VLD_YN 												= #{useYn}
+		<if test="divCd != null and divCd != ''">
+ 	 		AND SHFT_DIV_CD 									= #{divCd}
+		</if>
+		<if test="shftMethCd != null and shftMethCd != ''">
+  			AND SHFT_METH_CD 									= #{shftMethCd}
+		</if>
+ 		ORDER BY 
+			SHFT_IDX, 
+			SHFTNM
+	</select>
+	
+	<select id="selectGroupDef"  parameterType="rosterConfigurationParm" resultType="rosterConfigurationItem">
+		SELECT /*rosterConfiguration.selectGroupDef*/
+	    	SHFT_GRP_CD          								AS GROUPCD,
+	        SHFT_DIV_CD            								AS SHFTDIVCD,
+	        SHFT_GRP_NM            								AS GROUPNM,
+		    VLD_YN                 								AS USEYN,
+		    ISNULL(RMK, ' ')          							AS RMK,
+		    VERSION                								AS VERSION
+		FROM 
+			TMT_GROUP
+		WHERE 
+			VLD_YN 												= #{useYn}
+		<if test="divCd != null and divCd != ''">
+			AND SHFT_DIV_CD 									= #{divCd}
+		</if>
+ 		ORDER BY 
+			SHFT_GRP_CD, 
+			SHFT_DIV_CD
+	</select>
+	
+	<insert id="insertInternalStaffMngItems" parameterType="rosterConfigurationItem">
+		INSERT /*rosterConfiguration.insertInternalStaffMngItems*/
+		INTO TMT_STAFF (
+		    EMP_ID,
+			ENG_NM,
+			USE_YN,
+			USER_ID,
+			ROLE_CD,
+			GRD_CD,
+			EMAIL,
+			STAT_CD,
+			WORK_LOC_CD,
+			CONTT_DIV,
+			UNIT_DIV,
+			COST_CENT_CD,
+			RMK,
+			STAFF_CD,
+			UPDATE_TIME,
+			RATE,
+			VERSION
+		) VALUES (
+			#{empId}, 
+			#{engNm}, 
+			#{useYn}, 
+			#{tuserId}, 
+			#{proleCd},
+			#{grdCd}, 
+			#{email}, 
+			#{statCd}, 
+			#{workLocCd}, 
+			#{conttDiv}, 
+			#{unitDiv},
+			#{costCentCd}, 
+			#{remark},
+			#{userId}, 
+			SYSDATETIME(),
+			#{rate}, 
+			#{newVersion}
+		)
+	</insert>
+	
+	<insert id="insertInternalStaffMngRoleItems" parameterType="rosterConfigurationItem">
+		INSERT /*rosterConfiguration.insertInternalStaffMngRoleItems*/
+		INTO TMT_ROLE (
+		    EMP_ID,
+			ROLE_CD,
+			STAFF_CD,
+			UPDATE_TIME
+		) VALUES (
+			#{empId}, 
+			LTRIM(RTRIM(#{roleCd})),
+			#{userId}, 
+			SYSDATETIME()
+		)
+	</insert>
+	
+	<insert id="insertInternalStaffMngLogItems"  parameterType="rosterConfigurationItem">
+		INSERT /*rosterConfiguration.insertInternalStaffMngLogItems*/
+		INTO TMT_EMP_NON_AVAIL_LOG (
+		    EMP_ID,
+			FM_YMD,
+			TO_YMD,
+			RSN_CD,
+			STAFF_CD,
+			UPDATE_TIME
+		) VALUES (
+			#{empId}, 
+			CONVERT(VARCHAR, CONVERT(DATE, #{fmYmd}, 103), 112),
+			CONVERT(VARCHAR, CONVERT(DATE, #{toYmd}, 103), 112),
+			#{rsnCd},
+			#{userId}, 
+			SYSDATETIME()
+		)
+	</insert>
+	
+	<insert id="insertGroupRosterSetItems"  parameterType="rosterConfigurationItem">
+		DECLARE @DAYS NUMERIC(4, 0) = TRY_CONVERT(NUMERIC(4, 0), #{days})
+		EXECUTE /*rosterConfiguration.insertGroupRosterSetItems*/
+			PRC_RSTR_SET #{grdCd}, null, #{removeFmYmd}, @DAYS, #{userId}, #{empId}
+	</insert>
+	
+	<insert id="insertShiftDefItems"  parameterType="rosterConfigurationItem">
+		INSERT /*rosterConfiguration.insertShiftDefItems*/
+		INTO TMT_SHFT(
+			SHFT_IDX,	       
+			SHFT_DIV_CD,
+			SHFT_ID,
+			SHFT_METH_CD,
+			SHFT_NM,
+			APLY_FM_YMD,
+			APLY_TO_YMD,
+			FM_HHMM,
+			TO_HHMM,
+			VLD_YN,
+			RMK,
+			STAFF_CD,
+			UPDATE_TIME,
+			VERSION
+		) VALUES (
+			#{shftIdx}, 
+			#{shftDivCd}, 
+			(SELECT 
+				'SF' + 	RIGHT('0000' + CONVERT(VARCHAR, ISNULL(	MAX(CONVERT(INT, SUBSTRING(SHFT_ID, 3, LEN(SHFT_ID) - 1))) + 1, 1)), 4) 
+			FROM 
+				TMT_SHFT),
+			#{shftMethCd}, 
+			#{shftNm}, 
+			CONVERT(VARCHAR, SYSDATETIME(), 112), 
+			'99990101',
+			#{fmHhmm}, 
+			#{toHhmm}, 
+			'Y', 
+			#{rmk}, 
+			#{userId}, 
+			SYSDATETIME(), 
+			#{newVersion}
+		)
+	</insert>
+	
+	<insert id="insertShiftGroupItems"  parameterType="rosterConfigurationItem">
+		INSERT /*rosterConfiguration.insertShiftGroupItems*/
+		INTO TMT_GROUP (
+			SHFT_GRP_CD, 
+			SHFT_DIV_CD,
+			SHFT_GRP_NM,
+			APLY_FM_YMD,
+			APLY_TO_YMD,
+			VLD_YN,
+			RMK,
+			STAFF_CD,
+			UPDATE_TIME,
+			VERSION
+		) VALUES (
+		    (SELECT 
+				'GP' + RIGHT('00000' + CONVERT(VARCHAR, ISNULL(MAX(CONVERT(INT, SUBSTRING(SHFT_GRP_CD, 3, LEN(SHFT_GRP_CD) - 1))) + 1, 1)), 5) 
+			FROM 
+				TMT_GROUP),
+		    #{shftDivCd}, 
+		    #{groupNm}, 
+		    CONVERT(VARCHAR, SYSDATETIME(), 112), 
+		    '99990101', 
+		    'Y', 
+		    #{rmk}, 
+		    #{userId}, 
+		    SYSDATETIME(), 
+		    #{newVersion}
+		)
+	</insert>
+	
+	<insert id="insertShiftConfigurationItems" parameterType="rosterConfigurationItem">
+		INSERT /*rosterConfiguration.insertShiftConfigurationItems*/
+		INTO TMT_SHFT_GRP_EMP(
+			EMP_ID,
+			SHFT_GRP_CD,
+			APLY_FM_YMD,
+			APLY_TO_YMD,
+			STAFF_CD,
+			UPDATE_TIME,
+			VERSION,
+			SHFT_DIV_CD
+		) VALUES (
+			#{empId},
+			#{shftGrpCd},
+			CONVERT(VARCHAR, SYSDATETIME(), 112),
+			'99990101',
+			#{userId},
+			SYSDATETIME(),
+			#{newVersion},
+			#{shftDivCd}
+		)
+	</insert>
+	
+	<update id="updateInternalStaffMngItems" parameterType="rosterConfigurationItem">
+		UPDATE	/*rosterConfiguration.updateInternalStaffMngItems*/
+			TMT_STAFF 
+		SET 	
+			ENG_NM												= #{engNm},
+	   		USE_YN      										= #{useYn},
+	   		USER_ID     										= #{tuserId},
+	   		ROLE_CD     										= #{proleCd},
+	   		GRD_CD      										= #{grdCd},
+	   		EMAIL												= #{email},
+	        STAT_CD     										= #{statCd},
+	        WORK_LOC_CD 										= #{workLocCd},
+	        CONTT_DIV   										= #{conttDiv},
+	        UNIT_DIV											= #{unitDiv},
+	        COST_CENT_CD 										= #{costCentCd},
+	        RMK      											= #{remark},
+	        STAFF_CD 											= #{userId},
+	        UPDATE_TIME      									= SYSDATETIME(),
+	        RATE        										= #{rate},
+	        VERSION     										= #{newVersion}
+		WHERE 
+			EMP_ID												= #{empId}
+		<if test="version != null and version != ''">
+			AND VERSION 										= #{version} 
+		</if>
+	</update>
+	
+	<update id="deleteInternalStaffMngItems" parameterType="rosterConfigurationItem">
+		UPDATE	/*rosterConfiguration.deleteInternalStaffMngItems*/
+			TMT_STAFF 
+		SET 
+			USE_YN      										= 'N',
+	        STAFF_cD 											= #{userId},
+	        UPDATE_TIME      									= SYSDATETIME(),
+	        VERSION     										= #{newVersion}
+		WHERE 
+			EMP_ID 												= #{empId}
+		<if test="version != null and version != ''">
+			AND VERSION 										= #{version} 
+		</if>
+	</update>
+	
+	<update id="updateShiftDefItems" parameterType="rosterConfigurationItem">
+		UPDATE /*rosterConfiguration.updateShiftDefItems*/
+		TMT_SHFT SET 
+			SHFT_IDX     										= #{shftIdx},
+			SHFT_METH_CD 										= #{shftMethCd},
+			SHFT_NM      										= #{shftNm}, 
+			FM_HHMM      										= #{fmHhmm},
+			TO_HHMM      										= #{toHhmm},
+			VLD_YN       										= #{useYn},
+			RMK          										= #{rmk},
+			STAFF_CD  	 										= #{userId},
+			UPDATE_TIME  										= SYSDATETIME(),
+			VERSION      										= #{newVersion}
+		WHERE 
+			SHFT_ID 											= #{shftId}
+	    <if test="version != null and version != ''">
+     		AND VERSION 										= #{version} 
+		</if>
+	</update>
+	
+	<update id="updateShiftGroupItems" parameterType="rosterConfigurationItem">
+		UPDATE /*rosterConfiguration.updateShiftGroupItems*/
+		TMT_GROUP SET 
+			SHFT_GRP_NM     									= #{groupNm},
+			VLD_YN          									= #{useYn},
+			RMK             									= #{rmk},
+			STAFF_CD  	   										= #{userId},
+			UPDATE_TIME     									= SYSDATETIME(),
+			VERSION         									= #{newVersion}
+		WHERE 
+			SHFT_GRP_CD 										= #{groupCd}
+		<if test="version != null and version != ''">
+    		AND VERSION 										= #{version} 
+		</if>
+	</update>
+	
+	<delete id="deleteInternalStaffMngRoleItems"  parameterType="rosterConfigurationItem">
+		DELETE /*rosterConfiguration.deleteInternalStaffMngRoleItems*/
+		FROM 
+			TMT_ROLE 
+		WHERE 
+			EMP_ID 												= #{empId}
+	</delete>
+	
+	<delete id="deleteInternalStaffMngLogItems"  parameterType="rosterConfigurationItem">
+		DELETE /*rosterConfiguration.deleteInternalStaffMngLogItems*/
+		FROM 
+			TMT_EMP_NON_AVAIL_LOG 
+		WHERE 
+			EMP_ID 												= #{empId}
+		<if test="removeRsnCd != null and removeRsnCd != ''">
+			AND RSN_CD 											= #{removeRsnCd}
+		</if>
+		<if test="removeFmYmd != null and removeFmYmd != ''">
+			AND CONVERT(DATE, FM_YMD, 112) 						&gt;= CONVERT(DATE, #{removeFmYmd}, 103)
+		</if>
+		<if test="removeToYmd != null and removeToYmd != ''">
+			AND CONVERT(DATE, TO_YMD, 112) 						&lt;= CONVERT(DATE, #{removeToYmd}, 103)
+		</if> 
+	</delete>
+	
+	<delete id="deleteRosterSetupOthersItems"  parameterType="rosterConfigurationItem">
+		DELETE /*rosterConfiguration.deleteRosterSetupOthersItems*/
+		FROM 
+			TMT_RSTR_SET 
+		WHERE 
+			EMP_ID 												= #{empId}
+			AND RSTR_YMD 										= CONVERT(VARCHAR, CONVERT(DATE, #{fmYmd}, 103), 112)
+	</delete>
+	
+	<delete id="deleteRosterSetItems"  parameterType="rosterConfigurationItem">
+		DELETE /*rosterConfiguration.deleteRosterSetItems*/
+		FROM 
+			TMT_RSTR_SET 
+		WHERE 
+			EMP_ID 												= #{empId}
+			AND RSTR_YMD 										>= CONVERT(VARCHAR, SYSDATETIME(), 112)
+	</delete>
+	
+	<delete id="deleteDepyItems"  parameterType="rosterConfigurationItem">
+		EXECUTE /*rosterConfiguration.deleteDepyItems*/
+			PRC_DEPY_D #{empId}, null, null, #{userId}, 'Internal Staff Info Changed'
+	</delete>
+	
+	<delete id="deleteUnavailableLogDepyItems"  parameterType="rosterConfigurationItem">
+		EXECUTE /*rosterConfiguration.deleteUnavailableLogDepyItems*/
+			PRC_DEPY_D #{empId}, null, #{removeFmYmd}, #{userId}, 'Unavailable Log Info Changed'
+	</delete>
+	
+	<delete id="deleteShiftConfigurationItems"  parameterType="rosterConfigurationItem">
+		DELETE /*rosterConfiguration.deleteShiftConfigurationItems*/
+		FROM 
+			TMT_SHFT_GRP_EMP
+		WHERE 
+			EMP_ID 												= #{empId}
+	</delete>
+
+	<delete id="deleteShiftDefItems"  parameterType="rosterConfigurationItem">
+		DELETE /*rosterConfiguration.deleteShiftDefItems*/
+		FROM 
+			TMT_SHFT
+		WHERE 
+			SHFT_ID 											= #{shftId}
+	</delete>
+	
+	<delete id="deleteGroupItems"  parameterType="rosterConfigurationItem">
+		DELETE /*rosterConfiguration.deleteGroupItems*/
+		FROM 
+			TMT_GROUP
+		WHERE 
+			SHFT_GRP_CD 										= #{groupCd}
+		<if test="version != null and version != ''">
+     		AND VERSION 										= #{version} 
+		</if>
+	</delete>
+
+	<delete id="deleteStffGroupItems"  parameterType="rosterConfigurationItem">
+		DELETE /*rosterConfiguration.deleteStffGroupItems*/
+		FROM 
+			TMT_SHFT_GRP_EMP
+		WHERE 
+			SHFT_GRP_CD 										= #{groupCd}
+	</delete>
+	
+	<delete id="deleteRstrGroupItems"  parameterType="rosterConfigurationItem">
+		DELETE /*rosterConfiguration.deleteRstrGroupItems*/
+		FROM 
+			TMT_RSTR_SET
+		WHERE 
+			SHFT_GRP_CD 										= #{groupCd}
+			AND RSTR_YMD 										>= CONVERT(VARCHAR, SYSDATETIME(), 112)
+	</delete>
+	
+	<select id="checkGroupIsUsedOrNot" parameterType="rosterConfigurationParm" resultType="rosterConfigurationItem">
+	 	SELECT /*rosterConfiguration.checkGroupIsUsedOrNot*/
+			SHFT_GRP_CD 										AS groupCd
+        FROM 
+			TMT_RSTR_SET 
+		WHERE 
+			SHFT_GRP_CD IS NOT NULL
+		GROUP BY
+			SHFT_GRP_CD
+	</select>
+	
+	<select id="selectDeployedGroupStaffListOnly" parameterType="rosterConfigurationParm" resultType="rosterConfigurationItem">
+	 	SELECT /*rosterConfiguration.selectDeployedGroupStaffListOnly*/
+	 		DISTINCT
+			DEPY.SHFT_GRP_CD 									AS groupCd,
+			DEPY.SHFT_GRP_NM									AS groupNm
+        FROM 
+			TMT_DEPY DEPY
+		JOIN
+			TMT_RSTR_SET RSTR
+		ON
+			DEPY.SHFT_GRP_CD 									= RSTR.SHFT_GRP_CD
+			AND DEPY.SHFT_GRP_NM 								= RSTR.SHFT_GRP_NM
+		WHERE 
+			1 = 1
+			<if test="groupCd != null and groupCd != ''">
+				AND DEPY.SHFT_GRP_CD  							= #{groupCd}
+			</if>
+			AND RSTR.RSTR_YMD 									= CONVERT(DATE, #{plannedYmd},103)
+			AND RSTR.SHFT_ID 									= #{shftId}
+	</select>
+	
+	<select id="getAllAssignedStaffByGroupCd" parameterType="rosterConfigurationParm" resultType="rosterConfigurationItem">
+	 	SELECT /*rosterConfiguration.getAllAssignedStaffByGroupCd*/
+			SHFT_GRP_CD 										AS groupCd,
+			EMP_ID												AS empId
+        FROM 
+			TMT_RSTR_SET 
+		WHERE 
+			SHFT_GRP_CD 										= #{groupCd}
+			AND EMP_ID											= #{empId}
+	</select>
+	
+	
+</mapper>

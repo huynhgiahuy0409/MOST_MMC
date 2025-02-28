@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="DamageDimensionCheck">
+ 	
+	<insert id="insertDamageCheck" parameterType="damageCheckItem">
+		INSERT INTO TMT_DAMAGE_CHECK (
+		   VSL_CALL_ID
+		   ,VSL_CD
+		   ,CALL_SEQ
+		   ,CALL_YEAR
+		   ,CG_NO
+		   <!-- ,CHAS_NO  -->
+		   ,SEQ
+		   ,IX_CD
+		   ,CATG_CD
+		  <!-- ,DMG_CHK -->
+		  <!-- ,CHK_LOC -->
+		   ,DMG_PART
+		   ,DMG_LEVEL
+		   ,QTY
+  		   ,MT
+  		   ,M3
+  		   ,JOB_NO
+		  <!-- ,INV_CD -->
+		  <!-- ,INV_CNT -->
+		  <!-- ,CODE_NUM -->
+	       ,CHK_DT
+		  <!-- ,BRAND_CD -->
+		  <!-- ,MODEL_CD -->
+		   ,RMK
+		   ,CRT_DT
+		   ,CRT_BY
+		   ,UPD_DT
+		   ,UPD_BY
+		  
+		) VALUES (
+		   #{vslCallId}
+		   ,#{vslCd}
+		   ,#{callSeq}
+		   ,#{callYear}
+		   ,#{cgNo}
+		  <!-- ,#{unitNo} -->
+		   ,(SELECT NVL(MAX(CAST(SEQ AS INT)),0) + 1 FROM TMT_DAMAGE_CHECK WHERE VSL_CALL_ID = #{vslCallId} AND CG_NO = #{cgNo})
+		   ,#{ixCd}
+		   ,#{catgCd}
+		  <!-- ,#{dmgChkCd} -->
+		  <!-- ,#{locCd} -->
+		   ,#{dmgPart}
+		   ,#{dmgLevel}
+		   ,#{dmgQty}
+		   ,#{dmgMt}
+		   ,#{dmgM3}
+		   ,#{jobNo}
+		  <!-- ,#{invCd} -->
+		  <!-- ,CASE WHEN #{invCnt} IS NULL OR #{invCnt} = '' THEN NULL ELSE CAST(#{invCnt} AS NUMERIC(12,0)) END -->
+		  <!-- ,#{cdNum} -->
+           ,SYSDATE 
+		  <!-- ,#{brandCd} -->
+		  <!-- ,#{modelCd} -->
+		   ,#{dmgRemark}
+		   ,SYSDATE
+		   ,#{userId}
+		   ,SYSDATE
+		   ,#{userId}
+		)
+	</insert>
+
+	<insert id="insertDimensionCheck" parameterType="dimensionCheckItem">
+		INSERT INTO TMT_DIMENSION_CHECK (
+		      VSL_CD,
+  		      CALL_SEQ,
+			  CALL_YEAR,
+			  VSL_CALL_ID,
+			  CG_NO,
+			  IX_CD,
+			  CATG_CD,
+			  JOB_NO,
+			  WIDTH,
+			  HEIGHT,
+			  LENGTH,
+			  CHK_DT,
+			  RMK,
+			  CRT_DT,
+			  CRT_BY,
+			  UPD_DT,
+			  UPD_BY
+		) VALUES (
+		    #{vslCd}
+		   ,#{callSeq}
+		   ,#{callYear}
+		   ,#{vslCallId}
+		   ,#{cgNo}
+		   ,#{ixCd}
+		   ,#{catgCd}
+		   ,#{jobNo}
+		   ,#{actWidth}
+		   ,#{actHeight}
+		   ,#{actLength}
+		   ,SYSDATE
+		   ,#{dimensionRemark}
+		   ,SYSDATE
+		   ,#{userId}
+		   ,SYSDATE
+		   ,#{userId}
+		)
+	</insert>
+	
+     <select id="selectJobNoDamageCheck"   parameterType="damageCheckParm"  resultType="damageCheckItem">
+		SELECT 
+                ('J' || TO_CHAR(SYSDATE, 'YYMMDD') 
+                     || (SELECT NVL(TRIM(To_CHAR(SUBSTR(MAX(JOB_NO) ,-9,9), '000000000')),'000000000') 
+                      FROM  TMT_JOB)) AS jobNo
+             FROM DUAL
+	 </select>
+	 
+	 <select id="searchDimensionCheck" parameterType="damageCheckParm" resultType="dimensionCheckItem">
+		SELECT	/* GateOperationsMap.searchGateInSDonoInfo */
+				WIDTH actWidth,
+				LENGTH actLength,
+				HEIGHT actHeight,
+				CHK_DT checkTime,
+				RMK dimensionRemark,
+				VSL_CD vslCd,
+				CALL_YEAR callYear,
+				CALL_SEQ callSeq,
+				VSL_CALL_ID vslCallId,
+				JOB_NO jobNo
+		FROM TMT_DIMENSION_CHECK
+		WHERE   1 = 1
+				<if test="jobNo != null and jobNo != ''">
+					AND JOB_NO = #{jobNo}
+				</if>
+	</select>
+	
+	<select id="searchDamageCheck" parameterType="damageCheckParm" resultType="damageCheckItem">
+		SELECT	/* GateOperationsMap.searchGateInSDonoInfo */
+				DMG_PART dmgPart,
+				
+				(SELECT	S_CD_DESC
+				FROM    TMT_CD_MSTD 
+				WHERE   M_CD = 'DMGCHK' 
+					AND S_CD_LGV = 'DMG_PART' AND S_CD = DMG_PART) dmgPartNm,
+					
+				DMG_LEVEL dmgLevel,
+				
+				(SELECT	S_CD_DESC
+				FROM    TMT_CD_MSTD 
+				WHERE   M_CD = 'DMGCHK' 
+					AND S_CD_LGV = 'DMG_LEVEL' AND S_CD = DMG_LEVEL) dmgLevelNm,
+					
+				CHK_DT checkTime,
+				RMK dmgRemark,
+				QTY dmgQty,
+				MT dmgMt,
+				M3 dmgM3,
+				VSL_CD vslCd,
+				CALL_YEAR callYear,
+				CALL_SEQ callSeq,
+				VSL_CALL_ID vslCallId,
+				JOB_NO jobNo,
+				SHIP_CALL_NO scn
+		FROM TMT_DAMAGE_CHECK
+		WHERE   1 = 1
+				<if test="jobNo != null and jobNo != ''">
+					AND JOB_NO = #{jobNo}
+				</if>
+	</select>
+	
+	<delete id="deleteDamageCheck" parameterType="damageCheckItem">
+		DELETE FROM TMT_DAMAGE_CHECK
+		WHERE JOB_NO = #{jobNo}
+	</delete>
+	
+	<delete id="deleteDimensionCheck" parameterType="dimensionCheckItem">
+		DELETE FROM TMT_DIMENSION_CHECK
+		WHERE JOB_NO = #{jobNo}
+	</delete>
+	
+	<select id="searchDamageDimensionCheckJobNo" parameterType="damageCheckParm" resultType="damageCheckItem">
+		<!-- CASE IMPORT - DIRECT DISCHARGE - AFTER CONFIRM DISCHARGE TO GATE OPERATION-->
+		SELECT	
+				JOB_NO jobNo, UPD_DT
+		FROM TMT_JOB
+		WHERE   1 = 1
+				AND GATE_TXN_NO = #{gateTicketNo}
+				AND CG_NO = #{cgNo} 
+				AND JOB_TP_CD = 'DS' AND NEXT_JOB_PURP_CD IS NULL
+		UNION ALL
+		<!-- CASE IMPORT - INDIRECT DISCHARGE - AFTER CONFIRM HANDLING OUT TO GATE OPERATION-->
+		SELECT	
+				JOB_NO jobNo, UPD_DT
+		FROM TMT_JOB
+		WHERE   1 = 1
+				AND GATE_TXN_NO = #{gateTicketNo} AND CG_NO = #{cgNo} 
+				AND JOB_TP_CD = 'LO'
+		UNION ALL
+		<!-- CASE EXPORT - DIRECT LOAD - AFTER GATE-IN -->
+		SELECT	
+				JOB_NO jobNo, UPD_DT
+		FROM TMT_JOB
+		WHERE   1 = 1
+				AND GATE_TXN_NO = #{gateTicketNo} AND CG_NO = #{cgNo} 
+				AND JOB_TP_CD = 'GI' AND JOB_PURP_CD = 'OI'
+		UNION ALL
+		<!-- CASE EXPORT - INDIRECT LOAD - AFTER GATE-IN -->
+		SELECT	
+				JOB_NO jobNo, UPD_DT
+		FROM TMT_JOB
+		WHERE   1 = 1
+				AND CG_NO = #{cgNo} AND JOB_TP_CD = 'LD' AND JOB_PURP_CD = 'WA'
+		UNION ALL
+		<!-- CASE EXPORT - INDIRECT LOAD - RETURN TO SHIPPER -->
+		SELECT	
+				JOB_NO jobNo, UPD_DT
+		FROM TMT_JOB
+		WHERE   1 = 1
+				AND CG_NO = #{cgNo} AND GATE_TXN_NO = #{gateTicketNo}
+				AND JOB_TP_CD = 'LF' AND JOB_PURP_CD = 'GW'
+		ORDER BY UPD_DT DESC
+	</select>
+	
+	<select id="selectJobNoDimensionCheck"   parameterType="damageCheckParm"  resultType="dimensionCheckItem">
+		SELECT 
+                ('J' || TO_CHAR(SYSDATE, 'YYMMDD') 
+                     || (SELECT NVL(TRIM(To_CHAR(SUBSTR(MAX(JOB_NO) ,-9,9), '000000000')),'000000000') 
+                      FROM  TMT_JOB)) AS jobNo
+             FROM DUAL
+	 </select>
+	 
+	 <select id="searchDamageDimensionCheckBlSnNo"   parameterType="damageCheckParm"  resultType="dimensionCheckItem">
+		SELECT         
+               vslCallId,
+               blSnNo,
+               cd,
+               cdNm               
+       FROM (
+                select BL.VSL_CALL_ID as vslCallId, 
+                       BL.BL_NO as blSnNo,
+                       BL.BL_NO as cd,
+                       BL.BL_NO as cdNm
+                from tmt_bl BL 
+                where BL.vsl_call_id = #{vslCallId}
+                UNION
+                select SN.VSL_CALL_ID as vslCallId,
+                       SN.SHIPG_NOTE_NO as blSnNo,
+                       SN.SHIPG_NOTE_NO as cd,
+                       SN.SHIPG_NOTE_NO as cdNm
+                from tmt_shipg_note SN
+                where SN.vsl_call_id = #{vslCallId}
+            )
+	 </select>
+	 
+	 <select id="searchDamageDimensionCheckDoGrNo"   parameterType="damageCheckParm"  resultType="dimensionCheckItem">
+		SELECT         
+               vslCallId,
+               doGrNo,
+               doGrCd,
+               doGrNm               
+       FROM (
+                select DO.VSL_CALL_ID as vslCallId, 
+                       DO.DO_NO as doGrNo,
+                       DO.DO_NO as doGrCd,
+                       DO.DO_NO as doGrNm
+                from tmt_do DO 
+                where DO.vsl_call_id = #{vslCallId}
+                      and DO.BL_NO = #{blNo}
+                UNION
+                select GR.VSL_CALL_ID as vslCallId,
+                       GR.GR_NO as doGrNo,
+                       GR.GR_NO as doGrCd,
+                       GR.GR_NO as doGrNm
+                from tmt_gr GR
+                where GR.vsl_call_id = #{vslCallId}
+                      and GR.SHIPG_NOTE_NO = #{blNo}
+            )
+	 </select>
+	 
+	 <select id="searchDamageDimensionCheckDetailImport"   parameterType="damageCheckParm"  resultType="dimensionCheckItem">
+		SELECT
+            BL.VSL_CALL_ID,
+            BL.BL_NO,
+            BL.LENGTH,
+            BL.WIDTH,
+            BL.HEIGHT
+        FROM TMT_BL BL
+        WHERE BL.VSL_CALL_ID = #{vslCallId}
+        AND BL.BL_NO = #{blNo}				
+	 </select>
+	 
+	 <select id="searchDamageDimensionCheckDetailExport"   parameterType="damageCheckParm"  resultType="dimensionCheckItem">
+		SELECT
+            SN.VSL_CALL_ID,
+            SN.SHIPG_NOTE_NO,
+            SN.LENGTH,
+            SN.WIDTH,
+            SN.HEIGHT
+        FROM TMT_SHIPG_NOTE SN
+        WHERE SN.VSL_CALL_ID = #{vslCallId}
+        AND SN.SHIPG_NOTE_NO = #{blNo}		
+	 </select>
+	 
+</mapper>

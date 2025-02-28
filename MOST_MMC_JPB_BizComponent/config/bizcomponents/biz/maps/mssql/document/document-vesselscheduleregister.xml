@@ -1,0 +1,1001 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace= "vesselScheduleRegister">
+
+	<select id="selectVesselScheduleList" parameterType="vesselScheduleRegisterParm" resultType="vesselScheduleRegisterItem">
+	 	<if test="pageNo != 0"> 
+	    	SELECT /* vesselScheduleRegister.selectVesselScheduleList */
+	    		* 
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY ETA DESC, VSLNM ASC) AS ROW_NUM,
+					innerTable.*
+				FROM ( 
+		</if>
+				<include refid="getVesselScheduleList"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) * CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]>	CAST((CASE WHEN #{pageNo}  = '0' THEN '1' ELSE #{pageNo} END) AS INT) * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<sql id="getVesselScheduleList">
+		SELECT  /* vesselScheduleRegister.getVesselScheduleList */
+			VP.VSL_CD 																AS vslCd, 
+			VP.VSL_NM 																AS vslNm,
+			VS.SUMMIT_STAT 															AS summitStat,
+			VS.VSL_CALL_ID 															AS vslCallId,
+			VS.INB_VOY 																AS inbVoy,
+            VS.OUTB_VOY 															AS outbVoy,
+			CASE VS.DOMESTIC_CHK
+				WHEN 'Y' THEN 'Domestic Service'
+				ELSE ' '
+			END 																	AS domesticChk,
+            '' 																		AS portCd,
+            VS.PURP_CALL_DESC 														AS purpCallDesc,
+            VP.SHIP_OFFICIAL_NO 													AS shipOffNo,
+            VP.IMO_NO 																AS iMoNo,
+         	ISNULL(VP.LOA, 0) 														AS loa,
+         	VP.VSL_TP 																AS vslTp,
+			CASE VS.BERTH_ALONGSIDE
+				WHEN 'P' THEN 'Port'
+				ELSE 
+					CASE VS.BERTH_ALONGSIDE
+						WHEN 'S' THEN 'Startboard'
+						ELSE ''
+					END 
+			END 																	AS berthPlan, 
+         	FORMAT(VS.ADVICE_DATE_TIME, 'dd/MM/yyyy HH:mm') 						AS advDtTm,
+            FORMAT(VS.ETA, 'dd/MM/yyyy HH:mm') 										AS eta,
+            FORMAT(VS.YOT, 'dd/MM/yyyy HH:mm') 										AS yot,
+            FORMAT(VS.YCT, 'dd/MM/yyyy HH:mm') 										AS yct,
+            FORMAT(VS.ETB, 'dd/MM/yyyy HH:mm') 										AS etb,
+            FORMAT(VS.ETW, 'dd/MM/yyyy HH:mm') 										AS etw,
+            FORMAT(VS.ETC, 'dd/MM/yyyy HH:mm') 										AS etc,
+         	FORMAT(VS.ETU, 'dd/MM/yyyy HH:mm') 										AS etu,
+         	FORMAT(VS.ETD, 'dd/MM/yyyy HH:mm') 										AS etd,
+            FORMAT(VS.BTR, 'dd/MM/yyyy HH:mm') 										AS rtb,
+            FORMAT(VS.ATA, 'dd/MM/yyyy HH:mm') 										AS ata,
+            FORMAT(VS.ATW, 'dd/MM/yyyy HH:mm') 										AS atw,
+            VS.PILOT_REQUEST_ARRIVAL 												AS pilotRqArv,
+            FORMAT(
+				TRY_CONVERT(DATETIME, VS.PILOT_ON_BOARD_ARRIVAL, 103), 
+				'dd/MM/yyyy HH:mm') 												AS pilotOnBrdArv,
+            FORMAT(VS.ATB, 'dd/MM/yyyy HH:mm') 										AS atb,
+            FORMAT(VS.ATC, 'dd/MM/yyyy HH:mm') 										AS atc,
+            FORMAT(VS.ATU, 'dd/MM/yyyy HH:mm') 										AS atu,
+         	FORMAT(
+				TRY_CONVERT(DATETIME, VS.PILOT_REQUEST_DEPARTURE, 103), 
+				'dd/MM/yyyy HH:mm') 												AS pilotRqDep,
+			FORMAT(
+				TRY_CONVERT(DATETIME, VS.PILOT_ON_BOARD_DEPARTURE, 103), 
+				'dd/MM/yyyy HH:mm') 												AS pilotOnBrdDep,
+            VP.AGENCY_CODE 															AS agencyCd,
+            VP.SHIPPING_LINE_CD 													AS shpLineCd,
+            (SELECT TOP(1)
+				ENG_SNM 
+			FROM 
+				TMT_PTNR 
+			WHERE 
+				PTNR_CODE = VP.SHIPPING_LINE_CD 
+			)  																		AS insUserLogInAgency,
+            VS.DEPR_SA_ID 															AS deprSaId,
+            VS.ARRV_SA_ID 															AS arrvSaId,
+            VS.BERTH_LOC 															AS berthLoc,
+            VS.BERTH_NM 															AS berthNm,
+            OPERATION_TYPE 															AS opeTp,     
+         	VS.LOAD_CARGO_QTY 														AS loadCargoQty,
+         	VS.DISCH_CARGO_QTY 														AS dischCargoQty,
+         	VP.GRT 																	AS grt,
+         	VP.DWT 																	AS dwt,
+         	ISNULL(VS.ARRV_AFTER_DRF, '0') + '/' +  ISNULL(VS.ARRV_FWD_DRF, '0')	AS drfArrv,     
+            ISNULL(VS.DEPT_AFTER_DRF, '0') + '/' +  ISNULL(VS.DEPT_FWD_DRF, '0')	AS drfDeptr,
+            '' 																		AS shipLv,
+            VP.CALL_SIGN 															AS callSign,
+            VS.SHIP_CALL_NO 														AS scn,                 
+         	VS.ATD 																	AS atd,
+         	VS.CALL_SEQ 															AS callSq,
+         	VS.CALL_YEAR 															AS callYear,             
+            VS.PURP_CALL 															AS purpCall,
+            VP.SA_CORP_ID 															AS saCorpId,
+            VP.ENG_SNM 																AS engSnm,
+            VS.CHK_ATD 																AS chkAtd,
+            VS.LOC_CD 																AS locCd,         
+            VP.STAT_CD 																AS statCd,                                                                     
+            VS.DOC_APPRV_STAT 														AS docApprvStat,
+         	(SELECT COUNT(*)) 														AS TOTAL_COUNT, 
+         	ISNULL(VS.WHARF_MARK_FROM, 0)											AS startPos,
+			ISNULL(VS.WHARF_MARK_TO, 0)                  							AS endPos,    
+			ISNULL(VS.PST_STA, 0)                                    				AS pstSta
+ 		FROM 
+			(SELECT DISTINCT
+ 				A.VSL_CD,
+ 				A.VSL_NM, 
+ 				A.CALL_SIGN, 
+ 				A.IMO_NO, 
+ 				A.SHIP_OFFICIAL_NO, 
+ 				A.SA_CORP_ID, 
+ 				B.ENG_SNM,
+ 				A.LOA,
+ 				(SELECT TOP(1)
+					C.S_CD_NM 
+				FROM 
+					TMT_CD_MSTD C 
+				WHERE 
+					C.L_CD = 'VC' 
+					AND C.M_CD = 'VSLTP' 
+					AND C.S_CD = A.VSL_TP 
+				) 																	AS VSL_TP,
+             	B.AGENCY_CODE,
+             	A.SHIPPING_LINE_CD, 
+             	A.GRT,
+             	A.DWT, 
+             	A.STAT_CD        
+      		FROM 
+				TMT_VSL_PART A 
+			LEFT OUTER JOIN  
+				TMT_AGENCY_INFO B 
+					ON A.SA_CORP_ID = B.AGENCY_CODE                                             
+      		WHERE 
+				1 = 1 
+	     	<if test="vslNm != '' and vslNm != null">
+	 			AND A.VSL_NM 			LIKE '%' + #{vslNm} + '%'
+			</if>
+	 		<if test="imoNo != '' and imoNo != null">
+	 			AND A.IMO_NO 			LIKE '%' + #{imoNo} + '%'
+			</if>   
+	  		<if test="shipOffNo != '' and shipOffNo != null">
+	 			AND A.SHIP_OFFICIAL_NO 	LIKE '%' + #{shipOffNo} + '%'
+			</if>                                          
+      		) 																		VP, 
+			(SELECT
+            	C.VSL_CD,
+            	C.CALL_YEAR,
+            	C.CALL_SEQ,
+            	C.VSL_CALL_ID,                                      
+				C.INB_VOY,
+				C.OUTB_VOY,
+				C.SHIP_CALL_NO,                                                      
+				C.ETA,
+				C.ETD,
+				C.PURP_CALL,
+				C.UPDATE_TIME,                                        
+				dbo.F_CM_CODE_NM('VC', 'POC', C.PURP_CALL) 							AS PURP_CALL_DESC,                                      
+				''																	AS CG_OP_TP,
+				C.SUMMIT_STAT,
+				'' 																	AS CHK_ATD,
+				C.BERTH_LOC,
+				E.BERTH_NM,
+				E.LOC_CD,
+				C.YOT,
+				C.YCT,
+				C.ETB,
+				C.ETW,
+				C.ETC,
+				C.ETU,
+				C.ATA,
+				C.ATB,
+				C.ATC,
+				C.ATU,
+				C.ATW,
+				C.LOAD_CARGO_QTY,
+				C.DISCH_CARGO_QTY,
+				C.STAFF_CD,
+				C.DEPR_SA_ID,
+				C.ARRV_SA_ID,
+				C.DRF_ARRV,
+				C.DRF_DEPTR,
+				C.BERTH_ALONGSIDE,
+				C.BTR,
+				C.ATD,
+				C.DOMESTIC_CHK,
+				(SELECT TOP(1)
+					S_CD_NM 
+				FROM 
+					TMT_CD_MSTD 
+				WHERE 
+					M_CD = 'CGFZ' 
+					AND S_CD = C.CG_OP_TP 
+				) 																	AS Operation_Type,
+				C.UPDATE_TIME 														AS Advice_Date_Time,
+				'' 																	AS Pilot_Request_Arrival,
+				'' 																	AS Pilot_On_Board_Arrival,
+				'' 																	AS Pilot_Request_Departure,
+				'' 																	AS Pilot_On_Board_Departure,
+				'' 																	AS DOC_APPRV_STAT,
+				C.WHARF_MARK_FROM,
+				C.WHARF_MARK_TO,
+				E.PST_STA,
+				C.ARRV_AFTER_DRF,
+				C.ARRV_FWD_DRF,
+				C.DEPT_AFTER_DRF,
+				C.DEPT_FWD_DRF
+			FROM 
+				TMT_VSL_SCH C, 
+				TMT_BERTH_LOC E                            
+       		WHERE 
+				C.BERTH_LOC = E.BERTH_CD                                         
+			<if test="eta != '' and etd != ''">
+				AND C.ETA 
+					BETWEEN 
+						CONVERT(DATETIME, #{eta} + ' 00:00', 103)      
+						AND 
+						CONVERT(DATETIME, #{etd} + ' 23:59', 103)
+			</if>
+            <if test="vslCallId != '' and vslCallId != null">
+           		AND C.VSL_CALL_ID LIKE '%' + #{vslCallId} + '%'
+            </if> 
+            <if test="scn != '' and scn != null">
+           		AND C.SHIP_CALL_NO LIKE '%' + #{scn} + '%'
+            </if>
+            <if test="summitStt != '' and summitStt != null">
+           		AND C.SUMMIT_STAT =  #{summitStt} 
+            </if>
+            <if test="locCd != '' and locCd != null">
+           		AND LOC_CD  = #{locCd}
+           	</if>
+            <if test="berthCd != '' and berthCd != null">
+           		AND BERTH_LOC  = #{berthCd}
+			</if>
+			<if test="shipPort eq 'Y'.toString()">
+          		AND (
+          				(C.ATB IS NOT NULL AND C.ATB <![CDATA[<>]]> '') 
+          				AND (C.ATU IS NULL OR C.ATU = '') 
+          				AND (C.ATD IS NULL AND C.ATD = '')
+          			)
+			</if>
+			<if test="saCorpId != null and saCorpId != ''">
+           		AND (C.ARRV_SA_ID = #{saCorpId} OR C.DEPR_SA_ID = #{saCorpId})
+			</if>
+ 			) 																		VS 
+ 		WHERE 
+			VP.VSL_CD = VS.VSL_CD 
+			<if test="shaCd != null and shaCd != ''">
+					<!-- AND VP.AGENCY_CODE = #{shaCd} -->
+					AND VS.ARRV_SA_ID = #{shaCd}
+			</if>
+		<!-- 
+		ORDER BY 
+			VS.ETA DESC,
+			VP.VSL_NM ASC
+		 -->
+	</sql>
+
+	<select id="selectVesselScheduleListCount" parameterType="vesselScheduleRegisterParm" resultType="java.lang.String" >
+		SELECT /* vesselScheduleRegister.selectVesselScheduleListCount */
+			COUNT(*)
+	    FROM 
+			(<include refid="getVesselScheduleList"/>) AS TEMPTABLE
+	</select>
+
+	<select id="selectVesselScheduleDetail" parameterType = "vesselScheduleRegisterParm" resultType = "vesselScheduleRegisterItem"> 
+		SELECT /* vesselScheduleRegister.selectVesselScheduleDetail */
+	        VSL_CD 																	AS vslCd,
+	        CALL_YEAR 																AS callYear,
+	        CALL_SEQ 																AS callSq,
+	        VSL_CALL_ID 															AS vslCallId,
+	        SHIP_CALL_NO 															AS scn,
+	        INB_VOY 																AS inbVoy,
+	        OUTB_VOY 																AS outbVoy,
+	        BERTH_TP 																AS berthTp,
+	        BERTH_LOC 																AS berthLoc,
+	        FORMAT(BERTH_DTM, 'dd/MM/yyyy HH:mm') 									AS berthDtm,
+	        PURP_CALL 																AS purpCall,
+	        CG_OP_TP 																AS cargoOpTp,
+	        SUMMIT_STAT 															AS summitStat,
+			CASE SUMMIT_STAT
+				WHEN 'AP' THEN 'Approved'
+				ELSE 'Submitted'
+			END 																	AS statCdNm,
+	        DEPT_TP 																AS deptTp,
+	        VC_DIV 																	AS vcDiv,
+	        FORMAT(ETA, 'dd/MM/yyyy HH:mm') 										AS eta,
+	        FORMAT(ETD, 'dd/MM/yyyy HH:mm') 										AS etd,
+	        FORMAT(ETW, 'dd/MM/yyyy HH:mm') 										AS etw,
+	        FORMAT(ETB, 'dd/MM/yyyy HH:mm') 										AS etb,
+	        FORMAT(ATA, 'dd/MM/yyyy HH:mm') 										AS ata,
+	        FORMAT(ATD, 'dd/MM/yyyy HH:mm') 										AS atd,
+	        FORMAT(ATB, 'dd/MM/yyyy HH:mm') 										AS atb,
+	        FORMAT(ATU,'dd/MM/yyyy HH:mm') 											AS atu,
+	        STOWW_YN 																AS stowwYn,
+	        ARMS_YN 																AS ArmsYn,
+	        '' 																		AS dgImCnt,
+	        '' 																		AS dgExCnt,
+	        DG_GOOD_YN 																AS dgGdYn,
+	        ADV_IMMG_YN 															AS advImmgYn,
+	        SCH.RMK  																AS rmk,
+	        FORMAT(BTR, 'dd/MM/yyyy HH:mm') 										AS btr,
+	        DRF_ARRV 																AS drfArrv,
+	        DRF_DEPTR 																AS drfDeptr,
+	        INB_SERV_LANE 															AS ibSrvLane,
+	        OUTB_SERV_LANE 															AS obSrvLane,
+	        FORMAT(YOT, 'dd/MM/yyyy HH:mm') 										AS yot,
+	        FORMAT(YCT, 'dd/MM/yyyy HH:mm') 										AS yct,
+	        ARRV_SA_ID 																AS arrvSaId,
+	        DEPR_SA_ID 																AS deprSaId,
+	        PILOT_ONBOARD 															AS pilotOnboard,
+	        PILOT_DISEMBARK 														AS pilotDisemBakk,
+	        dbo.F_CM_CODE_NM('VC', 'POC', PURP_CALL) 								AS purpCallDesc,
+	        (SELECT 
+				COUNT(*) 
+	        FROM 
+				(SELECT 
+					B.VSL_CALL_ID 
+				FROM 
+					TMT_DG 					A, 
+					TMT_SHIPG_NOTE 			B
+				WHERE  
+					A.VSL_CD 				= #{vslCd} 
+					AND A.CALL_YEAR 		= #{callYear} 
+					AND A.CALL_SEQ 			= #{callSeq} 
+					AND A.SEQ 				= B.DG_SEQ  
+				UNION ALL  
+				SELECT 
+					B.VSL_CALL_ID 
+					FROM 
+					TMT_DG 					A, 
+					TMT_CONFM_SLP_DTL		B 
+				WHERE 
+					A.VSL_CD 				= #{vslCd} 
+					AND A.CALL_YEAR 		= #{callYear} 
+					AND A.CALL_SEQ 			= #{callSeq} 
+					AND A.SEQ 				= B.DG_SEQ 
+					AND B.CG_OPT_TP_CD 		= 'LD') AS TEMP349TB
+			) 																		AS exCntMpts,
+	     	(SELECT 
+				COUNT(*) 
+			FROM 
+				(SELECT 
+					A.VSL_CALL_ID 
+				FROM 
+					TMT_BL 					A,
+					TMT_DG 					D 
+				WHERE 
+					A.VSL_CD 				= #{vslCd} 
+					AND A.CALL_YEAR 		= #{callYear} 
+					AND A.CALL_SEQ 			= #{callSeq} 
+					AND A.CATG_CD 			IN ('I', 'T') 
+					AND A.DG_SEQ 			= D.SEQ 
+				UNION ALL 
+				SELECT 
+					B.VSL_CALL_ID 
+				FROM 
+					TMT_DG 					A, 
+					TMT_CONFM_SLP_DTL 		B 
+				WHERE 
+					A.VSL_CD 				= #{vslCd} 
+					AND A.CALL_YEAR 		= #{callYear} 
+					AND A.CALL_SEQ 			= #{callSeq} 
+					AND A.SEQ 				= B.DG_SEQ  
+					AND B.CG_OPT_TP_CD 		= 'DS')	AS TEMP376TB
+			) 																		AS imCntMpts,
+	     	(SELECT 
+				COUNT(*) 
+	     	FROM 
+				TMT_CONFM_SLP_DTL 			B, 
+				TMT_VSL_SCH 				SCH 
+	    	WHERE 
+				SCH.VSL_CD 					= #{vslCd} 
+	    		AND SCH.CALL_YEAR 			= #{callYear} 
+	    		AND SCH.CALL_SEQ 			= #{callSeq}  
+	    		AND B.VSL_CALL_ID 			= SCH.VSL_CALL_ID 
+	    		AND B.CG_OPT_TP_CD 			IN ('TD','TL')
+	    	) 																		AS tsCntMpts,
+	     	'' 																		AS imCntJcts,
+	     	'' 																		AS exCntJcts, 
+	     	'' 																		AS tsCntJcts,
+	        (CASE 
+	        	WHEN SCH.ARRV_SA_ID != 'MARN' 
+					THEN 
+						(SELECT TOP(1)
+							ENG_NM 
+	        			FROM 
+							TMT_USER_INFO 	A 
+	        			WHERE
+							A.USER_ID		= SCH.STAFF_CD
+	        			) 
+	         		ELSE 
+						(SELECT TOP(1)
+							ENG_SNM 
+	         			FROM 
+							TMT_AGENCY_INFO A, 
+							TMT_VSL_PART 	B 
+						WHERE 
+							A.AGENCY_CODE	= B.SA_CORP_ID 
+							AND B.VSL_CD	= SCH.VSL_CD
+						)  
+	           	END
+			) 																		AS engNm,
+	        (CASE
+				WHEN SCH.ARRV_SA_ID != 'MARN' THEN (
+	        		SELECT TOP(1)
+	        			ID_NO 
+	        		FROM 
+	        			TMT_USER_INFO 		A 
+	        		WHERE 
+	        			A.USER_ID			= SCH.STAFF_CD) 
+				ELSE ''
+	            END
+			) 																		AS idNo,
+	        (CASE 
+	        	WHEN SCH.ARRV_SA_ID != 'MARN' THEN (
+	        		SELECT TOP(1)
+	        			TEL_NO 
+	        		FROM 
+	        			TMT_USER_INFO 		A 
+	        		WHERE 
+	        			A.USER_ID			= SCH.STAFF_CD) 
+				ELSE (
+					SELECT TOP(1)
+						TEL_NO 
+					FROM 
+						TMT_USER_INFO 		A, 
+						TMT_VSL_PART 		B 
+					WHERE 
+						A.AGENCY_CODE		= B.SA_CORP_ID 
+					AND B.VSL_CD			=	SCH.VSL_CD
+				)  
+	            END
+			) 																		AS engNmTe, 
+	        '' 																		AS arrvDt,
+	        '' 																		AS lastPort,
+	        '' 																		AS mapassLstPort, 
+	        '' 																		AS nextPort,
+	        '' 																		AS mapassNxtPort,
+	        LOAD_CARGO 																AS loadCg,
+	        DISCH_CARGO 															AS dischCg,
+	        LOAD_CARGO_QTY 															AS LoadCgQty,
+	        DISCH_CARGO_QTY 														AS dischCgQty,
+			SHIFT_CARGO_QTY 														AS shiftCgQty,
+	        SUBMIT_RMK 																AS submitRemark,   
+	        CONTACT_NAME 															AS contNm,
+	        CONTACT_NO 																AS ContNo,
+	        SCH.REQ_FRESH_WT 														AS rqFreshWt,
+	        TOP_TIER 																AS topTier,
+	        BERTH_ALONGSIDE 														AS berthAlongSide,
+	        NO_OF_CRANE 															AS noCrane,
+	        NO_OF_FIREARM 															AS noFirearm,
+	        BUNKER_QTY 																AS bunkerQty,
+	        FRE_WATER_QTY 															AS frsWRQty,
+	        SPEC_INSTRUCTION 														AS specIntr,
+	        
+	        (CASE
+	        	WHEN SCH.ARRV_SA_ID != 'MARN' 
+					THEN 
+						(SELECT TOP(1)
+							AGCY.ENG_SNM 
+						FROM 
+							TMT_VSL_SCH				SCH
+						LEFT OUTER JOIN
+							TMT_AGENCY_INFO 		AGCY 
+								ON SCH.ARRV_SA_ID	= AGCY.AGENCY_CODE
+								AND AGCY.PTNR_TYPE 	= 'SHA' 
+						)
+	            	ELSE 
+						(SELECT TOP(1)
+							AGCY.ENG_SNM  
+						FROM 
+							TMT_AGENCY_INFO 		AGCY, 
+							TMT_VSL_PART 			PART 
+						WHERE 
+							PART.VSL_CD				= SCH.VSL_CD 
+							AND AGCY.PTNR_TYPE		= 'SHA' 
+							AND PART.SA_CORP_ID		= AGCY.AGENCY_CODE
+						)
+	        END
+			)  																		AS saNm,
+	        (CASE 
+	        	WHEN SCH.ARRV_SA_ID != 'MARN' 
+					THEN 
+					(SELECT TOP(1)
+						AGCY.ADDR 
+					FROM 
+						TMT_VSL_SCH					SCH
+					LEFT OUTER JOIN
+						TMT_AGENCY_INFO 			AGCY 
+							ON SCH.ARRV_SA_ID 		= AGCY.AGENCY_CODE
+							AND AGCY.PTNR_TYPE 		= 'SHA'
+					)
+					ELSE 
+						(SELECT TOP(1)
+							AGCY.ADDR  
+						FROM 
+							TMT_AGENCY_INFO 		AGCY, 
+							TMT_VSL_PART			PART 
+						WHERE 
+							PART.VSL_CD				= SCH.VSL_CD 
+							AND AGCY.PTNR_TYPE		= 'SHA' 
+							AND PART.SA_CORP_ID		= AGCY.AGENCY_CODE
+						)
+			END
+			)  																		AS saAddr,
+			(CASE 
+				WHEN SCH.ARRV_SA_ID != 'MARN' 
+					THEN 
+						(SELECT TOP(1)
+							AGCY.TEL_NO 
+						FROM 
+							TMT_VSL_SCH					SCH
+						LEFT OUTER JOIN
+							TMT_AGENCY_INFO 			AGCY 
+								ON SCH.ARRV_SA_ID 		= AGCY.AGENCY_CODE
+								AND AGCY.PTNR_TYPE 		= 'SHA'
+						)
+					ELSE 
+						(SELECT TOP(1)
+							AGCY.TEL_NO  
+						FROM 
+							TMT_AGENCY_INFO 			AGCY, 
+							TMT_VSL_PART 				PART 
+						WHERE 
+							PART.VSL_CD					= SCH.VSL_CD 
+							AND AGCY.PTNR_TYPE			= 'SHA' 
+							AND PART.SA_CORP_ID			= AGCY.AGENCY_CODE
+						)
+			END
+			)  																		AS saTel,
+	        (CASE 
+	        	WHEN SCH.ARRV_SA_ID != 'MARN' 
+					THEN 
+						(SELECT TOP(1)
+							AGCY.FAX_NO 
+						FROM 
+							TMT_VSL_SCH					SCH
+						LEFT OUTER JOIN
+							TMT_AGENCY_INFO 			AGCY 
+								ON SCH.ARRV_SA_ID 		= AGCY.AGENCY_CODE
+								AND AGCY.PTNR_TYPE		='SHA'
+						)
+					ELSE
+						(SELECT TOP(1)
+							AGCY.FAX_NO  
+						FROM 
+							TMT_AGENCY_INFO 			AGCY, 
+							TMT_VSL_PART 				PART 
+						WHERE 
+							PART.VSL_CD					= SCH.VSL_CD 
+							AND AGCY.PTNR_TYPE			= 'SHA' 
+							AND PART.SA_CORP_ID			= AGCY.AGENCY_CODE
+						)
+			END
+			)  																		AS saFax,
+	        
+
+			REF_VSL_CALL_ID 														AS refVslCallId,
+	        BERTH_WINDOW 															AS berthWd,
+	        '' 																		AS clsYn,
+	        REQ_CHANDELLING 														AS rqChangdelling,
+	        REQ_FRESH_WT 															AS rqFreshWt,
+	        REQ_QUANTY_BKR 															AS rqQtyBkr,
+	        (SELECT TOP(1)
+				LOC_CD 
+			FROM 
+				TMT_BERTH_LOC 
+			WHERE  
+				BERTH_CD = SCH.BERTH_LOC) 											AS locCd,
+	        CARGO_TP 																AS cargoTpMpts,
+	        DOMESTIC_CHK 															AS domesticChk,
+	        HIGHEST_POINT 															AS highestPoint,
+	        ARRV_AFTER_DRF 															AS arrvAfterDrf,
+	        ARRV_FWD_DRF 															AS arrvFwdDrf,
+	        DEPT_AFTER_DRF 															AS deptAfterDrf,
+	        DEPT_FWD_DRF 															AS deptFwdDrf
+		FROM 
+			TMT_VSL_SCH 															SCH
+		LEFT OUTER JOIN
+			TMT_AGENCY_INFO 														AGCY    
+				ON SCH.ARRV_SA_ID = AGCY.AGENCY_CODE
+				AND AGCY.PTNR_TYPE = 'SHA'                     
+	 	WHERE 
+			VSL_CD 																	= #{vslCd} 
+			AND CALL_YEAR 															= #{callYear} 
+			AND CALL_SEQ 															= RIGHT('0000'+ #{callSeq}, 4)        
+	</select>
+	
+	<select id="isDuplicateVslCallId" parameterType="vesselScheduleRegisterParm" resultType="vesselScheduleRegisterItem"> 
+		SELECT /* vesselScheduleRegister.isDuplicateVslCallId */
+			VSL_CALL_ID 										AS vslCallId 
+		FROM 
+			TMT_VSL_SCH 
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+	</select>
+	
+	<update id="updateVesselScheduleItem" parameterType="vesselScheduleRegisterItem">
+		UPDATE /* vesselScheduleRegister.updateVesselScheduleItem */
+			TMT_VSL_SCH 
+		SET 
+			INB_VOY 											= #{inbVoy},
+			OUTB_VOY 											= #{outbVoy},
+			BERTH_TP 											= #{berthTp},
+			BERTH_LOC 											= #{berthLoc},
+			BERTH_DTM 											= 	CASE
+																		WHEN #{berthDtm} = '' THEN NULL
+																		ELSE CONVERT(DATETIME, #{berthDtm}, 103)
+																	END,
+			PURP_CALL 											= #{purpCall},
+			CG_OP_TP 											= #{cargoOpTp},
+			DEPT_TP 											= #{deptTp},
+			VC_DIV 												= #{vcDiv},
+			ETA 												= 	CASE
+																		WHEN #{eta} = '' THEN NULL
+																		ELSE CONVERT(DATETIME, #{eta}, 103)
+																END,
+			ETD 												= 	CASE
+																		WHEN #{etd} = '' THEN NULL
+																		ELSE CONVERT(DATETIME, #{etd}, 103)
+																	END,
+			ETW 												= 	CASE
+																		WHEN #{etw} = '' THEN NULL
+																		ELSE CONVERT(DATETIME, #{etw}, 103)
+																	END,
+			ETB 												= 	CASE
+																		WHEN #{etb} = '' THEN NULL
+																		ELSE CONVERT(DATETIME, #{etb}, 103)
+																	END,
+			ATA 												= 	CASE
+																		WHEN #{ata} = '' THEN NULL
+																		ELSE CONVERT(DATETIME, #{ata}, 103)
+																	END,
+			ATD 												= 	CASE
+																		WHEN #{atd} = '' THEN NULL
+																		ELSE CONVERT(DATETIME, #{atd}, 103)
+																	END,
+			ATB 												= 	CASE
+																		WHEN #{atb} = '' THEN NULL
+																		ELSE CONVERT(DATETIME, #{atb}, 103)
+																	END,
+			ATU 												= 	CASE
+																		WHEN #{atu} = '' THEN NULL
+																		ELSE CONVERT(DATETIME, #{atu}, 103)
+																	END,
+			STOWW_YN 											= #{stowwYn},
+			ARMS_YN 											= #{armsYn},
+			DG_GOOD_YN 											= #{dgGdYn},
+			HIGHEST_POINT 										= #{highestPoint},
+			ADV_IMMG_YN 										= #{advImmgYn},
+			BTR 												= CONVERT(DATETIME, #{btr}, 103),
+			DRF_ARRV 											= #{drfArrv},
+			DRF_DEPTR 											= #{drfDeptr},
+			INB_SERV_LANE 										= #{ibSrvLane},
+			OUTB_SERV_LANE 										= #{obSrvLane},
+			YOT 												= 	CASE
+																		WHEN #{yot} = '' THEN NULL
+																		ELSE CONVERT(DATETIME, #{yot}, 103)
+																	END,
+
+			YCT 												= 	CASE
+																		WHEN #{yct} = '' THEN NULL
+																		ELSE CONVERT(DATETIME, #{yct}, 103)
+																	END,
+			UPDATE_TIME 										= SYSDATETIME(),
+			STAFF_CD 											= #{updUsrId},
+			ARRV_SA_ID 											= #{arrvSaId},
+			DEPR_SA_ID 											= #{deprSaId},
+			LOAD_CARGO 											= #{loadCg},
+			DISCH_CARGO 										= #{dischCg},
+			LOAD_CARGO_QTY 										= #{loadCgQty},
+			DISCH_CARGO_QTY 									= #{dischCgQty},
+			SHIFT_CARGO_QTY 									= #{shiftCgQty},
+			CONTACT_NAME 										= #{contNm},
+			CONTACT_NO 											= #{contNo},
+			TOP_TIER 											= TRY_CONVERT(NUMERIC(18, 0), #{topTier}), 
+			BERTH_ALONGSIDE 									= #{berthAlongSide},
+			REQ_FRESH_WT 										= #{rqFreshWt},
+			REQ_CHANDELLING 									= #{rqChangdelling},
+			REQ_QUANTY_BKR 										= #{rqQtyBkr},
+			NO_OF_CRANE 										= TRY_CONVERT(NUMERIC(18, 0), #{noCrane}), 
+			NO_OF_FIREARM 										= TRY_CONVERT(NUMERIC(18, 0), #{noFirearm}), 
+			BUNKER_QTY 											= TRY_CONVERT(NUMERIC(18, 0), #{bunkerQty}), 
+			FRE_WATER_QTY 										= TRY_CONVERT(NUMERIC(18, 0), #{frsWRQty}), 
+			SPEC_INSTRUCTION 									= #{specIntr},
+			VSL_CALL_ID 										= #{vslCallId},
+			BERTH_WINDOW 										= #{berthWd},
+			CARGO_TP 											= #{cargoTpMpts},
+			CARGO_TP_MPTS 										= #{cargoTpMpts},
+			DOMESTIC_CHK 										= #{domesticChk},
+			RMK 												= #{rmk},
+			ARRV_AFTER_DRF 										= #{arrvAfterDrf},
+			ARRV_FWD_DRF 										= #{arrvFwdDrf},
+			DEPT_AFTER_DRF 										= #{deptAfterDrf},
+			DEPT_FWD_DRF 										= #{deptFwdDrf},
+			WHARF_MARK_FROM 									= #{startPos},
+			WHARF_MARK_TO 										= #{endPos},
+			SHIP_CALL_NO										= #{scn}
+		WHERE 
+			VSL_CD 												= #{vslCd} 
+			AND CALL_YEAR 										= #{callYear} 
+			AND CALL_SEQ 										= RIGHT('0000'+ #{callSq}, 4)
+	</update>
+	
+	<delete id="deletePortOfCall" parameterType="vesselScheduleRegisterItem">
+		DELETE	/* vesselScheduleRegister.deletePortOfCall */
+		FROM 
+			TMT_PORT_CALL 								
+		WHERE 
+			VSL_CD 												= #{vslCd} 
+			AND CALL_YEAR 										= #{callYear} 
+			AND CALL_SEQ 										= #{callSq} 
+	</delete>
+	
+	<insert id="insertVesselSchedule" parameterType="vesselScheduleRegisterItem">
+		INSERT /* vesselScheduleRegister.insertVesselSchedule */
+		INTO TMT_VSL_SCH(
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			VSL_CALL_ID,
+      		SHIP_CALL_NO,
+      		INB_VOY,
+      		OUTB_VOY,
+      		BERTH_TP,
+      		BERTH_LOC,
+         	BERTH_DTM,
+         	PURP_CALL,
+         	CG_OP_TP,
+         	SUMMIT_STAT,
+			DEPT_TP,
+	        VC_DIV,
+	        ETA,
+	        ETD,
+	        ETW,
+	        ETB,
+	        ATA,
+	        ATD,
+	        ATB,
+	        ATU,
+	        STOWW_YN,
+	        ARMS_YN,
+	        DG_GOOD_YN,
+	        BTR,
+	        DRF_ARRV,
+	        DRF_DEPTR,
+	        INB_SERV_LANE,
+	        OUTB_SERV_LANE,
+	        HIGHEST_POINT,
+	        YOT,
+	        YCT,
+	        UPDATE_TIME,
+	        STAFF_CD,
+	        ARRV_SA_ID,
+	        DEPR_SA_ID,
+	        LOAD_CARGO,
+	        DISCH_CARGO,
+	        LOAD_CARGO_QTY,
+	        DISCH_CARGO_QTY,
+	        SHIFT_CARGO_QTY,
+	        CONTACT_NAME,
+	        CONTACT_NO,
+	        TOP_TIER,
+	        BERTH_ALONGSIDE,
+	        NO_OF_CRANE,
+	 		NO_OF_FIREARM,
+	 		BUNKER_QTY ,
+			BERTH_WINDOW ,
+			CARGO_TP,
+			CARGO_TP_MPTS,
+			FRE_WATER_QTY,
+			REF_VSL_CALL_ID,
+			REQ_CHANDELLING,
+			REQ_FRESH_WT,
+			REQ_QUANTY_BKR,
+			SPEC_INSTRUCTION,
+			DOMESTIC_CHK,
+			RMK,
+			ARRV_AFTER_DRF,
+			ARRV_FWD_DRF,
+			DEPT_AFTER_DRF,
+			DEPT_FWD_DRF,
+			WHARF_MARK_FROM,
+			WHARF_MARK_TO
+		) VALUES (                                                                    
+	        #{vslCd},
+	        #{callYear},
+	        RIGHT('0000' + #{callSq}, 4),
+	        #{vslCallId},
+	        '',
+	        #{inbVoy},
+	        #{outbVoy},
+	        #{berthTp},
+	        #{berthLoc},
+			CASE
+				WHEN #{berthDtm} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{berthDtm}, 103)
+			END,
+	        #{purpCall},
+	        #{cargoOpTp},
+	        #{summitStat},
+	        #{deptTp},
+	        #{vcDiv},
+			CASE
+				WHEN #{eta} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{eta}, 103)
+			END,
+			CASE
+				WHEN #{etd} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{etd}, 103)
+			END,
+			CASE
+				WHEN #{etw} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{etw}, 103)
+			END,
+			CASE
+				WHEN #{etb} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{etb}, 103)
+			END,
+			CASE
+				WHEN #{ata} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{ata}, 103)
+			END,
+			CASE
+				WHEN #{atd} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{atd}, 103)
+			END,
+			CASE
+				WHEN #{atb} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{atb}, 103)
+			END,
+			CASE
+				WHEN #{atu} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{atu}, 103)
+			END,
+	        #{stowwYn},
+	        #{armsYn},
+	        #{dgGdYn},
+			CASE
+				WHEN #{btr} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{btr}, 103)
+			END,
+	        #{drfArrv},
+	        #{drfDeptr},
+	        #{ibSrvLane},
+	        #{obSrvLane},
+	        #{highestPoint},
+			CASE
+				WHEN #{yot} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{yot}, 103)
+			END,
+			CASE
+				WHEN #{yct} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{yct}, 103)
+			END,
+	        SYSDATETIME(),
+	        #{insUsrId},
+	        #{arrvSaId},
+	        #{deprSaId},
+	        #{loadCg},
+	        #{dischCg},
+	        #{loadCgQty},
+	        #{dischCgQty},
+	        #{shiftCgQty},
+	        #{contNm},                       
+	        #{contNo},              
+	       	TRY_CONVERT(NUMERIC(18, 0), #{topTier}), 
+	        #{berthAlongSide}, 
+	       	TRY_CONVERT(NUMERIC(18, 0), #{noCrane}), 
+	        TRY_CONVERT(NUMERIC(18, 0), #{noFirearm}), 
+     	  	TRY_CONVERT(NUMERIC(18, 0), #{bunkerQty}), 
+	        #{berthWd},                                                     
+	        #{cargoTpMpts},
+	        #{cargoTpMpts},
+	        TRY_CONVERT(NUMERIC(18, 0), #{frsWRQty}), 
+	        #{refVslCallId},
+	        #{rqChangdelling},
+	        #{rqFreshWt}, 
+	        #{bunkerQty},
+	        #{specIntr},
+	        #{domesticChk},
+	        #{rmk},
+	        #{arrvAfterDrf},
+	        #{arrvFwdDrf},
+	        #{deptAfterDrf},
+	        #{deptFwdDrf},
+	        #{startPos},
+	        #{endPos}
+		)
+	</insert>
+	
+	<select id="selectListOfVslSchedule" parameterType="vesselScheduleRegisterParm" resultType="vesselScheduleRegisterItem">
+		SELECT /* vesselScheduleRegister.selectListOfVslSchedule */
+			AA.VSL_CD 											AS vslCd,
+			VSL_NM 												AS vslNm,
+			AA.CALL_YEAR 										AS callYear,
+			AA.CALL_SEQ 										AS callSq,
+			VSL_CALL_ID 										AS vslCallId,
+			ETA eta, ETD 										AS etd,
+			ATA 												AS ata,
+			ATD 												AS atd,
+			AA.DOC_ID 											AS docId,
+			AA.APPRV_SEQ 										AS apprvSeq,
+			APPRV_DT 											AS apprvDt
+		FROM 
+			TMT_DOC_APPRV 										AA, 
+			(SELECT 
+       			A.VSL_CD, 
+				(SELECT 
+					VSL_NM 
+				FROM 
+					TMT_VSL_PART 
+				WHERE 
+					VSL_CD = A.VSL_CD
+				) 												AS VSL_NM,
+				A.CALL_YEAR,
+				A.CALL_SEQ,
+				VSL_CALL_ID,
+				ETA,
+				ETD,
+				ATA,
+				ATD,
+				DOC_ID,
+				APPRV_SEQ                               
+			FROM 
+				TMT_VSL_SCH 									A,                          
+				(SELECT 
+					VSL_CD,                             
+					CALL_YEAR,                            
+					CALL_SEQ,                             
+					DOC_ID,                               
+					MAX(APPRV_SEQ) 								AS APPRV_SEQ           
+				FROM 
+					TMT_DOC_APPRV                         
+				WHERE 
+					DOC_ID = 'PCC'                        
+					AND APPRV_CD = 'AP'                       
+				GROUP BY                                    
+						VSL_CD,                               
+						CALL_YEAR,                            
+						CALL_SEQ,                             
+						DOC_ID                                
+				) 												B                                     
+			WHERE 
+				A.VSL_CD 										= B.VSL_CD                  
+				AND A.CALL_YEAR 								= B.CALL_YEAR               
+				AND A.CALL_SEQ  								= B.CALL_SEQ              
+			) 													AS BB                                         
+		WHERE 
+			AA.VSL_CD 											= BB.VSL_CD                    
+			AND AA.CALL_YEAR 									= BB.CALL_YEAR                 
+			AND AA.CALL_SEQ 									= BB.CALL_SEQ                  
+			AND AA.DOC_ID									 	= 'PCC'                          
+			AND AA.APPRV_SEQ 									= BB.APPRV_SEQ
+        <if test="timeP == '48PRE' ">
+        	AND (BB.ATD IS NULL OR BB.ATD = '')
+       		AND SYSDATETIME()									>= (SELECT DATEADD(DAY, 2, AA.APPRV_DT))
+        </if>
+		<if test="timeP == '48NEXT' ">
+        	AND (BB.ATD IS NOT NULL AND BB.ATD <![CDATA[<>]]> '')
+        	AND SYSDATETIME()									> (SELECT DATEADD(DAY, 2, AA.APPRV_DT))
+		</if>
+		<if test="vslNm != null and vslNm != '' ">
+          	AND BB.VSL_NM 										LIKE '%' + #{vslNm} + '%'
+		</if>
+        <if test="eta != null and eta != ''">
+        	AND CONVERT(DATE, ETA, 103) BETWEEN CONVERT(DATE, #{eta}, 103) AND CONVERT(DATE, #{etd},103)
+        </if>
+	</select>
+	
+	<select id="selectCallSeq" parameterType="vesselScheduleRegisterParm" resultType="vesselScheduleRegisterItem">
+		SELECT /* vesselScheduleRegister.selectCallSeq */
+			MAX(CALL_SEQ) 										AS callSq
+		FROM 
+			TMT_VSL_SCH
+		WHERE 
+			VSL_CD 												= #{vslCd} 
+			AND CALL_YEAR 										= #{callYear}
+	</select>
+	
+	<update id="updateVesselScheduleStatus" parameterType="vesselScheduleRegisterItem" >
+		UPDATE /* vesselScheduleRegister.updateVesselScheduleStatus */
+			TMT_VSL_SCH 
+		SET 
+			SUMMIT_STAT 										= #{summitStat}
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+	</update>
+	
+</mapper>

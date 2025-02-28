@@ -1,0 +1,1612 @@
+package com.tsb.most.biz.dataitem.operation;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import com.tsb.most.basebiz.dataitem.configuration.WhConfigurationItem;
+import com.tsb.most.framework.dataitem.DataItem;
+
+public class CargoDischargingItem extends DataItem {
+
+    private String cgNo;
+    private String vslCallId;
+    private String vslNm;
+    private String vslCd;
+    private String callYear;
+    private String callSeq;
+    
+    private int qty;//DocQty
+    private double  mt;//Doc
+    private double  m3;//Doc
+    
+    private int dQty;//DocQty
+    private double  dMt;//Doc
+    private double  dM3;//Doc
+    private int iQty;//DocQty
+    private double  iMt;//Doc
+    private double  iM3;//Doc
+    
+    private int balQty;
+    private double balMt;
+    private double  balM3;
+    private int loadQty;
+    private double  loadMt;
+    private double  loadM3;
+    private String blNo;
+    private String doNo;
+    private String gateInDt;
+    private String stat;
+    private int whQty;
+    private int dmgQty;
+    private double  whWgt;
+    private double  dmgWgt;
+    private double  whM3;
+    private double  dmgM3;
+    private boolean overChk;
+    private String delvTpCd;//direct indirect
+    private String delvTpNm;//direct indirect
+    private String hatchNo;
+
+    private String shftId;
+    private String shftNm;
+    private String tsptr;//transport company 
+    private String tsptrNm;
+    private String tsptTpCd;
+    private String tsptTpNm;
+    private String locId;
+    private String locNm;
+    private String lorryId;
+    private String catgCd;//OpClassCD
+    private String opDelvTpCd;//job type saved deliveryType
+    private String fnlOpeYn;
+    private String whFnlDelvYn;
+    private String fnlDis;
+    private String cmdtCd;
+    private String cmdtGrpCd;
+    
+    private String pkgTpCd;
+    private String rePkgTpCd;
+    private String wgtUnit;
+    private String msrmtUnit;//measurementUnit
+    private String portOfLoad;
+    private String portOfDis;
+    private String fdest;
+    
+    private String cgTpCd;
+    private String cgTpNm;
+    private String updUserId;
+
+    private int pkgQty;
+    private double  wgt;
+    private double  msrmt;
+    private String dmgYn;
+    private String tmnlInDt;
+    private String tmnlOutDt;
+    
+    private String  fwrAgnt;
+    private String  shpgAgent;
+    private String  cntryOfOrg;
+    
+    private String jobPurpCd;
+    private String fnlDelvYn;
+    private String jobTpCd;
+    private String balStatCd;//balCode//DMG,SHU
+    private int cntrQty;
+    private String jobGroup;
+    private String jobNo;
+    private String preJobNo;
+    
+    private String fmLocId;
+    private String toLocId;
+    private String toHatchNo;
+    private String hatchDrt;
+    private String gangNo;
+    private String facNo;
+    private String stevedore;
+    private String eqNo;
+    private String eqNm;
+    private String shftDt;
+
+    private String cgInOutCd;
+    private String gatePassNo;
+    private String gatePassYn;       
+    private String fnlYn;// if final y is, gate in DT or out DT
+    private String rmk;
+
+    private String custClrCd;//Hold, defalut Release, Inspected
+    private String clrYmd;//YYYYMMDD
+    private String custApprvCd;//APPRV, CANCEL
+    private String apprvYmd;//YYYYMMDD
+    
+    private String grNo;
+    private String cngShp;
+    private String cargo;
+    private String shpr;
+    private String shprNm;
+    private String cnsne;
+    private String cnsneNm;
+    private String lorryNo;
+    private String externalLorryNo;
+
+    private ArrayList collection = new ArrayList();
+    private String hhtChk;
+    private String dmgLocId;
+    private String locArea;
+    private int locQty;
+    private double locWgt;
+    private double locMsrmt;
+    private String whTpCd;
+    private String whLocTpCd;
+    private String custMode;
+	private String jobCoCd;//Normal : G, Shout-Out : S, Damamge : D, 
+	private String spCaCoCd;//Overlanded : O, Spare : S
+	private String shortYn;
+    private String repkgTypeCd;
+    private String pkgNo;
+    private String ogaStatus;
+    private String ogaStatusDate;
+    private String ogaQuarantine;
+    private String packingSeq;
+    private String packingRefNo;
+    private int packingQty;
+    private double packingMT;
+    private double packingM3;
+    private int no;
+    private boolean chk;
+    private String searchType;
+    private String jobType;
+    private Date gatePassIssueDt;
+    private Date startDt;
+    private String startDtStr;
+	private Date endDt;
+    private String endDtStr;
+    private Date disEndDt;
+    private String disEndDtStr;
+    private String nextJobPurpCd;
+    
+    private String additionalCheckYn;
+    private String mfDocId;
+    
+    private String bargeNoOfVslBarge;
+    private String bargeNoOfAprBarge;
+    private String sdoNo;
+    private String bargeCheck;
+    
+    private Date hdlInStDt;
+    private Date hdlInEndDt;
+    private Date disStDt;
+    private String disStDtStr;
+    
+    // KHH.2019.01.29
+    private List modeOfOprList;
+    private List deliveryList;
+    private List cargoTypeList;
+    private List hatchNoList;
+    private ArrayList<CargoDischargingItem> items;
+    private ArrayList<WhConfigurationItem> whConfigurationItems;
+    
+    // Mandy added for CUSP 03/11/2021
+    private String freightTon;
+    private String eachWgt;
+	private String eachVol;
+	private String eqFacNo;
+	private double aprM3;
+	private double aprMt;
+	private int aprQty;
+	private double am3;
+	private double amt;
+	private int aqty;
+	private double abM3;
+	private double abMt;
+	private int abQty;
+	
+	private double vbM3;
+	private double vbMt;
+	private int vbQty;
+	private String hdlInStDtStr;
+	private String hdlInEndDtStr;
+	
+	//Direct Balance:
+	private double drBalM3;
+	private double drBalMt;
+	private int drBalQty;
+	
+	private String gateTxnNo;
+	private String wbTransactionNo;
+	private String weightCheckYn;
+	private ArrayList<PackageJobItem> packageItems;
+	private ArrayList<HangingScaleItem> hangingScaleItems;
+	
+	private String secondWgt;
+	private String projectCargo;
+	private String domesticChk;
+	private int norDQty;//DocQty
+    private double norDMt;//Doc
+    private double norDM3;
+    private int piplineDQty;
+    private double piplineDMt;
+    private double piplineDM3;
+    
+    private String atb; // checking ATB valid when discharge
+    
+    public String getStartDtStr() {
+		return startDtStr;
+	}
+	public void setStartDtStr(String startDtStr) {
+		this.startDtStr = startDtStr;
+	}
+	public String getEndDtStr() {
+		return endDtStr;
+	}
+	public void setEndDtStr(String endDtStr) {
+		this.endDtStr = endDtStr;
+	}
+	public String getDisEndDtStr() {
+		return disEndDtStr;
+	}
+	public void setDisEndDtStr(String disEndDtStr) {
+		this.disEndDtStr = disEndDtStr;
+	}
+	public String getDisStDtStr() {
+		return disStDtStr;
+	}
+	public void setDisStDtStr(String disStDtStr) {
+		this.disStDtStr = disStDtStr;
+	}
+	
+	public String getHdlInStDtStr() {
+		return hdlInStDtStr;
+	}
+	public void setHdlInStDtStr(String hdlInStDtStr) {
+		this.hdlInStDtStr = hdlInStDtStr;
+	}
+	public String getHdlInEndDtStr() {
+		return hdlInEndDtStr;
+	}
+	public void setHdlInEndDtStr(String hdlInEndDtStr) {
+		this.hdlInEndDtStr = hdlInEndDtStr;
+	}
+	public double getAprM3() {
+		return aprM3;
+	}
+	public void setAprM3(double aprM3) {
+		this.aprM3 = aprM3;
+	}
+	public double getAprMt() {
+		return aprMt;
+	}
+	public void setAprMt(double aprMt) {
+		this.aprMt = aprMt;
+	}
+	public int getAprQty() {
+		return aprQty;
+	}
+	public void setAprQty(int aprQty) {
+		this.aprQty = aprQty;
+	}
+	
+	public double getAm3() {
+		return am3;
+	}
+	public void setAm3(double am3) {
+		this.am3 = am3;
+	}
+	public double getAmt() {
+		return amt;
+	}
+	public void setAmt(double amt) {
+		this.amt = amt;
+	}
+	public int getAqty() {
+		return aqty;
+	}
+	public void setAqty(int aqty) {
+		this.aqty = aqty;
+	}
+	public double getAbM3() {
+		return abM3;
+	}
+	public void setAbM3(double abM3) {
+		this.abM3 = abM3;
+	}
+	public double getAbMt() {
+		return abMt;
+	}
+	public void setAbMt(double abMt) {
+		this.abMt = abMt;
+	}
+	public int getAbQty() {
+		return abQty;
+	}
+	public void setAbQty(int abQty) {
+		this.abQty = abQty;
+	}
+	public String getEachWgt() {
+		return eachWgt;
+	}
+	public void setEachWgt(String eachWgt) {
+		this.eachWgt = eachWgt;
+	}
+	public String getEachVol() {
+		return eachVol;
+	}
+	public void setEachVol(String eachVol) {
+		this.eachVol = eachVol;
+	}
+	public String getFreightTon() {
+		return freightTon;
+	}
+	public void setFreightTon(String freightTon) {
+		this.freightTon = freightTon;
+	}
+	public double  getBalM3() {
+        return balM3;
+    }
+    public void setBalM3(double  balM3) {
+        this.balM3 = balM3;
+    }
+    public double getBalMt() {
+        return balMt;
+    }
+    public void setBalMt(double balMt) {
+        this.balMt = balMt;
+    }
+    public int getBalQty() {
+        return balQty;
+    }
+    public void setBalQty(int balQty) {
+        this.balQty = balQty;
+    }
+    public String getBlNo() {
+        return blNo;
+    }
+    public void setBlNo(String blNo) {
+        this.blNo = blNo;
+    }
+    public String getCgNo() {
+        return cgNo;
+    }
+    public void setCgNo(String cgNo) {
+        this.cgNo = cgNo;
+    }
+    public String getDelvTpCd() {
+        return delvTpCd;
+    }
+    public void setDelvTpCd(String delvTpCd) {
+        this.delvTpCd = delvTpCd;
+    }
+    public double  getDmgM3() {
+        return dmgM3;
+    }
+    public void setDmgM3(double  dmgM3) {
+        this.dmgM3 = dmgM3;
+    }
+    public int getDmgQty() {
+        return dmgQty;
+    }
+    public void setDmgQty(int dmgQty) {
+        this.dmgQty = dmgQty;
+    }
+    public double  getDmgWgt() {
+        return dmgWgt;
+    }
+    public void setDmgWgt(double  dmgWgt) {
+        this.dmgWgt = dmgWgt;
+    }
+    public String getDoNo() {
+        return doNo;
+    }
+    public void setDoNo(String doNo) {
+        this.doNo = doNo;
+    }
+    public String getGateInDt() {
+        return gateInDt;
+    }
+    public void setGateInDt(String gateInDt) {
+        this.gateInDt = gateInDt;
+    }
+    public String getHatchNo() {
+        return hatchNo;
+    }
+    public void setHatchNo(String hatchNo) {
+        this.hatchNo = hatchNo;
+    }
+    public double  getLoadM3() {
+        return loadM3;
+    }
+    public void setLoadM3(double  loadM3) {
+        this.loadM3 = loadM3;
+    }
+    public double  getLoadMt() {
+        return loadMt;
+    }
+    public void setLoadMt(double  loadMt) {
+        this.loadMt = loadMt;
+    }
+    public int getLoadQty() {
+        return loadQty;
+    }
+    public void setLoadQty(int loadQty) {
+        this.loadQty = loadQty;
+    }
+    public String getLocId() {
+        return locId;
+    }
+    public void setLocId(String locId) {
+        this.locId = locId;
+    }
+    public double  getM3() {
+        return m3;
+    }
+    public void setM3(double  m3) {
+        this.m3 = m3;
+    }
+    public double  getMt() {
+        return mt;
+    }
+    public void setMt(double  mt) {
+        this.mt = mt;
+    }
+    public boolean getOverChk() {
+        return overChk;
+    }
+    public void setOverChk(boolean overChk) {
+        this.overChk = overChk;
+    }
+    public int getQty() {
+        return qty;
+    }
+    public void setQty(int qty) {
+        this.qty = qty;
+    }
+    public String getShftId() {
+        return shftId;
+    }
+    public void setShftId(String shftId) {
+        this.shftId = shftId;
+    }
+    public String getStat() {
+        return stat;
+    }
+    public void setStat(String stat) {
+        this.stat = stat;
+    }
+    public String getTsptr() {
+        return tsptr;
+    }
+    public void setTsptr(String tsptr) {
+        this.tsptr = tsptr;
+    }
+    public String getVslCallId() {
+        return vslCallId;
+    }
+    public void setVslCallId(String vslCallId) {
+        this.vslCallId = vslCallId;
+    }
+    public String getVslNm() {
+        return vslNm;
+    }
+    public void setVslNm(String vslNm) {
+        this.vslNm = vslNm;
+    }
+    public double  getWhM3() {
+        return whM3;
+    }
+    public void setWhM3(double  whM3) {
+        this.whM3 = whM3;
+    }
+    public int getWhQty() {
+        return whQty;
+    }
+    public void setWhQty(int whQty) {
+        this.whQty = whQty;
+    }
+    public double  getWhWgt() {
+        return whWgt;
+    }
+    public void setWhWgt(double  whWgt) {
+        this.whWgt = whWgt;
+    }
+    public String getLorryId() {
+        return lorryId;
+    }
+    public void setLorryId(String lorryId) {
+        this.lorryId = lorryId;
+    }
+    public String getCatgCd() {
+        return catgCd;
+    }
+    public void setCatgCd(String catgCd) {
+        this.catgCd = catgCd;
+    }
+    public String getOpDelvTpCd() {
+        return opDelvTpCd;
+    }
+    public void setOpDelvTpCd(String opDelvTpCd) {
+        this.opDelvTpCd = opDelvTpCd;
+    }
+    public String getFnlOpeYn() {
+        return fnlOpeYn;
+    }
+//    public void setFnlOpeYn(boolean fnlOpeYn) {
+//        this.fnlOpeYn = fnlOpeYn;
+//    }
+    public void setFnlOpeYn(String fnlOpeYn) {
+        if(fnlOpeYn == null){
+            this.fnlOpeYn =  "N";
+        }else if(fnlOpeYn.equals("Y")){
+            this.fnlOpeYn = "Y";
+        }else if(fnlOpeYn.equals("true")){
+            this.fnlOpeYn = "Y";
+        }else{
+            this.fnlOpeYn = "N";
+        }
+    }
+    public String getWhFnlDelvYn() {
+        return whFnlDelvYn;
+    }
+    
+//    public void setWhFnlDelvYn(boolean whFnlDelvYn){
+//        this.whFnlDelvYn = whFnlDelvYn;
+//    }
+    
+    public void setWhFnlDelvYn(String whFnlDelvYn) {
+        if(whFnlDelvYn == null){
+            this.whFnlDelvYn =  "N";
+        }else if(whFnlDelvYn.equals("Y")){
+            this.whFnlDelvYn = "Y";
+        }else if(whFnlDelvYn.equals("true")){
+            this.whFnlDelvYn = "Y";
+        }else{
+            this.whFnlDelvYn = "N";
+        }
+    }
+    public String getCmdtCd() {
+        return cmdtCd;
+    }
+    public void setCmdtCd(String cmdtCd) {
+        this.cmdtCd = cmdtCd;
+    }
+    public String getMsrmtUnit() {
+        return msrmtUnit;
+    }
+    public void setMsrmtUnit(String msrmtUnit) {
+        this.msrmtUnit = msrmtUnit;
+    }
+    public String getPkgTpCd() {
+        return pkgTpCd;
+    }
+    public void setPkgTpCd(String pkgTpCd) {
+        this.pkgTpCd = pkgTpCd;
+    }
+    public String getWgtUnit() {
+        return wgtUnit;
+    }
+    public void setWgtUnit(String wgtUnit) {
+        this.wgtUnit = wgtUnit;
+    }
+    public String getFdest() {
+        return fdest;
+    }
+    public void setFdest(String fdest) {
+        this.fdest = fdest;
+    }
+    public String getPortOfDis() {
+        return portOfDis;
+    }
+    public void setPortOfDis(String portOfDis) {
+        this.portOfDis = portOfDis;
+    }
+    public String getPortOfLoad() {
+        return portOfLoad;
+    }
+    public void setPortOfLoad(String portOfLoad) {
+        this.portOfLoad = portOfLoad;
+    }
+    public String getCgTpCd() {
+        return cgTpCd;
+    }
+    public void setCgTpCd(String cgTpCd) {
+        this.cgTpCd = cgTpCd;
+    }
+    public String getTsptTpCd() {
+        return tsptTpCd;
+    }
+    public void setTsptTpCd(String tsptTpCd) {
+        this.tsptTpCd = tsptTpCd;
+    }
+    public String getUpdUserId() {
+        return updUserId;
+    }
+    public void setUpdUserId(String updUserId) {
+        this.updUserId = updUserId;
+    }
+    public double  getMsrmt() {
+        return msrmt;
+    }
+    public void setMsrmt(double  msrmt) {
+        this.msrmt = msrmt;
+    }
+    public int getPkgQty() {
+        return pkgQty;
+    }
+    public void setPkgQty(int pkgQty) {
+        this.pkgQty = pkgQty;
+    }
+    public double  getWgt() {
+        return wgt;
+    }
+    public void setWgt(double  wgt) {
+        this.wgt = wgt;
+    }
+    public String getBalStatCd() {
+        return balStatCd;
+    }
+    public void setBalStatCd(String balStatCd) {
+        this.balStatCd = balStatCd;
+    }
+    public int getCntrQty() {
+        return cntrQty;
+    }
+    public void setCntrQty(int cntrQty) {
+        this.cntrQty = cntrQty;
+    }
+    public String getEqNo() {
+        return eqNo;
+    }
+    public void setEqNo(String eqNo) {
+        this.eqNo = eqNo;
+    }
+    public String getFmLocId() {
+        return fmLocId;
+    }
+    public void setFmLocId(String fmLocId) {
+        this.fmLocId = fmLocId;
+    }
+    public String getFnlDelvYn() {
+        return fnlDelvYn;
+    }
+    public void setFnlDelvYn(String fnlDelvYn) {
+        this.fnlDelvYn = fnlDelvYn;
+    }
+    public String getGangNo() {
+        return gangNo;
+    }
+    public void setGangNo(String gangNo) {
+        this.gangNo = gangNo;
+    }
+    public String getHatchDrt() {
+        return hatchDrt;
+    }
+    public void setHatchDrt(String hatchDrt) {
+        this.hatchDrt = hatchDrt;
+    }
+    public String getJobPurpCd() {
+        return jobPurpCd;
+    }
+    public void setJobPurpCd(String jobPurpCd) {
+        this.jobPurpCd = jobPurpCd;
+    }
+    public String getJobTpCd() {
+        return jobTpCd;
+    }
+    public void setJobTpCd(String jobTpCd) {
+        this.jobTpCd = jobTpCd;
+    }
+    public String getToHatchNo() {
+        return toHatchNo;
+    }
+    public void setToHatchNo(String toHatchNo) {
+        this.toHatchNo = toHatchNo;
+    }
+    public String getToLocId() {
+        return toLocId;
+    }
+    public void setToLocId(String toLocId) {
+        this.toLocId = toLocId;
+    }
+    
+    public String getCgInOutCd() {
+        return cgInOutCd;
+    }
+    public void setCgInOutCd(String cgInOutCd) {
+        this.cgInOutCd = cgInOutCd;
+    }
+    public String getGatePassYn() {
+        return gatePassYn;
+    }
+//    public void setGatePassYn(boolean gatePassYn){
+//        this.gatePassYn = gatePassYn;
+//    }
+    public void setGatePassYn(String gatePassYn) {
+        if(gatePassYn == null){
+            this.gatePassYn =  "N";
+        }else if(gatePassYn.equals("Y")){
+            this.gatePassYn = "Y";
+        }else if(gatePassYn.equals("true")){
+            this.gatePassYn = "Y";
+        }else{
+            this.gatePassYn = "N";
+        }
+    }
+    public String getFnlYn() {
+        return fnlYn;
+    }
+    public void setFnlYn(String fnlYn) {
+        this.fnlYn = fnlYn;
+    }
+    public Date getDisEndDt() {
+        return disEndDt;
+    }
+    public void setDisEndDt(Date disEndDt) {
+        this.disEndDt = disEndDt;
+    }
+    public Date getDisStDt() {
+        return disStDt;
+    }
+    public void setDisStDt(Date disStDt) {
+        this.disStDt = disStDt;
+    }
+    public Date getHdlInEndDt() {
+        return hdlInEndDt;
+    }
+    public void setHdlInEndDt(Date hdlInEndDt) {
+        this.hdlInEndDt = hdlInEndDt;
+    }
+    public Date getHdlInStDt() {
+        return hdlInStDt;
+    }
+    public void setHdlInStDt(Date hdlInStDt) {
+        this.hdlInStDt = hdlInStDt;
+    }
+    
+
+    public String getDmgYn() {
+        return dmgYn;
+    }
+    public void setDmgYn(String dmgYn) {
+        this.dmgYn = dmgYn;
+    }
+    public String getTmnlInDt() {
+        return tmnlInDt;
+    }
+    public void setTmnlInDt(String tmnlInDt) {
+        this.tmnlInDt = tmnlInDt;
+    }
+    public String getTmnlOutDt() {
+        return tmnlOutDt;
+    }
+    public void setTmnlOutDt(String tmnlOutDt) {
+        this.tmnlOutDt = tmnlOutDt;
+    }
+    public String getCntryOfOrg() {
+        return cntryOfOrg;
+    }
+    public void setCntryOfOrg(String cntryOfOrg) {
+        this.cntryOfOrg = cntryOfOrg;
+    }
+    public String getFwrAgnt() {
+        return fwrAgnt;
+    }
+    public void setFwrAgnt(String fwrAgnt) {
+        this.fwrAgnt = fwrAgnt;
+    }
+    public String getShpgAgent() {
+        return shpgAgent;
+    }
+    public void setShpgAgent(String shpgAgent) {
+        this.shpgAgent = shpgAgent;
+    }
+    public String getRmk() {
+        return rmk;
+    }
+    public void setRmk(String rmk) {
+        this.rmk = rmk;
+    }
+    
+    public String getGrNo() {
+        return grNo;
+    }
+    public void setGrNo(String grNo) {
+        this.grNo = grNo;
+    }
+    public String getGatePassNo() {
+        return gatePassNo;
+    }
+    public void setGatePassNo(String gatePassNo) {
+        this.gatePassNo = gatePassNo;
+    }
+//    public String getEqFacNm() {
+//        return eqFacNm;
+//    }
+//    public void setEqFacNm(String eqFacNm) {
+//        this.eqFacNm = eqFacNm;
+//    }
+    public String getEqFacNo() {
+        return eqFacNo;
+    }
+    public void setEqFacNo(String eqFacNo) {
+        this.eqFacNo = eqFacNo;
+    }
+    public String getEqNm() {
+        return eqNm;
+    }
+    public void setEqNm(String eqNm) {
+        this.eqNm = eqNm;
+    }
+//    public String getStvdComp() {
+//        return stvdComp;
+//    }
+//    public void setStvdComp(String stvdComp) {
+//        this.stvdComp = stvdComp;
+//    }
+//    public String getStvdCompNm() {
+//        return stvdCompNm;
+//    }
+//    public void setStvdCompNm(String stvdCompNm) {
+//        this.stvdCompNm = stvdCompNm;
+//    }
+    public String getCngShp() {
+        return cngShp;
+    }
+    public void setCngShp(String cngShp) {
+        this.cngShp = cngShp;
+    }
+    public String getCargo() {
+        return cargo;
+    }
+    public void setCargo(String cargo) {
+        this.cargo = cargo;
+    }
+    public String getLocNm() {
+        return locNm;
+    }
+    public void setLocNm(String locNm) {
+        this.locNm = locNm;
+    }
+    public String getShftNm() {
+        return shftNm;
+    }
+    public void setShftNm(String shftNm) {
+        this.shftNm = shftNm;
+    }
+    
+    //add 20080624
+
+    public String getFacNo() {
+        return facNo;
+    }
+    public void setFacNo(String facNo) {
+        this.facNo = facNo;
+    }
+    public String getStevedore() {
+        return stevedore;
+    }
+    public void setStevedore(String stevedore) {
+        this.stevedore = stevedore;
+    }
+    public String getShftDt() {
+        return shftDt;
+    }
+    public void setShftDt(String shftDt) {
+        this.shftDt = shftDt;
+    }
+    
+    //-- end   ADD 20080718 tnkytn Need for HHT    
+    public String getJobGroup() {
+        return jobGroup;
+    }
+    public void setJobGroup(String jobGroup) {
+        this.jobGroup = jobGroup;
+    }
+    public String getJobNo() {
+        return jobNo;
+    }
+    public void setJobNo(String jobNo) {
+        this.jobNo = jobNo;
+    }
+    public String getTsptrNm() {
+        return tsptrNm;
+    }
+    public void setTsptrNm(String tsptrNm) {
+        this.tsptrNm = tsptrNm;
+    }
+    public String getApprvYmd() {
+        return apprvYmd;
+    }
+    public void setApprvYmd(String apprvYmd) {
+        this.apprvYmd = apprvYmd;
+    }
+    public String getClrYmd() {
+        return clrYmd;
+    }
+    public void setClrYmd(String clrYmd) {
+        this.clrYmd = clrYmd;
+    }
+    public String getCustApprvCd() {
+        return custApprvCd;
+    }
+    public void setCustApprvCd(String custApprvCd) {
+        this.custApprvCd = custApprvCd;
+    }
+	public String getCustClrCd() {
+	    return custClrCd;
+	}
+	public void setCustClrCd(String custClrCd) {
+	    this.custClrCd = custClrCd;
+	}
+    /**
+     * @return Returns the cnsne.
+     */
+    public String getCnsne() {
+        return cnsne;
+    }
+    /**
+     * @param cnsne The cnsne to set.
+     */
+    public void setCnsne(String cnsne) {
+        this.cnsne = cnsne;
+    }
+    /**
+     * @return Returns the cnsneNm.
+     */
+    public String getCnsneNm() {
+        return cnsneNm;
+    }
+    /**
+     * @param cnsneNm The cnsneNm to set.
+     */
+    public void setCnsneNm(String cnsneNm) {
+        this.cnsneNm = cnsneNm;
+    }
+    /**
+     * @return Returns the shpr.
+     */
+    public String getShpr() {
+        return shpr;
+    }
+    /**
+     * @param shpr The shpr to set.
+     */
+    public void setShpr(String shpr) {
+        this.shpr = shpr;
+    }
+    /**
+     * @return Returns the shprNm.
+     */
+    public String getShprNm() {
+        return shprNm;
+    }
+    /**
+     * @param shprNm The shprNm to set.
+     */
+    public void setShprNm(String shprNm) {
+        this.shprNm = shprNm;
+    }
+    
+    public List getCollection() {
+		return collection;
+	}
+	public void setCollection(List list) {
+		this.collection = (ArrayList) list;
+	}
+    /**
+     * @return Returns the custMode.
+     */
+    public String getCustMode() {
+        return custMode;
+    }
+    /**
+     * @param custMode The custMode to set.
+     */
+    public void setCustMode(String custMode) {
+        this.custMode = custMode;
+    }
+    /**
+     * @return Returns the hhtChk.
+     */
+    public String getHhtChk() {
+        return hhtChk;
+    }
+    /**
+     * @param hhtChk The hhtChk to set.
+     */
+    public void setHhtChk(String hhtChk) {
+        if(hhtChk == null){
+            this.hhtChk =  "N";
+        }else if(hhtChk.equals("Y")){
+            this.hhtChk = "Y";
+        }else if(hhtChk.equals("true")){
+            this.hhtChk = "Y";
+        }else{
+            this.hhtChk = "N";
+        }
+    }
+    /**
+     * @return Returns the dmgLocId.
+     */
+    public String getDmgLocId() {
+        return dmgLocId;
+    }
+    /**
+     * @param dmgLocId The dmgLocId to set.
+     */
+    public void setDmgLocId(String dmgLocId) {
+        this.dmgLocId = dmgLocId;
+    }
+    /**
+     * @return Returns the locArea.
+     */
+    public String getLocArea() {
+        return locArea;
+    }
+    /**
+     * @param locArea The locArea to set.
+     */
+    public void setLocArea(String locArea) {
+        this.locArea = locArea;
+    }
+    /**
+     * @return Returns the locMsrmt.
+     */
+    public double getLocMsrmt() {
+        return locMsrmt;
+    }
+    /**
+     * @param locMsrmt The locMsrmt to set.
+     */
+    public void setLocMsrmt(double locMsrmt) {
+        this.locMsrmt = locMsrmt;
+    }
+    /**
+     * @return Returns the locQty.
+     */
+    public int getLocQty() {
+        return locQty;
+    }
+    /**
+     * @param locQty The locQty to set.
+     */
+    public void setLocQty(int locQty) {
+        this.locQty = locQty;
+    }
+    /**
+     * @return Returns the locWgt.
+     */
+    public double getLocWgt() {
+        return locWgt;
+    }
+    /**
+     * @param locWgt The locWgt to set.
+     */
+    public void setLocWgt(double locWgt) {
+        this.locWgt = locWgt;
+    }
+    /**
+     * @return Returns the whTpCd.
+     */
+    public String getWhTpCd() {
+        return whTpCd;
+    }
+    /**
+     * @param whTpCd The whTpCd to set.
+     */
+    public void setWhTpCd(String whTpCd) {
+        this.whTpCd = whTpCd;
+    }
+    
+	public String getWhLocTpCd() {
+		return whLocTpCd;
+	}
+	public void setWhLocTpCd(String whLocTpCd) {
+		this.whLocTpCd = whLocTpCd;
+	}
+	/**
+	 * @return Returns the jobCdCd.
+	 */
+	public String getJobCoCd() {
+	    return jobCoCd;
+	}
+	/**
+	 * @param jobCdCd The jobCdCd to set.
+	 */
+	public void setJobCoCd(String jobCoCd) {
+	    this.jobCoCd = jobCoCd;
+	}
+    /**
+     * @return Returns the spCaCoCd.
+     */
+    public String getSpCaCoCd() {
+        return spCaCoCd;
+    }
+    /**
+     * @param spCaCoCd The spCaCoCd to set.
+     */
+    public void setSpCaCoCd(String spCaCoCd) {
+        this.spCaCoCd = spCaCoCd;
+    }
+    /**
+     * @return Returns the pkgNo.
+     */
+    public String getPkgNo() {
+        return pkgNo;
+    }
+    /**
+     * @param pkgNo The pkgNo to set.
+     */
+    public void setPkgNo(String pkgNo) {
+        this.pkgNo = pkgNo;
+    }
+    /**
+     * @return Returns the repkgTypeCd.
+     */
+    public String getRepkgTypeCd() {
+        return repkgTypeCd;
+    }
+    /**
+     * @param repkgTypeCd The repkgTypeCd to set.
+     */
+    public void setRepkgTypeCd(String repkgTypeCd) {
+        this.repkgTypeCd = repkgTypeCd;
+    }
+    /**
+     * @return Returns the fnlDis.
+     */
+    public String getFnlDis() {
+        return fnlDis;
+    }
+    /**
+     * @param fnlDis The fnlDis to set.
+     */
+    public void setFnlDis(String fnlDis) {
+        this.fnlDis = fnlDis;
+    }
+    /**
+     * @return Returns the shortYn.
+     */
+    public String getShortYn() {
+        return shortYn;
+    }
+    /**
+     * @param shortYn The shortYn to set.
+     */
+    public void setShortYn(String shortYn) {
+        this.shortYn = shortYn;
+    }
+    /**
+     * @return Returns the dM3.
+     */
+    public double getDM3() {
+        return dM3;
+    }
+    /**
+     * @param dm3 The dM3 to set.
+     */
+    public void setDM3(double dm3) {
+        dM3 = dm3;
+    }
+    /**
+     * @return Returns the dMt.
+     */
+    public double getDMt() {
+        return dMt;
+    }
+    /**
+     * @param mt The dMt to set.
+     */
+    public void setDMt(double mt) {
+        dMt = mt;
+    }
+    /**
+     * @return Returns the dQty.
+     */
+    public int getDQty() {
+        return dQty;
+    }
+    /**
+     * @param qty The dQty to set.
+     */
+    public void setDQty(int qty) {
+        dQty = qty;
+    }
+    /**
+     * @return Returns the iM3.
+     */
+    public double getIM3() {
+        return iM3;
+    }
+    /**
+     * @param im3 The iM3 to set.
+     */
+    public void setIM3(double im3) {
+        iM3 = im3;
+    }
+    /**
+     * @return Returns the iMt.
+     */
+    public double getIMt() {
+        return iMt;
+    }
+    /**
+     * @param mt The iMt to set.
+     */
+    public void setIMt(double mt) {
+        iMt = mt;
+    }
+    /**
+     * @return Returns the iQty.
+     */
+    public int getIQty() {
+        return iQty;
+    }
+    /**
+     * @param qty The iQty to set.
+     */
+    public void setIQty(int qty) {
+        iQty = qty;
+    }
+    public String getOgaQuarantine() {
+        return ogaQuarantine;
+    }
+    public void setOgaQuarantine(String ogaQuarantine) {
+        this.ogaQuarantine = ogaQuarantine;
+    }
+    public String getOgaStatus() {
+        return ogaStatus;
+    }
+    public void setOgaStatus(String ogaStatus) {
+        this.ogaStatus = ogaStatus;
+    }
+    public String getOgaStatusDate() {
+        return ogaStatusDate;
+    }
+    public void setOgaStatusDate(String ogaStatusDate) {
+        this.ogaStatusDate = ogaStatusDate;
+    }
+    public double getPackingM3() {
+        return packingM3;
+    }
+    public void setPackingM3(double packingM3) {
+        this.packingM3 = packingM3;
+    }
+    public double getPackingMT() {
+        return packingMT;
+    }
+    public void setPackingMT(double packingMT) {
+        this.packingMT = packingMT;
+    }
+    public int getPackingQty() {
+        return packingQty;
+    }
+    public void setPackingQty(int packingQty) {
+        this.packingQty = packingQty;
+    }
+    public String getPackingRefNo() {
+        return packingRefNo;
+    }
+    public void setPackingRefNo(String packingRefNo) {
+        this.packingRefNo = packingRefNo;
+    }
+    public String getPackingSeq() {
+        return packingSeq;
+    }
+    public void setPackingSeq(String packingSeq) {
+        this.packingSeq = packingSeq;
+    }
+    public int getNo() {
+        return no;
+    }
+    public void setNo(int no) {
+        this.no = no;
+    }
+    public boolean isChk() {
+        return chk;
+    }
+    public void setChk(boolean chk) {
+        this.chk = chk;
+    }
+    public String getSearchType() {
+        return searchType;
+    }
+    public void setSearchType(String searchType) {
+        this.searchType = searchType;
+    }
+    public String getJobType() {
+        return jobType;
+    }
+    public void setJobType(String jobType) {
+        this.jobType = jobType;
+    }
+	public ArrayList<CargoDischargingItem> getItems() {
+		return items;
+	}
+	public void setItems(ArrayList<CargoDischargingItem> items) {
+		this.items = items;
+	}
+	public List getModeOfOprList() {
+		return modeOfOprList;
+	}
+	public void setModeOfOprList(List modeOfOprList) {
+		this.modeOfOprList = modeOfOprList;
+	}
+	public List getDeliveryList() {
+		return deliveryList;
+	}
+	public void setDeliveryList(List deliveryList) {
+		this.deliveryList = deliveryList;
+	}
+	public List getCargoTypeList() {
+		return cargoTypeList;
+	}
+	public void setCargoTypeList(List cargoTypeList) {
+		this.cargoTypeList = cargoTypeList;
+	}
+	public List getHatchNoList() {
+		return hatchNoList;
+	}
+	public void setHatchNoList(List hatchNoList) {
+		this.hatchNoList = hatchNoList;
+	}
+	public Date getGatePassIssueDt() {
+		return gatePassIssueDt;
+	}
+	public void setGatePassIssueDt(Date gatePassIssueDt) {
+		this.gatePassIssueDt = gatePassIssueDt;
+	}
+	public Date getStartDt() {
+		return startDt;
+	}
+	public void setStartDt(Date startDt) {
+		this.startDt = startDt;
+	}
+	public Date getEndDt() {
+		return endDt;
+	}
+	public void setEndDt(Date endDt) {
+		this.endDt = endDt;
+	}
+	public ArrayList<WhConfigurationItem> getWhConfigurationItems() {
+		return whConfigurationItems;
+	}
+	public void setWhConfigurationItems(ArrayList<WhConfigurationItem> whConfigurationItems) {
+		this.whConfigurationItems = whConfigurationItems;
+	}
+	public String getCmdtGrpCd() {
+		return cmdtGrpCd;
+	}
+	public void setCmdtGrpCd(String cmdtGrpCd) {
+		this.cmdtGrpCd = cmdtGrpCd;
+	}
+	public double getDrBalM3() {
+		return drBalM3;
+	}
+	public void setDrBalM3(double drBalM3) {
+		this.drBalM3 = drBalM3;
+	}
+	public double getDrBalMt() {
+		return drBalMt;
+	}
+	public void setDrBalMt(double drBalMt) {
+		this.drBalMt = drBalMt;
+	}
+	public int getDrBalQty() {
+		return drBalQty;
+	}
+	public void setDrBalQty(int drBalQty) {
+		this.drBalQty = drBalQty;
+	}
+	public String getExternalLorryNo() {
+		return externalLorryNo;
+	}
+	public void setExternalLorryNo(String externalLorryNo) {
+		this.externalLorryNo = externalLorryNo;
+	}
+	public String getLorryNo() {
+		return lorryNo;
+	}
+	public void setLorryNo(String lorryNo) {
+		this.lorryNo = lorryNo;
+	}
+	
+	public String getNextJobPurpCd() {
+		return nextJobPurpCd;
+	}
+	public void setNextJobPurpCd(String nextJobPurpCd) {
+		this.nextJobPurpCd = nextJobPurpCd;
+	}
+	
+	public String getGateTxnNo() {
+		return gateTxnNo;
+	}
+	public void setGateTxnNo(String gateTxnNo) {
+		this.gateTxnNo = gateTxnNo;
+	}
+	public String getPreJobNo() {
+		return preJobNo;
+	}
+	public void setPreJobNo(String preJobNo) {
+		this.preJobNo = preJobNo;
+	}
+	public String getAdditionalCheckYn() {
+		return additionalCheckYn;
+	}
+	public void setAdditionalCheckYn(String additionalCheckYn) {
+		this.additionalCheckYn = additionalCheckYn;
+	}
+	public String getMfDocId() {
+		return mfDocId;
+	}
+	public void setMfDocId(String mfDocId) {
+		this.mfDocId = mfDocId;
+	}
+	public String getBargeNoOfVslBarge() {
+		return bargeNoOfVslBarge;
+	}
+	public void setBargeNoOfVslBarge(String bargeNoOfVslBarge) {
+		this.bargeNoOfVslBarge = bargeNoOfVslBarge;
+	}
+	public String getBargeNoOfAprBarge() {
+		return bargeNoOfAprBarge;
+	}
+	public void setBargeNoOfAprBarge(String bargeNoOfAprBarge) {
+		this.bargeNoOfAprBarge = bargeNoOfAprBarge;
+	}
+	public String getVslCd() {
+		return vslCd;
+	}
+	public void setVslCd(String vslCd) {
+		this.vslCd = vslCd;
+	}
+	public String getCallYear() {
+		return callYear;
+	}
+	public void setCallYear(String callYear) {
+		this.callYear = callYear;
+	}
+	public String getCallSeq() {
+		return callSeq;
+	}
+	public void setCallSeq(String callSeq) {
+		this.callSeq = callSeq;
+	}
+	public String getSdoNo() {
+		return sdoNo;
+	}
+	public void setSdoNo(String sdoNo) {
+		this.sdoNo = sdoNo;
+	}
+	public String getBargeCheck() {
+		return bargeCheck;
+	}
+	public void setBargeCheck(String bargeCheck) {
+		this.bargeCheck = bargeCheck;
+	}
+	public ArrayList<PackageJobItem> getPackageItems() {
+		return packageItems;
+	}
+	public void setPackageItems(ArrayList<PackageJobItem> packageItems) {
+		this.packageItems = packageItems;
+	}
+	public String getDelvTpNm() {
+		return delvTpNm;
+	}
+	public void setDelvTpNm(String delvTpNm) {
+		this.delvTpNm = delvTpNm;
+	}
+	public String getTsptTpNm() {
+		return tsptTpNm;
+	}
+	public void setTsptTpNm(String tsptTpNm) {
+		this.tsptTpNm = tsptTpNm;
+	}
+	public String getCgTpNm() {
+		return cgTpNm;
+	}
+	public void setCgTpNm(String cgTpNm) {
+		this.cgTpNm = cgTpNm;
+	}
+	public ArrayList<HangingScaleItem> getHangingScaleItems() {
+		return hangingScaleItems;
+	}
+	public void setHangingScaleItems(ArrayList<HangingScaleItem> hangingScaleItems) {
+		this.hangingScaleItems = hangingScaleItems;
+	}
+	public String getWbTransactionNo() {
+		return wbTransactionNo;
+	}
+	public void setWbTransactionNo(String wbTransactionNo) {
+		this.wbTransactionNo = wbTransactionNo;
+	}
+	public String getWeightCheckYn() {
+		return weightCheckYn;
+	}
+	public void setWeightCheckYn(String weightCheckYn) {
+		this.weightCheckYn = weightCheckYn;
+	}
+	public double getVbM3() {
+		return vbM3;
+	}
+	public void setVbM3(double vbM3) {
+		this.vbM3 = vbM3;
+	}
+	public double getVbMt() {
+		return vbMt;
+	}
+	public void setVbMt(double vbMt) {
+		this.vbMt = vbMt;
+	}
+	public int getVbQty() {
+		return vbQty;
+	}
+	public void setVbQty(int vbQty) {
+		this.vbQty = vbQty;
+	}
+	public String getRePkgTpCd() {
+		return rePkgTpCd;
+	}
+	public void setRePkgTpCd(String rePkgTpCd) {
+		this.rePkgTpCd = rePkgTpCd;
+	}
+	public String getSecondWgt() {
+		return secondWgt;
+	}
+	public void setSecondWgt(String secondWgt) {
+		this.secondWgt = secondWgt;
+	}
+	public String getProjectCargo() {
+		return projectCargo;
+	}
+	public void setProjectCargo(String projectCargo) {
+		this.projectCargo = projectCargo;
+	}
+	public String getDomesticChk() {
+		return domesticChk;
+	}
+	public void setDomesticChk(String domesticChk) {
+		this.domesticChk = domesticChk;
+	}
+	public int getNorDQty() {
+		return norDQty;
+	}
+	public void setNorDQty(int norDQty) {
+		this.norDQty = norDQty;
+	}
+	public double getNorDMt() {
+		return norDMt;
+	}
+	public void setNorDMt(double norDMt) {
+		this.norDMt = norDMt;
+	}
+	public int getPiplineDQty() {
+		return piplineDQty;
+	}
+	public void setPiplineDQty(int piplineDQty) {
+		this.piplineDQty = piplineDQty;
+	}
+	public double getNorDM3() {
+		return norDM3;
+	}
+	public void setNorDM3(double norDM3) {
+		this.norDM3 = norDM3;
+	}
+	public double getPiplineDMt() {
+		return piplineDMt;
+	}
+	public void setPiplineDMt(double piplineDMt) {
+		this.piplineDMt = piplineDMt;
+	}
+	public double getPiplineDM3() {
+		return piplineDM3;
+	}
+	public void setPiplineDM3(double piplineDM3) {
+		this.piplineDM3 = piplineDM3;
+	}
+	public String getAtb() {
+		return atb;
+	}
+	public void setAtb(String atb) {
+		this.atb = atb;
+	}
+
+}

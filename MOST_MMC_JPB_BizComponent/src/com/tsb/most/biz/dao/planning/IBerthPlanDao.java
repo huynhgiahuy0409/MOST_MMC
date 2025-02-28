@@ -1,0 +1,34 @@
+package com.tsb.most.biz.dao.planning;
+
+import com.tsb.most.biz.parm.planning.SearchBerthPlanParm;
+import com.tsb.most.biz.parm.planning.SearchVesselScheduleParm;
+import com.tsb.most.framework.bizparm.base.InsertItemsBizParm;
+import com.tsb.most.framework.bizparm.base.UpdateItemsBizParm;
+import com.tsb.most.framework.dataitem.DataItemList;
+import com.tsb.most.framework.exception.DaoException;
+
+public interface IBerthPlanDao {
+    public DataItemList selectBerthInfoList(SearchBerthPlanParm parm) throws DaoException;
+    public DataItemList selectBerthPlanList(SearchBerthPlanParm parm) throws DaoException;
+    public DataItemList selectShftPlanList(SearchBerthPlanParm parm) throws DaoException;
+    public DataItemList insertItems(InsertItemsBizParm parm) throws DaoException;
+    public DataItemList updateItems(UpdateItemsBizParm parm) throws DaoException;
+    public DataItemList selectDrawBittList(SearchBerthPlanParm param) throws DaoException;
+    public DataItemList selectPartnerInformationList(SearchBerthPlanParm parm) throws DaoException;
+    public DataItemList selectBusinessHistoryList(SearchBerthPlanParm parm) throws DaoException;
+    public DataItemList selectVesselInformation(SearchBerthPlanParm parm) throws DaoException;
+    public DataItemList selectBerthMaintenanceList(SearchBerthPlanParm parm) throws DaoException;
+    
+    public DataItemList selectNextBerthPlanList(SearchBerthPlanParm parm) throws DaoException;
+    public DataItemList selectVesselScheduleData(SearchVesselScheduleParm parm) throws DaoException;
+    public DataItemList selectBerthPlanReportList(SearchBerthPlanParm parm) throws DaoException;
+    public DataItemList selectRepaireBerthInfo(SearchBerthPlanParm parm) throws DaoException;
+    public DataItemList checkPreVessel(SearchBerthPlanParm parm) throws DaoException;
+    public DataItemList selectShiftBerthPlan(SearchBerthPlanParm parm) throws DaoException;
+    public DataItemList selectSteveDorecompany(SearchBerthPlanParm parm) throws DaoException;
+    public DataItemList selectBerthInfoListReport(SearchBerthPlanParm parm) throws DaoException;
+    public DataItemList selectBittListReport(SearchBerthPlanParm parm) throws DaoException;
+    
+    public DataItemList selectVesselShiftingList(SearchBerthPlanParm parm) throws DaoException;
+
+}

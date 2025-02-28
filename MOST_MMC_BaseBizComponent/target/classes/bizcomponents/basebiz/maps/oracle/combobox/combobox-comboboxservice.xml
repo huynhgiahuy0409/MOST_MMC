@@ -1,0 +1,1062 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="comboboxService">
+	<select id="selectComboBoxCountryCode" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		SELECT /*comboboxService.selectComboBoxCountryCode*/
+			CNTRY.CNTRY_CD			AS scd
+			,CNTRY.CNTRY_NM			AS scdNm			 
+		FROM TMT_CNTRY_MST CNTRY
+		ORDER BY CNTRY.CNTRY_CD ASC
+	</select>
+	<select id="selectComboBoxCodeMaster" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		SELECT
+			A.L_CD 		 AS lcd,
+        	C.L_CD_NM 	 AS lcdNm,
+        	A.M_CD 		 AS mcd,
+       		B.M_CD_NM 	 AS mcdNm,
+			A.S_CD 		 AS scd, 
+			A.S_CD_NM 	 AS scdNm,
+			A.S_CD_DESC  AS scdDesc,
+			A.S_CD_LGV	 AS scdLgv
+		FROM TMT_CD_MSTD A, TMT_CD_MSTM B, TMT_CD_MSTL C
+		<where> 
+			A.L_CD = C.L_CD
+			AND B.L_CD = C.L_CD
+			AND	A.M_CD = B.M_CD
+			<if test="isCargoJob == null or isCargoJob == ''">
+				AND CASE WHEN A.M_CD = 'TSPTTP' THEN A.S_CD ELSE '1' END <![CDATA[<>]]> CASE WHEN A.M_CD = 'TSPTTP' THEN 'GI' ELSE '2' END
+				AND CASE WHEN A.M_CD = 'TSPTTP' THEN A.S_CD ELSE '1' END <![CDATA[<>]]> CASE WHEN A.M_CD = 'TSPTTP' THEN 'GO' ELSE '2' END
+			</if>
+			<if test="lcd != null and lcd != ''">
+				AND C.L_CD = #{lcd}
+			</if>
+			<if test="mcd != null and mcd != ''">
+				AND	 B.M_CD = #{mcd}
+			</if>
+			<if test="scd !=null and scd != ''">
+				AND	 A.S_CD like '%' || #{scd} || '%'
+			</if>
+			<if test="scdNm !=null and scdNm != ''">
+				AND	 A.S_CD_NM like '%' || #{scdNm} || '%'
+			</if>
+			<if test="searchType !=null and searchType eq 'I'.toString()">
+				AND A.S_CD NOT LIKE '%C%'
+				<if test="cgTpCd !=null and cgTpCd != 'LQD'.toString()">
+	            	AND A.S_CD NOT LIKE '%P%'
+	            </if>
+			</if>
+			<if test="scdLgv !=null and scdLgv != ''">
+				AND A.S_CD_LGV = #{scdLgv}
+			</if>
+			<if test="isMega !=null and isMega != ''">
+				AND (A.S_CD_NM LIKE '%' || 'Crane' || '%' OR A.S_CD_NM LIKE '%' || 'CRANE' || '%')
+			</if>
+			<if test="isGear !=null and isGear != ''">
+				AND A.S_CD NOT IN ('FL', 'TR', 'HG', 'QC', 'RT', 'TC', 'SC')
+			</if>
+			AND C.USE_YN='Y'
+			AND B.USE_YN='Y'
+			AND A.S_CD_USE = 'Y'
+		</where>
+		ORDER BY A.L_CD , A.M_CD , A.S_CD
+	</select>
+	
+	<select id="selectComboHatchNoListHHT" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		SELECT
+              	''        AS divId
+             	,''        AS divIdDesc
+             	,''       AS selectId
+             	,''       AS selectIdDesc
+             	,''    AS selectIdTitle
+             	,S_CD        AS scd
+             	,S_CD_NM        AS scdNm
+             	,S_CD_DESC    AS scdDesc
+        FROM 	TMT_CD_MSTD  
+        WHERE 	M_CD = #{mcd}  
+        		AND L_CD=#{lcd} 
+        		AND S_CD_USE= 'Y'
+        		<if test="col1 != null and col1 != ''"> 
+					AND COL1= #{col1}
+				</if>
+				<if test="col2 != null and col2 != ''"> 
+					AND COL2= #{col2}
+				</if>
+				<if test="col3 != null and col3 != ''"> 
+					AND COL3= #{col3}
+				</if>
+        ORDER BY S_CD_NM
+	</select>
+	
+	<select id="selectComboBoxCostCenter" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		SELECT	COST_CENT_CD AS scd,
+				DESCR scdNm
+		FROM 	TMT_B_COSTCENT
+		WHERE 	VLD_YN = 'Y' 
+				AND SBU_CD != 'PC'  
+        GROUP BY COST_CENT_CD, DESCR
+        ORDER BY COST_CENT_CD
+	</select>
+
+	<select id="selectComboBoxWHLocation"  parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		  SELECT  LOC_ID AS scd, 
+		  		  LOC_NM AS scdNm, 
+		  		  LOC_TP_CD AS locTpCd
+		  FROM TMT_LOC_DEF
+		  WHERE 1=1 AND AREA_ID = 'BBT'
+         		AND LOC_USE_YN = 'Y'
+			  <if test="locDivCd != null and locDivCd != ''">
+				AND
+					LOC_DIV_CD = #{locDivCd} 
+			  </if>
+		  ORDER BY LOC_NM
+	</select>
+	
+	<select id="selectWHComboList"  parameterType="whConfigurationParm" resultType="whConfigurationItem">
+		  SELECT  LOC_ID AS LOCID, 
+		  			LOC_NM AS LOCNM, 
+		  			LOC_TP_CD LOCTPCD
+		  FROM TMT_LOC_DEF
+		  WHERE 1=1
+			  <if test="locDivCd != null and locDivCd != ''">
+				AND
+					LOC_DIV_CD = #{locDivCd} 
+			  </if>
+		  ORDER BY LOC_NM
+	</select>
+	
+	<select id="selectComboBoxBerthLocation"  parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		SELECT  BERTH_CD	AS locId, 
+				BERTH_NM	AS locNm,
+				BERTH_TP	AS berthTp,
+				PST_STA 	AS pstSta,
+		       	PST_END 	AS pstEnd,
+				LENGTH 		AS length
+		FROM TMT_BERTH_LOC
+		<where>
+		<if test="locCd != null and locCd != ''">
+			AND LOC_CD = #{locCd}
+			<if test="berthTp == null or berthTp == ''">
+	  			AND	BERTH_TP IS NOT NULL
+				AND BERTH_TP = 'WRF'
+			</if>
+		</if>
+		<if test="berthTp != null and berthTp != ''">
+  			AND	BERTH_TP = #{berthTp}
+		</if>
+		<if test="berthCd != null and berthCd != ''">
+  			AND	BERTH_CD LIKE  #{berthCd} || '%'
+		</if>
+		</where>
+		ORDER BY BERTH_CD, BERTH_NM
+	</select>
+	
+	<select id="selectComboBoxCommodityCode" parameterType="searchComboBoxServiceParm"  resultType="comboBoxServiceItem">
+		SELECT DISTINCT
+			CMDT_GRP_DESC AS SCDNM, 
+			CMDT_GRP_CD AS SCD
+		FROM TMT_CMDT_GRP
+		WHERE 1=1  			
+		<if test="cgTp != null and cgTp != ''">
+			AND CG_TP_CD LIKE #{cgTp}
+		</if>
+		<if test="cmdtGrp != null and cmdtGrp != ''">
+			AND CMDT_GRP_CD LIKE #{cmdtGrp}
+		</if>
+		AND CMDT_GRP_CD IS NOT NULL
+		ORDER BY CMDT_GRP_DESC
+	</select>
+		
+	<select id="selectComboBoxImdgCode" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		SELECT DISTINCT
+			UNNO,
+			CLASS,
+			IMDG_DIV as IMDGDIV,
+			SUBSTANCE
+		FROM TMT_IMDGDATA
+		WHERE 1=1
+    	<if test="unno != null and unno != ''">
+      		AND UNNO LIKE #{unno}
+    	</if>
+    	<if test="classes != null and classes != ''">
+      		AND CLASS LIKE #{classes}
+    	</if>
+	</select>
+	
+	<select id="selectComboBoxLcd" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		SELECT 
+			L_CD LCD
+			,L_CD_NM LCDNM
+			,USE_YN
+		FROM TMT_CD_MSTL
+		WHERE USE_YN = 'Y'
+	</select>
+	
+	<select id="selectComboBoxMcd" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		SELECT
+			M_CD MCD
+			,M_CD_NM MCDNM
+			,USE_YN USEYN
+		FROM TMT_CD_MSTM
+		WHERE USE_YN='Y' 
+			<if test="lcd != '' and lcd != null">  
+				AND L_CD = #{lcd}
+			</if>
+			<if test="mcd != '' and mcd != null">  
+				AND M_CD LIKE '%' || #{mcd} || '%'
+			</if>
+			<if test="mcdNm != '' and mcdNm != null">  
+				AND M_CD_NM LIKE '%' || #{mcdNm} || '%'
+			</if>
+		ORDER BY M_CD_NM
+	</select>
+	
+	<select id="selectComboBoxAreaList" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		SELECT  			   
+		   		LOC_ID			AS locId,
+				LOC_NM			AS locNm
+		FROM TMT_LOC_DEF
+		WHERE LOC_DIV_CD='ARE'		
+		ORDER BY LOC_NM DESC
+	</select>
+		
+	<select id="selectCapacityComboList"   parameterType="searchComboBoxServiceParm"  resultType="comboBoxServiceItem">
+		SELECT 
+		    	B.EQ_TP_CD   AS eqDivCd, 
+		    	C.S_CD_NM    AS eqDivCdNm,
+		    	B.EQ_TP_CD 	 AS eqtpCd,
+		    	B.CAPA_CD    AS capaCd, 
+		   	 	B.CAPA_DESCR AS capaDesc
+		FROM 	TMT_EQ_CAPA B, TMT_CD_MSTD C
+		WHERE 	B.EQ_TP_CD = C.S_CD 
+				AND C.M_CD = 'EQFCTPCD'
+				<if test="lcd != null and lcd != ''">
+					AND C.L_CD = #{lcd}
+				</if>
+				<if test="mcd != null and mcd != ''">
+					AND C.M_CD = #{mcd}
+				</if>
+				<if test="scdLgv != null and scdLgv != ''">
+		   			AND	C.S_CD_LGV = #{scdLgv}
+				</if>
+				<if test="eqTpCd != null and eqTpCd != ''">
+		  			AND B.EQ_TP_CD = #{eqTpCd}
+				</if>
+				<if test="eqDivCd != null and eqDivCd != ''">
+					AND B.EQ_TP_CD = #{eqDivCd}
+				</if>
+			GROUP BY B.EQ_TP_CD, C.S_CD_NM, B.EQ_TP_CD, B.CAPA_CD, B.CAPA_DESCR, B.CAPA
+			<if test="eqDivCd != 'FL'">
+				ORDER BY CAPADESC
+			</if>
+			<if test="eqDivCd == 'FL'">
+				ORDER BY B.CAPA, CAPADESC
+			</if>
+	</select>
+	
+	<select id="selectComboBoxShift"  parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		SELECT	
+			SHFT_DIV_CD SHFTTPCD,
+			F_CM_012('MT', 'SHFTTP', SHFT_DIV_CD) SHFTTPCDNM,
+			SHFT_NM AS SHFTNM,
+			SHFT_ID AS SHFTID,
+			SHFT_IDX AS SHFTIDX, 
+			FM_HHMM AS FMHHMM, 
+			TO_HHMM AS TOHHMM
+		FROM TMT_SHFT
+		WHERE VLD_YN = 'Y'
+		<if test="shftDivCd != null and shftDivCd != ''">
+			AND SHFT_DIV_CD = #{shftDivCd}
+		</if>
+		<if test="shftMethCd != '' and shftMethCd != null">    
+			AND SHFT_METH_CD = #{shftMethCd}
+		</if>
+		<if test="divCd != null and divCd != ''">
+			AND SHFT_DIV_CD = #{divCd}
+		</if>
+		ORDER BY SHFTNM
+	</select>
+	
+	<select id="selectComboBoxShiftType"  parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		WITH SHFT_TYPE
+		     AS (SELECT DISTINCT SHFT_DIV_CD, SHFT_METH_CD
+		           FROM TMT_SHFT
+		          WHERE VLD_YN = 'Y')
+		SELECT	C.S_CD	as SHFTTPCD, 
+				C.S_CD_NM	as SHFTTPCDNM
+		FROM 	TMT_CD_MSTD C 
+				LEFT OUTER JOIN SHFT_TYPE S ON C.S_CD = S.SHFT_DIV_CD
+		WHERE 	C.M_CD = 'SHFTTP' 
+				AND C.S_CD_USE = 'Y' 
+				<if test="shftMethCd != '' and shftMethCd != null">    
+					AND S.SHFT_METH_CD = #{shftMethCd}
+				</if>
+		GROUP BY C.S_CD, C.S_CD_NM
+ 		ORDER BY C.S_CD
+	</select>
+	
+	<select id="selectComboBoxBrand" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		SELECT 	
+   			B.BRAND_CD AS scd, 
+   			B.BRAND_NM AS scdNm
+		FROM TMT_BRAND B
+		ORDER BY BRAND_CD			
+	</select>
+	
+	<select id = "selectComboBoxBLNoList"  parameterType = "searchComboBoxServiceParm" resultType = "comboBoxServiceItem">
+		SELECT
+				BL.VSL_CALL_ID			AS VSLCALLID,
+				DO.TSPT_COMP			AS TSPTR,
+				DO.CMDT_CD            	AS CMDTCD,
+				BL.DELV_TP_CD			AS DELVTPCD,
+				DECODE(BL.DELV_TP_CD, 'D', 'Direct', 'I', 'Indirect', 'B', 'Both') AS DELVTPNM,
+				BL.BL_NO               	AS BLNO,
+				DO.DO_NO			   	AS DONO,
+				NVL(BL.CG_WGT, 0.0)    	AS WGT,
+				NVL(BL.CG_VOL, 0.0)    	AS VOL,
+				NVL(BL.PKG_QTY, 0)     	AS PKGQTY,
+				BL.BL_NO               	AS SCDNM,
+		   		BL.MF_DOC_ID			AS MFDOCID
+		FROM 	TMT_BL BL
+       			INNER JOIN TMT_VSL_SCH SCH ON SCH.VSL_CALL_ID = BL.VSL_CALL_ID
+       			<choose>
+       				<when test="divCd != null and divCd != ''">
+       					INNER JOIN TMT_DO DO
+          				ON BL.VSL_CALL_ID = DO.VSL_CALL_ID AND BL.BL_NO = DO.BL_NO
+       				</when>
+       				<otherwise>
+       					LEFT OUTER JOIN TMT_DO DO
+          				ON BL.VSL_CALL_ID = DO.VSL_CALL_ID AND BL.BL_NO = DO.BL_NO
+       				</otherwise>
+       			</choose>
+		WHERE 	SCH.VSL_CALL_ID = #{vslCallId}
+				AND BL.STAT_CD = 'AP'
+				<if test="ptnrCd != null and ptnrCd != ''">
+					AND BL.FWRD  = #{ptnrCd}
+				</if>
+				<if test="mfDocNo != null and mfDocNo != ''">
+		  			AND BL.MF_DOC_ID = #{mfDocNo}
+				</if>
+				<if test="blNo != null and blNo != ''">
+		  			AND BL.BL_NO LIKE '%' || #{blNo} || '%'
+				</if>
+				<if test="catgCd != null and catgCd != ''">
+			 		AND BL.CATG_CD = #{catgCd}
+			 	</if>
+			 	<choose>
+					<when test="tyCd == 'RR'">
+						AND CG_TP_CD IN ('RCV')
+					</when>
+					<when test="tyCd == 'GC'">
+						AND CG_TP_CD NOT IN ('RCV')
+					</when>
+				</choose>
+       	ORDER BY BL.BL_NO
+	</select>
+	
+	<select id = "selectComboBoxMasterBLNoList"  parameterType = "searchComboBoxServiceParm" resultType = "comboBoxServiceItem">
+		SELECT 	
+				MF_DOC_ID AS mfDocId,
+				MF_DOC_ID AS scdNm
+		FROM 	TMT_BL
+		WHERE 	STAT_CD = 'AP'
+				<choose>
+					<when test="tyCd == 'RR'">
+						AND CG_TP_CD IN ('RCV')
+					</when>
+					<when test="tyCd == 'GC'">
+						AND CG_TP_CD NOT IN ('RCV')
+					</when>
+				</choose>
+       			<if test="vslCallId != null and vslCallId != ''" >
+					AND VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="vslManifestNo != null and vslManifestNo != ''" >
+					AND VSL_CALL_ID IN (SELECT VSL.VSL_CALL_ID FROM TMT_VSL_SCH VSL WHERE VSL.VSL_CALL_ID = #{vslManifestNo} )
+				</if>
+				<if test="masterBL != null and masterBL != ''" >
+					AND MF_DOC_ID LIKE '%' || #{masterBL} || '%'
+				</if>
+		GROUP BY MF_DOC_ID
+		ORDER BY MF_DOC_ID
+	</select>
+	
+	<select id = "selectComboBoxBookingNoList"  parameterType = "searchComboBoxServiceParm" resultType = "comboBoxServiceItem">
+		SELECT 	
+				MF_DOC_ID AS mfDocId,
+				MF_DOC_ID AS scdNm
+		FROM 	TMT_SHIPG_NOTE
+		WHERE 	VSL_CALL_ID = #{vslCallId}
+				AND STAT_CD = 'AP'
+				<choose>
+					<when test="tyCd == 'RR'">
+						AND CG_TP_CD IN ('RCV')
+					</when>
+					<when test="tyCd == 'GC'">
+						AND CG_TP_CD NOT IN ('RCV')
+					</when>
+				</choose>
+       			<if test="vslCallId != null and vslCallId != ''" >
+					AND VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="vslManifestNo != null and vslManifestNo != ''" >
+					AND STAT_CD = 'AP'
+					AND VSL_CALL_ID IN (SELECT VSL.VSL_CALL_ID FROM TMT_VSL_SCH VSL WHERE VSL.VSL_CALL_ID = #{vslManifestNo} )
+				</if>
+				<if test="bookingNo != null and bookingNo != ''" >
+					AND MF_DOC_ID LIKE '%' || #{bookingNo} || '%'
+				</if>
+		GROUP BY MF_DOC_ID
+		ORDER BY MF_DOC_ID
+	</select>
+	
+	<select id = "selectComboBoxSNNoList"  parameterType = "searchComboBoxServiceParm" resultType = "comboBoxServiceItem">
+		SELECT 	
+				SHIPG_NOTE_NO                                        AS SHIPGNOTENO,
+		   		DECODE(DELV_TP_CD,'D','Direct','I','Indirect')       AS DELVTPCD,
+		   		CMDT_CD                                              AS CMDTCD,
+		   		TSPT_COMP                                            AS TSPTR,
+		   		SHIPG_NOTE_NO                                        AS scdNm,
+		   		MF_DOC_ID											 AS MFDOCID
+		FROM 	TMT_SHIPG_NOTE S
+		WHERE 	VSL_CALL_ID = #{vslCallId}
+				AND STAT_CD = 'AP'
+				<if test="mfDocNo != null and mfDocNo != ''">
+		  			AND S.MF_DOC_ID = #{mfDocNo}
+				</if>
+				<if test="shipgNoteNo != null and shipgNoteNo != ''">
+		   			AND SHIPG_NOTE_NO LIKE '%' || #{shipgNoteNo} || '%'
+				</if>
+				<if test="ptnrCd != null and ptnrCd != ''">
+					AND FWRD  = #{ptnrCd}
+				</if>
+				<if test='authority == "SHA"'>
+					AND SHIPG_AGNCY = #{ptnrCd}
+				</if>
+				<if test='authority == "FWD"'>
+					<if test="ptnrCd != null and ptnrCd != ''">
+		    			AND FWRD = #{ptnrCd}
+					</if>
+				</if>
+				<if test='authority == "SHAFWD"'>
+					<if test="ptnrCd != null and ptnrCd != ''">
+		    			AND (FWRD = #{ptnrCd} OR SHIPG_AGNCY = #{ptnrCd})
+					</if>
+				</if>
+				<if test='authority == "BH"'>
+					<if test="ptnrCd != null and ptnrCd != ''">
+		    			AND (FWRD = #{ptnrCd} OR SHIPG_AGNCY = #{ptnrCd})
+					</if>
+				</if>
+				<if test='authority == "CNS"'>
+					<if test="ptnrCd != null and ptnrCd != ''">
+		    			AND (CNSNE = #{ptnrCd} OR SHPR = #{ptnrCd})
+					</if>
+				</if>
+				<choose>
+					<when test="tyCd == 'RR'">
+						AND CG_TP_CD IN ('RCV')
+					</when>
+					<when test="tyCd == 'GC'">
+						AND CG_TP_CD NOT IN ('RCV')
+					</when>
+				</choose>
+				<if test='opType == "cgMst"'>
+<!-- 	   				AND CATG_CD IN ('E','S') -->
+					AND EXISTS(SELECT GR_NO FROM TMT_GR R WHERE R.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO)
+				</if>
+				ORDER BY SHIPG_NOTE_NO DESC
+	</select>
+	
+	<select id = "selectComboBoxAllRoleList"  parameterType = "searchComboBoxServiceParm" resultType = "comboBoxServiceItem">
+		SELECT DISTINCT 
+			B.ROLE_CD ROLECD, A.SHFT_GRP_CD GROUPCD, NVL(F_CM_012('CM', 'ROLECD', B.ROLE_CD), B.ROLE_CD) ROLECDNM
+		FROM TMT_RSTR_SET A, TMT_ROLE B
+		WHERE A.RSTR_YMD = TO_CHAR(TO_DATE(#{workYmd}, 'DD/MM/YYYY'), 'YYYYMMDD')
+		AND A.SHFT_GRP_CD IS NOT NULL
+		AND A.EMP_ID = B.EMP_ID
+		<if test="staffType == 'ST'">
+			AND A.SHFT_ID IN (
+				SELECT NVL(E.SHFT_ID, ' ') 
+				FROM TMT_SHFT E, TMT_SHFT F
+				WHERE E.VLD_YN = 'Y'
+				<if test="shftId == 'SF0014'">
+					AND E.SHFT_IDX = F.SHFT_IDX
+					AND E.FM_HHMM <![CDATA[ < (SELECT FM_HHMM + 800 FROM TMT_SHFT WHERE SHFT_ID = #{shftId}) ]]>   
+				</if>
+				<if test="shftId == 'SF0012'">
+			  		AND E.SHFT_IDX = F.SHFT_IDX
+					AND E.FM_HHMM > (SELECT FM_HHMM from TMT_SHFT WHERE SHFT_ID = #{shftId})
+					OR E.TO_HHMM > (SELECT FM_HHMM from TMT_SHFT where SHFT_ID = #{shftId})
+				</if>
+				<if test="shftId == 'SF0013'">
+					AND E.FM_HHMM >= (SELECT FM_HHMM from TMT_SHFT where SHFT_ID = #{shftId})
+					OR E.TO_HHMM <![CDATA[ <=  (SELECT TO_HHMM FROM TMT_SHFT WHERE SHFT_ID = #{shftId})]]>   
+				</if>
+			)
+		</if>
+		UNION
+		SELECT DISTINCT 
+			C.ROLE_CD ROLECD, A.SHFT_GRP_CD GROUPCD, NVL(F_CM_012('CM', 'ROLECD', C.ROLE_CD), C.ROLE_CD) ROLECDNM
+		FROM TMT_STAFF B, TMT_EMP_NON_AVAIL_LOG A, TMT_ROLE C
+		WHERE B.USE_YN = 'Y'
+		AND B.EMP_ID = A.EMP_ID
+		AND A.FM_YMD = TO_CHAR(TO_DATE(#{workYmd}, 'DD/MM/YYYY'), 'YYYYMMDD')
+		AND A.RSN_CD = 'DO'
+		AND SHFT_GRP_CD IS NOT NULL
+		AND B.EMP_ID = C.EMP_ID
+		ORDER BY ROLECD
+	</select>
+	
+	<select id = "selectComboBoxPartnerList" parameterType = "searchComboBoxServiceParm" resultType = "comboBoxServiceItem">
+		SELECT
+			PTNR_CODE 			PTNRCODE
+	   		,ENG_SNM			PTNRNAME
+	 	FROM TMT_PTNR
+		WHERE 1=1
+		<if test="ptnrType != null and ptnrType != ''">
+			AND PTNR_TYPE = #{ptnrType}
+		</if>
+		GROUP BY 
+			PTNR_CODE
+		  	,ENG_SNM
+		ORDER BY PTNRNAME ASC
+	</select>
+	
+	<select id = "selectComboBoxSubDoNoList" parameterType = "searchComboBoxServiceParm" resultType = "comboBoxServiceItem">
+		SELECT
+			SDO_NO 			SDONO
+	 	FROM TMT_DO_DTL
+		WHERE 1=1
+		<if test="vslCallId != null and vslCallId != ''">
+			AND VSL_CALL_ID = #{vslCallId}
+		</if>
+		<if test="blNo != null and blNo != ''">
+			AND BL_NO = #{blNo}
+		</if>
+		<if test="sDoNo != null and sDoNo != ''">
+			AND SDO_NO = #{sDoNo}
+		</if>
+		<if test="mfDocId != null and mfDocId != ''">
+			AND MF_DOC_ID = #{mfDocId}
+		</if>
+		order by SDO_NO
+	</select>
+	
+	<select id = "selectComboBoxGrNoList" parameterType = "searchComboBoxServiceParm" resultType = "comboBoxServiceItem">
+		SELECT
+			GR.GR_NO 			GRNO
+	 	FROM TMT_GR GR
+	 		 INNER JOIN TMT_SHIPG_NOTE SN ON GR.VSL_CALL_ID = SN.VSL_CALL_ID AND GR.SHIPG_NOTE_NO = SN.SHIPG_NOTE_NO
+			 INNER JOIN TMT_MF MF ON MF.VSL_CALL_ID = SN.VSL_CALL_ID AND MF.MF_DOC_ID = SN.MF_DOC_ID
+		WHERE 1=1
+		<if test="vslCallId != null and vslCallId != ''">
+			AND GR.VSL_CALL_ID = #{vslCallId}
+		</if>
+		<if test="shipgNoteNo != null and shipgNoteNo != ''">
+			AND GR.SHIPG_NOTE_NO = #{shipgNoteNo}
+		</if>
+		<if test="grNo != null and grNo != ''">
+			AND GR.GR_NO = #{grNo}
+		</if>
+		<if test="mfDocId != null and mfDocId != ''">
+			AND MF.MF_DOC_ID = #{mfDocId}
+		</if>
+		order by GR.GR_NO
+	</select>
+	
+	<select id = "selectComboBoxUnitNoList" parameterType = "searchComboBoxServiceParm" resultType = "comboBoxServiceItem">
+		<choose>
+			<when test="blNo != null and blNo != ''">
+				SELECT
+						CHAS_NO AS UNITNO,
+						CHAS_NO AS SCDNM
+				FROM	TMT_BL_DTL
+				WHERE	CG_TP_CD IN ('RCV')
+						AND CHAS_NO IS NOT NULL
+						AND BL_NO = #{blNo}
+						<if test="vslCallId != null and vslCallId != ''">
+							AND VSL_CALL_ID = #{vslCallId}
+						</if>
+			</when>
+			<when test="shipgNoteNo != null and shipgNoteNo != ''">
+				SELECT
+						CHAS_NO AS UNITNO,
+						CHAS_NO AS SCDNM
+				FROM	TMT_SHIPG_NOTE_DTL
+				WHERE	CG_TP_CD IN ('RCV')
+						AND CHAS_NO IS NOT NULL
+						AND SHIPG_NOTE_NO = #{shipgNoteNo}
+						<if test="vslCallId != null and vslCallId != ''">
+							AND VSL_CALL_ID = #{vslCallId}
+						</if>
+			</when>
+			<otherwise>
+				SELECT
+						CHAS_NO AS UNITNO,
+						CHAS_NO AS SCDNM
+				FROM	TMT_BL_DTL
+				WHERE	CG_TP_CD IN ('RCV')
+						AND CHAS_NO IS NOT NULL
+						<if test="vslCallId != null and vslCallId != ''">
+							AND VSL_CALL_ID = #{vslCallId}
+						</if>
+				UNION ALL
+				SELECT
+						CHAS_NO AS UNITNO,
+						CHAS_NO AS SCDNM
+				FROM	TMT_SHIPG_NOTE_DTL
+				WHERE	CG_TP_CD IN ('RCV')
+						AND CHAS_NO IS NOT NULL
+						<if test="vslCallId != null and vslCallId != ''">
+							AND VSL_CALL_ID = #{vslCallId}
+						</if>
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id = "selectComboDeployedEquipmentList" parameterType = "searchComboBoxServiceParm" resultType = "comboBoxServiceItem">
+		SELECT 	A.EQ_NO scd,
+		        (SELECT	B.EQ_FAC_NM FROM TMT_EQ_FAC B WHERE B.EQ_FAC_NO = A.EQ_NO AND ROWNUM = 1) AS scdNm
+		FROM 	TMT_DEPY A
+		WHERE	A.EQ_TP_CD NOT IN ('FC')
+		        AND A.RS_DIV_CD = 'EQ'
+		        AND A.EQ_NO IS NOT NULL
+		        AND A.EQ_NO IN (SELECT C.EQ_FAC_NO
+		                           FROM TMT_EQ_FAC C
+		                          WHERE C.VLD_YN = 'Y' AND C.EQ_TP_CD != 'FL')
+		       
+		        <if test="vslCallId != null and vslCallId != ''">
+					AND A.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="workYmd != null and workYmd != ''">
+					AND A.WORK_YMD = TO_CHAR (TO_DATE (#{workYmd}, 'DD/MM/YYYY HH24:MI'), 'YYYYMMDD')
+		         	AND A.SHFT_ID =  F_GET_SHIFT_CD (TO_DATE (#{workYmd}, 'DD/MM/YYYY HH24:MI'))
+				</if>
+		GROUP BY A.EQ_NO
+	</select>
+	
+	<select id = "selectComboCraneEquipmentList" parameterType = "searchComboBoxServiceParm" resultType = "comboBoxServiceItem">
+		SELECT  E.EQ_FAC_NO AS SCD,
+		        C.S_CD_NM || '/ ' || E.EQ_FAC_NO AS SCDNM
+		FROM    TMT_EQ_FAC E
+		        LEFT OUTER JOIN TMT_CD_MSTD C ON E.EQ_TP_CD = C.S_CD
+		WHERE   C.M_CD = 'EQFCTPCD'
+		        AND (C.S_CD_VAL = 'PC' OR C.S_CD = 'SC' OR C.S_CD = 'CY' OR C.S_CD = 'PIL')
+		
+		GROUP BY E.EQ_FAC_NO, C.S_CD_NM
+		ORDER BY C.S_CD_NM
+	</select>
+	
+	<select id = "selectComboPlanLocationList" parameterType = "searchComboBoxServiceParm" resultType = "comboBoxServiceItem">
+		SELECT
+			REQ_POS			REQPOS,
+			PLAN_LOC_ID		PLANLOCID
+		FROM TMT_SPC_REQ
+		WHERE 1 = 1
+		AND REQ_POS = #{reqPos}
+		GROUP BY REQ_POS, PLAN_LOC_ID
+		ORDER BY PLAN_LOC_ID
+	</select>
+
+	<select id = "selectCodeMasterList"  parameterType = "searchComboBoxServiceParm" resultType = "comboBoxServiceItem">
+		SELECT 	M_CD,
+		 		S_CD, 
+				S_CD_NM,
+				S_CD_LGV,
+				S_CD_VAL,
+		        S_CD_DESC
+		FROM 	TMT_CD_MSTD
+		
+		WHERE	1 = 1 
+<!-- 		AND S_CD <![CDATA[<>]]> 'CP' -->
+    		<if test="lcd != null and lcd != ''">
+      AND
+    			L_CD = #{lcd}
+    		</if>
+    		<if test="mcd != null and mcd != ''">
+      AND
+    			M_CD = #{mcd}
+    		</if>
+    		<if test="scdUse != null and scdUse != ''">
+      AND
+    			S_CD_USE = #{scdUse}
+    		</if>
+    		<if test="searchType != null and searchType != ''">
+				<if test="searchType == 'ROLE'">
+		    		<if test="scdLgv != null and scdLgv != ''">
+        AND
+		    			( S_CD_LGV = #{scdLgv} OR S_CD_LGV = 'C' )
+		    		</if>
+				</if>
+				<if test="searchType == 'MEGA_NOT_WH'">
+    AND
+	    			S_CD_LGV IN ('VP', 'NP')
+				</if>
+				<if test="searchType == 'MGPURPEX'">
+    AND
+	    			S_CD_LGV NOT IN ('NP')
+				</if>
+    		</if>
+    		<if test="searchType == null or searchType == ''">
+	    		<if test="scdLgv != null and scdLgv != ''">
+       AND
+	    			(S_CD_LGV = #{scdLgv} OR S_CD_LGV ='FC')
+	    		</if>
+    		</if>
+    		<if test="scdVal != null and scdVal != ''">
+      AND
+    			(S_CD_VAL = #{scdVal} OR S_CD_VAL = 'PL')
+    		</if>
+    		<!-- <if test="col1 != null and col1 != ''">
+      AND
+    			COL1 = #{col1}
+    		</if>
+    		<if test="col2 != null and col2 != ''">
+      AND
+    			COL2 = #{col2}
+    		</if>
+    		<if test="col3 != null and col3 != ''">
+      AND
+    			COL3 = #{col3}
+    		</if>
+    		<if test="col4 != null and col4 != ''">
+      AND
+    			COL4 = #{col4}
+    		</if>
+    		<if test="col5 != null and col5 != ''">
+      AND
+    			COL5 = #{col5}
+    		</if> -->
+    		AND S_CD NOT IN ('SC1','SC2','SC3','SR1','SR2','SR3')
+        ORDER BY S_CD_NM ASC
+	</select>
+	
+	<select id = "selectBrandComboBoxItemsHHT" parameterType = "searchComboBoxServiceParm" resultType = "comboBoxServiceItem">
+		SELECT               /* comboboxService.selectBrandComboBoxItemsHHT */
+	         DISTINCT 
+	         B.BRAND_CD scd, 
+	         B.BRAND_CD scdNm
+	    FROM TMT_SHIPG_NOTE S
+	         INNER JOIN TMT_RORO_MST R
+	            ON S.VSL_CALL_ID = R.VSL_CALL_ID AND S.SHIPG_NOTE_NO = R.CG_NO
+	         LEFT OUTER JOIN TMT_BRAND B ON R.BRAND_CD = B.BRAND_CD
+	   WHERE     S.STAT_CD = 'AP'
+			<if test="vslCallId != null and vslCallId != ''">
+				AND S.VSL_CALL_ID = #{vslCallId}
+			</if>
+	         AND S.CG_TP_CD IN ('RCV')
+	         AND S.CATG_CD NOT IN ('T', 'R')
+		ORDER BY B.BRAND_CD
+	</select>
+	
+	<select id = "selectComboBlHHT" parameterType = "searchComboBoxServiceParm" resultType = "comboBoxServiceItem">
+		SELECT /* combobox.selectComboBlHHT */
+			DISTINCT 
+			BL_NO scd, 
+			BL_NO scdNm
+		FROM TMT_BL
+		WHERE VSL_CALL_ID = #{vslCallId} AND STAT_CD = 'AP' AND CG_TP_CD IN ('RCV')
+	</select>
+	
+	<select id = "selectComboSnHHT" parameterType = "searchComboBoxServiceParm" resultType = "comboBoxServiceItem">
+		SELECT  /* combobox.selectComboSnHHT*/
+				SHIPG_NOTE_NO AS shipgNoteNo,
+				SHIPG_NOTE_NO AS scdNm
+		FROM TMT_SHIPG_NOTE S
+		WHERE S.CG_TP_CD = 'RCV' AND VSL_CALL_ID = #{vslCallId}
+		GROUP BY SHIPG_NOTE_NO
+		ORDER BY SHIPG_NOTE_NO
+	</select>
+	
+	<select id = "selectComboAllMfDocIdList" parameterType = "searchComboBoxServiceParm" resultType = "comboBoxServiceItem">
+		(SELECT DISTINCT MF_DOC_ID AS MFDOCID FROM TMT_BL WHERE VSL_CALL_ID =  #{vslCallId} )
+		UNION 
+		(SELECT DISTINCT MF_DOC_ID AS MFDOCID FROM TMT_SHIPG_NOTE WHERE VSL_CALL_ID =  #{vslCallId} )
+	</select>
+	
+	<select id = "selectComboBLNoAndSNNoList" parameterType = "searchComboBoxServiceParm" resultType = "comboBoxServiceItem">
+		(SELECT DISTINCT BL_NO AS BLNOSNNO FROM TMT_BL WHERE VSL_CALL_ID =  #{vslCallId} )
+		UNION 
+		(SELECT DISTINCT SHIPG_NOTE_NO AS BLNOSNNO FROM TMT_SHIPG_NOTE WHERE VSL_CALL_ID =  #{vslCallId} )
+	</select>
+	
+	<select id="selectComboInvoiceTemplateList" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		SELECT /*combobox.selectComboInvoiceTemplateList*/
+			TEMPLATE_CODE AS SCD, TEMPLATE_NAME AS SCDNM
+		FROM TMT_B_IV_TEMPLATE
+		ORDER BY TEMPLATE_NAME
+	</select>
+	
+	<select id="selectComboProofSheetRefNoList" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		SELECT /*combobox.selectComboProofSheetRefNoList*/
+			A.REFNO AS REFNO
+	    FROM (
+	    	SELECT DISTINCT
+	        	DECODE (TBID.SCR_ID,
+	            	'SSR', NVL(
+	            		NVL(TBID.RMK, TBID.REF_NO1), 
+	            			(SELECT REF_NO
+                            FROM TMT_B_SSR
+                            WHERE VSL_CALL_ID = #{vslCallId} 
+                            AND TBID.REF_NO2 = SSR_NO
+                            AND PAY_TP_CD = 'C'
+                            AND ROWNUM = 1)
+						),
+					NVL(TBID.RMK, TBID.REF_NO1)) AS REFNO
+				FROM TMT_B_IV_DATA TBID
+			WHERE TBID.VSL_CALL_ID = #{vslCallId} ) A 
+		WHERE  A.REFNO IS NOT NULL
+		ORDER BY A.REFNO
+	</select>
+	
+	<select id="selectComboPayerList" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		SELECT /*combobox.selectComboPayerList*/
+			DAT.PAYER 	AS PAYER,
+			PT.ENG_SNM 	AS PAYERNM,
+            PT.ACC_NO 	AS ACCNO,
+            PT.ADDR 	AS ADDR,
+            PT.CUST_CD	AS CUSTCD
+		FROM 
+			TMT_B_IV_DATA DAT 
+			INNER JOIN TMT_B_TRF_CD CD 
+				ON DAT.TRF_CD = CD.TRF_CD 
+		    	AND DAT.SUB_TRF_CD = CD.SUB_TRF_CD
+		    INNER JOIN (
+		    	SELECT 
+			    	PTNR_CODE AS PAYER, ENG_SNM, ACC_NO, ADDR, CUST_CD
+			    FROM TMT_PTNR
+			    UNION
+			    SELECT 
+			    	AGENCY_CODE AS PAYER, ENG_SNM, ACC_NO, ADDR, CUST_CD
+			    FROM TMT_AGENCY_INFO
+		    ) PT ON DAT.PAYER = PT.PAYER
+		WHERE 1 = 1
+			<if test="vslCallId != null and vslCallId != ''">
+				AND DAT.VSL_CALL_ID = #{vslCallId}
+			</if>
+			<if test="scrId != null and scrId != ''">
+				AND SCR_ID IN (#{scrId})
+			</if>
+		GROUP BY DAT.PAYER, PT.ENG_SNM, PT.ACC_NO, PT.ADDR, PT.CUST_CD
+        ORDER BY DAT.PAYER
+	</select>
+	
+	<select id="selectComboDocPayerInfoList" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		WITH PAYER_INFO AS /*combobox.selectComboDocPayerInfoList*/
+	 	(
+	 		SELECT
+			    DOC.PAYERTP
+			    ,DOC.PAYER
+			    ,PAYERNM
+			    ,PAYMENT_TYPE
+			FROM (
+				SELECT 
+					'SHA' AS payerTp,
+					SCH.ARRV_SA_ID AS payer,
+					'[SHA][' || SCH.ARRV_SA_ID || '] ' || F_CM_007 (SCH.ARRV_SA_ID, 'SHA') AS payerNm
+				FROM TMT_BL BL, TMT_VSL_SCH SCH, TMT_AGENCY_INFO SHA
+				WHERE BL.VSL_CALL_ID = SCH.VSL_CALL_ID
+				AND BL.VSL_CALL_ID = #{vslCallId} 
+				AND BL.MF_DOC_ID = #{masterBL} 
+				AND SCH.ARRV_SA_ID = SHA.AGENCY_CODE
+				AND SCH.ARRV_SA_ID IS NOT NULL
+				UNION
+				SELECT
+					'FWD' AS payerTp,
+					FWRD AS payer,
+					'[FWD][' || FWRD || '] ' || F_CM_007 (FWRD, 'FWD') AS payerNm
+				FROM TMT_BL
+				WHERE VSL_CALL_ID = #{vslCallId}
+				AND MF_DOC_ID = #{masterBL} 
+				AND FWRD IS NOT NULL
+				UNION
+				SELECT 
+					'CNS' AS payerTp,
+					CNSNE AS payer,
+					'[CNS][' || CNSNE || '] ' || F_CM_007 (CNSNE, 'CNS') AS payerNm
+				FROM TMT_BL
+				WHERE VSL_CALL_ID = #{vslCallId} 
+				AND MF_DOC_ID = #{masterBL} 
+				AND CNSNE IS NOT NULL
+				UNION
+				SELECT 
+					'SHA' AS payerTp,
+					SCH.ARRV_SA_ID AS payer,
+					'[SHA][' || SCH.ARRV_SA_ID || '] ' || F_CM_007 (SCH.ARRV_SA_ID, 'SHA') AS payerNm
+				FROM TMT_SHIPG_NOTE SN, TMT_VSL_SCH SCH, TMT_AGENCY_INFO SHA
+				WHERE SN.VSL_CALL_ID = #{vslCallId}
+				AND SN.VSL_CALL_ID = SCH.VSL_CALL_ID 
+				AND SN.MF_DOC_ID = #{bookingNo} 
+				AND SCH.ARRV_SA_ID = SHA.AGENCY_CODE
+				AND SHPR IS NOT NULL
+				UNION
+				SELECT 
+					'FWD' AS payerTp,
+					FWRD AS payer,
+					'[FWD][' || FWRD || '] ' || F_CM_007 (FWRD, 'FWD') AS payerNm
+				FROM TMT_SHIPG_NOTE
+				WHERE VSL_CALL_ID = #{vslCallId} 
+				AND MF_DOC_ID = #{bookingNo} 
+				AND SHPR IS NOT NULL
+				UNION
+				SELECT 
+					'CNS' AS payerTp,
+					SHPR AS payer,
+					'[SHPR][' || SHPR || '] ' || F_CM_007 (SHPR, 'CNS') AS payerNm
+				FROM TMT_SHIPG_NOTE
+				WHERE VSL_CALL_ID = #{vslCallId} 
+				AND MF_DOC_ID = #{bookingNo} 
+				AND SHPR IS NOT NULL
+			) DOC
+			INNER JOIN (
+			    SELECT 
+			    	PTNR_CODE AS PAYER, PTNR_TYPE AS PAYERTP, ENG_SNM, ACC_NO, ADDR, TEL_NO, PAYMENT_TYPE
+			    FROM TMT_PTNR
+			    UNION
+			    SELECT 
+			    	AGENCY_CODE AS PAYER, PTNR_TYPE AS PAYERTP, ENG_SNM, ACC_NO, ADDR, TEL_NO, PAYMENT_TYPE
+			    FROM TMT_AGENCY_INFO
+			) PTNR ON DOC.PAYER = PTNR.PAYER AND DOC.PAYERTP = PTNR.PAYERTP
+	 	)
+	 	
+	 	SELECT	DISTINCT
+	 			PAYERTP
+	 			,PAYER
+	 			,PAYERNM
+	 			,PAYMENT_TYPE
+	 	FROM  PAYER_INFO
+		WHERE PAYMENT_TYPE = 'M'
+	</select>
+	
+	<select id="selectComboIvUserRefNoList" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		SELECT /*combobox.selectComboIvUserRefNoList*/
+			DAT.REF_NO2 AS MFDOCID 
+		FROM TMT_B_IV_DATA DAT INNER JOIN TMT_B_TRF_CD CD 
+			ON DAT.TRF_CD = CD.TRF_CD 
+			AND DAT.SUB_TRF_CD = CD.SUB_TRF_CD
+		WHERE DAT.VSL_CALL_ID = #{vslCallId}
+		AND DAT.REF_NO2 IS NOT NULL
+		GROUP BY DAT.REF_NO2
+        ORDER BY DAT.REF_NO2
+	</select>
+	
+	<select id="selectComboIvBlSnNoList" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		SELECT /*combobox.selectComboIvBlSnNoList*/
+			DAT.REF_NO1 AS CGNO 
+		FROM TMT_B_IV_DATA DAT INNER JOIN TMT_B_TRF_CD CD 
+			ON DAT.TRF_CD = CD.TRF_CD 
+		    AND DAT.SUB_TRF_CD = CD.SUB_TRF_CD
+		WHERE DAT.VSL_CALL_ID = #{vslCallId}
+		AND DAT.REF_NO1 IS NOT NULL
+		GROUP BY DAT.REF_NO1
+        ORDER BY DAT.REF_NO1
+	</select>
+	
+	<select id="selectComboIvPrefixList" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		SELECT 	/*combobox.selectComboIvPrefixList*/
+				DISTINCT(IV_PRFX) IVPRFX
+		FROM 	TMT_B_IV_DATA
+		WHERE 	IV_NO IS NULL
+		  		AND STAT_CD = 'VF'
+				<if test="vslCallId != null and vslCallId != ''">
+					AND VSL_CALL_ID = #{vslCallId}
+				</if>
+		ORDER BY IV_PRFX
+	</select>
+	
+	<select id="selectComboTrfCdList"  parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+    	SELECT /*combobox.selectComboTrfCdList*/
+    		A.TRF_CD 						AS TRFCD,
+			A.SUB_TRF_CD					AS SUBTRFCD,
+			A.TRF_CD || ' ' || A.DESCR 		AS DISPLAYNAME,
+			A.DESCR  						AS TRFNAME,
+			A.SSR_TP_CD 					AS SSRTYPE,
+			A.COST_CENT_CD					AS COSTCENTER,
+			A.IV_UNIT1						AS IVUNIT1,
+			A.IV_UNIT2						AS IVUNIT2,
+			A.IV_UNIT3						AS IVUNIT3,
+			A.ERP_COST_CENT					AS FINANCIALCODE,
+			A.TAX_TYPE						AS GSTTPCD,
+			A.TAX_VALUE						AS GSTRATE,
+			(
+				SELECT UNITPRC 
+				FROM (
+					SELECT 
+						B.UNIT_PRC AS UNITPRC,
+						B.SUB_TRF_CD AS SUBTRFCD, 
+						TO_DATE(B.APLY_YMD,'YYYYMMDD') AS APLYYMD,
+						NVL2(B.EXPR_YMD,B.EXPR_YMD,'N/A') AS EXPRYMD,
+						B.TRF_CD AS TRFCD 
+					FROM TMT_B_TRF B 
+					WHERE B.PRC_TP_CD = 'S' 
+					ORDER BY APLYYMD
+				) C
+				WHERE ROWNUM = 1 
+				AND C.TRFCD = A.TRF_CD 
+				AND C.SUBTRFCD = A.SUB_TRF_CD 
+				AND (
+					C.EXPRYMD = 'N/A' 
+					OR 
+					(C.EXPRYMD <![CDATA[<>]]> 'N/A' AND TO_DATE(C.EXPRYMD,'YYYYMMDD') > SYSDATE )
+				)
+			) AS TRFRATE
+		FROM TMT_B_TRF_CD A
+		WHERE A.VLD_YN= 'Y' 
+		AND A.SSR_TP_CD = #{ssrTpCd}
+    </select> 
+    
+    <select id="selectComboBoxInvMasterBlNoList" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		WITH IV_DATA AS
+        (SELECT VSL_CALL_ID, REF_NO2 FROM TMT_B_IV_DATA WHERE VSL_CALL_ID = #{vslCallId} AND SCR_ID = 'PRF' AND IV_NO IS NOT NULL)
+         
+         SELECT	/* ProformaInvoiceMap.selectComboBoxInvMasterBlNoList */
+                DISTINCT
+                B.MF_DOC_ID MFDOCID
+        FROM    TMT_BL B LEFT OUTER JOIN IV_DATA I ON B.VSL_CALL_ID = I.VSL_CALL_ID AND B.MF_DOC_ID = I.REF_NO2
+        WHERE   B.VSL_CALL_ID = #{vslCallId}
+                AND B.STAT_CD = 'AP'
+<!--                 AND I.REF_NO2 IS NULL -->
+	</select>
+	
+	<select id="selectComboBoxInvBookingNoList" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		WITH IV_DATA AS
+        (SELECT VSL_CALL_ID, REF_NO2 FROM TMT_B_IV_DATA WHERE VSL_CALL_ID = #{vslCallId} AND SCR_ID = 'PRF' AND IV_NO IS NOT NULL)
+        
+		SELECT	/* ProformaInvoiceMap.selectComboBoxInvBookingNoList */
+				DISTINCT
+				S.MF_DOC_ID MFDOCID
+        FROM    TMT_SHIPG_NOTE S LEFT OUTER JOIN IV_DATA I ON S.VSL_CALL_ID = I.VSL_CALL_ID AND S.MF_DOC_ID = I.REF_NO2
+        WHERE    S.VSL_CALL_ID = #{vslCallId}
+                AND S.STAT_CD = 'AP'
+                <!-- AND I.SHIPG_NOTE_NO IS NULL -->
+	</select>
+	
+	<select id="selectComboBoxCurrencyList" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		SELECT 
+			CRCY_CD 						AS crcyCd,
+	        EXCHG_VAL 						AS exRate
+		FROM TMT_B_CURRENCY
+	 	WHERE TO_DATE(#{col1}, 'DD/MM/YYYY') BETWEEN TO_DATE(ST_YMD, 'YYYYMMDD') AND TO_DATE(END_YMD, 'YYYYMMDD')
+		ORDER BY CRCY_CD DESC
+	</select>
+	
+	<select id="selectComboBoxGstRateList" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		SELECT 
+			S_CD 						AS SCD,
+	        S_CD 						AS GSTTPCD,
+	        S_CD_NM						AS SCDNM
+		FROM TMT_CD_MSTD
+	 	WHERE L_CD = #{lcd} AND M_CD = #{mcd} 
+		ORDER BY SCD DESC
+	</select>
+	
+	<select id="selectComboBoxIvUnitList" parameterType="searchComboBoxServiceParm" resultType="comboBoxServiceItem">
+		SELECT 	UNIT_CD AS SCD,
+			   	UNIT_CD AS SCDNM
+		FROM   	TMT_B_IV_UNIT
+		WHERE 1=1
+		AND UNIT_TP_CD = #{tyCd}
+	</select>
+	
+</mapper>

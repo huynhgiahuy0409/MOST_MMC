@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="freeStorageDays">
+
+	<select id="selectFreeStorageCount" parameterType="freeStorageDaysParm" resultType="java.lang.String">
+	 	 SELECT COUNT(*)
+          FROM (<include refid="getFreeStorage"/>)
+	</select>
+	
+	<select id="selectFreeStorage"  parameterType="freeStorageDaysParm" resultType="freeStorageDaysItem">
+  		<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getFreeStorage"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+    </select>  
+    
+	<sql id="getFreeStorage">
+		 SELECT
+			   	PTNR_CD AS ptnrCd, 
+			   	OPE_CLASS_CD AS opeClassCd, 
+			   	CG_TP_CD AS cgTpCd, 
+				CMDT_CD AS cmdtCd, 
+				F_GET_CMDT_DESC(CMDT_CD) as cmdtCdNm,
+				TO_DATE(APLY_YMD,'DD/MM/YYYY') AS aplyYmd,
+				TO_DATE(EXPR_YMD,'DD/MM/YYYY') AS exprYmd,
+				FREE_DD AS freeDd, 
+				RMK AS rmk, 
+				INCLD_SUN_YN AS incldSunYn,
+				UPDATE_TIME AS updateTime, 
+				STAFF_CD AS userId, 
+				VERSION AS version
+		   FROM TMT_B_FREE_DAY
+		WHERE 1=1
+		<if test="ptnrCd != null and ptnrCd != ''">
+  			AND	PTNR_CD = #{ptnrCd}
+		</if>
+		<if test="aplyYmd != null and aplyYmd != ''">
+			AND TO_DATE(APLY_YMD,'DD/MM/YYYY') >= TO_DATE(#{aplyYmd},'DD/MM/YYYY')
+		</if>
+		<if test="exprYmd != null and exprYmd != ''">
+			AND TO_DATE(#{exprYmd},'DD/MM/YYYY') >= TO_DATE(EXPR_YMD,'DD/MM/YYYY')
+		</if>
+		ORDER BY PTNR_CD, OPE_CLASS_CD, CG_TP_CD, CMDT_CD
+	</sql>
+
+	<insert id="insertItems" parameterType="freeStorageDaysItem">
+		INSERT INTO TMT_B_FREE_DAY(   /*	insertItems-freeStorageDaysItem 	*/
+			PTNR_CD,
+			OPE_CLASS_CD,
+			CG_TP_CD,
+			CMDT_CD,
+			APLY_YMD,
+			EXPR_YMD,
+			FREE_DD,
+			RMK,
+			INCLD_SUN_YN,
+			UPDATE_TIME, 
+			STAFF_CD, 
+			VERSION
+			<!-- SYTM_ID -->
+		) VALUES (
+			#{ptnrCd},
+			#{opeClassCd},
+			#{cgTpCd},
+			#{cmdtCd},
+			TO_CHAR(#{aplyYmd},'DD/MM/YYYY'),
+			TO_CHAR(#{exprYmd},'DD/MM/YYYY'),
+			#{freeDd},
+			#{rmk},
+			#{incldSunYn},
+			systimestamp, 
+			#{userId}, 
+			#{newVersion} 
+			<!-- 'MT' -->
+		)
+	</insert>
+
+	<update id="updateItems" parameterType="freeStorageDaysItem">
+		UPDATE TMT_B_FREE_DAY SET 
+			EXPR_YMD = TO_CHAR(#{exprYmd},'DD/MM/YYYY'),
+			FREE_DD = #{freeDd},
+			RMK = #{rmk},
+			INCLD_SUN_YN = #{incldSunYn},
+			UPDATE_TIME = systimestamp,
+			STAFF_CD = #{userId},
+			VERSION = #{newVersion}
+			<!-- SYTM_ID = 'MT' -->
+		WHERE 1=1
+		<if test="ptnrCd != null and ptnrCd != ''">
+ 			AND PTNR_CD = #{ptnrCd}
+		</if>
+		<if test="opeClassCd != null and opeClassCd != ''">
+  			AND	OPE_CLASS_CD = #{opeClassCd}
+		</if>
+		<if test="cgTpCd != null and cgTpCd != ''">
+  			AND	CG_TP_CD = #{cgTpCd}
+		</if>
+		<if test="cmdtCd != null and cmdtCd != ''">
+	   		AND	CMDT_CD = #{cmdtCd}
+		</if>
+		<if test="version != null and version != ''">
+  			AND	VERSION = #{version}
+		</if>
+	</update>
+
+	<delete id="deleteItems" parameterType="freeStorageDaysItem">
+		DELETE FROM TMT_B_FREE_DAY 
+		WHERE 1=1
+		<if test="ptnrCd != null and ptnrCd != ''">
+  				AND	PTNR_CD = #{ptnrCd}
+		</if>
+		<if test="opeClassCd != null and opeClassCd != ''">
+  				AND	OPE_CLASS_CD = #{opeClassCd}
+		</if>
+		<if test="cgTpCd != null and cgTpCd != ''">
+  				AND	CG_TP_CD = #{cgTpCd}
+		</if>
+		<if test="cmdtCd != null and cmdtCd != ''">
+  				AND	CMDT_CD = #{cmdtCd}
+		</if>
+	</delete>	
+
+</mapper>

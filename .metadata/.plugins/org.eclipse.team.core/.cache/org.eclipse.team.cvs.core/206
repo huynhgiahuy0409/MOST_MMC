@@ -1,0 +1,45 @@
+Ext.define('MOST.model.planning.BerthInfoItem', {
+	extend : 'MOST.model.foundation.dataitem.DataItem',
+	fields: [
+	{
+		name:'terminalCd',
+		type:'string'
+	},
+	{
+		name:'berthTp',
+		type:'string'
+	},
+	{
+		name:'berthCd',
+		type:'string'
+	},
+	{
+		name:'pstSta',
+		type:'string'
+	},
+	{
+		name:'pstEnd',
+		type:'string'
+	},
+	{
+		name:'length',
+		type:'string'
+	},
+	{
+		name:'startPos',
+		type:'string'
+	},
+	{
+		name:'endPos',
+		type:'string'
+	},
+	{
+		name:'displacement',
+		type:'float'
+	},
+	{
+		name:'maxDraft',
+		type:'float'
+	},
+	]
+});

@@ -1,0 +1,2301 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cargoFlowDashboard">
+    <resultMap id="cargoFlowDashboardVesselScheduleMap"	type="cargoFlowDashboardItem">
+    	<result property="hatchQty"	column="HATCH_QTY"/>
+    	<result property="vslCd"	column="VSL_CD"/>
+    	<result property="vslNm"	column="VSL_NM"/>
+    	<result property="arrvSaId"	column="ARRV_SA_ID"/>
+    	<result property="voyage"	column="VOYAGE"/>
+    	<result property="eta"		column="ETA"/>
+    	<result property="etb"		column="ETB"/>
+    	<result property="etd"		column="ETD"/>
+    	<result property="berthLoc"	column="BERTH_LOC"/>
+    </resultMap>
+     <resultMap id="cargoFlowDashboardCommodityMap"	type="cargoFlowDashboardItem">
+    	<result property="cmmdCd"	column="CMDT_CD"/>
+    	<result property="cmmdNm"	column="CMDT_NM"/>
+    </resultMap>
+    <resultMap id="cargoFlowDashboardCommodityAmt"	type="cargoFlowDashboardItem">
+    	<result property="cmmdCd"	column="CMDT_CD"/>
+    	<result property="pkgQty"	column="PKG_QTY"/>
+    	<result property="cgWgt"	column="CG_WGT"/>
+    	<result property="cgVol"	column="CG_VOL"/>
+    </resultMap>
+    <resultMap id="cargoFlowDashboardPtnrMap"	type="cargoFlowDashboardItem">
+    	<result property="ptnrCode"	column="SHIPG_AGNCY"/>
+    	<result property="fwdCode"	column="FWRD"/>
+    	<result property="cnsCode"	column="CNS"/>
+    </resultMap>
+    <resultMap id="cargoFlowDashboardVesselHatchData"	type="cargoFlowDashboardItem">
+    	<result property="cmmdCd"				column="CMDT_CD"/>
+    	<result property="vslCmmdNm"			column="CMDT_NM"/>
+    	<result property="yardCmmdNm"			column="CMDT_NM"/>
+    	<result property="gateCmmdNm"			column="CMDT_NM"/>
+    	<result property="vslCargoTypeNm"		column="CG_TP_NM"/>
+    	<result property="yardCargoTypeNm"		column="CG_TP_NM"/>
+    	<result property="gateCargoTypeNm"		column="CG_TP_NM"/>
+    	<result property="vslDeliveryTypeNm"	column="DELV_TP_NM"/>
+    	<result property="pkgQty"				column="PKG_QTY"/>
+    	<result property="cgWgt"				column="CG_WGT"/>
+    	<result property="cgVol"				column="CG_VOL"/>
+    </resultMap>
+    <resultMap id="cargoFlowDashboardAmount"	type="cargoFlowDashboardItem">
+    	<result property="pkgQty"				column="PKG_QTY"/>
+    	<result property="cgWgt"				column="CG_WGT"/>
+    	<result property="cgVol"				column="CG_VOL"/>
+    </resultMap>
+    
+    <resultMap id="cargoFlowDashboardData"	type="cargoFlowDashboardItem">
+    	<result property="vslCallId"			column="VSL_CALL_ID"/>
+    	<result property="hatchNo"				column="HATCH_NO"/>
+    	<result property="cmmdCd"				column="CMDT_CD"/>
+    	<result property="cmmdNm"				column="CMDT_DESC"/>
+    	<result property="cgTpCd"				column="CG_TP_CD"/>
+    	<result property="cgTpNm"				column="CG_TP_NM"/>
+    	<result property="delvTpCd"				column="DELV_TP_CD"/>
+    	<result property="delvTpNm"				column="DELV_TP_NM"/>
+    	<result property="balMt"				column="BAL_WGT"/>
+    	<result property="balQty"				column="BAL_QTY"/>
+    	<result property="actMt"				column="ACT_WGT"/>
+    	<result property="actQty"				column="ACT_QTY"/>
+    	<result property="totalMt"				column="TOTAL_WGT"/>
+    	<result property="totalQty"				column="TOTAL_QTY"/>
+    	<result property="tobeRecvMt"			column="TOBE_RECV_WGT"/>
+    	<result property="tobeRecvQty"			column="TOBE_RECV_QTY"/>
+    	<result property="percentage"			column="PERCENTAGE"/>
+    	<result property="percentageStr"		column="PERCENTAGE_STR"/>
+    	
+    	<result property="totalAmt"				column="TOTAL_AMT"/>
+    	<result property="actAmt"				column="ACT_AMT"/>
+    	<result property="balAmt"				column="BAL_AMT"/>
+    	<result property="tobeRecvAmt"			column="TOBE_RECV_AMT"/>
+    </resultMap>
+    <resultMap id="cargoFlowDashboardSummaryData"	type="cargoFlowDashboardItem">
+    	<result property="cmmdCd"				column="CMDT_CD"/>
+    	<result property="cmmdNm"				column="CMDT_DESC"/>
+    	<result property="pkgQty"				column="TOTAL_QTY"/>
+    	<result property="cgWgt"				column="TOTAL_WGT"/>
+    	<result property="cgVol"				column="TOTAL_M3"/>
+    	<result property="dqty"					column="D_QTY"/>
+    	<result property="dmt"					column="D_MT"/>
+    	<result property="dm3"					column="D_M3"/>
+    	<result property="iqty"					column="I_QTY"/>
+    	<result property="imt"					column="I_MT"/>
+    	<result property="im3"					column="I_M3"/>
+    	<result property="cmmdSumTotal"			column="TOTAL_AMT"/>
+    	<result property="cmmdSumDirect"		column="DIRECT_AMT"/>
+    	<result property="cmmdSumIndirect"		column="INDIRECT_AMT"/>
+    	<result property="cmmdSumDirectByBarge"	column="DIRECT_BARGE_AMT"/>
+    	<result property="cgTpCd"				column="CG_TP_CD"/>
+    	<result property="cgTpNm"				column="CG_TP_NM"/>
+    	<result property="percentage"			column="PERCENTAGE"/>
+    	<result property="percentageStr"		column="PERCENTAGE_STR"/>
+    	
+    	<result property="whPercentage"			column="WH_PERCENTAGE"/>
+    	<result property="truckPercentage"		column="D_LR_PERCENTAGE"/>
+    	<result property="vslPercentage"		column="D_VSL_PERCENTAGE"/>
+    </resultMap>
+    
+    <select id="selectVesselSchedule" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardVesselScheduleMap">
+        SELECT /* cargoFlowDashboard.selectVesselSchedule */
+		       PART.HATCH_QTY                    AS HATCH_QTY, 
+		       PART.VSL_CD                       AS VSL_CD,
+		       PART.VSL_NM                       AS VSL_NM,
+		       SCH.ARRV_SA_ID                    AS ARRV_SA_ID,
+		       SCH.INB_VOY                       AS VOYAGE,
+		       TO_CHAR(ETA,'YYYY/MM/DD HH24:MI') AS ETA,
+		       TO_CHAR(ETB,'YYYY/MM/DD HH24:MI') AS ETB,
+		       TO_CHAR(ETD,'YYYY/MM/DD HH24:MI') AS ETD,
+		       BERTH_LOC                         AS BERTH_LOC
+	   	FROM TMT_VSL_PART PART
+	    INNER JOIN TMT_VSL_SCH SCH ON PART.VSL_CD = SCH.VSL_CD
+	 	WHERE SCH.VSL_CALL_ID = #{vslCallId}
+    </select>
+    <select id="selectLoadingCommoditylist" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardCommodityMap">
+        SELECT  /* cargoFlowDashboard.selectLoadingCommoditylist */
+        	CMDT_CD,
+       		DECODE (F_GET_CMDT_DESC (CMDT_CD),
+               '', CMDT_CD,
+               F_GET_CMDT_DESC (CMDT_CD)) AS CMDT_NM
+		  FROM TMT_SHIPG_NOTE
+		 WHERE VSL_CALL_ID = #{vslCallId}
+		 AND STAT_CD = 'AP' 
+		 GROUP BY CMDT_CD
+    </select>
+    <select id="selectLoadingCommodityTotalAmt" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardCommodityAmt">
+        SELECT /* cargoFlowDashboard.selectLoadingCommodityTotalAmt */
+        	   CMDT_CD 			AS CMDT_CD,
+		       SUM (PKG_QTY)	AS PKG_QTY,
+		       SUM (CG_WGT)		AS CG_WGT,
+		       SUM (CG_VOL)     AS CG_VOL
+		FROM TMT_SHIPG_NOTE
+		WHERE VSL_CALL_ID = #{vslCallId} 
+		AND STAT_CD = 'AP' 
+		AND CMDT_CD = #{cmmdCd}
+		GROUP BY CMDT_CD
+    </select>
+    <select id="selectLoadingCommodityAmt" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardCommodityAmt">
+        SELECT /* cargoFlowDashboard.selectLoadingCommodityAmt */
+        	   CMDT_CD 			AS CMDT_CD,
+		       SUM (PKG_QTY)	AS PKG_QTY,
+		       SUM (CG_WGT)		AS CG_WGT,
+		       SUM (CG_VOL)     AS CG_VOL
+		FROM TMT_SHIPG_NOTE
+		WHERE VSL_CALL_ID = #{vslCallId} 
+		AND STAT_CD = 'AP' 
+		AND CMDT_CD = #{cmmdCd}
+		AND DELV_TP_CD = #{delveryTpCd} 
+		GROUP BY CMDT_CD
+    </select>
+    
+    <select id="selectLoadingCommodityPtnr" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardPtnrMap">
+		SELECT /* cargoFlowDashboard.selectLoadingCommodityPtnr */
+			   DECODE(SHIPG_AGNCY,'','N/A',SHIPG_AGNCY) AS SHIPG_AGNCY, 
+               DECODE(FWRD,'','N/A',FWRD)           	   AS FWRD, 
+               DECODE(SHPR,'','N/A',SHPR)               AS CNS
+		  FROM TMT_SHIPG_NOTE
+		 WHERE VSL_CALL_ID = #{vslCallId} 
+		 AND STAT_CD = 'AP' 
+		 AND CMDT_CD = #{cmmdCd}
+    </select>
+    <select id="selectDischargingCommoditylist" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardCommodityMap">
+         SELECT CMDT_CD, /* cargoFlowDashboard.selectDischargingCommoditylist */
+       	 DECODE (F_GET_CMDT_DESC (CMDT_CD),
+               '', CMDT_CD,
+               F_GET_CMDT_DESC (CMDT_CD)) AS CMDT_NM
+		  FROM TMT_BL
+		  WHERE VSL_CALL_ID = #{vslCallId}
+		  AND STAT_CD = 'AP' 
+		  GROUP BY CMDT_CD
+    </select>
+    
+    <select id="selectDischargingCommodityTotalAmt" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardCommodityAmt">
+        SELECT /* cargoFlowDashboard.selectDischargingCommodityTotalAmt */
+        	   CMDT_CD 			AS CMDT_CD,
+		       SUM (PKG_QTY)	AS PKG_QTY,
+		       SUM (CG_WGT)		AS CG_WGT,
+		       SUM (CG_VOL)     AS CG_VOL
+		FROM TMT_BL
+		WHERE VSL_CALL_ID = #{vslCallId} 
+		AND STAT_CD = 'AP' 
+		AND CMDT_CD = #{cmmdCd}
+		GROUP BY CMDT_CD
+    </select>
+    <select id="selectDischargingCommodityAmt" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardCommodityAmt">
+		 SELECT  A.CMDT_CD        AS CMDT_CD,
+		         DECODE(SUM (A.PKG_QTY),'','N/A', SUM (A.PKG_QTY)) AS PKG_QTY,
+		         DECODE(SUM (A.CG_WGT),'','N/A', SUM (A.CG_WGT)) AS CG_WGT,
+		         DECODE(SUM (A.CG_VOL),'','N/A',SUM(A.CG_VOL)) AS CG_VOL
+		    FROM (  SELECT    /* cargoFlowDashboard.selectDischargingCommodityAmt */
+		                  BL.CMDT_CD AS CMDT_CD,
+		                   SUM (BL.PKG_QTY) AS PKG_QTY,
+		                   SUM (BL.CG_WGT) AS CG_WGT,
+		                   SUM (BL.CG_VOL) AS CG_VOL
+		              FROM TMT_BL BL
+		             WHERE     VSL_CALL_ID = #{vslCallId} 
+		                   AND BL.DELV_TP_CD = #{delveryTpCd}
+		                   AND BL.CMDT_CD = #{cmmdCd}
+		                   AND BL.STAT_CD = 'AP'
+		          GROUP BY CMDT_CD
+		          UNION
+		            SELECT BL.CMDT_CD AS CMDT_CD,
+		             <if test='delveryTpCd != null and delveryTpCd == "D"' >
+		                   SUM (DTL.D_QTY) AS PKG_QTY,
+		                   SUM (DTL.D_MT) AS CG_WGT,
+		                   SUM (DTL.D_M3) AS CG_VOL
+		               </if>
+		               <if test='delveryTpCd != null and delveryTpCd == "I"' >
+		               	   SUM (DTL.I_QTY) AS PKG_QTY,
+		                   SUM (DTL.I_MT) AS CG_WGT,
+		                   SUM (DTL.I_M3) AS CG_VOL
+		               </if>
+		              FROM TMT_BL BL
+		                   LEFT JOIN TMT_DO DO
+		                      ON     BL.VSL_CD = DO.VSL_CD
+		                         AND BL.CALL_YEAR = DO.CALL_YEAR
+		                         AND BL.CALL_SEQ = DO.CALL_SEQ
+		                         AND BL.VSL_CALL_ID = DO.VSL_CALL_ID
+		                         AND BL.BL_NO = DO.BL_NO
+		                         AND BL.CMDT_CD = DO.CMDT_CD
+		                   LEFT JOIN TMT_DO_DTL DTL
+		                      ON     DTL.VSL_CD = DO.VSL_CD
+		                         AND DTL.CALL_YEAR = DO.CALL_YEAR
+		                         AND DTL.CALL_SEQ = DO.CALL_SEQ
+		                         AND DTL.VSL_CALL_ID = DO.VSL_CALL_ID
+		                         AND DTL.BL_NO = DO.BL_NO
+		             WHERE     BL.VSL_CALL_ID = #{vslCallId} 
+		                   AND BL.DELV_TP_CD = 'B'
+		                   AND BL.CMDT_CD = #{cmmdCd}
+		                   AND BL.STAT_CD = 'AP'
+		          GROUP BY BL.CMDT_CD) A
+			GROUP BY A.CMDT_CD,
+		         A.PKG_QTY,
+		         A.CG_WGT,
+		         A.CG_VOL
+    </select>
+     <select id="selectDischargingCommodityPtnr" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardPtnrMap">
+		SELECT  /* cargoFlowDashboard.selectDischargingCommodityPtnr */
+		       DECODE((SELECT ARRV_SA_ID
+		          FROM TMT_VSL_SCH
+		         WHERE VSL_CALL_ID = #{vslCallId} ),'','N/A',
+		         (SELECT ARRV_SA_ID
+		          FROM TMT_VSL_SCH
+		         WHERE VSL_CALL_ID = #{vslCallId} )) 				AS SHIPG_AGNCY,
+		       DECODE(FWRD,'','N/A',FWRD) 							AS FWRD,
+		       DECODE(CNSNE,'','N/A',CNSNE)						    AS CNS
+		  FROM TMT_BL
+		 WHERE VSL_CALL_ID = #{vslCallId} 
+		 AND STAT_CD = 'AP' 
+		 AND CMDT_CD = #{cmmdCd}
+    </select>   
+    <!-- Vessel (Discharging)-->
+    <select id="selectVesselTotalAmt" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardVesselHatchData">
+		  SELECT MAIN.CMDT_CD AS CMDT_CD,
+		         DECODE (F_GET_CMDT_DESC (MAIN.CMDT_CD),
+		                 '', MAIN.CMDT_CD,
+		                 F_GET_CMDT_DESC (MAIN.CMDT_CD))
+		            AS CMDT_NM,
+		         DECODE (F_CM_001 ('MT', 'CGTP', MAIN.CG_TP_CD),
+		                 '', 'N/A',
+		                 F_CM_001 ('MT', 'CGTP', MAIN.CG_TP_CD))
+		            AS CG_TP_NM,
+		         DECODE (F_CM_001 ('MT', 'DELVTP', MAIN.DELV_TP_CD),
+		                 '', 'N/A',
+		                 F_CM_001 ('MT', 'DELVTP', MAIN.DELV_TP_CD))
+		            AS DELV_TP_NM,
+		         DECODE (SUM (MAIN.PKG_QTY), '', '0', SUM (MAIN.PKG_QTY)) AS PKG_QTY,
+		         DECODE (SUM (MAIN.CG_WGT), '', '0', SUM (MAIN.CG_WGT)) AS CG_WGT,
+		         DECODE (SUM (MAIN.CG_VOL), '', '0', SUM (MAIN.CG_VOL)) AS CG_VOL
+        <if test='opClassCd != null and opClassCd == "I"' >
+	        FROM TMT_BL MAIN
+		         INNER JOIN TMT_BL_DTL DTL
+        </if>
+        <if test='opClassCd != null and opClassCd == "E"' >
+	        FROM TMT_SHIPG_NOTE MAIN
+		         INNER JOIN TMT_SHIPG_NOTE_DTL DTL
+        </if>
+	            	ON MAIN.VSL_CALL_ID = DTL.VSL_CALL_ID
+	               AND MAIN.VSL_CD = DTL.VSL_CD
+	               AND MAIN.CALL_YEAR = DTL.CALL_YEAR
+	               AND MAIN.CALL_SEQ = DTL.CALL_SEQ
+	               AND MAIN.MF_DOC_ID = DTL.MF_DOC_ID
+	               <if test='opClassCd != null and opClassCd == "I"' >
+	               AND MAIN.BL_NO = DTL.BL_NO
+	               </if>
+	               <if test='opClassCd != null and opClassCd == "E"' >
+	               AND MAIN.SHIPG_NOTE_NO = DTL.SHIPG_NOTE_NO
+	               </if>
+	    WHERE 1=1
+	    AND MAIN.VSL_CALL_ID  = #{vslCallId} 
+	    AND DTL.HATCH_NO  = #{hatchNo} 
+	    GROUP BY MAIN.CMDT_CD, MAIN.CG_TP_CD, MAIN.DELV_TP_CD
+    </select> 
+    <select id="selectVesselHandledAmt" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardAmount">
+		  SELECT DECODE (SUM (MAIN.PKG_QTY), '', '0', SUM (MAIN.PKG_QTY)) AS PKG_QTY,
+		       DECODE (SUM (MAIN.CG_WGT), '', '0', SUM (MAIN.CG_WGT)) AS CG_WGT,
+		       DECODE (SUM (MAIN.CG_VOL), '', '0', SUM (MAIN.CG_VOL)) AS CG_VOL
+		  FROM TMT_JOB MAIN
+		  WHERE     MAIN.VSL_CALL_ID = #{vslCallId}
+		       AND MAIN.HATCH_NO = #{hatchNo} 
+		       <if test='opClassCd != null and opClassCd == "I"' >
+		       AND MAIN.JOB_TP_CD = 'DS'
+		       </if>
+		       <if test='opClassCd != null and opClassCd == "E"' >
+		       AND MAIN.JOB_TP_CD = 'LD'
+		       </if>
+		       AND MAIN.JOB_PURP_CD = 'VA'
+    </select> 
+     <!-- Warehouse -->
+     <select id="selectYardTotalAmt" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardAmount">
+		  SELECT
+               DECODE (SUM (MST.PKG_QTY), '', '0', SUM (MST.PKG_QTY)) AS PKG_QTY,
+               DECODE (SUM (MST.CG_WGT), '', '0', SUM (MST.CG_WGT)) AS CG_WGT,
+               DECODE (SUM (MST.CG_VOL), '', '0', SUM (MST.CG_VOL)) AS CG_VOL
+          FROM TMT_CG_MST MST 
+           <if test='opClassCd != null and opClassCd == "I"' >
+             INNER JOIN TMT_BL MAIN
+	             ON MST.VSL_CALL_ID = MAIN.VSL_CALL_ID
+	             	AND MST.MF_DOC_ID = MAIN.MF_DOC_ID
+	                AND MST.BL_NO = MAIN.BL_NO
+	          INNER JOIN TMT_BL_DTL DTL
+           </if>
+            <if test='opClassCd != null and opClassCd == "E"' >
+             INNER JOIN TMT_SHIPG_NOTE MAIN
+	             ON MST.VSL_CALL_ID = MAIN.VSL_CALL_ID
+	             AND MST.MF_DOC_ID = MAIN.MF_DOC_ID
+	             AND MST.SHIPG_NOTE_NO = MAIN.SHIPG_NOTE_NO
+	          INNER JOIN TMT_SHIPG_NOTE_DTL DTL
+           </if>
+             ON MAIN.VSL_CALL_ID = DTL.VSL_CALL_ID
+                AND MAIN.VSL_CD = DTL.VSL_CD
+                AND MAIN.CALL_YEAR = DTL.CALL_YEAR
+                AND MAIN.CALL_SEQ = DTL.CALL_SEQ
+                AND MAIN.MF_DOC_ID = DTL.MF_DOC_ID
+            <if test='opClassCd != null and opClassCd == "I"' >
+            	AND MAIN.BL_NO = DTL.BL_NO
+            </if>
+            <if test='opClassCd != null and opClassCd == "E"' >
+            	AND MAIN.SHIPG_NOTE_NO = DTL.SHIPG_NOTE_NO
+            </if>    
+          WHERE DTL.VSL_CALL_ID = #{vslCallId} 
+               AND DTL.HATCH_NO = #{hatchNo}
+    </select> 
+     <select id="selectYardHandledAmt" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardAmount">
+		  SELECT DECODE (SUM (MAIN.PKG_QTY), '', '0', SUM (MAIN.PKG_QTY)) AS PKG_QTY,
+		       DECODE (SUM (MAIN.CG_WGT), '', '0', SUM (MAIN.CG_WGT)) AS CG_WGT,
+		       DECODE (SUM (MAIN.CG_VOL), '', '0', SUM (MAIN.CG_VOL)) AS CG_VOL
+		  FROM TMT_JOB MAIN
+		  WHERE     MAIN.VSL_CALL_ID = #{vslCallId}
+		       AND MAIN.HATCH_NO = #{hatchNo} 
+		       <if test='opClassCd != null and opClassCd == "I"' >
+		       AND MAIN.JOB_TP_CD = 'DS'
+		       </if>
+		       <if test='opClassCd != null and opClassCd == "E"' >
+		       AND MAIN.JOB_TP_CD = 'LD'
+		       </if>
+		       AND MAIN.JOB_PURP_CD = 'AW'
+    </select> 
+      <!-- Gate -->
+    
+    <!-- discharge -->  
+	<select id="selectVesselDischargedAmt" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardData">
+    	/*cargoFlowDashboard.selectVesselDischargedAmt*/
+    	WITH DISCHARGED_INFO AS
+		(
+		    SELECT  J.VSL_CALL_ID,
+		            B.CG_TP_CD,
+		            B.DELV_TP_CD,
+		            F_CM_001 ('MT', 'DELVTP', B.DELV_TP_CD) AS DELV_TP_NM,
+		            B.CMDT_CD,
+		            F_GET_CMDT_DESC (B.CMDT_CD) AS CMDT_DESC,
+		            J.HATCH_NO,
+		            SUM(J.CG_WGT) AS CG_WGT,
+		            SUM(J.PKG_QTY) AS PKG_QTY
+		    FROM    TMT_JOB J
+		            INNER JOIN TMT_BL B ON J.VSL_CALL_ID = B.VSL_CALL_ID AND J.CG_NO = B.BL_NO
+		    
+		    WHERE   J.VSL_CALL_ID = #{vslCallId}
+		            AND J.JOB_TP_CD = 'DS'
+		            AND J.JOB_PURP_CD IN ('VG', 'VA', 'VB')
+		    GROUP BY    J.VSL_CALL_ID,
+		                B.CG_TP_CD,
+		                B.DELV_TP_CD,
+		                B.CMDT_CD,
+		                J.HATCH_NO 
+		
+		),
+		
+		DOCUMENT_INFO AS
+		(
+		    SELECT  D.VSL_CALL_ID,
+		            B.CG_TP_CD,
+		            F_CM_001 ('MT', 'CGTP', B.CG_TP_CD) AS CG_TP_NM,
+		            B.DELV_TP_CD,
+		            F_CM_001 ('MT', 'DELVTP', B.DELV_TP_CD) AS DELV_TP_NM,
+		            B.CMDT_CD,
+		            F_GET_CMDT_DESC (B.CMDT_CD) AS CMDT_DESC,
+		            D.HATCH_NO,
+		            SUM(D.CG_WGT) AS CG_WGT,
+		            SUM(D.PKG_QTY) AS PKG_QTY,
+		            LISTAGG(B.BL_NO, ', ') WITHIN GROUP (ORDER BY D.VSL_CALL_ID, B.CMDT_CD, D.HATCH_NO) AS BL_NO
+		    FROM    TMT_BL_DTL D 
+		            INNER JOIN TMT_BL B ON D.VSL_CALL_ID = B.VSL_CALL_ID AND D.BL_NO = B.BL_NO
+		    
+		    WHERE   D.VSL_CALL_ID = #{vslCallId}
+		            AND B.STAT_CD = 'AP'
+		            AND D.HATCH_NO IS NOT NULL
+		    GROUP BY    D.VSL_CALL_ID,
+		                B.CG_TP_CD,
+		                B.DELV_TP_CD,
+		                B.CMDT_CD,
+		                D.HATCH_NO 
+		
+		)
+		
+		SELECT  D.VSL_CALL_ID,
+		        D.CG_TP_CD ,
+		        D.CG_TP_NM,
+		        D.DELV_TP_CD,
+		        D.DELV_TP_NM,
+		        D.CMDT_CD,
+		        NVL(D.CMDT_DESC, D.CMDT_CD) AS CMDT_DESC,
+		        D.HATCH_NO,
+		        NVL(D.CG_WGT, 0) AS TOTAL_WGT,
+		        NVL(D.PKG_QTY, 0) AS TOTAL_QTY,
+		        NVL(J.CG_WGT, 0) AS ACT_WGT,
+		        NVL(J.PKG_QTY, 0) AS ACT_QTY,
+		        
+		        NVL(D.CG_WGT, 0) - NVL(J.CG_WGT, 0) AS BAL_WGT,
+		        NVL(D.PKG_QTY, 0) -  NVL(J.PKG_QTY, 0) AS BAL_QTY,
+		        0 AS TOBE_RECV_WGT,
+        		0 AS TOBE_RECV_QTY,
+		        CASE
+		            WHEN D.PKG_QTY != 0 THEN ROUND((NVL(J.PKG_QTY, 0)/D.PKG_QTY), 3)
+		            ELSE ROUND((NVL(J.CG_WGT, 0)/D.CG_WGT), 3)
+		        END AS PERCENTAGE,
+		        
+		         CASE
+		            WHEN D.PKG_QTY != 0 THEN TO_CHAR(ROUND((NVL(J.PKG_QTY, 0)/D.PKG_QTY), 3)*100, 'fm990D000') || '%'
+		            ELSE TO_CHAR(ROUND((NVL(J.CG_WGT, 0)/D.CG_WGT), 3)*100 , 'fm990D000')|| '%'
+		        END AS PERCENTAGE_STR
+		        
+		FROM    DOCUMENT_INFO D
+		        LEFT OUTER JOIN DISCHARGED_INFO J
+		        ON J.VSL_CALL_ID = D.VSL_CALL_ID
+		            AND J.CMDT_CD = D.CMDT_CD
+		            AND J.HATCH_NO = D.HATCH_NO
+		WHERE   D.VSL_CALL_ID = #{vslCallId}
+		        AND D.HATCH_NO = #{hatchNo}
+    </select>
+    
+    <select id="selectVesselDischargedAmtByVsl" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardData">
+    	/*cargoFlowDashboard.selectVesselDischargedAmtByVsl*/
+        WITH DISCHARGED_INFO AS
+        (
+            SELECT  J.VSL_CALL_ID,
+                    J.HATCH_NO,
+                    SUM(J.CG_WGT) AS CG_WGT,
+                    SUM(J.CG_VOL) AS CG_VOL,
+                    SUM(J.PKG_QTY) AS PKG_QTY
+            FROM    TMT_JOB J
+                    INNER JOIN TMT_BL B ON J.VSL_CALL_ID = B.VSL_CALL_ID AND J.CG_NO = B.BL_NO
+            
+            WHERE   J.VSL_CALL_ID = #{vslCallId}
+                    AND J.JOB_TP_CD = 'DS'
+                    AND J.JOB_PURP_CD IN ('VG', 'VA', 'VB')
+            GROUP BY    J.VSL_CALL_ID,
+                        J.HATCH_NO 
+        
+        ),
+        
+        DOCUMENT_INFO AS
+        (
+            SELECT  D.VSL_CALL_ID,
+                    D.HATCH_NO,
+                    SUM(D.CG_WGT) AS CG_WGT,
+                    SUM(D.CG_VOL) AS CG_VOL,
+                    SUM(D.PKG_QTY) AS PKG_QTY,
+                    LISTAGG(B.BL_NO, ', ') WITHIN GROUP (ORDER BY D.VSL_CALL_ID, D.HATCH_NO) AS BL_NO
+            FROM    TMT_BL_DTL D 
+                    INNER JOIN TMT_BL B ON D.VSL_CALL_ID = B.VSL_CALL_ID AND D.BL_NO = B.BL_NO
+            
+            WHERE   D.VSL_CALL_ID = #{vslCallId}
+                    AND B.STAT_CD = 'AP'
+                    AND D.HATCH_NO IS NOT NULL
+            GROUP BY    D.VSL_CALL_ID,
+                        D.HATCH_NO 
+        
+        )
+        
+        SELECT  D.VSL_CALL_ID,
+                D.HATCH_NO,
+                <choose>
+                	<when test="unitTp == 'QTY'">
+                		NVL(D.PKG_QTY, 0) AS TOTAL_AMT,
+                		NVL(J.PKG_QTY, 0) AS ACT_AMT,
+                		NVL(D.PKG_QTY, 0) -  NVL(J.PKG_QTY, 0) AS BAL_AMT,
+                		0 AS TOBE_RECV_AMT,
+                	</when>
+                	<when test="unitTp == 'M3'">
+                		NVL(D.CG_VOL, 0) AS TOTAL_AMT,
+                		NVL(J.CG_VOL, 0) AS ACT_AMT,
+                		NVL(D.CG_VOL, 0) -  NVL(J.CG_VOL, 0) AS BAL_AMT,
+                		0 AS TOBE_RECV_AMT,
+                	</when>
+                	<otherwise>
+                		NVL(D.CG_WGT, 0) AS TOTAL_AMT,
+                		NVL(J.CG_WGT, 0) AS ACT_AMT,
+                		NVL(D.CG_WGT, 0) -  NVL(J.CG_WGT, 0) AS BAL_AMT,
+                		0 AS TOBE_RECV_AMT,
+                	</otherwise>
+               	</choose>
+                
+                CASE
+					<choose>
+	                	<when test="unitTp == 'QTY'">
+	                		WHEN NVL(D.PKG_QTY, 0) > 0
+				        	THEN ROUND((NVL(J.PKG_QTY, 0)/D.PKG_QTY), 3)
+	                	</when>
+	                	<when test="unitTp == 'M3'">
+	                		WHEN NVL(D.CG_VOL, 0) > 0
+				        	THEN ROUND(( NVL(J.CG_VOL, 0)/NVL(D.CG_VOL, 0)), 3)
+	                	</when>
+	                	<otherwise>
+	                		WHEN NVL(D.CG_WGT, 0) > 0
+				        	THEN ROUND(( NVL(J.CG_WGT, 0)/NVL(D.CG_WGT, 0)), 3)
+	                	</otherwise>
+                	</choose>
+				    ELSE  0
+				END AS PERCENTAGE,
+				
+				CASE
+					<choose>
+	                	<when test="unitTp == 'QTY'">
+	                		WHEN NVL(D.PKG_QTY, 0) > 0
+				        	THEN TO_CHAR(ROUND((NVL(J.PKG_QTY, 0)/D.PKG_QTY), 3)*100, 'fm990D000') || '%'
+	                	</when>
+	                	<when test="unitTp == 'M3'">
+	                		WHEN NVL(D.CG_VOL, 0) > 0
+				        	THEN TO_CHAR(ROUND(( NVL(J.CG_VOL, 0)/NVL(D.CG_VOL, 0)), 3)*100, 'fm990D000') || '%'
+	                	</when>
+	                	<otherwise>
+	                		WHEN NVL(D.CG_WGT, 0) > 0
+				        	THEN TO_CHAR(ROUND(( NVL(J.CG_WGT, 0)/NVL(D.CG_WGT, 0)), 3)*100, 'fm990D000') || '%'
+	                	</otherwise>
+                	</choose>
+				    ELSE  '0.000%'
+				END  AS PERCENTAGE_STR
+                
+        FROM    DOCUMENT_INFO D
+                LEFT OUTER JOIN DISCHARGED_INFO J
+                ON J.VSL_CALL_ID = D.VSL_CALL_ID
+                    AND J.HATCH_NO = D.HATCH_NO
+        WHERE   D.VSL_CALL_ID = #{vslCallId}
+                AND D.HATCH_NO = #{hatchNo}
+    </select>
+    
+    <select id="selectWarehouseDischargedAmt" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardData">
+    	/*cargoFlowDashboard.selectWarehouseDischargedAmt*/
+    	WITH DISCHARGED_INFO AS
+		(
+		    SELECT  J.VSL_CALL_ID,
+		            B.CG_TP_CD,
+		            B.DELV_TP_CD,
+		            F_CM_001 ('MT', 'DELVTP', B.DELV_TP_CD) AS DELV_TP_NM,
+		            B.CMDT_CD,
+		            F_GET_CMDT_DESC (B.CMDT_CD) AS CMDT_DESC,
+		            J.HATCH_NO,
+		            SUM(J.CG_WGT) AS CG_WGT,
+		            SUM(J.PKG_QTY) AS PKG_QTY
+		    FROM    TMT_JOB J
+		            INNER JOIN TMT_BL B ON J.VSL_CALL_ID = B.VSL_CALL_ID AND J.CG_NO = B.BL_NO
+		    
+		    WHERE   J.VSL_CALL_ID = #{vslCallId}
+		            AND J.JOB_TP_CD = 'DS'
+		            AND J.JOB_PURP_CD IN ('VG', 'VA', 'VB')
+		    GROUP BY    J.VSL_CALL_ID,
+		                B.CG_TP_CD,
+		                B.DELV_TP_CD,
+		                B.CMDT_CD,
+		                J.HATCH_NO
+		),
+		
+		AW_INFO AS
+		(
+		    SELECT  J.VSL_CALL_ID,
+		            B.CG_TP_CD,
+		            B.DELV_TP_CD,
+		            F_CM_001 ('MT', 'DELVTP', B.DELV_TP_CD) AS DELV_TP_NM,
+		            B.CMDT_CD,
+		            F_GET_CMDT_DESC (B.CMDT_CD) AS CMDT_DESC,
+		            J.HATCH_NO,
+		            SUM(J.CG_WGT) AS CG_WGT,
+		            SUM(J.PKG_QTY) AS PKG_QTY
+		    FROM    TMT_JOB J
+		            INNER JOIN TMT_BL B ON J.VSL_CALL_ID = B.VSL_CALL_ID AND J.CG_NO = B.BL_NO
+		    
+		    WHERE   J.VSL_CALL_ID = #{vslCallId}
+		            AND J.JOB_TP_CD = 'DS'
+		            AND J.JOB_PURP_CD IN ('AW')
+		    GROUP BY    J.VSL_CALL_ID,
+		                B.CG_TP_CD,
+		                B.DELV_TP_CD,
+		                B.CMDT_CD,
+		                J.HATCH_NO
+		),
+		
+		WG_INFO AS
+		(
+		    SELECT  J.VSL_CALL_ID,
+		            B.CG_TP_CD,
+		            B.DELV_TP_CD,
+		            F_CM_001 ('MT', 'DELVTP', B.DELV_TP_CD) AS DELV_TP_NM,
+		            B.CMDT_CD,
+		            F_GET_CMDT_DESC (B.CMDT_CD) AS CMDT_DESC,
+		            J.HATCH_NO,
+		            SUM(J.CG_WGT) AS CG_WGT,
+		            SUM(J.PKG_QTY) AS PKG_QTY
+		    FROM    TMT_JOB J
+		            INNER JOIN TMT_BL B ON J.VSL_CALL_ID = B.VSL_CALL_ID AND J.CG_NO = B.BL_NO
+		    
+		    WHERE   J.VSL_CALL_ID = #{vslCallId}
+		            AND J.JOB_TP_CD = 'LO'
+		            AND J.JOB_PURP_CD IN ('WG')
+		    GROUP BY    J.VSL_CALL_ID,
+		                B.CG_TP_CD,
+		                B.DELV_TP_CD,
+		                B.CMDT_CD,
+		                J.HATCH_NO
+		),
+		
+		DOCUMENT_INFO AS
+		(
+		    SELECT  D.VSL_CALL_ID,
+		            B.CG_TP_CD,
+		            F_CM_001 ('MT', 'CGTP', B.CG_TP_CD) AS CG_TP_NM,
+		            B.DELV_TP_CD,
+		            F_CM_001 ('MT', 'DELVTP', B.DELV_TP_CD) AS DELV_TP_NM,
+		            B.CMDT_CD,
+		            F_GET_CMDT_DESC (B.CMDT_CD) AS CMDT_DESC,
+		            D.HATCH_NO,
+		            SUM(D.CG_WGT) AS CG_WGT,
+		            SUM(D.PKG_QTY) AS PKG_QTY,
+		            LISTAGG(B.BL_NO, ', ') WITHIN GROUP (ORDER BY D.VSL_CALL_ID, B.CMDT_CD, D.HATCH_NO) AS BL_NO
+		    FROM    TMT_BL_DTL D 
+		            INNER JOIN TMT_BL B ON D.VSL_CALL_ID = B.VSL_CALL_ID AND D.BL_NO = B.BL_NO
+		            LEFT OUTER JOIN TMT_DO O ON D.VSL_CALL_ID = O.VSL_CALL_ID AND D.BL_NO = O.BL_NO
+		    
+		    WHERE   D.VSL_CALL_ID = #{vslCallId}
+		            AND B.STAT_CD = 'AP'
+		            AND D.HATCH_NO IS NOT NULL
+		    GROUP BY    D.VSL_CALL_ID,
+		                B.CG_TP_CD,
+		                B.DELV_TP_CD,
+		                B.CMDT_CD,
+		                D.HATCH_NO 
+		
+		)
+		
+		SELECT  DOC.VSL_CALL_ID,
+		        DOC.CG_TP_CD,
+		        DOC.CG_TP_NM,
+		        DOC.DELV_TP_CD,
+		        DOC.DELV_TP_NM,
+		        DOC.CMDT_CD,
+		        NVL(DOC.CMDT_DESC, DOC.CMDT_CD) AS CMDT_DESC,
+		        DOC.HATCH_NO,
+		        NVL(DOC.CG_WGT, 0) - (NVL(AW.CG_WGT, 0)) AS TOBE_RECV_WGT,
+		        NVL(DOC.PKG_QTY, 0) - (NVL(AW.PKG_QTY, 0)) AS TOBE_RECV_QTY,
+		        
+		        NVL(AW.CG_WGT, 0) AS TOTAL_WGT,
+		        NVL(AW.PKG_QTY, 0) AS TOTAL_QTY,
+		        NVL(WG.CG_WGT, 0) AS ACT_WGT,
+		        NVL(WG.PKG_QTY, 0) AS ACT_QTY,
+		        
+		        (NVL(AW.CG_WGT, 0)) - NVL(WG.CG_WGT, 0) AS BAL_WGT,
+		        (NVL(AW.PKG_QTY, 0)) - NVL(WG.PKG_QTY, 0) AS BAL_QTY,
+		        
+		        CASE
+		            WHEN NVL(AW.PKG_QTY, 0) != 0
+		                THEN ROUND((NVL(WG.PKG_QTY, 0)/(NVL(AW.PKG_QTY, 0))), 3)
+		            
+		            WHEN NVL(AW.CG_WGT, 0) != 0
+		                THEN ROUND((NVL(WG.CG_WGT, 0)/(NVL(AW.CG_WGT, 0))), 3)
+		            ELSE 0
+		        END AS PERCENTAGE,
+		        CASE
+		            WHEN NVL(AW.PKG_QTY, 0) != 0
+		                THEN TO_CHAR(ROUND((NVL(WG.PKG_QTY, 0)/(NVL(AW.PKG_QTY, 0))), 3) * 100, 'fm990D000') || '%'
+		            
+		            WHEN NVL(AW.CG_WGT, 0) != 0
+		                THEN TO_CHAR(ROUND((NVL(WG.CG_WGT, 0)/(NVL(AW.CG_WGT, 0))), 3) * 100, 'fm990D000') || '%'
+		            ELSE TO_CHAR(0 * 100, 'fm990D000') || '%'
+		        END AS PERCENTAGE_STR
+		        
+		FROM    DOCUMENT_INFO DOC
+		        INNER JOIN DISCHARGED_INFO J
+		            ON J.VSL_CALL_ID = DOC.VSL_CALL_ID
+		                AND J.CMDT_CD = DOC.CMDT_CD
+		                AND J.HATCH_NO = DOC.HATCH_NO
+		        LEFT OUTER JOIN AW_INFO AW
+		            ON  DOC.VSL_CALL_ID = AW.VSL_CALL_ID
+		                AND DOC.CMDT_CD = AW.CMDT_CD
+		        LEFT OUTER JOIN WG_INFO WG
+		            ON  DOC.VSL_CALL_ID = WG.VSL_CALL_ID
+		                AND DOC.CMDT_CD = WG.CMDT_CD
+		
+		WHERE   DOC.VSL_CALL_ID = #{vslCallId}
+		        AND DOC.HATCH_NO = #{hatchNo}
+    </select>
+    <select id="selectGateDischargedAmt" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardData">
+    	/*cargoFlowDashboard.selectWarehouseDischargedAmt*/
+    	WITH DISCHARGED_INFO AS
+		(
+		    SELECT  J.VSL_CALL_ID,
+		            B.CG_TP_CD,
+		            B.DELV_TP_CD,
+		            F_CM_001 ('MT', 'DELVTP', B.DELV_TP_CD) AS DELV_TP_NM,
+		            B.CMDT_CD,
+		            F_GET_CMDT_DESC (B.CMDT_CD) AS CMDT_DESC,
+		            J.HATCH_NO,
+		            SUM(J.CG_WGT) AS CG_WGT,
+		            SUM(J.PKG_QTY) AS PKG_QTY
+		    FROM    TMT_JOB J
+		            INNER JOIN TMT_BL B ON J.VSL_CALL_ID = B.VSL_CALL_ID AND J.CG_NO = B.BL_NO
+		    
+		    WHERE   J.VSL_CALL_ID = #{vslCallId}
+		            AND J.JOB_TP_CD = 'DS'
+		            AND J.JOB_PURP_CD IN ('VG', 'VA', 'VB')
+		    GROUP BY    J.VSL_CALL_ID,
+		                B.CG_TP_CD,
+		                B.DELV_TP_CD,
+		                B.CMDT_CD,
+		                J.HATCH_NO
+		),
+		
+		VG_INFO AS
+		(
+		    SELECT  J.VSL_CALL_ID,
+		            B.CG_TP_CD,
+		            B.DELV_TP_CD,
+		            F_CM_001 ('MT', 'DELVTP', B.DELV_TP_CD) AS DELV_TP_NM,
+		            B.CMDT_CD,
+		            F_GET_CMDT_DESC (B.CMDT_CD) AS CMDT_DESC,
+		            J.HATCH_NO,
+		            SUM(J.CG_WGT) AS CG_WGT,
+		            SUM(J.PKG_QTY) AS PKG_QTY
+		    FROM    TMT_JOB J
+		            INNER JOIN TMT_BL B ON J.VSL_CALL_ID = B.VSL_CALL_ID AND J.CG_NO = B.BL_NO
+		    
+		    WHERE   J.VSL_CALL_ID = #{vslCallId}
+		            AND J.JOB_TP_CD = 'DS'
+		            AND J.JOB_PURP_CD IN ('VG')
+		    GROUP BY    J.VSL_CALL_ID,
+		                B.CG_TP_CD,
+		                B.DELV_TP_CD,
+		                B.CMDT_CD,
+		                J.HATCH_NO
+		),
+		
+		WG_INFO AS
+		(
+		    SELECT  J.VSL_CALL_ID,
+		            B.CG_TP_CD,
+		            B.DELV_TP_CD,
+		            F_CM_001 ('MT', 'DELVTP', B.DELV_TP_CD) AS DELV_TP_NM,
+		            B.CMDT_CD,
+		            F_GET_CMDT_DESC (B.CMDT_CD) AS CMDT_DESC,
+		            J.HATCH_NO,
+		            SUM(J.CG_WGT) AS CG_WGT,
+		            SUM(J.PKG_QTY) AS PKG_QTY
+		    FROM    TMT_JOB J
+		            INNER JOIN TMT_BL B ON J.VSL_CALL_ID = B.VSL_CALL_ID AND J.CG_NO = B.BL_NO
+		    
+		    WHERE   J.VSL_CALL_ID = #{vslCallId}
+		            AND J.JOB_TP_CD = 'LO'
+		            AND J.JOB_PURP_CD IN ('WG')
+		    GROUP BY    J.VSL_CALL_ID,
+		                B.CG_TP_CD,
+		                B.DELV_TP_CD,
+		                B.CMDT_CD,
+		                J.HATCH_NO
+		),
+		
+		IO_INFO AS
+		(
+		    SELECT  J.VSL_CALL_ID,
+		            B.CG_TP_CD,
+		            B.DELV_TP_CD,
+		            F_CM_001 ('MT', 'DELVTP', B.DELV_TP_CD) AS DELV_TP_NM,
+		            B.CMDT_CD,
+		            F_GET_CMDT_DESC (B.CMDT_CD) AS CMDT_DESC,
+		            J.HATCH_NO,
+		            SUM(J.CG_WGT) AS CG_WGT,
+		            SUM(J.PKG_QTY) AS PKG_QTY
+		    FROM    TMT_JOB J
+		            INNER JOIN TMT_BL B ON J.VSL_CALL_ID = B.VSL_CALL_ID AND J.CG_NO = B.BL_NO
+		    
+		    WHERE   J.VSL_CALL_ID = #{vslCallId}
+		            AND J.JOB_TP_CD = 'GO'
+		            AND J.JOB_PURP_CD IN ('IO')
+		    GROUP BY    J.VSL_CALL_ID,
+		                B.CG_TP_CD,
+		                B.DELV_TP_CD,
+		                B.CMDT_CD,
+		                J.HATCH_NO
+		),
+		
+		DOCUMENT_INFO AS
+		(
+		    SELECT  D.VSL_CALL_ID,
+		            B.CG_TP_CD,
+		            F_CM_001 ('MT', 'CGTP', B.CG_TP_CD) AS CG_TP_NM,
+		            B.DELV_TP_CD,
+		            F_CM_001 ('MT', 'DELVTP', B.DELV_TP_CD) AS DELV_TP_NM,
+		            B.CMDT_CD,
+		            F_GET_CMDT_DESC (B.CMDT_CD) AS CMDT_DESC,
+		            D.HATCH_NO,
+		            SUM(D.CG_WGT) AS CG_WGT,
+		            SUM(D.PKG_QTY) AS PKG_QTY,
+		            LISTAGG(B.BL_NO, ', ') WITHIN GROUP (ORDER BY D.VSL_CALL_ID, B.CMDT_CD, D.HATCH_NO) AS BL_NO
+		    FROM    TMT_BL_DTL D 
+		            INNER JOIN TMT_BL B ON D.VSL_CALL_ID = B.VSL_CALL_ID AND D.BL_NO = B.BL_NO
+		            LEFT OUTER JOIN TMT_DO O ON D.VSL_CALL_ID = O.VSL_CALL_ID AND D.BL_NO = O.BL_NO
+		    
+		    WHERE   D.VSL_CALL_ID = #{vslCallId}
+		            AND B.STAT_CD = 'AP'
+		            AND D.HATCH_NO IS NOT NULL
+		    GROUP BY    D.VSL_CALL_ID,
+		                B.CG_TP_CD,
+		                B.DELV_TP_CD,
+		                B.CMDT_CD,
+		                D.HATCH_NO 
+		
+		)
+		
+		SELECT  DOC.VSL_CALL_ID,
+		        DOC.CG_TP_CD,
+		        DOC.CG_TP_NM,
+		        DOC.DELV_TP_CD,
+		        DOC.DELV_TP_NM,
+		        DOC.CMDT_CD,
+		        NVL(DOC.CMDT_DESC, DOC.CMDT_CD) AS CMDT_DESC,
+		        DOC.HATCH_NO,
+		        
+		        NVL(DOC.CG_WGT, 0) - (NVL(VG.CG_WGT, 0) + NVL(WG.CG_WGT, 0)) AS TOBE_RECV_WGT,
+		        NVL(DOC.PKG_QTY, 0) - (NVL(VG.PKG_QTY, 0) + NVL(WG.PKG_QTY, 0)) AS TOBE_RECV_QTY,
+		        
+		        NVL(VG.CG_WGT, 0) + NVL(WG.CG_WGT, 0) AS TOTAL_WGT,
+		        NVL(VG.PKG_QTY, 0) + NVL(WG.PKG_QTY, 0) AS TOTAL_QTY,
+		        NVL(IO.CG_WGT, 0) AS ACT_WGT,
+		        NVL(IO.PKG_QTY, 0) AS ACT_QTY,
+		        
+		        (NVL(VG.CG_WGT, 0) + NVL(WG.CG_WGT, 0)) - NVL(IO.CG_WGT, 0) AS BAL_WGT,
+		        (NVL(VG.PKG_QTY, 0) + NVL(WG.PKG_QTY, 0)) - NVL(IO.PKG_QTY, 0) AS BAL_QTY,
+		        
+		        CASE
+		            WHEN NVL(VG.PKG_QTY, 0) != 0 OR NVL(WG.PKG_QTY, 0) != 0
+		                THEN ROUND((NVL(IO.PKG_QTY, 0)/( NVL(VG.PKG_QTY, 0) + NVL(WG.PKG_QTY, 0))), 3)
+		            
+		            WHEN NVL(VG.CG_WGT, 0) > 0 OR NVL(WG.CG_WGT, 0) > 0
+		                THEN ROUND((NVL(IO.CG_WGT, 0)/( NVL(VG.CG_WGT, 0) + NVL(WG.CG_WGT, 0))), 3)
+		            ELSE 0
+		        END AS PERCENTAGE,
+		        CASE
+		            WHEN NVL(VG.PKG_QTY, 0) != 0 OR NVL(WG.PKG_QTY, 0) != 0
+		                THEN TO_CHAR(ROUND((NVL(IO.PKG_QTY, 0)/( NVL(VG.PKG_QTY, 0) + NVL(WG.PKG_QTY, 0))), 3) *100, 'fm990D000') || '%'
+		            
+		            WHEN NVL(VG.CG_WGT, 0) > 0 OR NVL(WG.CG_WGT, 0) > 0
+		                THEN TO_CHAR(ROUND((NVL(IO.CG_WGT, 0)/( NVL(VG.CG_WGT, 0) + NVL(WG.CG_WGT, 0))), 3) *100, 'fm990D000') || '%'
+		            ELSE TO_CHAR(0 *100, 'fm990D000') || '%'
+		        END AS PERCENTAGE_STR
+		        
+		FROM    DOCUMENT_INFO DOC
+		        INNER JOIN DISCHARGED_INFO J
+		            ON J.VSL_CALL_ID = DOC.VSL_CALL_ID
+		                AND J.CMDT_CD = DOC.CMDT_CD
+		                AND J.HATCH_NO = DOC.HATCH_NO
+		        LEFT OUTER JOIN VG_INFO VG
+		            ON  DOC.VSL_CALL_ID = VG.VSL_CALL_ID
+		                AND DOC.CMDT_CD = VG.CMDT_CD
+		        LEFT OUTER JOIN WG_INFO WG
+		            ON  DOC.VSL_CALL_ID = WG.VSL_CALL_ID
+		                AND DOC.CMDT_CD = WG.CMDT_CD
+		        LEFT OUTER JOIN IO_INFO IO
+		            ON  DOC.VSL_CALL_ID = IO.VSL_CALL_ID
+		                AND DOC.CMDT_CD = IO.CMDT_CD
+		
+		WHERE   DOC.VSL_CALL_ID = #{vslCallId}
+		        AND DOC.HATCH_NO = #{hatchNo}
+    </select>
+    
+    <select id="selectDischargedSummaryByCmdt_V1" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardSummaryData">
+    	/*cargoFlowDashboard.selectDischargedSummaryByCmdt*/
+    	WITH TOTAL_BL_AMT AS 
+		(         
+		    SELECT 
+		            B.CMDT_CD,
+		            SUM(B.CG_WGT) AS CG_WGT,
+		            SUM(B.CG_VOL) AS CG_VOL,
+		            SUM(B.PKG_QTY) AS PKG_QTY,
+		            LISTAGG(B.BL_NO, ', ') WITHIN GROUP (ORDER BY B.CMDT_CD) AS BL_NO
+		    FROM    TMT_BL B
+		    WHERE   VSL_CALL_ID = #{vslCallId}
+		            AND STAT_CD = 'AP'
+		    GROUP BY CMDT_CD
+		),
+		
+		SUM_BY_DELVTP AS
+		(
+		    SELECT 
+		            B.CMDT_CD,
+		            SUM(D.D_MT) AS D_MT,
+		            SUM(D.D_M3) AS D_M3,
+		            SUM(D.D_QTY) AS D_QTY,
+		            SUM(D.I_MT) AS I_MT,
+		            SUM(D.I_M3) AS I_M3,
+		            SUM(D.I_QTY) AS I_QTY,
+		            LISTAGG(B.BL_NO, ', ') WITHIN GROUP (ORDER BY B.CMDT_CD) AS BL_NO
+		    FROM    TMT_BL B
+		            INNER JOIN TMT_DO D ON B.VSL_CALL_ID = D.VSL_CALL_ID AND B.BL_NO = D.BL_NO
+		    WHERE   B.VSL_CALL_ID = #{vslCallId}
+		            AND B.STAT_CD = 'AP'
+		    GROUP BY B.CMDT_CD
+		)
+		
+		SELECT  T.CMDT_CD,
+		        NVL(F_GET_CMDT_DESC (T.CMDT_CD), T.CMDT_CD)  AS CMDT_DESC,
+		        T.CG_WGT AS TOTAL_WGT,
+		        T.CG_VOL AS TOTAL_M3,
+		        T.PKG_QTY AS TOTAL_QTY,
+		        NVL(D.D_MT, 0) AS D_MT,
+		        NVL(D.D_M3, 0) AS D_M3,
+		        NVL(D.D_QTY, 0) AS D_QTY,
+		        NVL(D.I_MT, 0) AS I_MT,
+		        NVL(D.I_M3, 0) AS I_M3,
+		        NVL(D.I_QTY, 0) AS I_QTY,
+        		'T: ' || T.PKG_QTY || '/ ' || T.CG_WGT || '/ ' || T.CG_VOL as TOTAL_AMT,
+        		'D: ' || NVL(D.D_QTY, 0) || '/ ' || NVL(D.D_MT, 0) || '/ ' || NVL(D.D_M3, 0) as DIRECT_AMT,
+        		'I: ' || NVL(D.I_QTY, 0) || '/ ' || NVL(D.I_MT, 0) || '/ ' || NVL(D.I_M3, 0) as INDIRECT_AMT
+		         
+		FROM    TOTAL_BL_AMT T 
+		        LEFT OUTER JOIN SUM_BY_DELVTP D ON T.CMDT_CD = D.CMDT_CD
+		ORDER BY T.CMDT_CD
+    </select>
+    
+    <select id="selectDischargedSummaryByCmdt" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardSummaryData">
+    	WITH DOC_AMT_BY_CMDT AS
+        (
+            SELECT 
+                    B.CG_TP_CD,
+                    B.CMDT_CD,
+                    SUM(D.D_MT) AS D_MT,
+                    SUM(D.D_M3) AS D_M3,
+                    SUM(D.D_QTY) AS D_QTY,
+                    SUM(D.I_MT) AS I_MT,
+                    SUM(D.I_M3) AS I_M3,
+                    SUM(D.I_QTY) AS I_QTY,
+                    
+                    SUM(D.I_LR_MT) + SUM(D.D_LR_MT) as LR_MT,
+                    SUM(D.I_LR_MT) AS I_LR_MT,
+                    SUM(D.I_LR_QTY) AS I_LR_QTY,
+                    
+                    SUM(D.D_LR_MT) AS D_LR_MT,
+                    SUM(D.D_LR_QTY) AS D_LR_QTY,
+                    
+                    SUM(D.D_VSL_MT) AS D_VSL_MT,
+                    SUM(D.D_VSL_QTY) AS D_VSL_QTY,
+                    
+                    SUM(B.CG_WGT) AS CG_WGT,
+                    SUM(B.CG_VOL) AS CG_VOL,
+                    SUM(B.PKG_QTY) AS PKG_QTY,
+                    
+                    LISTAGG(B.BL_NO, ', ') WITHIN GROUP (ORDER BY B.CMDT_CD) AS BL_NO
+            FROM    TMT_BL B
+                    LEFT OUTER JOIN TMT_DO D ON B.VSL_CALL_ID = D.VSL_CALL_ID AND B.BL_NO = D.BL_NO
+            WHERE   B.VSL_CALL_ID = #{vslCallId}
+                    AND B.STAT_CD = 'AP'
+                    
+            GROUP BY B.CG_TP_CD, B.CMDT_CD
+        ),
+        
+        DISCHARGED_INFO AS
+        (
+            SELECT  J.VSL_CALL_ID,
+                    B.CG_TP_CD,
+                    B.CMDT_CD,
+                    F_GET_CMDT_DESC (B.CMDT_CD) AS CMDT_DESC,
+
+                    SUM(case when J.JOB_PURP_CD IN ('VG') then J.CG_WGT else 0 end) AS D_LR_MT,
+                    SUM(case when J.JOB_PURP_CD IN ('VG') then J.PKG_QTY else 0 end) AS D_LR_QTY,
+                    
+                    SUM(case when J.JOB_PURP_CD IN ('VB', 'AB') then J.CG_WGT else 0 end) AS D_VSL_MT,
+                    SUM(case when J.JOB_PURP_CD IN ('VB', 'AB') then J.PKG_QTY else 0 end) AS D_VSL_QTY,
+                    
+                    SUM(case when J.JOB_PURP_CD IN ('AW') then J.CG_WGT else 0 end) AS I_LR_MT,
+                    SUM(case when J.JOB_PURP_CD IN ('AW') then J.PKG_QTY else 0 end) AS I_LR_QTY,
+                    
+                    SUM(case when J.JOB_PURP_CD IN ('VG', 'VB', 'VA') then J.CG_WGT else 0 end) AS CG_WGT,
+                    SUM(case when J.JOB_PURP_CD IN ('VG', 'VB', 'VA') then J.PKG_QTY else 0 end) AS PKG_QTY
+
+            FROM    TMT_JOB J
+                    INNER JOIN TMT_BL B ON J.VSL_CALL_ID = B.VSL_CALL_ID AND J.CG_NO = B.BL_NO
+            
+            WHERE   J.VSL_CALL_ID = #{vslCallId}
+                    AND J.JOB_TP_CD = 'DS'
+            GROUP BY    J.VSL_CALL_ID,
+                        B.CG_TP_CD,
+                        B.CMDT_CD
+        
+        )
+        
+        SELECT  DOC.CMDT_CD,
+                DOC.CG_TP_CD,
+                NVL(F_GET_CMDT_DESC (DOC.CMDT_CD), DOC.CMDT_CD)  AS CMDT_DESC,
+                F_CM_001 ('MT', 'CGTP', DOC.CG_TP_CD)  AS CG_TP_NM,
+                DOC.CG_WGT AS TOTAL_WGT,
+                DOC.CG_VOL AS TOTAL_M3,
+                DOC.PKG_QTY AS TOTAL_QTY,
+                CASE
+                    WHEN DOC.CG_TP_CD = 'BBK' AND NVL(DOC.PKG_QTY, 0) > 0
+                        THEN ROUND(( NVL(OPE.PKG_QTY, 0)/NVL(DOC.PKG_QTY, 0)), 3)
+                    
+                    ELSE  ROUND(( NVL(OPE.CG_WGT, 0)/NVL(DOC.CG_WGT, 0)), 3)
+                END AS PERCENTAGE,
+                CASE
+                    WHEN DOC.CG_TP_CD = 'BBK' AND NVL(DOC.PKG_QTY, 0) > 0
+                        THEN TO_CHAR((ROUND(( NVL(OPE.PKG_QTY, 0)/NVL(DOC.PKG_QTY, 0)), 3) *100), 'fm990D000') || '%'
+                    
+                    ELSE TO_CHAR((ROUND(( NVL(OPE.CG_WGT, 0)/NVL(DOC.CG_WGT, 0)), 3) *100), 'fm990D000') || '%'
+                END AS PERCENTAGE_STR,
+                
+                CASE    WHEN DOC.CG_TP_CD = 'BBK'
+                        THEN 'Total: ' || TO_CHAR(NVL(OPE.PKG_QTY, 0), 'fm99999990D000')  || '/ ' || TO_CHAR(NVL(DOC.PKG_QTY, 0), 'fm99999990D000') || '  (Qty)'
+                        ELSE 'Total: ' || TO_CHAR(NVL(OPE.CG_WGT, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.CG_WGT, 0), 'fm99999990D000') || '  (MT)'
+                END as TOTAL_AMT,
+                
+                CASE    WHEN DOC.CG_TP_CD = 'BBK'
+                        THEN 'To Warehouse: ' || TO_CHAR(NVL(OPE.I_LR_QTY, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.I_LR_QTY, 0), 'fm99999990D000') || '  (Qty)'
+                        ELSE 'To Warehouse: ' || TO_CHAR(NVL(OPE.I_LR_MT, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.I_LR_MT, 0), 'fm99999990D000') || '  (MT)'
+                END as INDIRECT_AMT,
+                
+                CASE    WHEN DOC.CG_TP_CD = 'BBK'
+                        THEN 'Direct by Truck: ' || TO_CHAR(NVL(OPE.D_LR_QTY, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.D_LR_QTY, 0), 'fm99999990D000') || '  (Qty)'
+                        ELSE 'Direct by Truck: ' || TO_CHAR(NVL(OPE.D_LR_MT, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.D_LR_MT, 0), 'fm99999990D000') || '  (MT)'
+                END as DIRECT_AMT,
+                    
+                CASE    WHEN DOC.CG_TP_CD = 'BBK'
+                        THEN 'Direct by Barge: ' || TO_CHAR(NVL(OPE.D_VSL_QTY, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.D_VSL_QTY, 0), 'fm99999990D000') || '  (Qty)'
+                        ELSE 'Direct by Barge: ' || TO_CHAR(NVL(OPE.D_VSL_MT, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.D_VSL_MT, 0), 'fm99999990D000') || '  (MT)'
+                END as DIRECT_BARGE_AMT
+                
+                
+        FROM    DOC_AMT_BY_CMDT DOC
+                LEFT OUTER JOIN DISCHARGED_INFO OPE ON DOC.CMDT_CD = OPE.CMDT_CD
+        
+        ORDER BY DOC.CMDT_CD
+    </select>
+    
+    <select id="selectDischargedSummaryByVsl" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardSummaryData">
+		WITH DOC_AMT_BY_VSL AS
+        (
+            SELECT 
+                    SUM(D.D_MT) AS D_MT,
+                    SUM(D.D_M3) AS D_M3,
+                    SUM(D.D_QTY) AS D_QTY,
+                    SUM(D.I_MT) AS I_MT,
+                    SUM(D.I_M3) AS I_M3,
+                    SUM(D.I_QTY) AS I_QTY,
+                    
+                    SUM(D.I_LR_MT) + SUM(D.D_LR_MT) as LR_MT,
+                    SUM(D.I_LR_MT) AS I_LR_MT,
+                    SUM(D.I_LR_QTY) AS I_LR_QTY,
+                    SUM(D.I_LR_M3) AS I_LR_M3,
+                    
+                    SUM(D.D_LR_MT) AS D_LR_MT,
+                    SUM(D.D_LR_QTY) AS D_LR_QTY,
+                    SUM(D.D_LR_M3) AS D_LR_M3,
+                    
+                    SUM(D.D_VSL_MT) AS D_VSL_MT,
+                    SUM(D.D_VSL_QTY) AS D_VSL_QTY,
+                    SUM(D.D_VSL_M3) AS D_VSL_M3,
+                    
+                    SUM(B.CG_WGT) AS CG_WGT,
+                    SUM(B.CG_VOL) AS CG_VOL,
+                    SUM(B.PKG_QTY) AS PKG_QTY,
+                    
+                    LISTAGG(B.BL_NO, ', ') WITHIN GROUP (ORDER BY B.CMDT_CD) AS BL_NO
+            FROM    TMT_BL B
+                    LEFT OUTER JOIN TMT_DO D ON B.VSL_CALL_ID = D.VSL_CALL_ID AND B.BL_NO = D.BL_NO
+            WHERE   B.VSL_CALL_ID = #{vslCallId}
+                    AND B.STAT_CD = 'AP'
+        ),
+        
+        DISCHARGED_INFO_BY_VSL AS
+        (
+            SELECT  
+
+                    SUM(case when J.JOB_PURP_CD IN ('VG') then J.CG_WGT else 0 end) AS D_LR_MT,
+                    SUM(case when J.JOB_PURP_CD IN ('VG') then J.PKG_QTY else 0 end) AS D_LR_QTY,
+                    SUM(case when J.JOB_PURP_CD IN ('VG') then J.CG_VOL else 0 end) AS D_LR_M3,
+                    
+                    SUM(case when J.JOB_PURP_CD IN ('VB', 'AB') then J.CG_WGT else 0 end) AS D_VSL_MT,
+                    SUM(case when J.JOB_PURP_CD IN ('VB', 'AB') then J.PKG_QTY else 0 end) AS D_VSL_QTY,
+                    SUM(case when J.JOB_PURP_CD IN ('VB', 'AB') then J.CG_VOL else 0 end) AS D_VSL_M3,
+                    
+                    SUM(case when J.JOB_PURP_CD IN ('AW') then J.CG_WGT else 0 end) AS I_LR_MT,
+                    SUM(case when J.JOB_PURP_CD IN ('AW') then J.PKG_QTY else 0 end) AS I_LR_QTY,
+                    SUM(case when J.JOB_PURP_CD IN ('AW') then J.CG_VOL else 0 end) AS I_LR_M3,
+                    
+                    SUM(case when J.JOB_PURP_CD IN ('VG', 'VB', 'VA') then J.CG_WGT else 0 end) AS CG_WGT,
+                    SUM(case when J.JOB_PURP_CD IN ('VG', 'VB', 'VA') then J.PKG_QTY else 0 end) AS PKG_QTY,
+                    SUM(case when J.JOB_PURP_CD IN ('VG', 'VB', 'VA') then J.CG_VOL else 0 end) AS CG_VOL
+
+            FROM    TMT_JOB J
+                    INNER JOIN TMT_BL B ON J.VSL_CALL_ID = B.VSL_CALL_ID AND J.CG_NO = B.BL_NO
+            
+            WHERE   J.VSL_CALL_ID = #{vslCallId}
+                    AND J.JOB_TP_CD = 'DS'
+        )
+        
+        SELECT  
+                DOC.CG_WGT AS TOTAL_WGT,
+                DOC.CG_VOL AS TOTAL_M3,
+                DOC.PKG_QTY AS TOTAL_QTY,
+                
+				CASE
+					<choose>
+	                	<when test="unitTp == 'QTY'">
+	                		WHEN NVL(DOC.PKG_QTY, 0) > 0
+				        	THEN ROUND(( NVL(OPE.PKG_QTY, 0)/NVL(DOC.PKG_QTY, 0)), 3)
+	                	</when>
+	                	<when test="unitTp == 'M3'">
+	                		WHEN NVL(DOC.CG_VOL, 0) > 0
+				        	THEN ROUND(( NVL(OPE.CG_VOL, 0)/NVL(DOC.CG_VOL, 0)), 3)
+	                	</when>
+	                	<otherwise>
+	                		WHEN NVL(DOC.CG_WGT, 0) > 0
+				        	THEN ROUND(( NVL(OPE.CG_WGT, 0)/NVL(DOC.CG_WGT, 0)), 3)
+	                	</otherwise>
+                	</choose>
+				    ELSE  0
+				END AS PERCENTAGE,
+				
+				'Total: ' ||
+					<choose>
+	                	<when test="unitTp == 'QTY'">
+	                		TO_CHAR (NVL(OPE.PKG_QTY, 0), 'fm99999990D000') || '/ ' || TO_CHAR (NVL(DOC.PKG_QTY, 0), 'fm99999990D000') || '  (QTY)          '
+						    || CASE
+						        WHEN NVL(DOC.PKG_QTY, 0) > 0
+						            THEN TO_CHAR (ROUND(( NVL(OPE.PKG_QTY, 0)/NVL(DOC.PKG_QTY, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</when>
+	                	<when test="unitTp == 'M3'">
+	                		TO_CHAR (NVL(OPE.CG_VOL, 0), 'fm99999990D000') || '/ ' || TO_CHAR (NVL(DOC.CG_VOL, 0), 'fm99999990D000') || '  (M3)          '
+						    || CASE
+						        WHEN NVL(DOC.CG_VOL, 0) > 0
+						            THEN TO_CHAR (ROUND(( NVL(OPE.CG_VOL, 0)/NVL(DOC.CG_VOL, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</when>
+	                	<otherwise>
+	                		TO_CHAR (NVL(OPE.CG_WGT, 0), 'fm99999990D000') || '/ ' || TO_CHAR (NVL(DOC.CG_WGT, 0), 'fm99999990D000') || '  (MT)          '
+						    || CASE
+						        WHEN NVL(DOC.CG_WGT, 0) > 0
+						            THEN TO_CHAR (ROUND(( NVL(OPE.CG_WGT, 0)/NVL(DOC.CG_WGT, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</otherwise>
+	               	</choose>
+				AS TOTAL_AMT,
+				
+				CASE
+					<choose>
+	                	<when test="unitTp == 'QTY'">
+	                		WHEN NVL(DOC.I_LR_QTY, 0) > 0
+				        	THEN ROUND(( NVL(OPE.I_LR_QTY, 0)/NVL(DOC.I_LR_QTY, 0)), 3)
+	                	</when>
+	                	<when test="unitTp == 'M3'">
+	                		WHEN NVL(DOC.I_LR_M3, 0) > 0
+				        	THEN ROUND(( NVL(OPE.I_LR_M3, 0)/NVL(DOC.I_LR_M3, 0)), 3)
+	                	</when>
+	                	<otherwise>
+	                		WHEN NVL(DOC.I_LR_MT, 0) > 0
+				        	THEN ROUND(( NVL(OPE.I_LR_MT, 0)/NVL(DOC.I_LR_MT, 0)), 3)
+	                	</otherwise>
+                	</choose>
+				    ELSE  0
+				END AS WH_PERCENTAGE,
+				
+				'To Warehouse: ' || 
+					<choose>
+	                	<when test="unitTp == 'QTY'">
+	                		TO_CHAR (NVL(OPE.I_LR_QTY, 0), 'fm99999990D000') || '/ ' || TO_CHAR (NVL(DOC.I_LR_QTY, 0), 'fm99999990D000') || '  (QTY)          '
+						    || CASE
+						        WHEN NVL(DOC.I_LR_QTY, 0) > 0
+						            THEN TO_CHAR (ROUND(( NVL(OPE.I_LR_QTY, 0)/NVL(DOC.I_LR_QTY, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</when>
+	                	<when test="unitTp == 'M3'">
+	                		TO_CHAR (NVL(OPE.I_LR_M3, 0), 'fm99999990D000') || '/ ' || TO_CHAR (NVL(DOC.I_LR_M3, 0), 'fm99999990D000') || '  (M3)          '
+						    || CASE
+						        WHEN NVL(DOC.I_LR_M3, 0) > 0
+						            THEN TO_CHAR (ROUND(( NVL(OPE.I_LR_M3, 0)/NVL(DOC.I_LR_M3, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</when>
+	                	<otherwise>
+	                		TO_CHAR (NVL(OPE.I_LR_MT, 0), 'fm99999990D000') || '/ ' || TO_CHAR (NVL(DOC.I_LR_MT, 0), 'fm99999990D000') || '  (MT)          '
+						    || CASE
+						        WHEN NVL(DOC.I_LR_MT, 0) > 0
+						            THEN TO_CHAR (ROUND(( NVL(OPE.I_LR_MT, 0)/NVL(DOC.I_LR_MT, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</otherwise>
+	               	</choose>
+				AS INDIRECT_AMT,
+				    
+				CASE
+					<choose>
+	                	<when test="unitTp == 'QTY'">
+	                		WHEN NVL(DOC.D_LR_QTY, 0) > 0
+				        	THEN ROUND(( NVL(OPE.D_LR_QTY, 0)/NVL(DOC.D_LR_QTY, 0)), 3)
+	                	</when>
+	                	<when test="unitTp == 'M3'">
+	                		WHEN NVL(DOC.D_LR_M3, 0) > 0
+				        	THEN ROUND(( NVL(OPE.D_LR_M3, 0)/NVL(DOC.D_LR_M3, 0)), 3)
+	                	</when>
+	                	<otherwise>
+	                		WHEN NVL(DOC.D_LR_MT, 0) > 0
+				        	THEN ROUND(( NVL(OPE.D_LR_MT, 0)/NVL(DOC.D_LR_MT, 0)), 3)
+	                	</otherwise>
+                	</choose>
+				    ELSE  0
+				END AS D_LR_PERCENTAGE,
+				
+				'Direct by Truck: ' || 
+					<choose>
+	                	<when test="unitTp == 'QTY'">
+	                		TO_CHAR (NVL(OPE.D_LR_QTY, 0), 'fm99999990D000') || '/ ' || TO_CHAR (NVL(DOC.D_LR_QTY, 0), 'fm99999990D000') || '  (QTY)          '
+						    || CASE
+						        WHEN NVL(DOC.D_LR_QTY, 0) > 0
+						            THEN TO_CHAR (ROUND(( NVL(OPE.D_LR_QTY, 0)/NVL(DOC.D_LR_QTY, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</when>
+	                	<when test="unitTp == 'M3'">
+	                		TO_CHAR (NVL(OPE.D_LR_M3, 0), 'fm99999990D000') || '/ ' || TO_CHAR (NVL(DOC.D_LR_M3, 0), 'fm99999990D000') || '  (M3)          '
+						    || CASE
+						        WHEN NVL(DOC.D_LR_M3, 0) > 0
+						            THEN TO_CHAR (ROUND(( NVL(OPE.D_LR_M3, 0)/NVL(DOC.D_LR_M3, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</when>
+	                	<otherwise>
+	                		TO_CHAR (NVL(OPE.D_LR_MT, 0), 'fm99999990D000') || '/ ' || TO_CHAR (NVL(DOC.D_LR_MT, 0), 'fm99999990D000') || '  (MT)          '
+						    || CASE
+						        WHEN NVL(DOC.D_LR_MT, 0) > 0
+						            THEN TO_CHAR (ROUND(( NVL(OPE.D_LR_MT, 0)/NVL(DOC.D_LR_MT, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</otherwise>
+	               	</choose>	
+				AS DIRECT_AMT,
+				
+				CASE
+				    <choose>
+	                	<when test="unitTp == 'QTY'">
+	                		WHEN NVL(DOC.D_VSL_QTY, 0) > 0
+				        	THEN ROUND(( NVL(OPE.D_VSL_QTY, 0)/NVL(DOC.D_VSL_QTY, 0)), 3)
+	                	</when>
+	                	<when test="unitTp == 'M3'">
+	                		WHEN NVL(DOC.D_VSL_M3, 0) > 0
+				        	THEN ROUND(( NVL(OPE.D_VSL_M3, 0)/NVL(DOC.D_VSL_M3, 0)), 3)
+	                	</when>
+	                	<otherwise>
+	                		WHEN NVL(DOC.D_VSL_MT, 0) > 0
+				        	THEN ROUND(( NVL(OPE.D_VSL_MT, 0)/NVL(DOC.D_VSL_MT, 0)), 3)
+	                	</otherwise>
+                	</choose>
+				    
+				    ELSE  0
+				END AS D_VSL_PERCENTAGE,
+				    
+				'Direct by Barge: ' || 
+					<choose>
+	                	<when test="unitTp == 'QTY'">
+	                		TO_CHAR (NVL(OPE.D_VSL_QTY, 0), 'fm99999990D000') || '/ ' || TO_CHAR (NVL(DOC.D_VSL_QTY, 0), 'fm99999990D000') || '  (QTY)          '
+						    || CASE
+						        WHEN NVL(DOC.D_VSL_QTY, 0) > 0
+						            THEN TO_CHAR (ROUND(( NVL(OPE.D_VSL_QTY, 0)/NVL(DOC.D_VSL_QTY, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</when>
+	                	<when test="unitTp == 'M3'">
+	                		TO_CHAR (NVL(OPE.D_VSL_M3, 0), 'fm99999990D000') || '/ ' || TO_CHAR (NVL(DOC.D_VSL_M3, 0), 'fm99999990D000') || '  (M3)          '
+						    || CASE
+						        WHEN NVL(DOC.D_VSL_M3, 0) > 0
+						            THEN TO_CHAR (ROUND(( NVL(OPE.D_VSL_M3, 0)/NVL(DOC.D_VSL_M3, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</when>
+	                	<otherwise>
+	                		TO_CHAR (NVL(OPE.D_VSL_MT, 0), 'fm99999990D000') || '/ ' || TO_CHAR (NVL(DOC.D_VSL_MT, 0), 'fm99999990D000') || '  (MT)          '
+						    || CASE
+						        WHEN NVL(DOC.D_VSL_MT, 0) > 0
+						            THEN TO_CHAR (ROUND(( NVL(OPE.D_VSL_MT, 0)/NVL(DOC.D_VSL_MT, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</otherwise>
+	               	</choose>	
+	            AS DIRECT_BARGE_AMT
+
+   
+        FROM    DOC_AMT_BY_VSL DOC
+                LEFT OUTER JOIN DISCHARGED_INFO_BY_VSL OPE ON 1=1
+    </select>
+    
+    <!-- Loading -->
+    <select id="selectLoadedSummaryByCmdt_v1" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardSummaryData">
+    	/*cargoFlowDashboard.selectLoadedSummaryByCmdt*/
+    	WITH TOTAL_SN_AMT AS 
+		(         
+		    SELECT 
+		            CMDT_CD,
+		            SUM(CG_WGT) AS CG_WGT,
+		            SUM(CG_VOL) AS CG_VOL,
+		            SUM(PKG_QTY) AS PKG_QTY,
+		            LISTAGG(SHIPG_NOTE_NO, ', ') WITHIN GROUP (ORDER BY CMDT_CD) AS SHIPG_NOTE_NO
+		    FROM    TMT_SHIPG_NOTE
+		    WHERE   VSL_CALL_ID = #{vslCallId}
+		            AND STAT_CD = 'AP'
+		    GROUP BY CMDT_CD
+		),
+		
+		SUM_BY_DELVTP AS
+		(
+		    SELECT 
+		            CMDT_CD,
+		            CASE WHEN DELV_TP_CD = 'D' THEN SUM(CG_WGT) ELSE 0 END AS D_MT,
+		            CASE WHEN DELV_TP_CD = 'D' THEN SUM(CG_VOL) ELSE 0 END AS D_M3,
+		            CASE WHEN DELV_TP_CD = 'D' THEN SUM(PKG_QTY) ELSE 0 END AS D_QTY,
+		            CASE WHEN DELV_TP_CD = 'I' THEN SUM(CG_WGT) ELSE 0 END AS I_MT,
+		            CASE WHEN DELV_TP_CD = 'I' THEN SUM(CG_VOL) ELSE 0 END AS I_M3,
+		            CASE WHEN DELV_TP_CD = 'I' THEN SUM(PKG_QTY) ELSE 0 END AS I_QTY,
+		            LISTAGG(SHIPG_NOTE_NO, ', ') WITHIN GROUP (ORDER BY CMDT_CD) AS SHIPG_NOTE_NO
+		    FROM    TMT_SHIPG_NOTE
+		    WHERE   VSL_CALL_ID = #{vslCallId}
+		            AND STAT_CD = 'AP'
+		    GROUP BY CMDT_CD, DELV_TP_CD
+		)
+		
+		SELECT  T.CMDT_CD,
+		        NVL(F_GET_CMDT_DESC (T.CMDT_CD), T.CMDT_CD)  AS CMDT_DESC,
+		        T.CG_WGT AS TOTAL_WGT,
+		        T.CG_VOL AS TOTAL_M3,
+		        T.PKG_QTY AS TOTAL_QTY,
+		        NVL(D.D_MT, 0) AS D_MT,
+		        NVL(D.D_M3, 0) AS D_M3,
+		        NVL(D.D_QTY, 0) AS D_QTY,
+		        NVL(D.I_MT, 0) AS I_MT,
+		        NVL(D.I_M3, 0) AS I_M3,
+		        NVL(D.I_QTY, 0) AS I_QTY,
+		        'T: ' || T.PKG_QTY || '/ ' || T.CG_WGT || '/ ' || T.CG_VOL as TOTAL_AMT,
+		        'D: ' || NVL(D.D_QTY, 0) || '/ ' || NVL(D.D_MT, 0) || '/ ' || NVL(D.D_M3, 0) as DIRECT_AMT,
+		        'I: ' || NVL(D.I_QTY, 0) || '/ ' || NVL(D.I_MT, 0) || '/ ' || NVL(D.I_M3, 0) as INDIRECT_AMT
+		         
+		FROM    TOTAL_SN_AMT T 
+		        LEFT OUTER JOIN SUM_BY_DELVTP D ON T.CMDT_CD = D.CMDT_CD
+		ORDER BY T.CMDT_CD
+    </select>
+    
+    <select id="selectLoadedSummaryByCmdt" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardSummaryData">
+    	WITH DOC_AMT_BY_CMDT AS
+        (
+            SELECT 
+                    S.CG_TP_CD,
+                    S.CMDT_CD,
+
+                    SUM(D.I_MT) + SUM(D.D_LR_MT) as LR_MT,
+                    SUM(D.I_MT) AS I_LR_MT,
+                    SUM(D.I_QTY) AS I_LR_QTY,
+                    
+                    SUM(D.D_LR_MT) AS D_LR_MT,
+                    SUM(D.D_LR_QTY) AS D_LR_QTY,
+                    
+                    SUM(D.D_VSL_MT) AS D_VSL_MT,
+                    SUM(D.D_VSL_QTY) AS D_VSL_QTY,
+                    
+                    SUM(S.CG_WGT) AS CG_WGT,
+                    SUM(S.CG_VOL) AS CG_VOL,
+                    SUM(S.PKG_QTY) AS PKG_QTY,
+                    
+                    LISTAGG(S.SHIPG_NOTE_NO, ', ') WITHIN GROUP (ORDER BY S.CMDT_CD) AS SHIPG_NOTE_NO
+            FROM    TMT_SHIPG_NOTE S
+                    INNER JOIN TMT_SHIPG_NOTE_AMT D ON S.VSL_CALL_ID = D.VSL_CALL_ID AND S.SHIPG_NOTE_NO = D.SHIPG_NOTE_NO
+            
+            WHERE   S.VSL_CALL_ID = #{vslCallId}
+                    AND S.STAT_CD = 'AP'
+                    
+            GROUP BY S.CG_TP_CD, S.CMDT_CD
+        ),
+        
+        LOADED_INFO AS
+        (
+            SELECT  J.VSL_CALL_ID,
+                    S.CG_TP_CD,
+                    S.CMDT_CD,
+                    F_GET_CMDT_DESC (S.CMDT_CD) AS CMDT_DESC,
+
+                    SUM(case when J.JOB_PURP_CD IN ('GV') then J.CG_WGT else 0 end) AS D_LR_MT,
+                    SUM(case when J.JOB_PURP_CD IN ('GV') then J.PKG_QTY else 0 end) AS D_LR_QTY,
+                    
+                    SUM(case when J.JOB_PURP_CD IN ('BV') then J.CG_WGT else 0 end) AS D_VSL_MT,
+                    SUM(case when J.JOB_PURP_CD IN ('BV') then J.PKG_QTY else 0 end) AS D_VSL_QTY,
+                    
+                    SUM(case when J.JOB_PURP_CD IN ('WA') then J.CG_WGT else 0 end) AS I_LR_MT,
+                    SUM(case when J.JOB_PURP_CD IN ('WA') then J.PKG_QTY else 0 end) AS I_LR_QTY,
+                    
+                    SUM(case when J.JOB_PURP_CD IN ('GV', 'BV', 'AV') then J.CG_WGT else 0 end) AS CG_WGT,
+                    SUM(case when J.JOB_PURP_CD IN ('GV', 'BV', 'AV') then J.PKG_QTY else 0 end) AS PKG_QTY
+
+            FROM    TMT_JOB J
+                    INNER JOIN TMT_GR G ON J.VSL_CALL_ID = G.VSL_CALL_ID AND J.CG_NO = G.GR_NO
+                    INNER JOIN TMT_SHIPG_NOTE S ON G.VSL_CALL_ID = S.VSL_CALL_ID AND G.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO
+            
+            WHERE   J.VSL_CALL_ID = #{vslCallId}
+                    AND J.JOB_TP_CD = 'LD'
+            GROUP BY    J.VSL_CALL_ID,
+                        S.CG_TP_CD,
+                        S.CMDT_CD
+        
+        )
+        
+        SELECT  DOC.CMDT_CD,
+                DOC.CG_TP_CD,
+                NVL(F_GET_CMDT_DESC (DOC.CMDT_CD), DOC.CMDT_CD)  AS CMDT_DESC,
+                F_CM_001 ('MT', 'CGTP', DOC.CG_TP_CD)  AS CG_TP_NM,
+                DOC.CG_WGT AS TOTAL_WGT,
+                DOC.CG_VOL AS TOTAL_M3,
+                DOC.PKG_QTY AS TOTAL_QTY,
+                CASE
+                    WHEN DOC.CG_TP_CD = 'BBK' AND NVL(DOC.PKG_QTY, 0) > 0
+                        THEN ROUND(( NVL(OPE.PKG_QTY, 0)/NVL(DOC.PKG_QTY, 0)), 3)
+                    
+                    ELSE  ROUND(( NVL(OPE.CG_WGT, 0)/NVL(DOC.CG_WGT, 0)), 3)
+                END AS PERCENTAGE,
+                CASE
+                    WHEN DOC.CG_TP_CD = 'BBK' AND NVL(DOC.PKG_QTY, 0) > 0
+                        THEN TO_CHAR(ROUND(( NVL(OPE.PKG_QTY, 0)/NVL(DOC.PKG_QTY, 0)), 3) *100, 'fm990D000') || '%'
+                    
+                    ELSE TO_CHAR(ROUND(( NVL(OPE.CG_WGT, 0)/NVL(DOC.CG_WGT, 0)), 3) *100, 'fm990D000') || '%'
+                END AS PERCENTAGE_STR,
+                
+                CASE    WHEN DOC.CG_TP_CD = 'BBK'
+                        THEN 'Total: ' || TO_CHAR(NVL(OPE.PKG_QTY, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.PKG_QTY, 0), 'fm99999990D000') || '  (Qty)'
+                        ELSE 'Total: ' || TO_CHAR(NVL(OPE.CG_WGT, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.CG_WGT, 0), 'fm99999990D000') || '  (MT)'
+                END as TOTAL_AMT,
+                
+                CASE    WHEN DOC.CG_TP_CD = 'BBK'
+                        THEN 'From Warehouse: ' || TO_CHAR(NVL(OPE.I_LR_QTY, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.I_LR_QTY, 0), 'fm99999990D000') || '  (Qty)'
+                        ELSE 'From Warehouse: ' || TO_CHAR(NVL(OPE.I_LR_MT, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.I_LR_MT, 0), 'fm99999990D000') || '  (MT)'
+                END as INDIRECT_AMT,
+                
+                CASE    WHEN DOC.CG_TP_CD = 'BBK'
+                        THEN 'Direct by Truck: ' || TO_CHAR(NVL(OPE.D_LR_QTY, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.D_LR_QTY, 0), 'fm99999990D000') || '  (Qty)'
+                        ELSE 'Direct by Truck: ' || TO_CHAR(NVL(OPE.D_LR_MT, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.D_LR_MT, 0), 'fm99999990D000') || '  (MT)'
+                END as DIRECT_AMT,
+                    
+                CASE    WHEN DOC.CG_TP_CD = 'BBK'
+                        THEN 'Direct by Barge: ' || TO_CHAR(NVL(OPE.D_VSL_QTY, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.D_VSL_QTY, 0), 'fm99999990D000') || '  (Qty)'
+                        ELSE 'Direct by Barge: ' || TO_CHAR(NVL(OPE.D_VSL_MT, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.D_VSL_MT, 0), 'fm99999990D000') || '  (MT)'
+                END as DIRECT_BARGE_AMT
+                
+                
+        FROM    DOC_AMT_BY_CMDT DOC
+                LEFT OUTER JOIN LOADED_INFO OPE ON DOC.CMDT_CD = OPE.CMDT_CD
+        
+        ORDER BY DOC.CMDT_CD
+    </select>
+    
+    
+    <select id="selectLoadedSummaryByVsl" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardSummaryData">
+    	WITH DOC_AMT_BY_VSL AS
+        (
+            SELECT 
+                    SUM(D.I_MT) + SUM(D.D_LR_MT) as LR_MT,
+                    SUM(D.I_MT) AS I_LR_MT,
+                    SUM(D.I_QTY) AS I_LR_QTY,
+                    SUM(D.I_M3) AS I_LR_M3,
+                    
+                    SUM(D.D_LR_MT) AS D_LR_MT,
+                    SUM(D.D_LR_QTY) AS D_LR_QTY,
+                    SUM(D.D_LR_M3) AS D_LR_M3,
+                    
+                    SUM(D.D_VSL_MT) AS D_VSL_MT,
+                    SUM(D.D_VSL_QTY) AS D_VSL_QTY,
+                    SUM(D.D_VSL_M3) AS D_VSL_M3,
+                    
+                    SUM(S.CG_WGT) AS CG_WGT,
+                    SUM(S.CG_VOL) AS CG_VOL,
+                    SUM(S.PKG_QTY) AS PKG_QTY,
+                    
+                    LISTAGG(S.SHIPG_NOTE_NO, ', ') WITHIN GROUP (ORDER BY S.CMDT_CD) AS SHIPG_NOTE_NO
+            FROM    TMT_SHIPG_NOTE S
+                    INNER JOIN TMT_SHIPG_NOTE_AMT D ON S.VSL_CALL_ID = D.VSL_CALL_ID AND S.SHIPG_NOTE_NO = D.SHIPG_NOTE_NO
+            
+            WHERE   S.VSL_CALL_ID =  #{vslCallId}
+                    AND S.STAT_CD = 'AP'
+        ),
+        
+        LOADED_INFO_BY_VSL AS
+        (
+            SELECT  
+                    SUM(case when J.JOB_PURP_CD IN ('GV') then J.CG_WGT else 0 end) AS D_LR_MT,
+                    SUM(case when J.JOB_PURP_CD IN ('GV') then J.PKG_QTY else 0 end) AS D_LR_QTY,
+                    SUM(case when J.JOB_PURP_CD IN ('GV') then J.CG_VOL else 0 end) AS D_LR_M3,
+                    
+                    SUM(case when J.JOB_PURP_CD IN ('BV') then J.CG_WGT else 0 end) AS D_VSL_MT,
+                    SUM(case when J.JOB_PURP_CD IN ('BV') then J.PKG_QTY else 0 end) AS D_VSL_QTY,
+                    SUM(case when J.JOB_PURP_CD IN ('BV') then J.CG_VOL else 0 end) AS D_VSL_M3,
+                    
+                    SUM(case when J.JOB_PURP_CD IN ('WA') then J.CG_WGT else 0 end) AS I_LR_MT,
+                    SUM(case when J.JOB_PURP_CD IN ('WA') then J.PKG_QTY else 0 end) AS I_LR_QTY,
+                    SUM(case when J.JOB_PURP_CD IN ('WA') then J.CG_VOL else 0 end) AS I_LR_M3,
+                    
+                    SUM(case when J.JOB_PURP_CD IN ('GV', 'BV', 'AV') then J.CG_WGT else 0 end) AS CG_WGT,
+                    SUM(case when J.JOB_PURP_CD IN ('GV', 'BV', 'AV') then J.PKG_QTY else 0 end) AS PKG_QTY,
+                    SUM(case when J.JOB_PURP_CD IN ('GV', 'BV', 'AV') then J.CG_VOL else 0 end) AS CG_VOL
+
+            FROM    TMT_JOB J
+                    INNER JOIN TMT_GR G ON J.VSL_CALL_ID = G.VSL_CALL_ID AND J.CG_NO = G.GR_NO
+                    INNER JOIN TMT_SHIPG_NOTE S ON G.VSL_CALL_ID = S.VSL_CALL_ID AND G.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO
+            
+            WHERE   J.VSL_CALL_ID =  #{vslCallId}
+                    AND J.JOB_TP_CD = 'LD'
+        )
+        
+        SELECT  
+                DOC.CG_WGT AS TOTAL_WGT,
+                DOC.CG_VOL AS TOTAL_M3,
+                DOC.PKG_QTY AS TOTAL_QTY,
+                				CASE
+					<choose>
+	                	<when test="unitTp == 'QTY'">
+	                		WHEN NVL(DOC.PKG_QTY, 0) > 0
+				        	THEN ROUND(( NVL(OPE.PKG_QTY, 0)/NVL(DOC.PKG_QTY, 0)), 3)
+	                	</when>
+	                	<when test="unitTp == 'M3'">
+	                		WHEN NVL(DOC.CG_VOL, 0) > 0
+				        	THEN ROUND(( NVL(OPE.CG_VOL, 0)/NVL(DOC.CG_VOL, 0)), 3)
+	                	</when>
+	                	<otherwise>
+	                		WHEN NVL(DOC.CG_WGT, 0) > 0
+				        	THEN ROUND(( NVL(OPE.CG_WGT, 0)/NVL(DOC.CG_WGT, 0)), 3)
+	                	</otherwise>
+                	</choose>
+				    ELSE  0
+				END AS PERCENTAGE,
+				
+				'Total: ' ||
+					<choose>
+	                	<when test="unitTp == 'QTY'">
+	                		TO_CHAR(NVL(OPE.PKG_QTY, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.PKG_QTY, 0), 'fm99999990D000') || '  (QTY)          '
+						    || CASE
+						        WHEN NVL(DOC.PKG_QTY, 0) > 0
+						            THEN TO_CHAR(ROUND(( NVL(OPE.PKG_QTY, 0)/NVL(DOC.PKG_QTY, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</when>
+	                	<when test="unitTp == 'M3'">
+	                		TO_CHAR(NVL(OPE.CG_VOL, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.CG_VOL, 0), 'fm99999990D000') || '  (M3)          '
+						    || CASE
+						        WHEN NVL(DOC.CG_VOL, 0) > 0
+						            THEN TO_CHAR(ROUND(( NVL(OPE.CG_VOL, 0)/NVL(DOC.CG_VOL, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</when>
+	                	<otherwise>
+	                		TO_CHAR(NVL(OPE.CG_WGT, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.CG_WGT, 0), 'fm99999990D000') || '  (MT)          '
+						    || CASE
+						        WHEN NVL(DOC.CG_WGT, 0) > 0
+						            THEN TO_CHAR(ROUND(( NVL(OPE.CG_WGT, 0)/NVL(DOC.CG_WGT, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</otherwise>
+	               	</choose>
+				AS TOTAL_AMT,
+				
+				CASE
+					<choose>
+	                	<when test="unitTp == 'QTY'">
+	                		WHEN NVL(DOC.I_LR_QTY, 0) > 0
+				        	THEN ROUND(( NVL(OPE.I_LR_QTY, 0)/NVL(DOC.I_LR_QTY, 0)), 3)
+	                	</when>
+	                	<when test="unitTp == 'M3'">
+	                		WHEN NVL(DOC.I_LR_M3, 0) > 0
+				        	THEN ROUND(( NVL(OPE.I_LR_M3, 0)/NVL(DOC.I_LR_M3, 0)), 3)
+	                	</when>
+	                	<otherwise>
+	                		WHEN NVL(DOC.I_LR_MT, 0) > 0
+				        	THEN ROUND(( NVL(OPE.I_LR_MT, 0)/NVL(DOC.I_LR_MT, 0)), 3)
+	                	</otherwise>
+                	</choose>
+				    ELSE  0
+				END AS WH_PERCENTAGE,
+				
+				'From Warehouse: ' || 
+					<choose>
+	                	<when test="unitTp == 'QTY'">
+	                		TO_CHAR(NVL(OPE.I_LR_QTY, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.I_LR_QTY, 0), 'fm99999990D000') || '  (QTY)          '
+						    || CASE
+						        WHEN NVL(DOC.I_LR_QTY, 0) > 0
+						            THEN TO_CHAR(ROUND(( NVL(OPE.I_LR_QTY, 0)/NVL(DOC.I_LR_QTY, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</when>
+	                	<when test="unitTp == 'M3'">
+	                		TO_CHAR(NVL(OPE.I_LR_M3, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.I_LR_M3, 0), 'fm99999990D000') || '  (M3)          '
+						    || CASE
+						        WHEN NVL(DOC.I_LR_M3, 0) > 0
+						            THEN TO_CHAR(ROUND(( NVL(OPE.I_LR_M3, 0)/NVL(DOC.I_LR_M3, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</when>
+	                	<otherwise>
+	                		TO_CHAR(NVL(OPE.I_LR_MT, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.I_LR_MT, 0), 'fm99999990D000') || '  (MT)          '
+						    || CASE
+						        WHEN NVL(DOC.I_LR_MT, 0) > 0
+						            THEN TO_CHAR(ROUND(( NVL(OPE.I_LR_MT, 0)/NVL(DOC.I_LR_MT, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</otherwise>
+	               	</choose>
+				AS INDIRECT_AMT,
+				    
+				CASE
+					<choose>
+	                	<when test="unitTp == 'QTY'">
+	                		WHEN NVL(DOC.D_LR_QTY, 0) > 0
+				        	THEN ROUND(( NVL(OPE.D_LR_QTY, 0)/NVL(DOC.D_LR_QTY, 0)), 3)
+	                	</when>
+	                	<when test="unitTp == 'M3'">
+	                		WHEN NVL(DOC.D_LR_M3, 0) > 0
+				        	THEN ROUND(( NVL(OPE.D_LR_M3, 0)/NVL(DOC.D_LR_M3, 0)), 3)
+	                	</when>
+	                	<otherwise>
+	                		WHEN NVL(DOC.D_LR_MT, 0) > 0
+				        	THEN ROUND(( NVL(OPE.D_LR_MT, 0)/NVL(DOC.D_LR_MT, 0)), 3)
+	                	</otherwise>
+                	</choose>
+				    ELSE  0
+				END AS D_LR_PERCENTAGE,
+				
+				'Direct by Truck: ' || 
+					<choose>
+	                	<when test="unitTp == 'QTY'">
+	                		TO_CHAR(NVL(OPE.D_LR_QTY, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.D_LR_QTY, 0), 'fm99999990D000') || '  (QTY)          '
+						    || CASE
+						        WHEN NVL(DOC.D_LR_QTY, 0) > 0
+						            THEN TO_CHAR(ROUND(( NVL(OPE.D_LR_QTY, 0)/NVL(DOC.D_LR_QTY, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</when>
+	                	<when test="unitTp == 'M3'">
+	                		TO_CHAR(NVL(OPE.D_LR_M3, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.D_LR_M3, 0), 'fm99999990D000') || '  (M3)          '
+						    || CASE
+						        WHEN NVL(DOC.D_LR_M3, 0) > 0
+						            THEN TO_CHAR(ROUND(( NVL(OPE.D_LR_M3, 0)/NVL(DOC.D_LR_M3, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</when>
+	                	<otherwise>
+	                		TO_CHAR(NVL(OPE.D_LR_MT, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.D_LR_MT, 0), 'fm99999990D000') || '  (MT)          '
+						    || CASE
+						        WHEN NVL(DOC.D_LR_MT, 0) > 0
+						            THEN TO_CHAR(ROUND(( NVL(OPE.D_LR_MT, 0)/NVL(DOC.D_LR_MT, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</otherwise>
+	               	</choose>	
+				AS DIRECT_AMT,
+				
+				CASE
+				    <choose>
+	                	<when test="unitTp == 'QTY'">
+	                		WHEN NVL(DOC.D_VSL_QTY, 0) > 0
+				        	THEN ROUND(( NVL(OPE.D_VSL_QTY, 0)/NVL(DOC.D_VSL_QTY, 0)), 3)
+	                	</when>
+	                	<when test="unitTp == 'M3'">
+	                		WHEN NVL(DOC.D_VSL_M3, 0) > 0
+				        	THEN ROUND(( NVL(OPE.D_VSL_M3, 0)/NVL(DOC.D_VSL_M3, 0)), 3)
+	                	</when>
+	                	<otherwise>
+	                		WHEN NVL(DOC.D_VSL_MT, 0) > 0
+				        	THEN ROUND(( NVL(OPE.D_VSL_MT, 0)/NVL(DOC.D_VSL_MT, 0)), 3)
+	                	</otherwise>
+                	</choose>
+				    
+				    ELSE  0
+				END AS D_VSL_PERCENTAGE,
+				    
+				'Direct by Barge: ' || 
+					<choose>
+	                	<when test="unitTp == 'QTY'">
+	                		TO_CHAR(NVL(OPE.D_VSL_QTY, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.D_VSL_QTY, 0), 'fm99999990D000') || '  (QTY)          '
+						    || CASE
+						        WHEN NVL(DOC.D_VSL_QTY, 0) > 0
+						            THEN TO_CHAR(ROUND(( NVL(OPE.D_VSL_QTY, 0)/NVL(DOC.D_VSL_QTY, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</when>
+	                	<when test="unitTp == 'M3'">
+	                		TO_CHAR(NVL(OPE.D_VSL_M3, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.D_VSL_M3, 0), 'fm99999990D000') || '  (M3)          '
+						    || CASE
+						        WHEN NVL(DOC.D_VSL_M3, 0) > 0
+						            THEN TO_CHAR(ROUND(( NVL(OPE.D_VSL_M3, 0)/NVL(DOC.D_VSL_M3, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</when>
+	                	<otherwise>
+	                		TO_CHAR(NVL(OPE.D_VSL_MT, 0), 'fm99999990D000') || '/ ' || TO_CHAR(NVL(DOC.D_VSL_MT, 0), 'fm99999990D000') || '  (MT)          '
+						    || CASE
+						        WHEN NVL(DOC.D_VSL_MT, 0) > 0
+						            THEN TO_CHAR(ROUND(( NVL(OPE.D_VSL_MT, 0)/NVL(DOC.D_VSL_MT, 0)), 3) *100, 'fm990D000') || '%'
+						        
+						        ELSE '0.000%'
+						        END
+	                	</otherwise>
+	               	</choose>	
+	            AS DIRECT_BARGE_AMT
+                
+                    
+        FROM    DOC_AMT_BY_VSL DOC
+                LEFT OUTER JOIN LOADED_INFO_BY_VSL OPE ON 1=1
+    </select>
+    
+    <select id="selectVesselLoadingAmt" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardData">
+    	/*cargoFlowDashboard.selectVesselLoadingAmt*/
+    	WITH LOADED_INFO AS
+        (
+            SELECT  J.VSL_CALL_ID,
+                    S.CG_TP_CD,
+                    S.DELV_TP_CD,
+                    F_CM_001 ('MT', 'DELVTP', S.DELV_TP_CD) AS DELV_TP_NM,
+                    S.CMDT_CD,
+                    F_GET_CMDT_DESC (S.CMDT_CD) AS CMDT_DESC,
+                    J.HATCH_NO,
+                    SUM(J.CG_WGT) AS CG_WGT,
+                    SUM(J.PKG_QTY) AS PKG_QTY
+            FROM    TMT_JOB J
+                    INNER JOIN TMT_GR G ON J.VSL_CALL_ID = G.VSL_CALL_ID AND J.CG_NO = G.GR_NO
+                    INNER JOIN TMT_SHIPG_NOTE S ON G.VSL_CALL_ID = S.VSL_CALL_ID AND G.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO
+            
+            WHERE   J.VSL_CALL_ID = #{vslCallId}
+                    AND J.JOB_TP_CD = 'LD'
+                    AND J.JOB_PURP_CD IN ('GV', 'AV', 'BV')
+            GROUP BY    J.VSL_CALL_ID,
+                        S.CG_TP_CD,
+                        S.DELV_TP_CD,
+                        S.CMDT_CD,
+                        J.HATCH_NO 
+        ),
+        
+        IN_WH_INFO AS
+        (
+            SELECT  J.VSL_CALL_ID,
+                    S.CG_TP_CD,
+                    S.DELV_TP_CD,
+                    F_CM_001 ('MT', 'DELVTP', S.DELV_TP_CD) AS DELV_TP_NM,
+                    S.CMDT_CD,
+                    F_GET_CMDT_DESC (S.CMDT_CD) AS CMDT_DESC,
+                    J.HATCH_NO,
+                    SUM(J.CG_WGT) AS CG_WGT,
+                    SUM(J.PKG_QTY) AS PKG_QTY
+            FROM    TMT_JOB J
+                    INNER JOIN TMT_GR G ON J.VSL_CALL_ID = G.VSL_CALL_ID AND J.CG_NO = G.GR_NO
+                    INNER JOIN TMT_SHIPG_NOTE S ON G.VSL_CALL_ID = S.VSL_CALL_ID AND G.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO
+            
+            WHERE   J.VSL_CALL_ID = #{vslCallId}
+                    AND J.JOB_TP_CD = 'LF'
+                    AND J.JOB_PURP_CD IN ('GW')
+            GROUP BY    J.VSL_CALL_ID,
+                        S.CG_TP_CD,
+                        S.DELV_TP_CD,
+                        S.CMDT_CD,
+                        J.HATCH_NO 
+        ),
+        
+        DOCUMENT_INFO AS
+        (
+            SELECT  D.VSL_CALL_ID,
+                    S.CG_TP_CD,
+                    F_CM_001 ('MT', 'CGTP', S.CG_TP_CD) AS CG_TP_NM,
+                    S.DELV_TP_CD,
+                    F_CM_001 ('MT', 'DELVTP', S.DELV_TP_CD) AS DELV_TP_NM,
+                    S.CMDT_CD,
+                    F_GET_CMDT_DESC (S.CMDT_CD) AS CMDT_DESC,
+                    D.HATCH_NO,
+                    SUM(D.CG_WGT) AS CG_WGT,
+                    SUM(D.PKG_QTY) AS PKG_QTY,
+                    LISTAGG(S.SHIPG_NOTE_NO, ', ') WITHIN GROUP (ORDER BY D.VSL_CALL_ID, S.CMDT_CD, D.HATCH_NO) AS MF_DOC_ID,
+                    LISTAGG(S.MF_DOC_ID, ', ') WITHIN GROUP (ORDER BY D.VSL_CALL_ID, S.CMDT_CD, D.HATCH_NO) AS SHIPG_NOTE_NO
+            FROM    TMT_SHIPG_NOTE_DTL D 
+                    INNER JOIN TMT_SHIPG_NOTE S ON D.VSL_CALL_ID = S.VSL_CALL_ID AND D.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO
+            
+            WHERE   D.VSL_CALL_ID = #{vslCallId}
+                    AND S.STAT_CD = 'AP'
+                    AND D.HATCH_NO IS NOT NULL
+            GROUP BY    D.VSL_CALL_ID,
+                        S.CG_TP_CD,
+                        S.DELV_TP_CD,
+                        S.CMDT_CD,
+                        D.HATCH_NO 
+        )
+        
+        SELECT  D.VSL_CALL_ID,
+                D.CG_TP_CD ,
+                D.CG_TP_NM,
+                D.DELV_TP_CD,
+                D.DELV_TP_NM,
+                D.CMDT_CD,
+                NVL(D.CMDT_DESC, D.CMDT_CD) AS CMDT_DESC,
+                D.HATCH_NO,
+                CASE 
+                    WHEN D.DELV_TP_CD = 'D'
+                    THEN NVL(D.CG_WGT, 0)
+                    ELSE NVL(I.CG_WGT, 0)
+                END  AS TOTAL_WGT,
+                CASE 
+                    WHEN D.DELV_TP_CD = 'D'
+                    THEN NVL(D.PKG_QTY, 0)
+                    ELSE NVL(I.PKG_QTY, 0)
+                END  AS TOTAL_QTY,
+
+                NVL(J.CG_WGT, 0) AS ACT_WGT,
+                NVL(J.PKG_QTY, 0) AS ACT_QTY,
+                
+                CASE 
+                    WHEN D.DELV_TP_CD = 'D'
+                    THEN NVL(D.CG_WGT, 0) - NVL(J.CG_WGT, 0)
+                    ELSE NVL(I.CG_WGT, 0) - NVL(J.CG_WGT, 0)
+                END  AS BAL_WGT,
+                
+                CASE 
+                    WHEN D.DELV_TP_CD = 'D'
+                    THEN NVL(D.PKG_QTY, 0) - NVL(J.PKG_QTY, 0)
+                    ELSE NVL(I.PKG_QTY, 0) - NVL(J.PKG_QTY, 0)
+                END  AS BAL_QTY,
+
+                0 AS TOBE_RECV_WGT,
+                0 AS TOBE_RECV_QTY,
+                CASE
+                    WHEN D.DELV_TP_CD = 'D' AND D.PKG_QTY != 0 THEN ROUND((NVL(J.PKG_QTY, 0)/D.PKG_QTY), 3)
+                    WHEN D.DELV_TP_CD = 'D' AND D.CG_WGT != 0 THEN ROUND((NVL(J.CG_WGT, 0)/D.CG_WGT), 3)
+                    WHEN D.DELV_TP_CD = 'I' AND I.PKG_QTY != 0 THEN ROUND((NVL(J.PKG_QTY, 0)/I.PKG_QTY), 3)
+                    WHEN D.DELV_TP_CD = 'I' AND I.CG_WGT != 0 THEN ROUND((NVL(J.CG_WGT, 0)/I.CG_WGT), 3)
+                    ELSE 0
+                END AS PERCENTAGE,
+                
+                CASE
+                    WHEN D.DELV_TP_CD = 'D' AND D.PKG_QTY != 0 THEN TO_CHAR(ROUND((NVL(J.PKG_QTY, 0)/D.PKG_QTY), 3) *100, 'fm990D000') || '%'
+                    WHEN D.DELV_TP_CD = 'D' AND D.CG_WGT != 0 THEN TO_CHAR(ROUND((NVL(J.CG_WGT, 0)/D.CG_WGT), 3) *100, 'fm990D000') || '%'
+                    WHEN D.DELV_TP_CD = 'I' AND I.PKG_QTY != 0 THEN TO_CHAR(ROUND((NVL(J.PKG_QTY, 0)/I.PKG_QTY), 3) *100, 'fm990D000') || '%'
+                    WHEN D.DELV_TP_CD = 'I' AND I.CG_WGT != 0 THEN TO_CHAR(ROUND((NVL(J.CG_WGT, 0)/I.CG_WGT), 3) *100, 'fm990D000') || '%'
+                    ELSE TO_CHAR(0 *100, 'fm990D000') || '%'
+                END AS PERCENTAGE_STR
+                
+        FROM    DOCUMENT_INFO D
+                LEFT OUTER JOIN IN_WH_INFO I
+                ON I.VSL_CALL_ID = D.VSL_CALL_ID
+                    AND I.CMDT_CD = D.CMDT_CD
+                LEFT OUTER JOIN LOADED_INFO J
+                ON J.VSL_CALL_ID = D.VSL_CALL_ID
+                    AND J.CMDT_CD = D.CMDT_CD
+                    AND J.HATCH_NO = D.HATCH_NO
+        WHERE   D.VSL_CALL_ID = #{vslCallId}
+                AND D.HATCH_NO = #{hatchNo}
+    </select>
+    
+    <select id="selectVesselLoadingAmtByVsl" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardData">
+    	/*cargoFlowDashboard.selectVesselLoadingAmtByVsl*/
+        WITH LOADED_INFO AS
+        (
+            SELECT  J.VSL_CALL_ID,
+                    J.HATCH_NO,
+                    SUM(J.CG_WGT) AS CG_WGT,
+                    SUM(J.CG_VOL) AS CG_VOL,
+                    SUM(J.PKG_QTY) AS PKG_QTY
+            FROM    TMT_JOB J
+                    INNER JOIN TMT_GR G ON J.VSL_CALL_ID = G.VSL_CALL_ID AND J.CG_NO = G.GR_NO
+                    INNER JOIN TMT_SHIPG_NOTE S ON G.VSL_CALL_ID = S.VSL_CALL_ID AND G.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO
+            
+            WHERE   J.VSL_CALL_ID = #{vslCallId}
+                    AND J.JOB_TP_CD = 'LD'
+                    AND J.JOB_PURP_CD IN ('GV', 'AV', 'BV')
+            GROUP BY    J.VSL_CALL_ID,
+                        J.HATCH_NO 
+        ),
+        
+        DOCUMENT_INFO AS
+        (
+            SELECT  D.VSL_CALL_ID,
+                    D.HATCH_NO,
+                    SUM(D.CG_WGT) AS CG_WGT,
+                    SUM(D.CG_VOL) AS CG_VOL,
+                    SUM(D.PKG_QTY) AS PKG_QTY,
+                    LISTAGG(S.SHIPG_NOTE_NO, ', ') WITHIN GROUP (ORDER BY D.VSL_CALL_ID, D.HATCH_NO) AS SHIPG_NOTE_NO,
+                    LISTAGG(S.MF_DOC_ID, ', ') WITHIN GROUP (ORDER BY D.VSL_CALL_ID, D.HATCH_NO) AS MF_DOC_ID
+            FROM    TMT_SHIPG_NOTE_DTL D 
+                    INNER JOIN TMT_SHIPG_NOTE S ON D.VSL_CALL_ID = S.VSL_CALL_ID AND D.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO
+            
+            WHERE   D.VSL_CALL_ID = #{vslCallId}
+                    AND S.STAT_CD = 'AP'
+                    AND D.HATCH_NO IS NOT NULL
+            GROUP BY    D.VSL_CALL_ID,
+                        D.HATCH_NO 
+        )
+        
+        SELECT  D.VSL_CALL_ID,
+                D.HATCH_NO,
+                <choose>
+                	<when test="unitTp == 'QTY'">
+                		NVL(D.PKG_QTY, 0) AS TOTAL_AMT,
+                		NVL(J.PKG_QTY, 0) AS ACT_AMT,
+                		NVL(D.PKG_QTY, 0) -  NVL(J.PKG_QTY, 0) AS BAL_AMT,
+                		0 AS TOBE_RECV_AMT,
+                	</when>
+                	<when test="unitTp == 'M3'">
+                		NVL(D.CG_VOL, 0) AS TOTAL_AMT,
+                		NVL(J.CG_VOL, 0) AS ACT_AMT,
+                		NVL(D.CG_VOL, 0) -  NVL(J.CG_VOL, 0) AS BAL_AMT,
+                		0 AS TOBE_RECV_AMT,
+                	</when>
+                	<otherwise>
+                		NVL(D.CG_WGT, 0) AS TOTAL_AMT,
+                		NVL(J.CG_WGT, 0) AS ACT_AMT,
+                		NVL(D.CG_WGT, 0) -  NVL(J.CG_WGT, 0) AS BAL_AMT,
+                		0 AS TOBE_RECV_AMT,
+                	</otherwise>
+               	</choose>
+                
+                CASE
+					<choose>
+	                	<when test="unitTp == 'QTY'">
+	                		WHEN NVL(D.PKG_QTY, 0) > 0
+				        	THEN ROUND((NVL(J.PKG_QTY, 0)/D.PKG_QTY), 3)
+	                	</when>
+	                	<when test="unitTp == 'M3'">
+	                		WHEN NVL(D.CG_VOL, 0) > 0
+				        	THEN ROUND(( NVL(J.CG_VOL, 0)/NVL(D.CG_VOL, 0)), 3)
+	                	</when>
+	                	<otherwise>
+	                		WHEN NVL(D.CG_WGT, 0) > 0
+				        	THEN ROUND(( NVL(J.CG_WGT, 0)/NVL(D.CG_WGT, 0)), 3)
+	                	</otherwise>
+                	</choose>
+				    ELSE  0
+				END AS PERCENTAGE,
+				
+				CASE
+					<choose>
+	                	<when test="unitTp == 'QTY'">
+	                		WHEN NVL(D.PKG_QTY, 0) > 0
+				        	THEN TO_CHAR(ROUND((NVL(J.PKG_QTY, 0)/D.PKG_QTY), 3)*100, 'fm990D000') || '%'
+	                	</when>
+	                	<when test="unitTp == 'M3'">
+	                		WHEN NVL(D.CG_VOL, 0) > 0
+				        	THEN TO_CHAR(ROUND(( NVL(J.CG_VOL, 0)/NVL(D.CG_VOL, 0)), 3)*100, 'fm990D000') || '%'
+	                	</when>
+	                	<otherwise>
+	                		WHEN NVL(D.CG_WGT, 0) > 0
+				        	THEN TO_CHAR(ROUND(( NVL(J.CG_WGT, 0)/NVL(D.CG_WGT, 0)), 3)*100, 'fm990D000') || '%'
+	                	</otherwise>
+                	</choose>
+				    ELSE  '0.000%'
+				END  AS PERCENTAGE_STR
+                
+        FROM    DOCUMENT_INFO D
+                LEFT OUTER JOIN LOADED_INFO J
+                ON J.VSL_CALL_ID = D.VSL_CALL_ID
+                    AND J.HATCH_NO = D.HATCH_NO
+        WHERE   D.VSL_CALL_ID = #{vslCallId}
+                AND D.HATCH_NO = #{hatchNo}
+    </select> 
+    
+    <select id="selectWarehouseLoadingAmt" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardData">
+    	/*cargoFlowDashboard.selectWarehouseLoadingAmt*/  	
+		WITH IN_INFO AS
+		(
+		    SELECT  J.VSL_CALL_ID,
+		            S.CG_TP_CD,
+		            S.DELV_TP_CD,
+		            F_CM_001 ('MT', 'DELVTP', S.DELV_TP_CD) AS DELV_TP_NM,
+		            S.CMDT_CD,
+		            F_GET_CMDT_DESC (S.CMDT_CD) AS CMDT_DESC,
+		            J.HATCH_NO,
+		            SUM(J.CG_WGT) AS CG_WGT,
+		            SUM(J.PKG_QTY) AS PKG_QTY
+		    FROM    TMT_JOB J
+		            INNER JOIN TMT_INV_LOC I ON J.VSL_CALL_ID = I.VSL_CALL_ID AND J.CG_NO = I.CG_NO AND J.JOB_NO = I.JOB_NO
+		            INNER JOIN TMT_GR G ON J.VSL_CALL_ID = G.VSL_CALL_ID AND J.CG_NO = G.GR_NO
+		            INNER JOIN TMT_SHIPG_NOTE S ON G.VSL_CALL_ID = S.VSL_CALL_ID AND G.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO
+		    
+		    WHERE   J.VSL_CALL_ID = #{vslCallId}
+		            AND J.JOB_PURP_CD IN ('GW', 'WW')
+		    GROUP BY    J.VSL_CALL_ID,
+		                S.CG_TP_CD,
+		                S.DELV_TP_CD,
+		                S.CMDT_CD,
+		                J.HATCH_NO
+		),
+		
+		OUT_INFO AS
+		(
+		    SELECT  J.VSL_CALL_ID,
+		            S.CG_TP_CD,
+		            S.DELV_TP_CD,
+		            F_CM_001 ('MT', 'DELVTP', S.DELV_TP_CD) AS DELV_TP_NM,
+		            S.CMDT_CD,
+		            F_GET_CMDT_DESC (S.CMDT_CD) AS CMDT_DESC,
+		            SUM(J.CG_WGT) AS CG_WGT,
+		            SUM(J.PKG_QTY) AS PKG_QTY,
+		            LISTAGG(S.SHIPG_NOTE_NO, ', ') WITHIN GROUP (ORDER BY J.VSL_CALL_ID, S.CMDT_CD) AS MF_DOC_ID,
+		            LISTAGG(S.MF_DOC_ID, ', ') WITHIN GROUP (ORDER BY J.VSL_CALL_ID, S.CMDT_CD) AS SHIPG_NOTE_NO
+		    FROM    TMT_JOB J
+		            INNER JOIN TMT_INV_LOC I ON J.VSL_CALL_ID = I.VSL_CALL_ID AND J.CG_NO = I.CG_NO AND J.JOB_NO = I.JOB_NO
+		            INNER JOIN TMT_GR G ON J.VSL_CALL_ID = G.VSL_CALL_ID AND J.CG_NO = G.GR_NO
+		            INNER JOIN TMT_SHIPG_NOTE S ON G.VSL_CALL_ID = S.VSL_CALL_ID AND G.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO
+		    
+		    WHERE   J.VSL_CALL_ID = #{vslCallId}
+		            AND J.JOB_PURP_CD IN ('WA', 'WG')
+		    GROUP BY    J.VSL_CALL_ID,
+		                S.CG_TP_CD,
+		                S.DELV_TP_CD,
+		                S.CMDT_CD
+		),
+		
+		DOCUMENT_INFO AS
+		(
+		    SELECT  D.VSL_CALL_ID,
+		                    S.CG_TP_CD,
+		                    F_CM_001 ('MT', 'CGTP', S.CG_TP_CD) AS CG_TP_NM,
+		                    S.DELV_TP_CD,
+		                    F_CM_001 ('MT', 'DELVTP', S.DELV_TP_CD) AS DELV_TP_NM,
+		                    S.CMDT_CD,
+		                    F_GET_CMDT_DESC (S.CMDT_CD) AS CMDT_DESC,
+		                    D.HATCH_NO,
+		                    SUM(D.CG_WGT) AS CG_WGT,
+		                    SUM(D.PKG_QTY) AS PKG_QTY,
+		                    LISTAGG(S.SHIPG_NOTE_NO, ', ') WITHIN GROUP (ORDER BY D.VSL_CALL_ID, S.CMDT_CD, D.HATCH_NO) AS MF_DOC_ID,
+		                    LISTAGG(S.MF_DOC_ID, ', ') WITHIN GROUP (ORDER BY D.VSL_CALL_ID, S.CMDT_CD, D.HATCH_NO) AS SHIPG_NOTE_NO
+		            FROM    TMT_SHIPG_NOTE_DTL D 
+		                    INNER JOIN TMT_SHIPG_NOTE S ON D.VSL_CALL_ID = S.VSL_CALL_ID AND D.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO
+		            
+		            WHERE   D.VSL_CALL_ID = #{vslCallId}
+		                    AND S.STAT_CD = 'AP'
+		                    AND D.HATCH_NO IS NOT NULL
+		            GROUP BY    D.VSL_CALL_ID,
+		                        S.CG_TP_CD,
+		                        S.DELV_TP_CD,
+		                        S.CMDT_CD,
+		                        D.HATCH_NO
+		
+		)
+		
+		SELECT  D.VSL_CALL_ID,
+		        D.CG_TP_CD,
+		        D.CG_TP_NM,
+		        D.DELV_TP_CD,
+		        D.DELV_TP_NM,
+		        D.CMDT_CD,
+		        D.CMDT_DESC,
+		        D.HATCH_NO,
+		        NVL(D.CG_WGT, 0) - (NVL(I.CG_WGT, 0)) AS TOBE_RECV_WGT,
+		        NVL(D.PKG_QTY, 0) - (NVL(I.PKG_QTY, 0)) AS TOBE_RECV_QTY,
+		        
+		        NVL(I.CG_WGT, 0) AS TOTAL_WGT,
+		        NVL(I.PKG_QTY, 0) AS TOTAL_QTY,
+		        NVL(O.CG_WGT, 0) AS ACT_WGT,
+		        NVL(O.PKG_QTY, 0) AS ACT_QTY,
+		        
+		        (NVL(I.CG_WGT, 0)) - NVL(O.CG_WGT, 0) AS BAL_WGT,
+		        (NVL(I.PKG_QTY, 0)) - NVL(O.PKG_QTY, 0) AS BAL_QTY,
+		        
+		        CASE
+		            WHEN NVL(I.PKG_QTY, 0) != 0
+		                THEN  (NVL(O.PKG_QTY, 0)/(NVL(I.PKG_QTY, 0)))
+		            
+		            WHEN NVL(I.CG_WGT, 0) != 0
+		                THEN  (NVL(O.CG_WGT, 0)/(NVL(I.CG_WGT, 0)))
+		            ELSE 0
+		        END AS PERCENTAGE,
+		        
+		        CASE
+		            WHEN NVL(I.PKG_QTY, 0) != 0
+		                THEN  TO_CHAR((NVL(O.PKG_QTY, 0)/(NVL(I.PKG_QTY, 0))) *100, 'fm990D000') || '%'
+		            
+		            WHEN NVL(I.CG_WGT, 0) != 0
+		                THEN  TO_CHAR((NVL(O.CG_WGT, 0)/(NVL(I.CG_WGT, 0))) *100, 'fm990D000') || '%'
+		            ELSE TO_CHAR(0 *100, 'fm990D000') || '%'
+		        END AS PERCENTAGE_STR
+		        
+		FROM    DOCUMENT_INFO D
+		        LEFT OUTER JOIN IN_INFO I
+		            ON  D.VSL_CALL_ID = I.VSL_CALL_ID
+		                AND D.CMDT_CD = I.CMDT_CD
+		        LEFT OUTER JOIN OUT_INFO O
+		            ON  D.VSL_CALL_ID = O.VSL_CALL_ID
+		                AND D.CMDT_CD = O.CMDT_CD
+		
+		WHERE   D.VSL_CALL_ID = #{vslCallId}
+		        AND D.HATCH_NO = #{hatchNo}
+    </select>
+    
+    <select id="selectGateLoadingAmt" parameterType="cargoFlowDashboardParm" resultMap="cargoFlowDashboardData">
+    	/*cargoFlowDashboard.selectGateLoadingAmt*/
+		WITH GV_INFO AS
+		(
+		    SELECT  J.VSL_CALL_ID,
+		            S.CG_TP_CD,
+		            S.DELV_TP_CD,
+		            F_CM_001 ('MT', 'DELVTP', S.DELV_TP_CD) AS DELV_TP_NM,
+		            S.CMDT_CD,
+		            F_GET_CMDT_DESC (S.CMDT_CD) AS CMDT_DESC,
+		            J.HATCH_NO,
+		            SUM(J.CG_WGT) AS CG_WGT,
+		            SUM(J.PKG_QTY) AS PKG_QTY,
+		            LISTAGG(S.SHIPG_NOTE_NO, ', ') WITHIN GROUP (ORDER BY J.VSL_CALL_ID, S.CMDT_CD) AS MF_DOC_ID,
+		            LISTAGG(S.MF_DOC_ID, ', ') WITHIN GROUP (ORDER BY J.VSL_CALL_ID, S.CMDT_CD) AS SHIPG_NOTE_NO
+		    FROM    TMT_JOB J
+		            INNER JOIN TMT_GR G ON J.VSL_CALL_ID = G.VSL_CALL_ID AND J.CG_NO = G.GR_NO
+		            INNER JOIN TMT_SHIPG_NOTE S ON G.VSL_CALL_ID = S.VSL_CALL_ID AND G.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO
+		    
+		    WHERE   J.VSL_CALL_ID = #{vslCallId}
+		            AND J.JOB_TP_CD = 'LD'
+		            AND J.JOB_PURP_CD IN ('GV')
+		    GROUP BY    J.VSL_CALL_ID,
+		                S.CG_TP_CD,
+		                S.DELV_TP_CD,
+		                S.CMDT_CD,
+		                J.HATCH_NO
+		),
+		
+		GW_INFO AS
+		(
+		    SELECT  J.VSL_CALL_ID,
+		            S.CG_TP_CD,
+		            S.DELV_TP_CD,
+		            F_CM_001 ('MT', 'DELVTP', S.DELV_TP_CD) AS DELV_TP_NM,
+		            S.CMDT_CD,
+		            F_GET_CMDT_DESC (S.CMDT_CD) AS CMDT_DESC,
+		            J.HATCH_NO,
+		            SUM(J.CG_WGT) AS CG_WGT,
+		            SUM(J.PKG_QTY) AS PKG_QTY,
+		            LISTAGG(S.SHIPG_NOTE_NO, ', ') WITHIN GROUP (ORDER BY J.VSL_CALL_ID, S.CMDT_CD) AS MF_DOC_ID,
+		            LISTAGG(S.MF_DOC_ID, ', ') WITHIN GROUP (ORDER BY J.VSL_CALL_ID, S.CMDT_CD) AS SHIPG_NOTE_NO
+		    FROM    TMT_JOB J
+		            INNER JOIN TMT_GR G ON J.VSL_CALL_ID = G.VSL_CALL_ID AND J.CG_NO = G.GR_NO
+		            INNER JOIN TMT_SHIPG_NOTE S ON G.VSL_CALL_ID = S.VSL_CALL_ID AND G.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO
+		    
+		    WHERE   J.VSL_CALL_ID = #{vslCallId}
+		            AND J.JOB_TP_CD = 'LF'
+		            AND J.JOB_PURP_CD IN ('GW')
+		    GROUP BY    J.VSL_CALL_ID,
+		                S.CG_TP_CD,
+		                S.DELV_TP_CD,
+		                S.CMDT_CD,
+		                J.HATCH_NO
+		),
+		
+		IO_INFO AS
+		(
+		    SELECT  J.VSL_CALL_ID,
+		            S.CG_TP_CD,
+		            S.DELV_TP_CD,
+		            F_CM_001 ('MT', 'DELVTP', S.DELV_TP_CD) AS DELV_TP_NM,
+		            S.CMDT_CD,
+		            F_GET_CMDT_DESC (S.CMDT_CD) AS CMDT_DESC,
+		            J.HATCH_NO,
+		            SUM(J.CG_WGT) AS CG_WGT,
+		            SUM(J.PKG_QTY) AS PKG_QTY,
+		            LISTAGG(S.SHIPG_NOTE_NO, ', ') WITHIN GROUP (ORDER BY J.VSL_CALL_ID, S.CMDT_CD) AS MF_DOC_ID,
+		            LISTAGG(S.MF_DOC_ID, ', ') WITHIN GROUP (ORDER BY J.VSL_CALL_ID, S.CMDT_CD) AS SHIPG_NOTE_NO
+		    FROM    TMT_JOB J
+		            INNER JOIN TMT_GR G ON J.VSL_CALL_ID = G.VSL_CALL_ID AND J.CG_NO = G.GR_NO
+		            INNER JOIN TMT_SHIPG_NOTE S ON G.VSL_CALL_ID = S.VSL_CALL_ID AND G.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO
+		    
+		    WHERE   J.VSL_CALL_ID = #{vslCallId}
+		            AND J.JOB_TP_CD = 'GO'
+		            AND J.JOB_PURP_CD IN ('IO')
+		    GROUP BY    J.VSL_CALL_ID,
+		                S.CG_TP_CD,
+		                S.DELV_TP_CD,
+		                S.CMDT_CD,
+		                J.HATCH_NO
+		),
+		
+		DOCUMENT_INFO AS
+		(
+		    SELECT  D.VSL_CALL_ID,
+		                    S.CG_TP_CD,
+		                    F_CM_001 ('MT', 'CGTP', S.CG_TP_CD) AS CG_TP_NM,
+		                    S.DELV_TP_CD,
+		                    F_CM_001 ('MT', 'DELVTP', S.DELV_TP_CD) AS DELV_TP_NM,
+		                    S.CMDT_CD,
+		                    F_GET_CMDT_DESC (S.CMDT_CD) AS CMDT_DESC,
+		                    D.HATCH_NO,
+		                    SUM(D.CG_WGT) AS CG_WGT,
+		                    SUM(D.PKG_QTY) AS PKG_QTY,
+		                    LISTAGG(S.SHIPG_NOTE_NO, ', ') WITHIN GROUP (ORDER BY D.VSL_CALL_ID, S.CMDT_CD, D.HATCH_NO) AS MF_DOC_ID,
+		                    LISTAGG(S.MF_DOC_ID, ', ') WITHIN GROUP (ORDER BY D.VSL_CALL_ID, S.CMDT_CD, D.HATCH_NO) AS SHIPG_NOTE_NO
+		            FROM    TMT_SHIPG_NOTE_DTL D 
+		                    INNER JOIN TMT_SHIPG_NOTE S ON D.VSL_CALL_ID = S.VSL_CALL_ID AND D.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO
+		            
+		            WHERE   D.VSL_CALL_ID = #{vslCallId}
+		                    AND S.STAT_CD = 'AP'
+		                    AND D.HATCH_NO IS NOT NULL
+		            GROUP BY    D.VSL_CALL_ID,
+		                        S.CG_TP_CD,
+		                        S.DELV_TP_CD,
+		                        S.CMDT_CD,
+		                        D.HATCH_NO
+		)
+		
+		SELECT  DOC.VSL_CALL_ID,
+		        DOC.CG_TP_CD,
+		        DOC.CG_TP_NM,
+		        DOC.DELV_TP_CD,
+		        DOC.DELV_TP_NM,
+		        DOC.CMDT_CD,
+		        DOC.CMDT_DESC,
+		        DOC.HATCH_NO,
+		        
+		        NVL(DOC.CG_WGT, 0) - (NVL(GV.CG_WGT, 0) + NVL(GW.CG_WGT, 0)) AS TOBE_RECV_WGT,
+		        NVL(DOC.PKG_QTY, 0) - (NVL(GV.PKG_QTY, 0) + NVL(GW.PKG_QTY, 0)) AS TOBE_RECV_QTY,
+		        
+		        NVL(GV.CG_WGT, 0) + NVL(GW.CG_WGT, 0) AS TOTAL_WGT,
+		        NVL(GV.PKG_QTY, 0) + NVL(GW.PKG_QTY, 0) AS TOTAL_QTY,
+		        NVL(IO.CG_WGT, 0) AS ACT_WGT,
+		        NVL(IO.PKG_QTY, 0) AS ACT_QTY,
+		        
+		        (NVL(GV.CG_WGT, 0) + NVL(GW.CG_WGT, 0)) - NVL(IO.CG_WGT, 0) AS BAL_WGT,
+		        (NVL(GV.PKG_QTY, 0) + NVL(GW.PKG_QTY, 0)) - NVL(IO.PKG_QTY, 0) AS BAL_QTY,
+		        
+		        CASE
+		                    WHEN NVL(GV.PKG_QTY, 0) != 0 OR NVL(GW.PKG_QTY, 0) != 0 THEN ROUND((NVL(IO.PKG_QTY, 0)/(NVL(GV.PKG_QTY, 0) + NVL(GW.PKG_QTY, 0))), 3)
+		                    WHEN NVL(GV.CG_WGT, 0) != 0 OR NVL(GW.CG_WGT, 0) != 0 THEN ROUND((NVL(IO.CG_WGT, 0)/(NVL(GV.CG_WGT, 0) + NVL(GW.CG_WGT, 0))), 3)
+		                    ELSE 0
+		        END AS PERCENTAGE,
+		                
+		        CASE
+		                    WHEN NVL(GV.PKG_QTY, 0) != 0 OR NVL(GW.PKG_QTY, 0) != 0 THEN TO_CHAR(ROUND((NVL(IO.PKG_QTY, 0)/(NVL(GV.PKG_QTY, 0) + NVL(GW.PKG_QTY, 0))), 3) * 100, 'fm990D000') || '%'
+		                    WHEN NVL(GV.CG_WGT, 0) != 0 OR NVL(GW.CG_WGT, 0) != 0 THEN TO_CHAR(ROUND((NVL(IO.CG_WGT, 0)/(NVL(GV.CG_WGT, 0) + NVL(GW.CG_WGT, 0))), 3) * 100, 'fm990D000') || '%'
+		                    ELSE TO_CHAR(0 * 100, 'fm990D000') || '%'
+		        END AS PERCENTAGE_STR
+		
+		        
+		FROM    DOCUMENT_INFO DOC
+		        LEFT OUTER JOIN GV_INFO GV
+		            ON  DOC.VSL_CALL_ID = GV.VSL_CALL_ID
+		                AND DOC.CMDT_CD = GV.CMDT_CD
+		        LEFT OUTER JOIN GW_INFO GW
+		            ON  DOC.VSL_CALL_ID = GW.VSL_CALL_ID
+		                AND DOC.CMDT_CD = GW.CMDT_CD
+		        LEFT OUTER JOIN IO_INFO IO
+		            ON  DOC.VSL_CALL_ID = IO.VSL_CALL_ID
+		                AND DOC.CMDT_CD = IO.CMDT_CD
+		
+		WHERE   DOC.VSL_CALL_ID = #{vslCallId}
+		        AND DOC.HATCH_NO = #{hatchNo}
+    </select>
+</mapper>

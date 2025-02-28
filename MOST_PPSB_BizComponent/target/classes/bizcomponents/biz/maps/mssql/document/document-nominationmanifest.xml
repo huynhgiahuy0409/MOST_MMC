@@ -1,0 +1,1013 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="NominationManifestMap">
+
+	<sql id="sqlCustomsAprvInfo">
+		/*, F_B_GET_RELEASENO(A.SHIPCALLNO ,A.BLNO)		AS RELEASENO*/
+		, (
+			SELECT TOP (1)
+				(CASE
+					WHEN GC.CUST_MSG_TP = 'N' AND GC.CUST_MSG_MODE = 'C'
+						THEN 'Release'
+					WHEN GC.CUST_MSG_TP = 'P' AND GC.CUST_MSG_MODE = 'C'
+						THEN 'Release'
+					WHEN GC.CUST_MSG_TP = 'N' AND GC.CUST_MSG_MODE = 'R'
+						THEN 'Release'
+					WHEN GC.CUST_MSG_TP = 'N' AND GC.CUST_MSG_MODE = 'B'
+						THEN 'Hold'
+					WHEN GC.CUST_MSG_TP = 'P' AND GC.CUST_MSG_MODE = 'D'
+						THEN 'Hold'
+					WHEN GC.CUST_MSG_TP = 'N' AND GC.CUST_MSG_MODE = 'D'
+						THEN 'Hold'
+					ELSE 'Hold'
+				END) 									AS CUST_MODE
+			FROM
+				TMT_GCS_RECV GC		-- mising
+		  	WHERE
+				GC.SCN 									= A.SHIPCALLNO
+				AND GC.BK_NO 							= A.BLNO
+			) 											AS CUSTOMSAPRVSTAT
+		, FORMAT(
+			(SELECT TOP (1)
+				CUST_DECL_DT
+			FROM
+				TMT_GCS_RECV GC  -- mising
+			WHERE
+				GC.SCN 									= A.SHIPCALLNO
+				AND GC.BK_NO 							= A.BLNO
+		), 'dd/MM/yyyy hh:mm') 							AS CUSTOMSAPRVDT
+	</sql>
+	<select id="selectNominationManifest"  parameterType="NominationManifestParm" resultType="NominationManifestItem">
+		SELECT DISTINCT /*NominationManifestMap.selectNominationManifest*/
+			A.*,
+		(CASE
+			WHEN B.CNSNE = '' THEN A.CNSCD_FZ
+			ELSE B.CNSNE
+		END) 											AS CNSCD,
+		(CASE
+			WHEN B.SHPR = '' THEN CNSNORCD_FZ
+		    ELSE B.SHPR
+		END) 											AS CNSNORCD,
+		(CASE
+			(SELECT TOP(1)
+				ADDR
+			FROM
+				TMT_PTNR PTNR
+			WHERE
+				PTNR.PTNR_CODE 							= B.CNSNE
+			)
+			WHEN '' THEN ( 
+						SELECT TOP(1)
+							ADDR
+						FROM (
+    						SELECT
+								PTNR_CODE,
+								ENG_SNM,
+								ACC_NO,
+								ADDR,
+								TEL_NO
+    						FROM
+								TMT_PTNR
+    						UNION
+    						SELECT
+								AGENCY_CODE,
+								ENG_SNM,
+								ACC_NO,
+								ADDR,
+								TEL_NO
+    						FROM
+								TMT_AGENCY_INFO
+    						) 							AS TPTAI
+						WHERE
+							PTNR_CODE 					= B.CNSNE
+						)
+			ELSE (
+				SELECT TOP(1)
+					ADDR
+				FROM
+					TMT_PTNR PTNR
+				WHERE
+					PTNR.PTNR_CODE 						= B.CNSNE
+				) 
+		END) 											AS expAddr,
+		(CASE
+			(SELECT TOP(1)
+				ENG_SNM
+			FROM
+				TMT_PTNR PTNR
+			WHERE
+				PTNR.PTNR_CODE 							= B.CNSNE
+			)
+			WHEN '' THEN ( 
+						SELECT TOP(1)
+							ENG_SNM
+						FROM (
+    						SELECT
+								PTNR_CODE,
+								ENG_SNM,
+								ACC_NO,
+								ADDR,
+								TEL_NO
+    						FROM
+								TMT_PTNR
+    						UNION
+    						SELECT
+								AGENCY_CODE,
+								ENG_SNM,
+								ACC_NO,
+								ADDR,
+								TEL_NO
+    						FROM
+								TMT_AGENCY_INFO
+    						) 							AS TPTAI
+						WHERE
+							PTNR_CODE 					= B.CNSNE
+						)
+			ELSE (
+				SELECT TOP(1)
+					ENG_SNM
+				FROM
+					TMT_PTNR PTNR
+				WHERE
+					PTNR.PTNR_CODE						= B.CNSNE
+				) 
+		END) 											AS cnsNm,
+		(CASE
+			(SELECT TOP(1)
+				ADDR
+			FROM
+				TMT_PTNR PTNR
+			WHERE
+				PTNR.PTNR_CODE 							= B.SHPR
+			)
+			WHEN '' THEN ( 
+						SELECT TOP(1)
+							ADDR
+						FROM (
+    						SELECT
+								PTNR_CODE,
+								ENG_SNM,
+								ACC_NO,
+								ADDR,
+								TEL_NO
+    						FROM
+								TMT_PTNR
+    						UNION
+    						SELECT
+								AGENCY_CODE,
+								ENG_SNM,
+								ACC_NO,
+								ADDR,
+								TEL_NO
+    						FROM
+								TMT_AGENCY_INFO
+    						) 							AS TPTAI
+						WHERE
+							PTNR_CODE 					= B.SHPR
+						)
+			ELSE (
+				SELECT TOP(1)
+					ADDR 
+				FROM
+					TMT_PTNR PTNR
+				WHERE
+					PTNR.PTNR_CODE 						= B.SHPR
+				) 
+		END) 											AS impAddr,
+		(CASE
+			(SELECT TOP(1)
+				ENG_SNM
+			FROM
+				TMT_PTNR PTNR
+			WHERE
+				PTNR.PTNR_CODE 							= B.SHPR
+			)
+			WHEN '' THEN ( 
+						SELECT TOP(1)
+							ENG_SNM
+						FROM (
+    						SELECT
+								PTNR_CODE,
+								ENG_SNM,
+								ACC_NO,
+								ADDR,
+								TEL_NO
+    						FROM
+								TMT_PTNR
+    						UNION
+    						SELECT
+								AGENCY_CODE,
+								ENG_SNM,
+								ACC_NO,
+								ADDR,
+								TEL_NO
+    						FROM
+								TMT_AGENCY_INFO
+    						) 							AS TPTAI
+						WHERE
+							PTNR_CODE 					= B.SHPR
+						)
+			ELSE (
+				SELECT TOP(1)
+					ENG_SNM
+				FROM
+					TMT_PTNR PTNR
+				WHERE
+					PTNR.PTNR_CODE 						= B.SHPR
+				) 
+		END) 											AS cnsnorNm,
+		     
+		<!-- <include refid="sqlCustomsAprvInfo"/> -->
+
+		ISNULL(B.PKG_TP_CD, A.PGKTPCD)       			AS PKGTPCD,
+		(SELECT
+			S_CD_NM
+      	FROM
+			TMT_CD_MSTD
+     	WHERE
+			L_CD = 'MT'
+       		AND M_CD = 'PKGTP'
+       		AND S_CD = B.PKG_TP_CD
+       	)												AS PKGTPCDNM, 
+       	A.PGKTPCD, 
+       	ISNULL(B.FWRD, ' ')               				AS FWDCD, 
+       	ISNULL(
+					(
+				SELECT
+					TOP (1) ENG_SNM
+				FROM (
+					SELECT
+						ENG_SNM
+      				FROM
+						TMT_AGENCY_INFO AGNT
+      				WHERE
+						AGNT.AGENCY_CODE 				= B.FWRD
+      				UNION ALL
+      				SELECT
+						ENG_SNM
+      				FROM
+						TMT_PTNR
+      				WHERE
+						PTNR_CODE 						= B.FWRD
+					) 									AS AESTPES
+			)
+		, ' ') 											AS FWDNM, 
+		B.CG_TP_CD        								AS CGTPCD,
+		(SELECT
+				TOP (1) S_CD_NM
+			FROM
+				TMT_CD_MSTD
+			WHERE
+				L_CD 									= 'MT'
+				AND M_CD 								= 'CGTP'
+				AND S_CD 								= B.CG_TP_CD
+		) 												AS CGTPCDNM, 
+		A.IMDGCLASS 									AS IMDGCLASS, 
+		A.UNNO 											AS UNNO, 
+		ISNULL((
+			SELECT TOP (1)
+				'Y'
+			FROM
+				TMT_FILE_INFO
+			WHERE
+				PGM_ID = 'DM105'
+				AND CATG_CD = A.VSLCALLID + '|' + A.BLNO
+			), 'N') 									AS PACKINGLIST, 
+		(SELECT TOP (1)
+			U_FILE_NM
+			FROM
+				TMT_FILE_INFO
+			WHERE
+				PGM_ID = 'DM105'
+				AND CATG_CD = A.VSLCALLID + '|' + A.BLNO
+		) 												AS UFILENAME, 
+		(SELECT TOP (1)
+			FILE_NM
+			FROM
+				TMT_FILE_INFO
+			WHERE
+				PGM_ID = 'DM105'
+				AND CATG_CD = A.VSLCALLID + '|' + A.BLNO
+		) 												AS FILENAME, 
+		(SELECT TOP (1)
+				DO_NO
+			FROM
+				TMT_DO
+			WHERE
+				TMT_DO.BL_NO = B.BL_NO
+				AND TMT_DO.MF_DOC_ID = B.MF_DOC_ID
+		)           									AS DONO, 
+		B.DELV_TP_CD	     							AS DELVTPCD, 
+		(SELECT
+				TOP (1) S_CD_NM
+			FROM
+				TMT_CD_MSTD
+			WHERE
+				L_CD 									= 'MT'
+				AND M_CD 								= 'DELVTP'
+				AND S_CD 								= B.DELV_TP_CD
+		)												AS DELVTPNM, 
+		(CASE
+				WHEN B.CUSTOMS_APRV_DT IS NOT NULL AND YEAR(B.CUSTOMS_APRV_DT) != '1900'
+					THEN FORMAT(B.CUSTOMS_APRV_DT, 'dd/MM/yyyy hh:mm:ss')
+				ELSE ''
+			END) 										AS CUSTOMSAPRVDT, 
+		B.CUSTOMS_APRV_STAT 							AS CUSTOMSAPRVSTAT, 
+		B.CUST_DECL_NO 									AS RELEASENO,  
+		(SELECT
+				DG_CHK
+			FROM
+				TMT_DG
+			WHERE
+				CG_NO 									= A.BLNO 
+				AND SEQ 								= B.DG_SEQ
+		) 												AS DGSTATCD, 
+		(SELECT
+				CASE
+					WHEN DG_CHK = 'Y' THEN 'Confirmed'
+					WHEN DG_CHK = 'N' THEN 'Not Confirmed'
+					WHEN DG_CHK = 'R' THEN 'Reject'
+					WHEN DG_CHK = 'C' THEN 'Cancel'
+					ELSE ''
+				END
+			FROM
+				TMT_DG
+			WHERE
+				CG_NO 									= A.BLNO
+				AND SEQ 								= B.DG_SEQ
+		) 												AS DGSTATNM, 
+		(SELECT
+				(CASE
+					WHEN APRV_DT IS NOT NULL THEN FORMAT(APRV_DT, 'dd/MM/yyyy')
+					ELSE ''
+				END)
+			FROM
+				TMT_DG
+			WHERE
+			    CG_NO 									= A.BLNO
+				AND SEQ 								= B.DG_SEQ
+		) 												AS DGAPRVDT,
+		(SELECT (
+				CASE
+					WHEN US.USER_TYPE = 'E'
+                   		THEN
+							CASE
+								WHEN (
+                                	(CASE
+                                        	WHEN (
+                                        		SELECT
+													COUNT(*)
+                                              	FROM
+													TMT_PTNR_USER
+                                              	WHERE
+													PTNR_TYPE = 'SHA'
+                                                	AND USER_ID = US.USER_ID
+                                                ) = 0
+												THEN 'Y'
+                                        	ELSE 'N'
+                                        END)
+                                ) = 'N' 
+                                	THEN (
+                               			(
+                                   			CASE
+                                       			WHEN (
+                                       				SELECT
+														COUNT(*)
+                                             		FROM
+														TMT_VSL_SCH SH
+                                             		WHERE
+														SH.VSL_CALL_ID = A.VSLCALLID
+                                               			AND EXISTS (
+                                               				SELECT
+																'1'
+                                                           	FROM
+																TMT_PTNR_USER
+                                                           	WHERE
+																PTNR_TYPE 			= 'SHA'
+                                                             	AND USER_ID 		= US.USER_ID
+                                                             	AND PTNR_CODE 		= SH.ARRV_SA_ID
+                                                             )
+                                                     ) = 0 THEN 'Y'
+                                       		ELSE 'N'
+                                       END
+                                       )
+                               		)
+                       		ELSE 'Y'
+                       	END
+               		ELSE 'Y'
+               END)
+			FROM
+				TMT_USER_INFO US
+			WHERE
+				US.USER_ID 								= #{userId}
+		)												AS HOLDCHK,
+		'' 												AS STATUS,
+		'TNE'                     						AS WGTUNIT, 
+		'false'                   						AS CHK,
+		(SELECT
+			MAX(SEQ)
+		FROM
+			TMT_DG
+		WHERE
+			CG_NO 										= A.BLNO
+			AND VSL_CALL_ID 							= A.VSLCALLID
+		)												AS DGSEQ
+		FROM (
+			SELECT DISTINCT
+				SCH.VSL_CALL_ID        					AS VSLCALLID,
+				<!-- SCH.SHIP_CALL_NO   						AS SHIPCALLNO, -->
+				SCH.VSL_CD         						AS VSLCD,
+				SCH.CALL_YEAR      						AS CALLYEAR,
+				SCH.CALL_SEQ       						AS CALLSEQ,
+				SCH.ARRV_SA_ID     						AS ARRVSAID,
+				SCH.DEPR_SA_ID							AS DEPRSAID,
+				BL.JOB_NO								AS JOBNO,
+				<!-- (CASE
+					WHEN SCH.M_APPRV_YN = 'Y' THEN SCH.M_APPRV_AGENT
+					ELSE SCH.ARRV_SA_ID
+				END) 									AS DEPRSAID,-->
+				BL.DOC_ID          						AS DOCID,
+				BL.MF_DOC_ID       						AS MFDOCID,
+				<!-- BL.MF_JOB_NO       						AS MFJOBNO, -->
+				BL.CATG_CD     							AS CGINOUTTP,
+				BL.BL_NO 								AS BLNO		 						<!--Ben added to fix issue 0053836  -->,
+				<!-- BL.CNSNE_ODR1      						AS CNSNEODR1,
+				BL.CNSNE_ODR2      						AS CNSNEODR2,
+				BL.TOT_CNTR_CNT    						AS TOTCNTRCN, -->
+				BL.PKG_QTY         						AS PKGQTY,
+				<!-- BL.PKG_MARK        						AS PKGMARK, -->
+				CAST(BL.CG_WGT AS NUMERIC(15,3)) 		AS WGT,
+			    <!-- BL.WGT_UNIT        						AS WGTUNIT, -->
+			    (CASE
+			        WHEN BL.CG_VOL = '0' THEN 0
+			    	ELSE (CASE
+			    	    	WHEN ROUND(BL.CG_VOL, 3) = '0' THEN 0
+			    	    	ELSE CAST(BL.CG_VOL AS NUMERIC(15,3))
+			    	    END)
+			    END) 									AS VOL,
+			    <!-- BL.VOL_UNIT        						AS VOLUNIT,
+			    BL.PDUCT_CD        						AS PDUCTCD, -->
+			    BL.GDS_RMK         						AS GDSRMK,
+			    <!-- BL.CUST_GDS_RMK    						AS CUSTGDSRM,
+			    BL.RMK             						AS RMK, -->
+			    BL.POL             						AS POL,
+			    BL.POD             						AS POD,
+			    BL.FDEST     							AS FNLPORTCD,
+			    BL.OP_CLASS_CD     						AS OPCLASSCD,
+			    <!-- BL.BL_CLASS_CD     						AS BLCLASSCD,
+			    BL.CG_CLASS_CD     						AS CGCLASSCD,
+			    BL.CNNT_VSL_CD     						AS CNNTVSLCD,
+			    BL.INS_USER_ID     						AS INSUSERID,
+			    BL.INS_DTM         						AS INSDTM, -->
+			    BL.STAFF_CD     						AS UPDUSERID,
+			    BL.UPDATE_TIME         					AS UPDDTM,
+			    <!-- BL.HS_CD_DIV       						AS HSCDDIV,
+			    BL.HS_CD           						AS HSCD, -->
+			    BL.IMDG_CLASS 							AS IMDGCLASS,
+			    BL.UNNO   								AS UNNO,
+			    BL.PKG_TP_CD       						AS PGKTPCD,
+			    (SELECT TOP (1)
+					S_CD_NM
+				FROM
+					TMT_CD_MSTD
+				WHERE
+					L_CD = 'MT'
+					AND M_CD = 'PKGTP'
+					AND S_CD_USE = 'Y'
+					AND S_CD = BL.PKG_TP_CD)       		AS PKGTPNM,
+			    (SELECT TOP (1)
+					PORT_NM
+                FROM
+					TMT_PORT_MST
+                WHERE
+					BL.POL = (CNTRY_CD + PORT_CD))      AS POLNM,
+			    (SELECT TOP (1)
+					PORT_NM
+                FROM
+					TMT_PORT_MST
+                WHERE
+					BL.POD = (CNTRY_CD + PORT_CD))      AS PODNM,
+				(SELECT TOP (1)
+					PORT_NM
+                FROM
+					TMT_PORT_MST
+                WHERE
+					BL.FND = (CNTRY_CD + PORT_CD))     	AS FNLPORTNM,
+				(SELECT
+					PTNR_CODE
+				FROM
+					TMT_FZ_DOC_PTNR_ROLE_DEF A
+				WHERE
+					A.DOC_ID 							= BL.DOC_ID
+  					AND A.JOB_NO 						= BL.JOB_NO
+					AND A.ROLE_CD 						= 'CNSNEE'
+  					AND (
+  						EXISTS (
+  							SELECT
+								'1'
+               				FROM
+								TMT_FZ_DOC_MST
+               				WHERE
+								DOC_ID 					= A.DOC_ID
+                 				AND JOB_NO 				= A.JOB_NO
+                 				AND DOC_STAT_CD 		= 'AP'
+                 				AND DOC_ID 				= 'K4BL'
+                 				)
+    					OR
+						EXISTS (
+							SELECT
+								'1'
+               				FROM
+								TMT_FZ_DOC_MST
+               				WHERE
+								DOC_ID 					= A.DOC_ID
+                 				AND JOB_NO 				= A.JOB_NO
+                 				AND DOC_STAT_CD 		= 'AP'
+                 				AND DOC_ID 				= 'K6BL'
+                 			)
+                 		)
+                )										AS CNSCD_FZ,
+                (SELECT
+					PTNR_CODE
+				FROM
+					TMT_FZ_DOC_PTNR_ROLE_DEF A
+				WHERE
+					A.DOC_ID 							= BL.DOC_ID
+  					AND A.JOB_NO 						= BL.JOB_NO
+					AND A.ROLE_CD 						= 'CNSNOR'
+  					AND (
+  						EXISTS (
+  							SELECT
+								'1'
+               				FROM
+								TMT_FZ_DOC_MST
+               				WHERE
+								DOC_ID 					= A.DOC_ID
+                 				AND JOB_NO 				= A.JOB_NO
+                 				AND DOC_STAT_CD 		= 'AP'
+                 				AND DOC_ID 				= 'K4BL'
+                 				)
+    					OR
+						EXISTS (
+							SELECT
+								'1'
+               				FROM
+								TMT_FZ_DOC_MST
+               				WHERE
+								DOC_ID 					= A.DOC_ID
+                 				AND JOB_NO 				= A.JOB_NO
+                 				AND DOC_STAT_CD 		= 'AP'
+                 				AND DOC_ID 				= 'K6BL'
+                 			)
+                 		)
+                )										AS CNSNORCD_FZ
+			FROM
+				TMT_VSL_SCH SCH,
+				TMT_BL BL
+			WHERE
+				1 = 1
+				<if test="vslCallId != null and vslCallId != ''">
+					AND SCH.VSL_CALL_ID 				= #{vslCallId}
+				</if>
+				<if test="vslCallId == null or vslCallId == '' 
+					and etaStart != null and etaStart != '' and etaEnd != null and etaEnd != ''">
+					AND CAST(SCH.ETA AS DATE)
+						BETWEEN
+							CONVERT(DATE, #{etaStart}, 103)
+								AND
+							CONVERT(DATE, #{etaEnd}, 103)
+			    </if>
+		  			AND SCH.VSL_CD 						= BL.VSL_CD
+		  			AND SCH.CALL_YEAR 					= BL.CALL_YEAR
+		  			AND SCH.CALL_SEQ 					= BL.CALL_SEQ
+					AND BL.DOC_ID IN ('K4BL', 'K6BL')
+					AND BL.MF_DOC_ID IS NOT NULL
+					AND BL.OP_CLASS_CD IN ('I','T')
+					AND EXISTS (
+						SELECT
+							'1'
+                  		FROM
+							TMT_FZ_DOC_MST TDH
+                  		WHERE
+							BL.JOB_NO 					= TDH.JOB_NO
+                      		AND BL.DOC_ID 				= TDH.DOC_ID
+                      		AND TDH.DOC_STAT_CD			= 'AP'
+                      	)
+          	) A LEFT OUTER JOIN TMT_BL tempBL
+		    	ON A.VSLCALLID 							= tempBL.VSL_CALL_ID
+				AND A.BLNO 								= tempBL.BL_NO,
+		    TMT_BL B
+		WHERE
+	 		A.BLNO IS NOT NULL
+	 		AND B.VSL_CALL_ID 							= A.VSLCALLID
+  			AND B.MF_DOC_ID 							= A.MFDOCID
+ 			AND B.BL_NO 								= A.BLNO
+			<if test="delvTpCd != null and delvTpCd != ''">
+				AND B.DELV_TP_CD 						= #{delvTpCd}
+			</if>
+			<if test="authority == 'FWD'">
+				AND (A.BLNO IS NOT NULL AND A.BLNO <![CDATA[<>]]> '')
+				AND B.FWRD 								= #{ptnrCd}
+			</if>
+			<if test="authority == 'SHA'">
+				AND (A.ARRVSAID 						= #{ptnrCd}
+					OR A.DEPRSAID 						= #{ptnrCd})
+			</if>
+			<if test="authority == 'BH'">
+				AND ((A.ARRVSAID 						= #{ptnrCd}
+					OR A.DEPRSAID 						= #{ptnrCd})
+					OR B.FWRD 							= #{ptnrCd})
+			</if>
+		ORDER BY
+			A.VSLCALLID,
+		    JOBNO
+	</select>
+	
+	<select id="chkNominationManifest"  parameterType="NominationManifestParm" resultType="NominationManifestItem">
+		SELECT /*NominationManifestMap.chkNominationManifest*/
+			'1'
+		FROM
+			TMT_BL
+		WHERE
+			VSL_CALL_ID 								= #{vslCallId}
+			AND BL_NO 									= #{blNo}
+	</select>
+	
+	<select id="selectDgSeq"  parameterType="NominationManifestParm" resultType="NominationManifestItem">
+		SELECT /*NominationManifestMap.selectDgSeq*/
+			MAX(SEQ) + 1
+		FROM
+			TMT_DG
+		WHERE
+			VSL_CALL_ID 								= #{vslCallId}
+			AND CG_NO 									= #{blNo}
+	</select>
+	
+	<insert id="insertNominationManifestItems"  parameterType="NominationManifestItem">
+		INSERT INTO /*NominationManifestMap.insertNominationManifestItems*/
+			TMT_BL (
+				VSL_CALL_ID,
+				BL_NO,
+				<!-- DO_NO, -->
+				DOC_ID,
+				JOB_NO,
+				VSL_CD,
+				CALL_SEQ,
+				CALL_YEAR,
+				<!-- CG_INOUT_TP, -->
+				CG_TP_CD,
+				DELV_TP_CD,
+				CATG_CD,
+				DG_SEQ,
+				PKG_QTY,
+				<!-- PGK_TP_CD_FZ, -->
+				FWRD,
+				CG_WGT,
+				CG_WGT_UNIT,
+				CG_VOL,
+				CG_VOL_UNIT,
+				GDS_RMK,
+				POL,
+				<!-- POL_NM, -->
+				POD,
+				<!-- POD_NM, -->
+				<!-- FNL_PORT_CD,
+				FNL_PORT_NM, -->
+				OP_CLASS_CD,
+				IMDG_CLASS,
+				UNNO,
+				<!-- SUBSTANCE,
+				UPD_DT,
+				NOMINATE_DT,
+				UPD_USER_ID, -->
+				HS_CODE,
+				VERSION,
+				STAFF_CD,
+				UPDATE_TIME,
+				MF_DOC_ID
+			) VALUES (
+				#{vslCallId},
+				#{blNo},
+				<!-- #{doNo}, -->
+				#{docId},
+				#{jobNo},
+				#{vslCd},
+				#{callSeq},
+				#{callYear},
+				<!-- #{cgInoutTp}, -->
+				#{cgTpCd},
+				#{delvTpCd},
+				(CASE
+					WHEN #{docId} = 'K6BL' THEN 'T'
+					ELSE #{opClassCd}
+				END),
+				#{dgSeq},
+				#{pkgQty},
+				<!-- #{pkgTpCd}, -->
+				#{fwdCd},
+				#{wgt},
+				#{wgtUnit},
+				#{vol},
+				#{volUnit},
+				#{gdsRmk},
+				#{pol},
+				<!-- #{polNm}, -->
+				#{pod},
+				<!-- #{podNm},
+				#{fnlPortCd},
+				#{fnlPortNm}, -->
+				#{opClassCd},
+				#{imdgClass},
+				#{unno},
+				<!-- #{substance},
+				SYSDATETIME(),
+				SYSDATETIME(),
+				'MOSTADMIN', -->
+				#{hsCd},
+				#{newVersion},
+				#{userId},
+				SYSDATETIME(),
+				#{blNo}
+			)
+	</insert>
+	
+	<update id="updateNominationManifestItems"  parameterType="NominationManifestItem">
+		UPDATE /*NominationManifestMap.updateNominationManifestItems*/
+			TMT_BL
+		SET
+			<!-- DO_NO 										= #{doNo}, -->
+			<!-- DOC_ID 										= #{docId},
+			JOB_NO 										= #{jobNo},
+			CG_INOUT_TP 								= #{cgInoutTp}, -->
+			CG_TP_CD 									= #{cgTpCd},
+			DELV_TP_CD 									= #{delvTpCd},
+			CATG_CD 									= (CASE
+																WHEN #{docId} = 'K6BL' THEN 'T'
+																ELSE #{opClassCd}
+															END),
+			<!-- DG_SEQ 										= #{dgSeq}, -->
+			PKG_TP_CD 									= #{pkgTpCd},
+			FWRD 										= #{fwdCd},
+			CG_WGT 										= (CASE
+			        											WHEN #{wgt} = '0' THEN 0
+			    													ELSE (CASE
+			    	    													WHEN ROUND(#{wgt}, 3) = 0 THEN '0'
+			    	    														ELSE CAST(ROUND(#{wgt}, 3) AS NUMERIC(15,3))
+			    	    													END)
+			   												END),
+			<!-- WGT_UNIT 									= #{wgtUnit}, -->
+			CG_VOL 										= (CASE
+			        											WHEN #{vol} = '0' THEN 0
+			    													ELSE (CASE
+			    	    													WHEN ROUND(#{vol}, 3) = '0' THEN 0
+			    	    														ELSE CAST(ROUND(#{vol}, 3) AS NUMERIC(15,3))
+			    	    													END)
+			   												END),
+			<!-- VOL_UNIT 									= #{volUnit}, -->
+			GDS_RMK 									= #{gdsRmk},
+			POL 										= #{pol},
+			<!-- POL_NM 										= #{polNm}, -->
+			POD 										= #{pod},
+			<!-- POD_NM 										= #{podNm}, -->
+			FND 										= #{fnlPortCd},
+			<!-- FNL_PORT_NM 								= #{fnlPortNm}, -->
+			OP_CLASS_CD 								= #{opClassCd},
+			IMDG_CLASS 									= #{imdgClass},
+			UNNO 										= #{unno},
+			<!-- SUBSTANCE 									= #{substance}, -->
+			UPDATE_TIME 								= SYSDATETIME(),
+			<!-- NOMINATE_DT 								= SYSDATETIME(), -->
+			STAFF_CD 									= #{userId},
+			VERSION 									= #{newVersion}
+		WHERE
+			VSL_CALL_ID 								= #{vslCallId}
+			AND BL_NO 									= #{blNo}
+	</update>
+	
+	<insert id="insertNominationManifestRoleItems"  parameterType="NominationManifestItem">
+		EXEC /*NominationManifestMap.insertNominationManifestRoleItems*/ PRC_NOMINATION_ROLE_INSERT(#{docId}, #{jobNo}, #{fwdCd}, #{fwdNm})
+	</insert>
+	
+	<insert id="insertNominationManifestDGItems"  parameterType="NominationManifestItem">
+		INSERT INTO /*NominationManifestMap.insertNominationManifestDGItems*/
+			TMT_DG (
+				SEQ,
+				VSL_CALL_ID,
+				VSL_CD,
+				CALL_YEAR,
+				CALL_SEQ,
+				CG_NO,
+				IMDG,
+				UNNO,
+				SUBSTANCE,
+				IMP_NM,
+				IMP_ADDR,
+				EXP_NM,
+				EXP_ADDR,
+				<!-- FREE_ZONE_DIV,
+				FLASH_PNT, -->
+				HAZ_CHEM,
+				<!-- PRI_CD,
+				PRI_GRP, -->
+				PKG,
+				PKG_QTY,
+				RMK,
+				DG_CHK ,
+				<!-- CMPL_CHK, -->
+				EMP_CD,
+				DCL_DT, /* ADDED 01-01-2017 */
+				UPDATE_TIME,
+				PROP_SNM,
+				STAT_CD,
+				STAFF_CD,
+				CONTACT_PERSON,
+				CONTACT_NUMBER
+			) VALUES (
+				#{dgSeq},
+				#{vslCallId},
+				#{vslCd},
+				#{callYear},
+				#{callSeq},
+				#{blNo},
+				#{imdgClass},
+				#{unno},
+				#{substance},
+				#{cnsNm},
+				#{impAddr},
+				#{cnsnorNm},
+				#{expAddr},
+				<!-- #{freeZoneDiv},
+				#{flashPnt}, -->
+				#{hazChem},
+				<!-- #{priCd},
+				#{priGrp}, -->
+				#{pkgTpCd},
+				#{pkgQty},
+				#{rmk},
+				'S',
+				<!-- 'N', -->
+				#{userId},
+				SYSDATETIME(), /* ADDED 01-01-2017 */
+				SYSDATETIME(),
+				#{propSnm},
+				'N',
+				#{userId},
+				#{contactNm},
+				#{contactNo}
+			)
+	</insert>
+	
+	<update id="updateNominationManifestDGItems"  parameterType="NominationManifestItem">
+		UPDATE /*NominationManifestMap.updateNominationManifestDGItems*/
+			TMT_DG
+		SET
+			IMDG 										= #{imdgClass},
+			UNNO 										= #{unno},
+			SUBSTANCE 									= #{substance},
+			IMP_NM 										= #{cnsNm},
+			IMP_ADDR 									= #{impAddr},
+			EXP_NM 										= #{cnsnorNm},
+			EXP_ADDR 									= #{expAddr},
+			<!-- FREE_ZONE_DIV 								= #{freeZoneDiv},
+			FLASH_PNT 									= #{flashPnt}, -->
+			HAZ_CHEM 									= #{hazChem},
+			<!-- PRI_CD 										= #{priCd},
+			PRI_GRP 									= #{priGrp}, -->
+			PKG 										= #{pkgTpCd},
+			PKG_QTY 									= #{pkgQty},
+			RMK 										= #{rmk1},
+			STAFF_CD 									= 'MOSTADMIN',
+			UPDATE_TIME 								= SYSDATETIME(),
+			PROP_SNM 									= #{propSnm},
+			CONTACT_PERSON 								= #{contactNm},
+			CONTACT_NUMBER								= #{contactNo}
+		WHERE
+			CG_NO 										= #{blNo}
+			AND SEQ										= #{dgSeq}
+	</update>
+	<!-- Anthony: Update DG_IF -->
+	<update id = "updateDGIfItem"  parameterType = "NominationManifestItem">
+		UPDATE /*NominationManifestMap.updateDGIfItem*/
+			TVC_DG_IF -- request: TMT_DG_IF
+		SET
+			QTY = #{pkgQty}
+		WHERE
+			REF_NO = #{dgSeq} + '/' + 'MT'
+	</update> 
+	<!-- End Anthony -->
+	
+	<select id="selectValidation" parameterType="ValidationCodeParm" resultType="ValidationCodeItem">
+		<if test='tyCd == "EXISTED_OPE_FORWARDER_NOMINATION_VALIDATION"'>
+			WITH /*NominationManifestMap.selectValidation*/
+				OPEJOB AS (
+            		SELECT
+            		    R1.BL_NO
+            		    <!-- ,STRING_AGG(R1.DO_NO, '/') WITHIN GROUP ( ORDER BY R1.DO_NO ) REF_NO1 -->
+					FROM (
+						SELECT
+							JO.*,
+							BL.BL_NO
+							<!-- ,BL.DO_NO -->
+						FROM
+							TMT_JOB JO
+								INNER JOIN TMT_BL BL
+								    ON JO.VSL_CALL_ID 				= BL.VSL_CALL_ID
+								    AND JO.CG_NO 					= BL.BL_NO
+								INNER JOIN TMT_FZ_DOC_MST HDR
+ 									ON HDR.JOB_NO 					= BL.JOB_NO
+ 									AND HDR.DOC_ID 					= BL.DOC_ID
+						WHERE
+							BL.CATG_CD IN ('I','T')
+ 							AND HDR.DOC_STAT_CD 					= 'AP'
+							<if test="col1 != null and col1 != ''">
+								AND JO.VSL_CALL_ID 					= #{col1}
+							</if>
+							<if test="col2 != null and col2 != ''">
+								AND BL.DO_NO IN (${col2})
+							</if>
+							<if test="col3 != null and col3 != ''">
+								AND JO.CG_NO IN (${col3})
+							</if>
+	                ) R1
+	            GROUP BY
+	            	R1.BL_NO
+	            	<!-- ,R1.DO_NO -->
+	            	),
+
+				DOCUMENT AS (
+					SELECT
+						BL.BL_NO,
+						<!-- BL.DO_NO, -->
+ 						HDR.DOC_ID,
+						BL.CALL_SEQ,
+						BL.CALL_YEAR
+					FROM
+					    TMT_BL BL
+ 						INNER JOIN TMT_BL HDR
+ 							ON HDR.JOB_NO 							= BL.JOB_NO
+ 							AND HDR.DOC_ID 							= BL.DOC_ID
+						INNER JOIN TMT_VSL_SCH SCH
+							ON SCH.VSL_CALL_ID 						= BL.VSL_CALL_ID
+							AND SCH.VSL_CD 							= BL.VSL_CD
+							AND SCH.CALL_YEAR 						= BL.CALL_YEAR
+							AND SCH.CALL_SEQ 						= BL.CALL_SEQ
+					WHERE
+						BL.CATG_CD IN ('I','T')
+ 						AND HDR.DOC_ID IN ('K4BL', 'K6BL')
+ 						AND HDR.OP_CLASS_CD IN ('I','T')
+ 						AND HDR.MF_DOC_ID IS NOT NULL
+ 						AND EXISTS (
+ 									SELECT
+										'1'
+									FROM
+										TMT_FZ_DOC_MST TDH
+									WHERE
+										HDR.JOB_NO 					= TDH.JOB_NO
+										AND HDR.DOC_ID 				= TDH.DOC_ID
+										AND TDH.DOC_STAT_CD 		= 'AP')
+					<if test="col1 != null and col1 != ''">
+						AND BL.VSL_CALL_ID 							= #{col1}
+					</if>
+					<if test="col2 != null and col2 != ''">
+						AND BL.DO_NO IN (${col2})
+					</if>
+					<if test="col3 != null and col3 != ''">
+						AND BL.BL_NO IN (${col3})
+					</if>
+					<if test="col4 != null and col4 != ''">
+						<if test="col5 != null and col5 != ''">
+						AND CAST(SCH.ETA AS DATE) BETWEEN
+							CONVERT(DATE, #{col4}, 103)
+								AND
+						    CONVERT(DATE, #{col5}, 103)
+						</if>
+					</if>
+            	)
+            
+			SELECT /*NominationManifestMap.selectValidation*/
+				DOC.BL_NO 								AS REF2,
+<!-- 				DOC.DO_NO 								AS REF1, -->
+				ISNULL(
+						(
+							SELECT
+								(CASE
+									WHEN COUNT(1) > 0 THEN 'Y'
+								    ELSE 'N'
+								END)
+							FROM
+								OPEJOB J
+							WHERE
+								J.BL_NO 				= DOC.BL_NO
+							<!-- AND J.REF_NO1 			= DOC.DO_NO -->
+							<!-- GROUP BY
+							    REF_NO1 -->
+						)
+					, 'N') 								AS isValidated
+			FROM
+				DOCUMENT DOC
+		</if>
+	</select>
+</mapper>

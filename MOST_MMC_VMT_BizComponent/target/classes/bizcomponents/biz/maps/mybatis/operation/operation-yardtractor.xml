@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="yardTractor">
+
+    <resultMap id="equipmentResultYt" 	type="equipmentItem">
+		<result property="key"                    column="KEY" />
+		<result property="name"                   column="NAME" />
+		<result property="type"                   column="TYPE" />
+    </resultMap>
+    
+    <resultMap id="resultPopupItem"     type="com.tsb.most.biz.dataitem.yardtruck.PopupItem">
+		<result property="code"                   column="CODE"/>
+		<result property="codeName"               column="CODENAME"/>
+		<result property="codeInfo"               column="CODEINFO"/>
+    </resultMap>
+    
+    <resultMap id="resultStoppageItem" type="com.tsb.most.biz.dataitem.yardtruck.StoppageCodeItem">
+        <result property="stoppageCd"               column="STOPPAGE_CODE"/>
+        <result property="stoppageDesc"             column="STOPAGE_DESC"/>
+        <result property="stopSTime"                column="STOP_STIME"/>
+    </resultMap>
+    
+    <select id="searchEquipmentYtItems" resultMap="equipmentResultYt">
+		SELECT F.EQ_FAC_NO AS KEY,
+		       F.EQ_FAC_NM AS NAME,
+		       F.EQ_TP_CD AS TYPE
+		  FROM TMT_EQ_FAC F
+		       LEFT OUTER JOIN TMT_EQ_CAPA C
+		          ON F.CAPA_CD = C.CAPA_CD AND F.EQ_TP_CD = C.EQ_TP_CD
+		 WHERE F.VLD_YN  = 'Y' AND F.EQ_TP_CD = 'YT'
+    </select>
+    
+	<select id="searchStopReasonItems" resultMap="resultPopupItem">
+        SELECT DISTINCT STOP_CODE CODE,
+                STOP_DESC CODENAME, (USE_GC || '+' || USE_YC || '+' || USE_YT) CODEINFO
+          FROM TMT_STPCODE
+      ORDER BY CODE
+    </select>    
+    
+    <select id="searchStoppageItem" parameterType="com.tsb.most.biz.parm.yardtruck.SearchStoppageParm" resultMap="resultStoppageItem">
+		SELECT
+               R.STOP_RSN STOPPAGE_CODE, 
+               (SELECT DISTINCT STOP_DESC FROM TMT_STPCODE WHERE STOP_CODE = R.STOP_RSN) AS STOPAGE_DESC,
+               TO_CHAR(R.STOP_STIME, 'YYYY-MM-DD HH24:MI:SS') STOP_STIME
+          FROM TMT_RSRC_STOP R
+         WHERE 
+                   R.EQU_NO = #{equNo}
+		       AND R.STOP_STIME IS NOT NULL
+		       AND R.RESUME_ATIME IS NULL
+    </select>
+    
+    <select id="requestJobs" parameterType="searchEquipmentParm" resultType="YtContainerItem">
+		<include refid="getImportJob"/>    
+	</select>
+	
+	<sql id="getImportJob">
+		WITH
+		    IMP_PLAN
+		    AS
+		        (SELECT SP.VSL_CALL_ID, SP.BL_NO, SP.REQ_POS AS WH_ID
+                   FROM TMT_SPC_REQ  SP
+                  WHERE SP.VSL_CALL_ID IN (SELECT YP.VSL_CALL_ID FROM  TMT_YT_POOL YP))
+		SELECT VP.VSL_NM        AS VSLNM,
+		       'VI'             AS YARDJOBCODE,
+		       JB.LORRY_NO      AS YARDTRUCKNO,
+		       BL.BL_NO         AS DOCNO,
+		       VC.BERTH_LOC     AS BERTHLOC,
+		       IP.WH_ID         AS WHID
+		  FROM TMT_JOB  JB
+		       INNER JOIN TMT_BL BL
+		           ON JB.VSL_CALL_ID = JB.VSL_CALL_ID AND JB.CG_NO = BL.BL_NO
+		       INNER JOIN TMT_VSL_SCH VC ON BL.VSL_CALL_ID = VC.VSL_CALL_ID
+		       INNER JOIN TMT_VSL_PART VP ON VC.VSL_CD = VP.VSL_CD
+		       INNER JOIN TMT_YT_POOL PL ON JB.VSL_CALL_ID = PL.VSL_CALL_ID AND JB.LORRY_NO = PL.EQ_NO AND PL.EQ_TP_CD = 'YT'
+		       LEFT JOIN IMP_PLAN IP
+		           ON BL.VSL_CALL_ID = IP.VSL_CALL_ID AND BL.BL_NO = IP.BL_NO
+		 WHERE     JB.JOB_PURP_CD IN ('VA')
+		       AND JB.NEXT_JOB_NO IS NULL
+		       AND LORRY_NO != 'TBA'
+		       AND (LORRY_NO = #{equipmentNo})
+		       AND ROWNUM = 1
+	</sql>
+    
+    
+    <!-- RBT. added YT Activate operation -->
+    
+    
+    <!-- <select id="searchOrderedJobItem" resultType="com.tsb.most.biz.mbts.msgitem.YtContainerItem">
+		<include refid="getImportOrderedJobItem"/>
+    </select>
+    
+    <sql id="getImportOrderedJobItem">
+		WITH
+		    IMP_PLAN
+		    AS
+		        (SELECT SP.VSL_CALL_ID, SP.BL_NO, SP.REQ_POS AS WH_ID
+		           FROM TMT_SPC_REQ  SP
+		                INNER JOIN TMT_YT_POOL YP
+		                    ON     SP.VSL_CALL_ID = YP.VSL_CALL_ID
+		                       AND SP.BL_NO = YP.DOC_NO
+		                       AND YP.IMEX_CD = 'I'
+		          WHERE BL_NO IS NOT NULL AND ROWNUM = 1)
+		SELECT YP.EQ_NO                                               AS YARDTRUCKNO,
+		       YP.DOC_NO                                              AS DOCNO,
+		       CASE WHEN YP.IMEX_CD = 'I' THEN 'VI' ELSE 'VO' END     AS YARDJOBCODE,
+		       SC.BERTH_LOC                                           AS BERTHCD,
+		       VP.VSL_NM                                              AS VSLNM,
+		       IP.WH_ID                                               AS WHID
+		  FROM TMT_YT_POOL  YP
+		       INNER JOIN TMT_VSL_SCH SC ON YP.VSL_CALL_ID = SC.VSL_CALL_ID
+		       INNER JOIN TMT_VSL_PART VP ON SC.VSL_CD = VP.VSL_CD
+		       LEFT JOIN IMP_PLAN IP
+		           ON     YP.VSL_CALL_ID = IP.VSL_CALL_ID
+		              AND YP.DOC_NO = IP.BL_NO
+		              AND YP.IMEX_CD = 'I'
+		 WHERE EQ_TP_CD = 'YT'
+    </sql> -->
+    
+    <!-- ====================================================== INSERT ========================================================== -->
+    <insert id="insertStoppage" parameterType="com.tsb.most.biz.dataitem.yardtruck.StoppageItem">
+        INSERT INTO TMT_RSRC_STOP (
+              STOP_SEQ,
+              EQU_NO,
+              STOP_STIME,
+              STOP_RSN,
+              VSL_CD,
+              CALL_YEAR,
+              CALL_SEQ,
+              REMARK,
+              STAFF_CD,
+              UPDATE_TIME,
+              STOP_TYPE,
+              MEDIUM_TYPE)
+         VALUES (   
+              (SELECT TO_CHAR(SYSDATE, 'YYMMDD') || NVL (TRIM (TO_CHAR (MAX (SUBSTR (STOP_SEQ, -4, 4)) + 1, '0000')), '0000')
+                FROM TMT_RSRC_STOP),
+              #{sEquNo},
+              TO_DATE(#{sWorkTranTime}, 'YYYYMMDDHH24MISS'),
+              #{sStoppageCD},
+              #{sVslCD},
+              #{sCallYear},
+              #{sCallSeq},
+              #{sRemark},
+              #{sStaffCD},
+              SYSDATE,
+              'E',
+              'S'
+              )
+    </insert>
+    
+    <!-- ====================================================== UPDATE ========================================================== -->
+    <update id="updateStoppage" parameterType="com.tsb.most.biz.dataitem.yardtruck.StoppageItem">
+        UPDATE TMT_RSRC_STOP
+            SET
+                STOP_ETIME = SYSDATE,
+                RESUME_ATIME = SYSDATE
+         WHERE 
+                EQU_NO= #{sEquNo}
+                AND RESUME_ATIME IS NULL
+    </update>
+    
+    
+</mapper>

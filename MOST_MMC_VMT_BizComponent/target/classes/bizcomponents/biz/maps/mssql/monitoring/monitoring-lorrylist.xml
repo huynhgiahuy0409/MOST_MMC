@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="lorryList">
+	<sql id='sqlLorryListBL1'>
+		SELECT 
+		    BL.VSL_CALL_ID AS VSLCALLID,
+		    BL.BL_NO AS BLNO,
+		    '' AS SNNO,
+		    FORMAT(DO.EST_ARRV_DT, 'dd/MM/yyyy HH:mm') AS ESTDT,
+		    BL.TSPTR AS TSPTCD,
+		    TK.LORRY_NO AS LORRYNO,
+		    D.DRIVER_NM AS DRIVER,
+		    FORMAT(D.LICS_EXPR_YMD, 'dd/MM/yyyy') AS EXPRDT,
+		    D.LICS_NO AS LICSNO,
+		    FORMAT(C.GATE_IN_DT, 'dd/MM/yyyy HH:mm') AS GATEINDT,
+		    FORMAT(C.GATE_OUT_DT, 'dd/MM/yyyy HH:mm') AS GATEOUTDT
+		FROM TMT_BL BL
+		JOIN TMT_DO DO 
+			 	ON DO.BL_NO			= BL.BL_NO 		AND DO.VSL_CALL_ID	= BL.VSL_CALL_ID
+		JOIN TMT_CG_ARRV_DELV C 
+				ON BL.VSL_CALL_ID	= C.VSL_CALL_ID AND BL.BL_NO		= C.CG_NO
+		JOIN TMT_TRUCK_MST TK
+				ON BL.TSPTR 		= TK.PTNR_CD 	AND TK.LORRY_NO 	= C.LORRY_NO
+		JOIN TMT_DRIVER_MST D 
+				ON D.PTNR_CD 		= TK.PTNR_CD 	AND D.DRIVER_ID 	= C.DRIVER_ID
+		WHERE 	1 = 1
+		<if test="ptnrCd != null and ptnrCd != ''">
+        	AND BL.TSPTR LIKE '%' + #{ptnrCd} + '%'
+	    </if>
+	    <if test="DRIVER != null and DRIVER != ''">
+	        AND D.DRIVER_NM LIKE '%' + #{DRIVER} + '%'
+	    </if>
+	    <if test="LORRYNO != null and LORRYNO != ''">
+	        AND D.LORRY_NO = #{LORRYNO}
+	    </if>
+	    <if test="LICSNO != null and LICSNO != ''">
+	        AND D.LICS_NO = #{LICSNO}
+	    </if>
+	    <if test="BLNO != null and BLNO != ''">
+	        AND BL.BL_NO = #{BLNO}
+	    </if>
+	    <if test="aplyYmd != null and aplyYmd != ''">
+	        <if test="exprYmd != null and exprYmd != ''">
+	            AND DO.EST_ARRV_DT <![CDATA[>=]]>  ISNULL(CONVERT(DATETIME, #{aplyYmd} + ' 00:00', 103), DATEADD(DAY, -60, GETDATE()))
+	            AND DO.EST_ARRV_DT <![CDATA[<=]]>  ISNULL(CONVERT(DATETIME, #{exprYmd} + ' 23:59', 103), DATEADD(DAY, 1, GETDATE()))
+	        </if>
+	    </if>
+	    <if test="noGate == null or noGate == ''">
+	        AND C.GATE_IN_DT IS NULL
+	        AND C.GATE_OUT_DT IS NULL
+	    </if>
+	</sql>
+	<sql id="sqlLorryListSN1">
+		SELECT 
+			SN.VSL_CALL_ID AS VSLCALLID,
+		    '' AS BLNO,
+		    SN.SHIPG_NOTE_NO AS SNNO,
+		    FORMAT(SN.EST_ARRV_DT, 'dd/MM/yyyy HH:mm') AS ESTDT,
+		    TK.PTNR_CD AS TSPTCD,
+		    TK.LORRY_NO AS LORRYNO,
+		    D.DRIVER_NM AS DRIVER,
+		    FORMAT(D.LICS_EXPR_YMD, 'dd/MM/yyyy') AS EXPRDT,
+		    D.LICS_NO AS LICSNO,
+		    FORMAT(C.GATE_IN_DT, 'dd/MM/yyyy HH:mm') AS GATEINDT,
+		    FORMAT(C.GATE_OUT_DT, 'dd/MM/yyyy HH:mm') AS GATEOUTDT
+		FROM
+		    (SELECT 
+		         AA.TSPT_COMP,
+		         AA.VSL_CALL_ID,
+		         AA.SHIPG_NOTE_NO,
+		         AA.EST_ARRV_DT  
+		     FROM TMT_SHIPG_NOTE AA) SN
+		JOIN TMT_GR GR 
+				ON SN.SHIPG_NOTE_NO	= GR.SHIPG_NOTE_NO 	AND SN.VSL_CALL_ID	= GR.VSL_CALL_ID
+		JOIN TMT_CG_ARRV_DELV C 
+				ON C.CG_NO			= GR.GR_NO 			AND C.VSL_CALL_ID 	= GR.VSL_CALL_ID
+		JOIN TMT_TRUCK_MST TK
+				ON TK.PTNR_CD 		= SN.TSPT_COMP 		AND TK.LORRY_NO 	= GR.LORRY_NO
+		JOIN TMT_DRIVER_MST D 
+				ON D.PTNR_CD 		 = TK.PTNR_CD 		AND D.DRIVER_ID		= C.DRIVER_ID
+		WHERE 1 = 1
+	    <if test="ptnrCd != null and ptnrCd != ''">
+	        AND TK.PTNR_CD LIKE '%' + #{ptnrCd} + '%'
+	    </if>
+	    <if test="DRIVER != null and DRIVER != ''">
+	        AND D.DRIVER_NM LIKE '%' + #{DRIVER} + '%'
+	    </if>
+	    <if test="LORRYNO != null and LORRYNO != ''">
+	        AND TK.LORRY_NO = #{LORRYNO}
+	    </if>
+	    <if test="LICSNO != null and LICSNO != ''">
+	        AND D.LICS_NO = #{LICSNO}
+	    </if>
+	    <if test="SNNO != null and SNNO != ''">
+	        AND GR.SHIPG_NOTE_NO = #{SNNO}
+	    </if>
+	    <if test="aplyYmd != null and aplyYmd != ''">
+	        <if test="exprYmd != null and exprYmd != ''">
+	            AND SN.EST_ARRV_DT <![CDATA[>=]]> ISNULL(CONVERT(DATETIME, #{aplyYmd} + ' 00:00', 103), DATEADD(DAY, -60, GETDATE()))
+	            AND SN.EST_ARRV_DT <![CDATA[<=]]> ISNULL(CONVERT(DATETIME, #{exprYmd} + ' 23:59', 103), DATEADD(DAY, 1, GETDATE()))
+	        </if>
+	    </if>
+	    <if test="noGate == null or noGate == ''">
+	        AND C.GATE_IN_DT IS NULL
+	        AND C.GATE_OUT_DT IS NULL
+	    </if>
+	</sql>
+	<select id="selectLorryList" parameterType="LorryListParm"
+		resultType="LorryListItem">
+		/* LorryList.selectLorryListItems */
+		<if test="SNNO == null or SNNO == ''">
+			<include refid="sqlLorryListBL1" />
+		</if>
+		<if test="SNNO == null or SNNO == ''">
+			<if test="BLNO == null or BLNO == ''">
+				UNION ALL
+			</if>
+		</if>
+		<if test="BLNO == null or BLNO == ''">
+			<include refid="sqlLorryListSN1" />
+		</if>
+	</select>
+
+
+</mapper>

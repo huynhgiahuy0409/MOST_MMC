@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration scan="true" scanPeriod="300 seconds"> 
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>[%d]=> %msg%n</pattern>
+		</encoder>
+	</appender>
+	<appender name="WSLog" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>E:\LogFile\PLUS_UP\Interface\ws.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+    		  <fileNamePattern>E:\LogFile\PLUS_UP\Interface\ws-%i.log</fileNamePattern>
+    		  <minIndex>1</minIndex>
+     		  <maxIndex>20</maxIndex>
+  		</rollingPolicy>
+		<triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+     	 	<maxFileSize>50MB</maxFileSize>
+   		</triggeringPolicy>
+		<encoder>
+			<pattern>[%d] %-5p => %msg%n</pattern>
+		</encoder>
+	</appender>
+	 
+	<logger name="com.tsb.tosif" level="DEBUG"  additivity="false">
+		<appender-ref ref="WSLog" />
+	</logger>
+
+    <logger name="org.springframework.beans" level="DEBUG">
+    	<appender-ref ref="STDOUT" />
+        <appender-ref ref="WSLog" />
+    </logger>
+
+ <!-- -start mybatis jdbc configuration -->
+<!--  	<logger name="org.mybatis" level="INFO"  additivity="false" >   -->
+<!--  		<appender-ref ref="WSLog" /> -->
+<!-- 	</logger> -->
+	<!-- log simple executed sql without parama value  -->
+	<logger name="java.sql" level="DEBUG" >     
+      <appender-ref ref="STDOUT" />
+    </logger>  
+	<!-- log executed sql binded parama value  -->
+	<logger name="jdbc.sqlonly" level="DEBUG"   additivity="false">
+ 		<appender-ref ref="STDOUT"/>  
+    </logger>
+ 	<!-- log executed sql time   -->
+    <logger name="jdbc.sqltiming" level="OFF"  additivity="false">
+  		<appender-ref ref="STDOUT"/>    
+    </logger>
+    <!-- log jdbc trace like connection   -->
+ 	<logger name="jdbc.audit" level="OFF"  additivity="false">
+		<appender-ref ref="STDOUT"/> 
+    </logger>
+    <logger name="jdbc.resultset" level="OFF"   additivity="false">
+        <appender-ref ref="WSLog"/>
+    </logger>
+	 <!-- -end mybatis jdbc configuration -->
+	<root level="DEBUG">
+		<appender-ref ref="WSLog" />
+<!-- 		<appender-ref ref="STDOUT" /> -->
+	</root>  
+	
+</configuration>
+ 
+
+ 

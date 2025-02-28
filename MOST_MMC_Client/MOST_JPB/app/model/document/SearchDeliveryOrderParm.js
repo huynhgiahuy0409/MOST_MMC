@@ -1,0 +1,67 @@
+Ext.define('MOST.model.document.SearchDeliveryOrderParm', {
+	extend : 'MOST.model.foundation.parm.BizParm',
+	fields: [
+		
+		{
+			name:'fwrd',
+			type:'string'
+		},
+		{
+			name:'mfdocid',
+			type:'string'
+		},
+		{
+			name:'blno',
+			type:'string'
+		},
+		{
+			name:'cgtpcd',
+			type:'string'
+		},
+		{
+			name:'vslCallId',
+			type:'string'
+		},
+		{
+			name:'tsptr',
+			type:'string'
+		},
+		{
+			name:'delvtpcd',
+			type:'string'
+		},
+		{
+			name:'dono',
+			type:'string'
+		},
+		{
+			name:'ptnrcd',
+			type:'string'
+		},
+		{
+			name:'seq',
+			type:'string'
+		},
+		{
+			name:'sdono',
+			type:'string'
+		},
+		{
+			name:'authority',
+			type:'string'
+		},
+		{
+			name:'etaFrom',
+			type:'string'
+		},
+		{
+			name:'etaTo',
+			type:'string'
+		},
+		{
+			name:'searchType',
+			type:'string'
+		}
+	]
+
+});

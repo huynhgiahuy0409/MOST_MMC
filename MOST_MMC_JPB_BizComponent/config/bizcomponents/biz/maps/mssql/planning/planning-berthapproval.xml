@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="berthApproval">
+	 
+  	<select id="selectBerthApproval"  parameterType="berthApprovalParm" resultType="berthApprovalItem">
+		SELECT /* berthApproval.selectBerthApproval */
+			* 
+		FROM (
+          	SELECT
+				B.VSL_NM      									AS vslNm,
+                A.VSL_CALL_ID     								AS vslCallId,
+                A.BERTH_TP              						AS berthTp,
+                A.BERTH_PLAN_YN									AS berthPlanYn,
+               	FORMAT(A.ETA,'dd/MM/yyyy HH:mm')    			AS eta,
+				A.SUMMIT_STAT 									AS summitStat,
+				DBO.F_CM_CODE_NM(
+					'MT', 
+					'DOCSTAT', 
+					A.SUMMIT_STAT
+				)   											AS summitStatName,
+				B.VSL_TP      									AS vslTp,
+				B.LOA         									AS loa,
+				B.VSL_CD      									AS vslCd,
+				C.SUMIT_DT    									AS sumitDt,               
+                CASE 
+                    WHEN (
+							(
+                            	ISNULL(A.DG_GOOD_YN, 'N') 					<![CDATA[<>]]> 'Y' 
+                            AND
+                            (
+                                (
+									DATEDIFF(HOUR, A.ETA, A.UPDATE_TIME)	<![CDATA[>=]]> 48 
+									AND C.SUMIT_DT IS NULL
+								)
+                            OR
+                                (
+									DATEDIFF(HOUR, A.ETA, A.UPDATE_TIME)	<![CDATA[>=]]> 48 
+									AND DATEDIFF(HOUR, A.ETA, C.SUMIT_DT) 	<![CDATA[>=]]> 24
+								)
+                            )
+                        )
+                        OR
+                        (
+                            ISNULL(A.DG_GOOD_YN,'N') 						= 'Y' 
+                            AND ( 
+								DATEDIFF(DAY, A.ETA, A.UPDATE_TIME) 		<![CDATA[<]]> 30 
+								OR DATEDIFF(DAY, A.ETA, A.UPDATE_TIME) 		<![CDATA[>]]> 45 
+							)
+                            AND
+                            (
+                                (
+									DATEDIFF(HOUR, A.ETA, A.UPDATE_TIME) 	<![CDATA[>=]]> 48 
+									AND C.SUMIT_DT IS NULL
+								)
+                            OR
+                                (
+									DATEDIFF(HOUR, A.ETA, A.UPDATE_TIME) 	<![CDATA[>=]]> 48 
+									AND DATEDIFF(HOUR, A.ETA, C.SUMIT_DT) 	<![CDATA[>=]]> 24
+								)
+                            )                        
+                        )
+					)
+                     	THEN 'NORMAL MATURED'
+                    WHEN (
+						(
+                            ISNULL(A.DG_GOOD_YN,'N') 						<![CDATA[<>]]> 'Y'
+                            AND 
+                            (
+                                (
+									DATEDIFF(HOUR, A.ETA, A.UPDATE_TIME) 	<![CDATA[<]]> 48 
+									AND C.SUMIT_DT IS NULL
+								)
+                            OR
+								(
+									DATEDIFF(HOUR, A.ETA, A.UPDATE_TIME) 	<![CDATA[<]]> 48 
+									OR DATEDIFF(HOUR, A.ETA, C.SUMIT_DT) 	<![CDATA[<]]> 24
+								)
+                            )
+                        )                
+                        OR    
+                        (
+                            ISNULL(A.DG_GOOD_YN,'N') = 'Y'    
+                            AND ( 
+								DATEDIFF(DAY, A.ETA, A.UPDATE_TIME) 			<![CDATA[<]]> 30 
+								OR DATEDIFF(DAY, A.ETA, A.UPDATE_TIME) 			<![CDATA[<]]> 45 
+							)
+                            AND 
+                            (
+                                (
+									DATEDIFF(HOUR, A.ETA, A.UPDATE_TIME) 		<![CDATA[<]]> 48 
+									AND C.SUMIT_DT IS NULL
+								)
+                            	OR
+								(
+									DATEDIFF(HOUR, A.ETA, A.UPDATE_TIME) 		<![CDATA[<]]> 48 
+									OR DATEDIFF(HOUR, A.ETA, C.SUMIT_DT) 	<![CDATA[<]]> 24
+								)
+                            )                     
+                        )
+					) 
+                     	THEN 'NORMAL NON-MATURED'
+                    WHEN (
+						ISNULL(A.DG_GOOD_YN,'N') 				= 'Y' 
+						AND DATEDIFF(DAY, A.ETA, A.UPDATE_TIME) 	BETWEEN 30 AND 45 
+                        AND C.SUMIT_DT 							IS NULL
+					)
+					 	THEN 'SCHEDULE'
+                    WHEN (
+						ISNULL(A.DG_GOOD_YN, 'N') 				= 'Y'       
+						AND C.SUMIT_DT							IS NOT NULL  
+						AND DATEDIFF(DAY, A.ETA, A.UPDATE_TIME) 	BETWEEN 30 AND 45
+						AND A.ETA - C.SUMIT_DT 					<![CDATA[>=]]> 3  
+					)                                           
+                     	THEN 'SCHEDULE MATURED'
+                    WHEN (
+						ISNULL(A.DG_GOOD_YN,'N') 				= 'Y'       
+						AND C.SUMIT_DT 							IS NOT NULL  
+						AND DATEDIFF(DAY, A.ETA, A.UPDATE_TIME)		BETWEEN 30 AND 45
+						AND A.ETA-C.SUMIT_DT 					<![CDATA[<]]> 3     
+					)                 
+                     	THEN 'SCHEDULE NON MATURED'
+                    ELSE 'NORMAL MATURED'
+                END 											AS status, 
+				B.UPDATE_TIME    								AS insDtm,
+				A.BERTH_LOC 									AS berthLoc,
+				CASE
+					WHEN A.BERTH_APRV_STATUS IS NULL THEN 'PD'
+					ELSE A.BERTH_APRV_STATUS
+				END 											AS berthAprvStat,
+				DBO.F_CM_CODE_NM(
+					'MT', 
+					'MPTSSTAT', 
+					CASE
+						WHEN A.SUMMIT_STAT IS NULL THEN 'PD'
+						ELSE A.SUMMIT_STAT
+					END
+				) 												AS berthAprvStatNm,
+				A.BERTH_APRV_USER_ID							AS berthAprvUserId,
+				A.BERTH_APRV_TIME								AS berthAprvTime,
+				A.ARRV_SA_ID 									AS arrvSaId,
+               	A.CALL_YEAR 									AS callYear,
+               	A.CALL_SEQ 										AS callSeq,
+               	DBO.F_CM_CODE_NM(
+					'MT', 
+					'CGTP', 
+					A.CARGO_TP
+				) 												AS cargoTp,
+				FORMAT(A.BERTH_APRV_TIME,'dd/MM/yyyy HH:MM') 	AS MPTSSTATDT,
+                <!-- 
+                DBO.GET_BALANCE(A.ARRV_SA_ID) 					AS BALANCE, 
+                A.CLR_YYMM    									AS CLRYYMM,
+                DBO.GET_CONFIRMATIONSLIP_PTNR(A.VSL_CALL_ID,'CNS')  AS CONSIGNEE,
+                DBO.GET_CONFIRMATIONSLIP_PTNR(A.VSL_CALL_ID,'CNR')  AS CONSIGNOR,
+                DBO.F_GET_VSL_COLOR(
+					A.VSL_CALL_ID, 
+					A.ETA, 
+					C.SUMIT_DT, 
+					A.ARRV_SA_ID
+				)     											AS VSLCOLOR,
+                -->              
+                (SELECT 
+					SUM(CG_WGT) WGT 
+				FROM 
+					TMT_CONFM_SLP_DTL 
+				WHERE 
+					VSL_CALL_ID = A.VSL_CALL_ID
+				) 												AS mt,
+				CASE
+					WHEN C.FILE_CATG_CD IS NULL THEN 'N'
+					ELSE 'Y'
+				END 											AS fileYn,
+                DBO.F_GET_OPE_TP(A.VSL_CALL_ID) 				AS operationType,
+                DBO.F_CM_CODE_NM('VC', 'VSLTP', B.VSL_TP) 		AS vslTpNm
+            FROM	
+				TMT_VSL_SCH 									A
+			INNER JOIN
+				TMT_VSL_PART 									B
+			ON 
+				A.VSL_CD										= B.VSL_CD
+			LEFT OUTER JOIN
+				TMT_CONFM_SLP 									C
+			ON
+				A.VSL_CALL_ID									= C.VSL_CALL_ID
+			<if test="alertYn eq 'Y'.toString()">
+				WHERE
+					A.BERTH_PLAN_YN 							= 'Y'
+					CASE
+						WHEN A.SUMMIT_STAT IS NULL THEN 'PD'
+						ELSE A.SUMMIT_STAT
+					END											= 'PD'
+					AND DBO.GET_BALANCE (A.ARRV_SA_ID) 			<![CDATA[<]]> 2000
+					AND A.BERTH_LOC IN ( 
+						SELECT 
+							BERTH_CD 
+						FROM 
+							TMT_BERTH_LOC  
+						WHERE 
+							LOC_CD ='BBT'
+					)
+					AND (SYSDATETIME() - A.ETA) 				<![CDATA[<=]]> 180
+			</if>
+			<if  test="alertYn eq 'N'.toString()">
+					, TMT_BERTH_LOC 							E
+					, TMT_AGENCY_INFO 							D
+				WHERE 
+					A.BERTH_LOC 								= E.BERTH_CD
+					AND E.LOC_CD 								= 'BBT'            
+					AND A.SUMMIT_STAT 							<![CDATA[<>]]> 'CC'
+					AND	A.ATD 									IS NULL
+					AND	A.ARRV_SA_ID 							= D.AGENCY_CODE 
+					AND	D.PTNR_TYPE								= 'SHA'
+					<if test="etaFrom != null and etaFrom != ''">
+						AND A.ETA 								<![CDATA[>=]]> CONVERT(DATE, #{etaFrom}, 103)
+					</if>
+					<if test="etaTo != null and etaTo != ''">
+						AND A.ETA 								<![CDATA[<]]> DATEADD(DAY, 1, CONVERT(DATE, #{etaTo}, 103))
+					</if>
+			</if>
+			<if test="vslTp != null and vslTp != ''">
+				AND B.VSL_TP 									= #{vslTp}
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+				AND	A.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test="cgTpCd != null and cgTpCd != ''">
+				AND	A.CARGO_TP 									= #{cgTpCd}
+			</if>
+			<if test="planned == 'PLN'">
+				AND ISNULL(A.WHARF_MARK_FROM, 0) 				<![CDATA[<>]]> 0
+			</if>
+			<if test="planned == 'NPN'">
+				AND ISNULL(A.WHARF_MARK_FROM, 0) 				= 0
+			</if>		
+			<if test="vslStatus != null and vslStatus != ''">
+				AND	(A.SUMMIT_STAT 								= #{vslStatus}
+				<if test="vslStatus == 'PD'">
+					OR A.SUMMIT_STAT 							IS NULL
+				</if>
+				)
+			</if>
+		)														AS BERTH_INFO		
+    </select> 
+    
+    <select id="countBerthingApproval"  parameterType="berthApprovalParm" resultType="java.lang.String">
+		SELECT DECODE( 
+			MOD(COUNT(*), #{pageSize} ), 0, COUNT(*) / #{pageSize}, FLOOR(COUNT(*) / #{pageSize} + 1 ) 
+		) AS totalPage
+		FROM 
+			TMT_VSL_SCH 										A,
+			TMT_VSL_PART 										B
+		<if test="alertYn == 'Y'">
+		    WHERE
+				A.BERTH_PLAN_YN 								= 'Y'
+				AND CASE 
+					WHEN A.SUMMIT_STAT IS NULL THEN 'PD'
+					ELSE A.SUMMIT_STAT
+				END 											= 'PD'
+				AND DBO.GET_BALANCE(A.ARRV_SA_ID) 				<![CDATA[<]]> 2000
+				AND B.VSL_CD =									A.VSL_CD 
+				AND  A.BERTH_LOC IN ( 
+					SELECT 
+						BERTH_CD 
+					FROM 
+						TMT_BERTH_LOC  
+					WHERE 
+						LOC_CD ='BBT'
+				)
+				AND DATEDIFF(DATE, SYSDATETIME(), A.ETA) 		<![CDATA[<=]]> 180
+		</if>
+		<if test="alertYn != 'Y'">
+  		 	WHERE 
+				B.VSL_CD 										= A.VSL_CD 
+				AND A.BERTH_LOC IN ( 
+					SELECT 
+						BERTH_CD 
+					FROM 
+						TMT_BERTH_LOC  
+					WHERE 
+						LOC_CD ='BBT'
+				)
+		</if>
+		<if test="etaFrom != null and etaFrom != ''">
+			AND A.ETA 											<![CDATA[>=]]> TO_DATE(#{etaFrom},'DD/MM/YYYY')
+		</if>
+		<if test="etaTo != null and etaTo != ''">
+			AND A.ETA 											<![CDATA[<]]> TO_DATE(#{etaTo},'DD/MM/YYYY')+1
+		</if>
+		
+		<if test="vslTp != null and vslTp != ''">
+  			AND B.VSL_TP 										= #{vslTp}
+		</if>
+		<if test="vslCallId != null and vslCallId != ''">
+ 			AND A.VSL_CALL_ID									= #{vslCallId}
+		</if>
+		<if test="cgTpCd != null and cgTpCd != ''">
+  			AND A.CARGO_TP 										= #{cgTpCd}
+		</if>
+		<if test="planned == 'PLN'">
+			AND ISNULL(A.WHARF_MARK_FROM,0) 					<![CDATA[<>]]> 0
+		</if>
+		<if test="planned == 'NPN'">	
+			AND ISNULL(A.WHARF_MARK_FROM,0) 					= 0
+		</if>		
+		<if test="vslStatus != null and vslStatus != ''">
+ 			AND (
+				A.SUMMIT_STAT 									= #{vslStatus}
+				<if test="vslStatus == 'PD'">
+					OR A.SUMMIT_STAT 								IS NULL
+				</if>
+			)
+		</if>				
+	</select>
+    
+    <insert id="insertItems"  parameterType="berthApprovalItem">
+	    INSERT /* berthApproval.insertItems */  
+		INTO TMT_VSL_PART(
+		  VSL_CD, 
+		  VSL_NM, 
+		  VSL_FLAG_CD, 
+		  CNTRY_CD, 
+		  VSL_TP, 
+		  LOA, 
+		  NRT, 
+		  GRT, 
+		  SA_CORP_ID
+		) VALUES (
+		  #{vslCd}, 
+		  #{vslNm}, 
+		  #{vslFlagCd}, 
+		  #{cntryCd}, 
+		  #{vslTp}, 
+		  #{loa}, 
+		  #{nrt}, 
+		  #{grt}, 
+		  #{saCorpId}
+		)
+    </insert>
+    
+    <update id="updateItems"  parameterType="berthApprovalItem">
+		UPDATE /* berthApproval.updateItems */	
+			TMT_VSL_PART
+		SET 	
+			VSL_NM 												= #{vslNm}
+		WHERE	
+			VSL_CD 												= #{vslCd}
+    </update>
+    
+    <delete id="deleteItems"  parameterType="berthApprovalItem">
+		DELETE /* berthApproval.deleteItems */  	
+		FROM 
+			TMT_VSL_PART
+		WHERE	
+			VSL_CD 												= #{vslCd}
+    </delete>
+    
+    <update id="updateBerthApproval"  parameterType="berthApprovalItem">
+		UPDATE /* berthApproval.updateBerthApproval */ 
+			TMT_VSL_SCH
+		SET		
+			BERTH_APRV_STATUS									= #{berthAprvStat},
+			BERTH_APRV_USER_ID 									= #{userId},
+			BERTH_APRV_TIME 									= SYSDATETIME()
+		WHERE	
+			VSL_CD												= #{vslCd}
+			AND VSL_CALL_ID 									= #{vslCallId} 
+    </update>
+        
+</mapper>

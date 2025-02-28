@@ -1,0 +1,527 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace = "DocumentCleranceMap">
+
+	<select id = "selectDocumentClerance" parameterType = "documentCleranceParm" resultType = "documentCleranceItem">
+		SELECT /*DocumentCleranceMap.selectDocumentClerance*/
+			SCH.VSL_CD										as vslCd,
+			SCH.CALL_YEAR									as callYear,
+			SCH.CALL_SEQ									as callSeq,
+			SCH.VSL_CALL_ID									as vslCallId,
+			SCH.ARRV_SA_ID									as saId,
+			FORMAT(SCH.ETA, 'dd/MM/yyyy HH:mm')				as eta,
+			/*ZB55.JOB_NO									as jobNo,
+			ZB55_HDR.REG_NO									as regNo,*/
+			FORMAT(CONFM.SUMIT_DT, 'dd/MM/yyyy HH:mm')		as confmDate,
+			<!-- CASE COUNT(QUEST.VSL_CD)
+				WHEN 0 THEN 'N'
+				ELSE 'Y'
+			END 											as isps, -->
+/*			DECODE(COUNT(QUEST.VSL_CD), 0, 'N', 'Y') 	*/
+			MAX(CONFM_DTL.CRC) 								as crc,
+			CASE COUNT(FL_INFO.CATG_CD)
+				WHEN 0 THEN 'N'
+				ELSE 'Y'
+			END 											as stowage
+		FROM
+			TMT_VSL_SCH 									AS SCH
+				/*LEFT JOIN TFZ_ZB55 							AS ZB55
+					ON SCH.VSL_CD 							= ZB55.VSL_CD
+					AND SCH.CALL_YEAR 						= ZB55.CALL_YEAR
+					AND SCH.CALL_SEQ 						= ZB55.CALL_SEQ*/
+				/*INNER JOIN TFZ_DOC_MST 						AS ZB55_HDR
+					ON ZB55.DOC_ID 							= ZB55_HDR.DOC_ID
+					AND ZB55.JOB_NO 						= ZB55_HDR.JOB_NO*/
+				LEFT JOIN TMT_CONFM_SLP 					AS CONFM
+					ON SCH.VSL_CALL_ID 							= CONFM.VSL_CALL_ID
+				LEFT JOIN TMT_CONFM_SLP_DTL 				AS CONFM_DTL
+					ON SCH.VSL_CALL_ID 							= CONFM_DTL.VSL_CALL_ID
+				<!-- LEFT JOIN TVC_QUEST 						AS QUEST
+					ON SCH.VSL_CD 							= QUEST.VSL_CD
+					AND SCH.CALL_YEAR 						= QUEST.CALL_YEAR
+					AND SCH.CALL_SEQ 						= QUEST.CALL_SEQ -->
+				LEFT JOIN TMT_FILE_INFO 					AS FL_INFO
+					ON SCH.VSL_CALL_ID 						= FL_INFO.CATG_CD
+		WHERE
+			1 = 1
+			<if test="vslCallId != null and vslCallId != ''">
+		  		AND SCH.VSL_CALL_ID 						= #{vslCallId}
+			</if>
+			<if test="scn != null and scn != ''">
+				AND SCH.SHIP_CALL_NO 						= #{scn}
+			</if>
+			<if test="etaFrom != null and etaFrom != ''">
+				AND CONVERT(DATE, SCH.ETA, 103)
+				    BETWEEN
+				    	CONVERT(DATE, #{etaFrom}, 103)
+				    	AND CONVERT(DATE, #{etaTo},103)
+			</if>
+			<if test="saId != null and saId != ''">
+				  AND SCH.ARRV_SA_ID 						= #{saId}
+			</if>
+		GROUP BY
+			SCH.VSL_CD,
+			SCH.CALL_YEAR,
+			SCH.CALL_SEQ,
+			SCH.VSL_CALL_ID,
+			SCH.ARRV_SA_ID,
+			SCH.ETA,
+			/*ZB55.JOB_NO,
+			ZB55_HDR.REG_NO,*/
+			CONFM.SUMIT_DT
+	</select>
+
+	<select id = "selectBerthPlanList"  parameterType = "DocumentCleranceParm" resultType = "DocumentCleranceItem">
+		SELECT /*DocumentCleranceMap.selectBerthPlanList*/
+			<if test="vslCallId == null or vslCallId == ''">
+				/*+ index(SCH IX_TMT_VSL_SCH_02) */
+			</if>
+		    SCH.VSL_CALL_ID                                    	as vslCallId,
+		    B.VSL_NM                                       	as vslNm,
+		    SCH.ARRV_SA_ID                               	as saId,
+		    /*ISNULL(
+				(SELECT
+					MIN (old_value)
+				FROM
+					TMT_VSL_SCH_HIST
+			    WHERE
+			    	VSL_CD = SCH.VSL_CD
+			    	AND CALL_YEAR = SCH.CALL_YEAR
+			    	AND CALL_SEQ = SCH.CALL_SEQ
+			    	AND data_field = 'ETA')
+				, FORMAT(SCH.ETA, 'dd/MM/yyyy HH:mm')
+		    )												as eta,*/
+		    FORMAT(SCH.ETA, 'dd/MM/yyyy HH:mm')          	as etaFinal,
+			FORMAT(SCH.ATA, 'dd/MM/yyyy HH:mm')          	as ata,
+			FORMAT(SCH.INS_DTM, 'dd/MM/yyyy HH:mm')      	as submitDt,
+			/*FORMAT(
+				GET_ETA_AMEND_DTM(
+					SCH.VSL_CD, SCH.CALL_YEAR, SCH.CALL_SEQ),
+			'dd/MM/yyyy HH:mm') 							as amendDt,*/
+-- 		    GET_OPERATION_TP(SCH.VSL_CALL_ID) 					as opeType,
+		    SCH.CG_OP_TP                   					as opeCd,
+		    SCH.CARGO_TP_MPTS              					as cgType,
+		    /*GET_COMMON_CD_NM(
+				'MT',
+				'CGTP',
+				SCH.CARGO_TP_MPTS
+		    ) 												as cgTypeDisplay,
+		    GET_COMMON_CD_NM(
+				'VC',
+				'VSLTP',
+				B.VSL_TP
+		    ) 												as vslType,*/
+			<!--  ,NVL((SELECT TO_CHAR(A.UPD_DT, 'DD/MM/YYYY HH24:MI') FROM TMT_CONFM_SLP A, TMT_FILE_INFO B WHERE A.VSL_CALL_ID = SCH.VSL_CALL_ID AND A.FILE_CATG_CD = B.CATG_CD AND A.FILE_CATG_CD IS NOT NULL ),'N')         stowage  -->
+		    ISNULL(
+				(SELECT TOP (1)
+					FORMAT(CONFM.SUMIT_DT, 'dd/MM/yyyy HH:mm')
+				FROM
+				    TMT_CONFM_SLP_DTL 						AS CONFMDTL
+						JOIN TMT_CONFM_SLP 					AS CONFM
+							ON CONFMDTL.VSL_CALL_ID 		= CONFM.VSL_CALL_ID
+						LEFT JOIN TMT_VSL_SCH 				AS SCH
+							ON SCH.VSL_CALL_ID 					= CONFM.VSL_CALL_ID
+				WHERE
+					CONFMDTL.CG_TP_CD NOT IN ('LQE', 'LQN'))
+			,'N') 											as confmDate1,
+		    /*CASE
+		    	WHEN SCH.CG_OP_TP 									= 'B'
+		    		THEN ISNULL((GET_TIME_SUMIT_CS2(SCH.VSL_CALL_ID)),'N')
+				WHEN SCH.CG_OP_TP 									= 'D'
+					THEN
+						ISNULL(
+							(SELECT TOP (1)
+								MAX(FORMAT(CONFM.SUMIT_DT, 'dd/MM/yyyy HH:mm'))
+							FROM
+							    TMT_CONFM_SLP_DTL 					AS CONFMDTL
+									JOIN TMT_CONFM_SLP 				AS CONFM
+										ON CONFMDTL.VSL_CALL_ID 	= CONFM.VSL_CALL_ID
+									LEFT JOIN TMT_VSL_SCH 			AS SCH
+										ON SCH.VSL_CALL_ID 				= CONFM.VSL_CALL_ID
+							WHERE
+								CONFMDTL.CG_TP_CD IN ('LQE', 'LQN')
+								AND CONFMDTL.CG_OPT_TP_CD IN ('DS', 'SD', 'TD')),
+					    'N')
+		        WHEN SCH.CG_OP_TP 									= 'L'
+		        	THEN
+		            	ISNULL(
+							(SELECT TOP (1)
+								MAX(FORMAT(CONFM.SUMIT_DT, 'dd/MM/yyyy HH:mm'))
+							FROM
+							    TMT_CONFM_SLP_DTL 					AS CONFMDTL
+									JOIN TMT_CONFM_SLP 				AS CONFM
+										ON CONFMDTL.VSL_CALL_ID 	= CONFM.VSL_CALL_ID
+									LEFT JOIN TMT_VSL_SCH 			AS SCH
+										ON SCH.VSL_CALL_ID 				= CONFM.VSL_CALL_ID
+							WHERE
+								CONFMDTL.CG_TP_CD IN ('LQE', 'LQN')
+								AND CONFMDTL.CG_OPT_TP_CD IN ('LD', 'SL', 'TL'))
+						,'N')
+			END 											AS confmDate2,*/
+		    (CASE
+		    	WHEN SCH.CARGO_TP_MPTS 						= 'LQE'
+		    	    THEN ''
+		    	WHEN SCH.CARGO_TP_MPTS 						= 'LQN'
+		    	    THEN ''
+		    	ELSE
+					ISNULL(
+						(SELECT TOP (1)
+							FORMAT(SN.SA_SUMIT_DT, 'dd/MM/yyyy HH:mm')
+						FROM
+							TMT_SHIPG_NOTE 					AS SN
+							LEFT JOIN TMT_VSL_SCH 			AS SCH
+								ON SCH.VSL_CALL_ID 				= SN.VSL_CALL_ID
+						WHERE
+							SN.STAT_CD <![CDATA[<>]]> 'SH')
+					,'N')
+		    ) 												AS snDate,
+		    ISNULL(
+				(SELECT TOP (1)
+					FORMAT(GR.SUMIT_DT, 'dd/MM/yyyy HH:mm')
+				FROM
+				    TMT_GR 									AS GR
+						LEFT JOIN TMT_VSL_SCH 				AS SCH
+							ON SCH.VSL_CALL_ID 					= GR.VSL_CALL_ID)
+			,'N') 											AS grDate,
+			<!-- ,NVL((SELECT TO_CHAR (BL.UPD_DT, 'DD/MM/YYYY HH24:MI') FROM TMT_BL BL WHERE  1 = 1 AND SCH.VSL_CALL_ID = BL.VSL_CALL_ID(+) AND ROWNUM =1 AND DO_NO IS NOT NULL ) ,'N') AS doDate -->
+            <!-- ,NVL((SELECT TO_CHAR (BL.NOMINATE_DT, 'DD/MM/YYYY HH24:MI') FROM TMT_BL BL WHERE  1 = 1 AND SCH.VSL_CALL_ID = BL.VSL_CALL_ID(+) AND ROWNUM =1 AND FWRD IS NOT NULL ) ,'N') AS fnDate -->
+			ISNULL(
+				(SELECT TOP(1)
+					FORMAT (MG.SUMIT_DT, 'dd/MM/yyyy HH:mm')
+				FROM
+					TMT_MEGA 								AS MG
+						LEFT JOIN TMT_VSL_SCH 				AS SCH
+							ON SCH.VSL_CALL_ID 					= MG.VSL_CALL_ID
+				WHERE
+					MG.STAT_CD <![CDATA[<>]]> 'CR')
+			,'N')  											AS mgDate,
+                   <!-- ,NVL((SELECT TO_CHAR (AD.UPD_DT, 'DD/MM/YYYY HH24:MI') FROM TMT_B_IV_ADV AD WHERE 1 = 1 AND SCH.VSL_CALL_ID = AD.VSL_CALL_ID(+) AND ROWNUM =1),'N') AS ivAdvice -->,
+		    /*(CASE
+		    	WHEN F_B_IV_ADV_EXISTS_BY_VSL(SCH.VSL_CALL_ID) = 1
+		    		THEN
+                   		(SELECT
+                   			MAX(FORMAT(AD.UPD_DT, 'dd/MM/yyyy HH:mm'))
+						FROM
+							TMT_B_IV_ADV_ACK 				AS AD
+								LEFT JOIN TMT_B_IV_ADV 		AS AD2
+									ON SCH.VSL_CALL_ID 			= AD2.VSL_CALL_ID
+									AND AD.ADV_NO 			= AD2.ADV_NO)
+	            ELSE 'N'
+		    END) 											AS ivAdvice,*/
+                   <!-- ,NVL((SELECT TO_CHAR (LR.UPD_DT, 'DD/MM/YYYY HH24:MI') FROM TMT_ASGN_LORRY LR WHERE 1 = 1 AND SCH.VSL_CALL_ID = LR.VSL_CALL_ID(+) AND ROWNUM =1),'N') AS lorryAsg -->
+            /*ISNULL(
+				GET_TIME_SUMIT_DO(SCH.VSL_CALL_ID)
+			, 'N') 											AS doDate,
+			ISNULL(
+				GET_TIME_ASGN_LORRY(SCH.VSL_CALL_ID)
+			, 'N') 											AS lorryAsg,
+			ISNULL(
+				GET_TIME_NOMINATE(SCH.VSL_CALL_ID)
+			, 'N') 											AS fnDate,*/
+			ISNULL(
+				(SELECT TOP (1)
+					DELV_TP_CD
+				FROM(
+					SELECT
+						BL.DELV_TP_CD,
+						BL.VSL_CALL_ID
+					FROM
+						TMT_BL BL
+					WHERE
+						BL.DELV_TP_CD IS NOT NULL
+					/*ORDER BY
+					    DELV_TP_CD*/
+					) 						A
+			    WHERE
+			    	SCH.VSL_CALL_ID 							= A.VSL_CALL_ID
+			    )
+			, '')												AS delvTpCd
+		    /*,CASE
+		    	WHEN SCH.CG_OP_TP = 'B'
+		    	         AND ISNULL((GET_TIME_SUMIT_CS2 (SCH.VSL_CALL_ID)), 'N') != 'N'
+				    THEN ISNULL(
+						(SELECT TOP (1)
+							MAX(FORMAT(CONFM.TEMP_REDY_DT, 'dd/MM/yyyy HH:mm'))
+						FROM
+							TMT_CONFM_SLP_DTL CONFMDTL
+								LEFT JOIN TMT_CONFM_SLP CONFM
+									ON CONFMDTL.VSL_CALL_ID = CONFM.VSL_CALL_ID
+								LEFT JOIN TMT_VSL_SCH SCH
+									ON SCH.VSL_CALL_ID = CONFM.VSL_CALL_ID
+						WHERE
+							1 = 1
+							AND CONFMDTL.CG_TP_CD IN ('LQE', 'LQN'))
+					, '')
+				WHEN SCH.CG_OP_TP = 'D'
+					THEN ISNULL(
+						(SELECT TOP (1)
+							MAX(FORMAT(CONFM.TEMP_REDY_DT, 'dd/MM/yyyy HH:mm'))
+						FROM
+							TMT_CONFM_SLP_DTL CONFMDTL
+								LEFT JOIN TMT_CONFM_SLP CONFM
+									ON CONFMDTL.VSL_CALL_ID = CONFM.VSL_CALL_ID
+								LEFT JOIN TMT_VSL_SCH SCH
+									ON SCH.VSL_CALL_ID = CONFM.VSL_CALL_ID
+						WHERE
+							1 = 1
+							AND CONFMDTL.CG_TP_CD IN ('LQE', 'LQN')
+							AND CG_OPT_TP_CD IN ('DS', 'SD', 'TD'))
+					, '')
+				WHEN SCH.CG_OP_TP = 'L'
+					THEN ISNULL(
+						(SELECT
+							MAX(FORMAT(CONFM.TEMP_REDY_DT, 'dd/MM/yyyy HH:mm'))
+						FROM
+							TMT_CONFM_SLP_DTL CONFMDTL
+								LEFT JOIN TMT_CONFM_SLP CONFM
+									ON CONFMDTL.VSL_CALL_ID = CONFM.VSL_CALL_ID
+								LEFT JOIN TMT_VSL_SCH SCH
+									ON SCH.VSL_CALL_ID = CONFM.VSL_CALL_ID
+						WHERE
+							1 = 1
+							AND CONFMDTL.CG_TP_CD IN ('LQE', 'LQN')
+							AND CG_OPT_TP_CD IN ('LD', 'SL', 'TL'))
+					, '')
+			END 											AS tempReady,*/
+		    /*CASE
+		    	WHEN SCH.CG_OP_TP = 'B' AND NVL ( (GET_TIME_SUMIT_CS2 (SCH.VSL_CALL_ID)), 'N') != 'N'
+		    	    THEN ISNULL(
+						(SELECT TOP (1)
+							MAX(FORMAT(CONFM.CG_REDY_DT, 'dd/MM/yyyy HH:mm'))
+						FROM
+							TMT_CONFM_SLP_DTL CONFMDTL
+								INNER JOIN TMT_CONFM_SLP CONFM
+									ON CONFMDTL.VSL_CALL_ID = CONFM.VSL_CALL_ID
+								LEFT JOIN TMT_VSL_SCH SCH
+									ON SCH.VSL_CALL_ID = CONFM.VSL_CALL_ID
+						WHERE
+							1 = 1
+							AND CONFMDTL.CG_TP_CD IN ('LQE', 'LQN'))
+					, '')
+				WHEN SCH.CG_OP_TP = 'D'
+					THEN ISNULL(
+						(SELECT TOP (1)
+							MAX(FORMAT(CONFM.CG_REDY_DT, 'dd/MM/yyyy HH:mm'))
+						FROM
+							TMT_CONFM_SLP_DTL CONFMDTL
+								INNER JOIN TMT_CONFM_SLP CONFM
+									ON CONFMDTL.VSL_CALL_ID = CONFM.VSL_CALL_ID
+								LEFT JOIN TMT_VSL_SCH SCH
+									ON SCH.VSL_CALL_ID = CONFM.VSL_CALL_ID
+						WHERE
+							1 = 1
+							AND CONFMDTL.CG_TP_CD IN ('LQE', 'LQN')
+							AND CG_OPT_TP_CD IN ('DS', 'SD', 'TD'))
+					, '')
+				WHEN SCH.CG_OP_TP = 'L'
+					THEN ISNULL(
+						(SELECT TOP (1)
+							MAX(FORMAT(CONFM.CG_REDY_DT, 'dd/MM/yyyy HH:mm'))
+						FROM
+							TMT_CONFM_SLP_DTL CONFMDTL
+								INNER JOIN TMT_CONFM_SLP CONFM
+									ON CONFMDTL.VSL_CALL_ID = CONFM.VSL_CALL_ID
+								LEFT JOIN TMT_VSL_SCH SCH
+									ON SCH.VSL_CALL_ID = CONFM.VSL_CALL_ID
+						WHERE
+							1 = 1
+							AND CONFMDTL.CG_TP_CD IN ('LQE', 'LQN')
+							AND CG_OPT_TP_CD IN ('LD', 'SL', 'TL'))
+					, '')
+			END 											AS cgReady,*/
+		    /*CASE
+		    	WHEN SCH.CG_OP_TP = 'B' AND ISNULL((GET_TIME_SUMIT_CS2 (SCH.VSL_CALL_ID)), 'N') != 'N'
+		    		THEN ISNULL(
+						(SELECT TOP (1)
+							MAX(FORMAT(CONFM.TK_REDY_DT, 'dd/MM/yyyy HH:mm'))
+						FROM
+							TMT_CONFM_SLP_DTL CONFMDTL
+								INNER JOIN TMT_CONFM_SLP CONFM
+									ON CONFMDTL.VSL_CALL_ID = CONFM.VSL_CALL_ID
+								LEFT JOIN TMT_VSL_SCH SCH
+									ON SCH.VSL_CALL_ID = CONFM.VSL_CALL_ID
+						WHERE
+							1 = 1
+							AND CONFMDTL.CG_TP_CD IN ('LQE', 'LQN'))
+					, '')
+				WHEN SCH.CG_OP_TP = 'D'
+					THEN ISNULL(
+						(SELECT TOP (1)
+							MAX(FORMAT(CONFM.TK_REDY_DT, 'dd/MM/yyyy HH:mm'))
+						FROM
+							TMT_CONFM_SLP_DTL CONFMDTL
+								INNER JOIN TMT_CONFM_SLP CONFM
+									ON CONFMDTL.VSL_CALL_ID = CONFM.VSL_CALL_ID
+								LEFT JOIN TMT_VSL_SCH SCH
+									ON SCH.VSL_CALL_ID = CONFM.VSL_CALL_ID
+						WHERE
+							1 = 1
+							AND CONFMDTL.CG_TP_CD IN ('LQE', 'LQN')
+							AND CG_OPT_TP_CD IN ('DS', 'SD', 'TD'))
+					, '')
+				WHEN SCH.CG_OP_TP = 'L'
+					THEN ISNULL(
+						(SELECT TOP (1)
+							MAX(FORMAT(CONFM.TK_REDY_DT, 'dd/MM/yyyy HH:mm'))
+						FROM
+							TMT_CONFM_SLP_DTL CONFMDTL
+								INNER JOIN TMT_CONFM_SLP CONFM
+									ON CONFMDTL.VSL_CALL_ID = CONFM.VSL_CALL_ID
+								LEFT JOIN TMT_VSL_SCH SCH
+									ON SCH.VSL_CALL_ID = CONFM.VSL_CALL_ID
+						WHERE
+							1 = 1
+							AND CONFMDTL.CG_TP_CD IN ('LQE', 'LQN')
+							AND CG_OPT_TP_CD IN ('LD', 'SL', 'TL'))
+					, '')
+			END 											AS tankReady,*/
+		    /*CASE
+		    	WHEN SCH.CG_OP_TP = 'B' AND ISNULL((GET_TIME_SUMIT_CS2 (SCH.VSL_CALL_ID)), 'N') != 'N'
+		    		THEN ISNULL(
+						(SELECT TOP (1)
+							MAX(FORMAT(CONFM.ULTG_REDY_DT, 'dd/MM/yyyy HH:mm'))
+						FROM
+							TMT_CONFM_SLP_DTL CONFMDTL
+								INNER JOIN TMT_CONFM_SLP CONFM
+									ON CONFMDTL.VSL_CALL_ID = CONFM.VSL_CALL_ID
+								LEFT JOIN TMT_VSL_SCH SCH
+									ON SCH.VSL_CALL_ID = CONFM.VSL_CALL_ID
+						WHERE
+							1 = 1
+							AND CONFMDTL.CG_TP_CD IN ('LQE', 'LQN'))
+					, '')
+				WHEN SCH.CG_OP_TP = 'D'
+					THEN ISNULL(
+						(SELECT TOP (1)
+							MAX(FORMAT(CONFM.ULTG_REDY_DT, 'dd/MM/yyyy HH:mm'))
+						FROM
+							TMT_CONFM_SLP_DTL CONFMDTL
+								INNER JOIN TMT_CONFM_SLP CONFM
+									ON CONFMDTL.VSL_CALL_ID = CONFM.VSL_CALL_ID
+								LEFT JOIN TMT_VSL_SCH SCH
+									ON SCH.VSL_CALL_ID = CONFM.VSL_CALL_ID
+						WHERE
+							1 = 1
+							AND CONFMDTL.CG_TP_CD IN ('LQE', 'LQN')
+							AND CG_OPT_TP_CD IN ('DS', 'SD', 'TD'))
+					, '')
+				WHEN SCH.CG_OP_TP = 'L'
+					THEN ISNULL(
+						(SELECT TOP (1)
+							MAX(FORMAT(CONFM.ULTG_REDY_DT, 'dd/MM/yyyy HH:mm'))
+						FROM
+							TMT_CONFM_SLP_DTL CONFMDTL
+								INNER JOIN TMT_CONFM_SLP CONFM
+									ON CONFMDTL.VSL_CALL_ID = CONFM.VSL_CALL_ID
+								LEFT JOIN TMT_VSL_SCH SCH
+									ON SCH.VSL_CALL_ID = CONFM.VSL_CALL_ID
+						WHERE
+							1 = 1
+							AND CONFMDTL.CG_TP_CD IN ('LQE', 'LQN')
+							AND CG_OPT_TP_CD IN ('LD', 'SL', 'TL'))
+					, '')
+		    END 											AS ullageReady,*/
+		    /*CASE
+		    	WHEN SCH.CG_OP_TP = 'B' AND ISNULL((GET_TIME_SUMIT_CS2 (SCH.VSL_CALL_ID)), 'N') != 'N'
+		    		THEN ISNULL(
+						(SELECT TOP (1)
+							MAX(FORMAT(CONFM.DOC_REDY_DT, 'dd/MM/yyyy HH:mm'))
+						FROM
+							TMT_CONFM_SLP_DTL CONFMDTL
+								INNER JOIN TMT_CONFM_SLP CONFM
+									ON CONFMDTL.VSL_CALL_ID = CONFM.VSL_CALL_ID
+								LEFT JOIN TMT_VSL_SCH SCH
+									ON SCH.VSL_CALL_ID = CONFM.VSL_CALL_ID
+						WHERE
+							1 = 1
+							AND CONFMDTL.CG_TP_CD IN ('LQE', 'LQN'))
+					, '')
+		        WHEN SCH.CG_OP_TP = 'D'
+		        	THEN ISNULL(
+						(SELECT
+							MAX(FORMAT(CONFM.DOC_REDY_DT, 'dd/MM/yyyy HH:mm'))
+						FROM
+							TMT_CONFM_SLP_DTL CONFMDTL
+								INNER JOIN TMT_CONFM_SLP CONFM
+									ON CONFMDTL.VSL_CALL_ID = CONFM.VSL_CALL_ID
+								LEFT JOIN TMT_VSL_SCH SCH
+									ON SCH.VSL_CALL_ID = CONFM.VSL_CALL_ID
+						WHERE
+							1 = 1
+							AND CONFMDTL.CG_TP_CD IN ('LQE', 'LQN')
+							AND CG_OPT_TP_CD IN ('DS', 'SD', 'TD'))
+					, '')
+		        WHEN SCH.CG_OP_TP = 'L'
+		        	THEN ISNULL (
+						(SELECT TOP (1)
+							MAX(FORMAT(CONFM.DOC_REDY_DT, 'dd/MM/yyyy HH:mm'))
+						FROM
+							TMT_CONFM_SLP_DTL CONFMDTL
+								INNER JOIN TMT_CONFM_SLP CONFM
+									ON CONFMDTL.VSL_CALL_ID = CONFM.VSL_CALL_ID
+								LEFT JOIN TMT_VSL_SCH SCH
+									ON SCH.VSL_CALL_ID = CONFM.VSL_CALL_ID
+						WHERE
+							1 = 1
+							AND CONFMDTL.CG_TP_CD IN ('LQE', 'LQN')
+							AND CG_OPT_TP_CD IN ('LD', 'SL', 'TL'))
+					, '')
+				END 										AS docReady*/
+        FROM
+        	TMT_VSL_SCH SCH,
+        	TVC_VSL_PART B
+  		WHERE
+  		    1 = 1
+  			AND SCH.VSL_CD = B.VSL_CD
+  			AND SCH.ATB IS NULL
+  			AND SUMMIT_STAT = 'AP'
+  			AND SCH.BERTH_LOC IN (
+  				SELECT
+  					BERTH_CD
+  				FROM
+  					TMT_BERTH_LOC
+  				WHERE
+  					LOC_CD = 'BBT'
+  			)
+		<if test="vslCallId != null and vslCallId != ''">
+  			AND SCH.VSL_CALL_ID = #{vslCallId}
+		</if>
+		<if test="etaFrom != null and etaFrom != ''">
+  			AND CONVERT(DATETIME, SCH.ETA)
+				BETWEEN CONVERT(DATETIME, #{etaFrom} + ' 00:00:00')
+			    	AND CONVERT(DATETIME, #{etaTo} + ' 23:59:59')
+		</if>
+		<if test="saId != null and saId != ''">
+  			AND SCH.ARRV_SA_ID = #{saId}
+		</if>
+		<if test="vslTp == 'true'">
+  			AND SCH.CARGO_TP_MPTS <![CDATA[<>]]> 'BT'
+  		  	<if test="cgTpCd != null and cgTpCd != ''">
+  		  		AND SCH.CARGO_TP_MPTS = #{cgTpCd}
+			</if>
+		</if>
+		<if test="vslTp == 'false'">
+			AND	SCH.CARGO_TP_MPTS = 'BT'
+		</if>
+		<if test="tugBoat == 'false'">
+			AND	B.VSL_TP  <![CDATA[<>]]> '09'
+		</if>
+		ORDER BY
+			SCH.ETA DESC
+	</select>
+
+	<select id = "selectVesselTp"  parameterType = "DocumentCleranceParm" resultType = "DocumentCleranceItem">
+		SELECT /*DocumentCleranceMap.selectVesselTp*/
+			KEY_NM as scd,
+			KEY_DESC as scdNm
+		FROM
+		    TCM_CFG_DTL
+		WHERE
+		    SYS_CD ='MPTS'
+		  	AND CFG_ID = 'CFG_DOC'
+		  	AND KEY_NM <![CDATA[<>]]> 'BT'
+	</select>
+</mapper>

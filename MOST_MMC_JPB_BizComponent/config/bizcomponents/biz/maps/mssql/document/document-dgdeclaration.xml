@@ -1,0 +1,891 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="DGDeclarationMap">
+	
+	<!--  ############################## Query Statement Define ############################## -->
+
+	<select id="selectDGDeclarationReport"   parameterType="dgDeclarationParm"  resultType="dgDeclarationItem">
+		SELECT /* dgdeclaration.selectDGDeclarationReport */
+			DG_DIV 							 					AS dgDiv,				<!-- DG Category -->
+			VSL_CALL_ID 						 				AS vslCallId,  			<!-- JPVC  -->
+			dbo.F_GET_LST_PORT_NM(vsl_call_id)	 				AS lstPortNm,
+			VSL_TP								 				AS vslTp,
+			VSL_NM								 				AS vslNm,      			<!-- Vessel Name  -->
+			CG_NO 								 				AS cgNo,  				<!-- BL/SN  -->
+			SEQ 								 				AS refNo,  				<!-- Reference No -->
+			IMDG 								 				AS imdg,  				<!-- IMDG  -->
+			UNNO 								 				AS unno,  				<!-- UNNO  -->
+			CG_TP_CD 							 				AS cgTpCd,  			<!-- Cargo Type  -->
+			CMDT_CD 							 				AS cmdtCd,  			<!-- Commodity  -->
+			dbo.F_GET_CMDT_DESC									AS cmdtDesc,
+			CASE DG_CHK
+				WHEN 'S' THEN 'Save'
+                WHEN 'N' THEN 'Submit'
+                WHEN 'Y' THEN 'Confirm'
+                WHEN 'C' THEN 'Cancel'
+			END													AS dgChk,
+			FORMAT(UPD_DT, 'dd/MM/yyyy HH:mm') 					AS dclrDt, 				<!-- Declaration Date  -->
+			UPD_DT 								 				AS upd_dt,
+			CONFM_BY							 				AS confmBy,	    		<!-- Confirmed By -->
+			FORMAT(UPDATE_TIME, 'dd/MM/yyyy HH:mm') 			AS confmDt,  			<!-- Confirm Date -->
+			ISNULL(dbo.F_GET_PTNR_SNM(shipg_agncy), ' ')		AS shipgAgncy,
+	        FWRD 												AS fwrd,
+	        ISNULL(dbo.F_GET_PTNR_SNM(shpr), ' ') 			 	AS shpr,
+	        ISNULL(dbo.F_GET_PTNR_SNM(cnsne), ' ') 		 		AS cnsne,
+			PRI_GRP 											AS priGrp			<!-- JPA Group -->
+			PKG 							 					AS pkg,  				<!-- PKG Type -->
+			PKG_QTY 						 					AS pkgQty,  			<!-- PKG Qty  -->
+			VSL_CD 							 					AS vslCd,  				<!-- Vessel Cd -->
+			CALL_YEAR 						 					AS callYear,  			<!-- Call Year  -->
+			CALL_SEQ 						 					AS callSeq,  			<!-- Call Seq -->
+			SEQ 							 					AS dgSeq,  				<!-- dg seq -->
+			TRANSHIPMENT					 					AS transhipment,		<!-- transhipment -->
+			PROP_SNM  							 				AS propSnm,
+	        RMK 								 				AS rmk,
+	        ETA  							 					AS eta,
+	        BERTH_LOC 						 					AS berthLoc,
+	        TEL_NO 							 					AS telNo,
+	        MOBILE_NO 						 					AS mobileNo,
+	        ENG_NM 							 					AS engNm,
+	        EMPCD  						 						AS empCd,
+	        ID_NO 									 			AS idNo,
+	        DESIGNATION 							 			AS desgination
+		FROM
+			(SELECT 
+				'EX' 								 			AS DG_DIV,
+				C.VSL_CALL_ID 						 			AS VSL_CALL_ID,
+				VSLP.VSL_TP,
+				VSLP.VSL_NM,
+				A.CG_NO,
+				A.REF_NO,
+				A.IMDG,
+				A.UNNO,
+				B.CG_TP_CD,
+				B.CMDT_CD,
+				A.DG_CHK,
+				A.UPDATE_TIME,
+				A.CONFM_BY,
+				A.CONFM_DT,
+				B.SHIPG_AGNCY,
+				B.FWRD,
+				B.SHPR,
+				B.CNSNE,
+				A.PRI_GRP,
+				A.PKG,
+				A.PKG_QTY,
+				A.VSL_CD,
+				A.CALL_YEAR,
+				A.CALL_SEQ,
+				A.SEQ,
+				'EXPORT' 							 			AS transhipment,
+				A.CONTACT_PERSON,
+				A.CONTACT_NUMBER,
+				A.PROP_SNM,
+				A.FREE_ZONE_DIV,
+				A.RMK1,
+				FORMAT(C.ETA, 'dd/MM/yyyy HH:mm') 				AS ETA,
+				C.BERTH_LOC 									AS BERTH_LOC,
+				A.FLASH_PNT,
+				(SELECT 
+					TEL_NO 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.EMP_CD = userInfo.USER_ID) 				AS tel_no,
+				(SELECT 
+					MOBILE_NO 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.EMP_CD = userInfo.USER_ID) 				AS mobile_no,
+				(SELECT 
+					ENG_NM 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.CONFM_BY = userInfo.USER_ID) 				AS eng_nm,
+				(SELECT 
+					ENG_NM 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.EMP_CD = userInfo.USER_ID) 				AS empCd,
+				(SELECT 
+					ID_NO 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.EMP_CD = userInfo.USER_ID) 				AS ID_NO,
+				(SELECT 
+					DESIGNATION 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.EMP_CD = userInfo.USER_ID)  				AS DESIGNATION,
+			FROM 
+				TMT_DG 											A,
+				TMT_SHIPG_NOTE 									B, 
+				TMT_VSL_SCH 									C, 
+				TMT_VSL_PART 									VSLP
+			WHERE 	
+				A.VSL_CD 										= C.VSL_CD
+				AND A.CALL_YEAR 								= C.CALL_YEAR
+				AND A.CALL_SEQ 									= C.CALL_SEQ	
+				AND A.SEQ 										= B.DG_SEQ
+				AND B.VSL_CALL_ID 								= C.VSL_CALL_ID
+				AND C.VSL_CD 									= VSLP.VSL_CD
+				AND A.SEQ 										= #{seq}
+			
+			UNION ALL
+			
+
+			SELECT 
+				TMP.DG_DIV,
+				TMP.VSL_CALL_ID,
+				TMP.VSL_TP,
+				TMP.VSL_NM,
+				C.CG_NO,
+				C.REF_NO,
+				C.IMDG,
+				C.UNNO,
+				TMP.CG_TP_CD,
+				TMP.CMDT_CD,
+				C.DG_CHK,
+				C.UPDATE_TIME,
+				C.CONFM_BY,
+				C.CONFM_DT,
+				TMP.SHIPG_AGNCY,
+				TMP.FWRD,
+				TMP.CNSNE,
+				TMP.SHPR,
+				C.PKG,
+				C.PKG_QTY,
+				C.VSL_CD,
+				C.CALL_YEAR,
+				C.CALL_SEQ,
+				C.SEQ,
+				'IMPORT' 										AS TRANSHIPMENT,
+				C.PROP_SNM,
+				C.RMK,
+				TMP.ETA,
+				TMP.BERTH_LOC,
+				(SELECT 
+					tel_no 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE
+					C.EMP_CD = userInfo.USER_ID) 				AS tel_no,
+				(SELECT 
+					mobile_no 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE
+					C.EMP_CD = userInfo.USER_ID)  				AS mobile_no,
+				(SELECT 
+					eng_nm 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE
+					C.CONFM_BY = userInfo.USER_ID)  			AS eng_nm,
+				(SELECT 
+					eng_nm 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE
+					C.EMP_CD = userInfo.USER_ID)  				AS empCd,
+				(SELECT 
+					ID_NO 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE
+					C.EMP_CD = userInfo.USER_ID)  				AS ID_NO,
+				(SELECT 
+					DESIGNATION 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE
+					C.EMP_CD = userInfo.USER_ID)   				AS DESIGNATION
+			FROM 
+				(SELECT 
+					A.BL_NO 									AS BLNO,
+					A.VSL_CALL_ID,
+					A.DG_SEQ 									AS DGSEQ,
+					A.CG_TP_CD,
+					A.CMDT_CD,
+					CASE
+						WHEN A.MF_DOC_ID = 'K4BL' THEN 'IM'
+						ELSE 'TS'
+					END 										AS DG_DIV,
+					ISNULL(A.FWRD, ' ') 						AS FWRD,
+					A.SHPR 										AS CNSNE,
+					A.CNSNE 									AS SHPR,
+					B.ARRV_SA_ID 								AS SHIPG_AGNCY,
+					P.VSL_TP,
+					P.VSL_NM,
+					FORMAT(B.ETA, 'dd/MM/yyyy HH:mm') 			AS ETA,
+					B.BERTH_LOC 								AS BERTH_LOC
+				FROM 
+					TMT_BL 										A, 
+					TMT_VSL_SCH 								B, 
+					TMT_VSL_PART 								P
+				WHERE 
+					A.CATG_CD 									IN ('I','T')
+					AND A.VSL_CD 			= B.VSL_CD
+					AND A.CALL_SEQ 			= B.CALL_SEQ
+					AND A.CALL_YEAR 		= B.CALL_YEAR
+					AND B.VSL_CD 			= P.VSL_CD
+				) 												AS TMP, 
+				TMT_DG 											C
+			WHERE 
+				TMP.DGSEQ 										= C.SEQ
+				AND C.SEQ 										= #{seq}
+			
+			UNION ALL
+
+			SELECT DISTINCT 
+				'EX' DG_DIV,
+				B.VSL_CALL_ID,
+				NULL VSL_TP,
+				NULL VSL_NM,
+				A.CG_NO,
+				A.REF_NO,
+				A.IMDG,
+				A.UNNO,
+				B.CG_TP_CD,
+				B.CMDT_CD,
+				A.DG_CHK,
+				A.UPDATE_TIME,
+				A.CONFM_BY,
+				A.CONFM_DT,
+				ISNULL(B.SHIPG_AGNCY, B.FWRD),
+				B.FWRD,
+				B.SHPR,
+				B.CNSNE,
+				A.PKG,
+				A.PKG_QTY,
+				A.VSL_CD,
+				A.CALL_YEAR,
+				A.CALL_SEQ,
+				A.SEQ,
+				'EXPORT' 										AS transhipment,
+				A.PROP_SNM,
+				A.RMK, 
+				'' ETA,
+				'' AS BERTH_LOC,
+				(SELECT
+					tel_no 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.EMP_CD = userInfo.USER_ID) 				AS tel_no,
+				(SELECT
+					mobile_no 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.EMP_CD = userInfo.USER_ID) 				AS mobile_no,
+				(SELECT
+					eng_nm 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.CONFM_BY = userInfo.USER_ID) 				AS eng_nm,
+				(SELECT
+					eng_nm 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.EMP_CD = userInfo.USER_ID) 				AS empCd,
+				(SELECT
+					ID_NO 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.EMP_CD = userInfo.USER_ID) 				AS ID_NO,
+				(SELECT
+					DESIGNATION 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE 
+					A.EMP_CD = userInfo.USER_ID)  				AS DESIGNATION
+				<!-- 
+				C.RMK2											AS RMK2
+				 -->
+			FROM 
+				TMT_DG 											A,
+				TMT_SHIPG_NOTE 									B
+			WHERE                  
+				A.SEQ 											= B.DG_SEQ
+				AND B.VSL_CALL_ID 								='NonCallId' 
+				AND A.SEQ 										= #{seq}	
+			
+			UNION ALL			
+				
+			SELECT 
+				CASE B.CG_OPT_TP_CD
+					WHEN 'DS' THEN 'IM'
+					WHEN 'LD' THEN 'EX'
+					WHEN 'TD' THEN 'TS'
+					WHEN 'TL' THEN 'TS'
+					WHEN 'SD' THEN 'ST'
+					WHEN 'SL' THEN 'ST'
+				END												AS DG_DIV,
+				C.VSL_CALL_ID 									AS VSL_CALL_ID,
+				VSLP.VSL_TP,
+				VSLP.VSL_NM,
+				A.CG_NO,
+				A.REF_NO,
+				A.IMDG,
+				A.UNNO,
+				B.CG_TP_CD,
+				B.CMDT_CD,
+				A.DG_CHK,
+				A.UPD_DT,
+				A.CONFM_BY,
+				A.CONFM_DT,
+				C.ARRV_SA_ID          							AS SHIPG_AGNCY,
+				F_GET_FWRD_BL(B.VSL_CALL_ID, BL.BL_NO) 			AS FWRD,
+				B.SHPR_CNSNE          							AS SHPR,
+				B.CNSNE          								AS CNSNE,
+				A.PRI_GRP,
+				A.PKG,
+				A.PKG_QTY,
+				A.VSL_CD,
+				A.CALL_YEAR,
+				A.CALL_SEQ,
+				A.SEQ,
+				CASE B.CG_OPT_TP_CD
+					WHEN 'DS' THEN 'IMPORT'
+					WHEN 'LD' THEN 'EXPORT'
+					WHEN 'TD' THEN 'TRANSHIPMENT'
+					WHEN 'TL' THEN 'TRANSHIPMENT'
+					WHEN 'SD' THEN 'TRANSHIPMENT'
+					WHEN 'SL' THEN 'TRANSHIPMENT'
+				END 											AS transhipment,				
+				A.CONTACT_PERSON,
+				A.CONTACT_NUMBER,
+				A.PROP_SNM,
+				A.FREE_ZONE_DIV,
+				A.RMK1,
+				FORMAT(C.ETA, 'dd/MM/yyyy HH:mm') 				AS ETA,
+				C.BERTH_LOC 									AS BERTH_LOC,
+				A.FLASH_PNT,
+				(SELECT 
+					TEL_NO 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE
+					A.EMP_CD = userInfo.USER_ID) 				AS tel_no,
+				(SELECT 
+					mobile_no 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE
+					A.EMP_CD = userInfo.USER_ID) 				AS mobile_no,
+				(SELECT 
+					eng_nm 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE
+					A.CONFM_BY = userInfo.USER_ID) 				AS eng_nm,
+				(SELECT 
+					eng_nm 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE
+					A.EMP_CD = userInfo.USER_ID) 				AS empCd,
+				(SELECT 
+					ID_NO 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE
+					A.EMP_CD = userInfo.USER_ID) 				AS ID_NO,
+				(SELECT 
+					DESIGNATION 
+				FROM 
+					TMT_USER_INFO userInfo 
+				WHERE
+					A.EMP_CD = userInfo.USER_ID)  				AS DESIGNATION
+			FROM 
+				TMT_DG 											A, 
+				TMT_CONFM_SLP_DTL 								B
+			LEFT OUTER JOIN
+				TMT_BL 											BL 			
+					ON B.VSL_CALL_ID 							= BL.VSL_CALL_ID 
+					AND B.BL_NO 								= BL.BL_NO,
+				TMT_VSL_SCH 									C, 
+				TMT_VSL_PART 									VSLP
+			WHERE     
+				A.VSL_CD 										= C.VSL_CD
+				AND A.CALL_YEAR 								= C.CALL_YEAR
+				AND A.CALL_SEQ 									= C.CALL_SEQ
+				AND A.SEQ 										= B.DG_SEQ                                 
+				AND C.VSL_CD 									= VSLP.VSL_CD
+				AND A.SEQ 										= #{seq}
+            ) AS												UNIONTABLE
+	</select>
+
+	<select id="selectDGDeclaration"   parameterType="dgDeclarationParm"  resultType="dgDeclarationItem">
+		SELECT  /* dgdeclaration.selectDGDeclaration */
+			ISNULL(VSL_CD, ' ') 								AS VSLCD,
+			ISNULL(CALL_YEAR, ' ') 								AS CALLYEAR,
+			ISNULL(CALL_SEQ, ' ') 								AS CALLSEQ,
+			ISNULL(CG_NO, ' ') 									AS CGNO,
+			ISNULL(IMDG, ' ')  									AS IMDG,
+			ISNULL(UNNO, ' ') 									AS UNNO,
+			ISNULL(SUBSTANCE, ' ') 								AS SUBSTANCE,
+			ISNULL(IMP_NM, ' ') 								AS IMPNM,
+			ISNULL(IMP_ADDR, ' ') 								AS IMPADDR,
+			ISNULL(EXP_NM, ' ') 								AS EXPNM,
+			ISNULL(EXP_ADDR, ' ') 								AS EXPADDR,
+			ISNULL(SEQ,' ') 									AS refNo,
+			ISNULL(HAZ_CHEM, ' ') 								AS HAZCHEM,
+			PKG  												AS PKG,
+			(SELECT 
+				S_CD_NM 
+			FROM 
+				TMT_CD_MSTD 
+			WHERE 
+				L_CD 			= 'MT' 
+				AND M_CD 		= 'PKGTP' 
+				AND S_CD 		= PKG) 							AS PKGTPCDNM,
+			ISNULL(PKG_QTY, 0) 									AS PKGQTY,
+			CASE DG_CHK
+				WHEN 'Y' THEN 'Y'
+				WHEN 'R' THEN 'Y'
+				WHEN 'N' THEN 'N'
+				ELSE ' '
+			END													AS DGCHK,
+			ISNULL(EMP_CD, ' ') 								AS USERID,
+			ISNULL(PROP_SNM,' ') 								AS PROPSNM ,
+			ISNULL(SEQ,' ') 									AS SEQ,
+			CONTACT_PERSON 										AS contactNm,
+			CONTACT_NUMBER 										AS contactNo, 
+			ISNULL(
+				(SELECT 
+					VSL_CALL_ID 
+				FROM 
+					TMT_VSL_SCH VSL 
+				WHERE 
+					VSL.VSL_CD 				= A.VSL_CD 
+					AND VSL.CALL_YEAR 		= A.CALL_YEAR 
+					AND VSL.CALL_SEQ  		= A.CALL_SEQ),
+				'NonCallId'
+			) 													AS vslCallId,
+			ISNULL(
+				(SELECT 
+					VSL_TP  
+				FROM 
+					TMT_VSL_PART PART 
+				WHERE 
+					PART.VSL_CD = A.VSL_CD),
+				'100'
+			) 													AS vslTp
+		FROM 
+			TMT_DG A
+		WHERE 
+			1 = 1
+		 	<if test="vslCd != null and vslCd != ''">
+    			AND VSL_CD 										= #{vslCd}
+		 	</if>
+		 	<if test="callYear != null and callYear != ''">
+    			AND CALL_YEAR 									= #{callYear}
+		 	</if>
+		   	<if test="callSeq != null and callSeq != ''">
+      			AND CALL_SEQ 									= #{callSeq}
+		   	</if>
+		   	<if test="cgNo != null and cgNo != ''">
+      			AND CG_NO 										= #{cgNo}
+		   	</if>
+		    <if test="seq != null and seq != ''">
+      			AND SEQ 										= #{seq}
+		   	</if>
+		 
+	</select>	
+
+	<select id="getDgDoc" parameterType="dgDeclarationParm" resultType="dgDeclarationItem">
+			SELECT /* dgdeclaration.getDgDoc */
+				DOC_SNO 										AS docSNNo 
+			FROM 
+				TMT_CLR_DOC 
+			WHERE 
+				VSL_CD 											= #{vslCd} 
+				AND CALL_YEAR 									= #{callYear} 
+				AND CALL_SEQ 									= #{callSeq} 
+				AND DOC_ID 										= 'DGD'
+	</select>
+
+	<select id="selectSubstance"   parameterType="dgDeclarationParm"  resultType="dgDeclarationItem">
+		SELECT /* dgdeclaration.selectSubstance */
+			UNNO 												AS UNNO,
+			CLASS 												AS IMDG,
+			IMDG_DIV 											AS IMDGDIV,
+			SUBSTANCE 											AS SUBSTANCE
+		FROM 
+			TMT_IMDGDATA
+		WHERE 
+			UNNO 												= #{unno}
+		   	AND CLASS 											= #{imdg}
+			<if test="substance != null and substance != ''">
+   				AND SUBSTANCE 									= #{substance}
+		   	</if>
+	</select>
+
+	<select id="selectDGDeclarationNoItem"   parameterType="dgDeclarationParm"  resultType="dgDeclarationItem">
+		<!-- SELECT /* dgdeclaration.selectDGDeclarationNoItem */
+			CASE 
+				WHEN [dbo].[F_B_GET_DG_SEQ]()  = '0' 
+					THEN 
+						(SELECT TRIM(FORMAT(1, '0000') + FORMAT(SYSDATETIME(), '/MM/yyyy'))) 								
+				ELSE [dbo].[F_B_GET_DG_SEQ]()
+			END  											AS SEQ -->
+			
+			SELECT /* dgdeclaration.selectDGDeclarationNoItem */
+				MAX(SEQ) + 1								AS SEQ
+			FROM
+				TMT_DG
+	</select>
+
+	<select id="selectDGVesselInfo"   parameterType="dgDeclarationParm"  resultType="dgDeclarationItem">
+		SELECT /* dgdeclaration.selectDGVesselInfo */
+			A.ARRV_SA_ID 										AS 	arrvSaId,		<!-- Agent -->
+			B.VSL_NM 											AS	vslNm,   		<!-- Name of Vessel -->
+			FORMAT(A.ETA, 'dd/MM/yyyy HH:mm') 					AS	eta, 			<!-- eta  -->
+			A.BERTH_LOC   										AS	berthLoc, 		<!-- Berth Location -->
+			A.INB_VOY											AS	inbVoy, 		<!-- Voyage Code --> 
+			(SELECT 
+				MAX(PORT_CD) 
+			FROM 
+				TMT_PORT_CALL 				SA 
+			WHERE 
+				SA.VSL_CD  					= A.VSL_CD 
+				AND SA.CALL_YEAR 			= A.CALL_YEAR
+				AND SA.CALL_SEQ  			= A.CALL_SEQ
+				AND SA.PORT_DIV 			= 'LA'
+			) 													AS lastPort,		<!--  Last Port of Call -->
+			(SELECT 
+				MAX(PORT_CD) 
+			FROM 
+				TMT_PORT_CALL 				SA 
+			WHERE 
+				SA.VSL_CD  					= A.VSL_CD 
+				AND SA.call_year 			= A.call_year
+				AND SA.CALL_SEQ  			= A.CALL_SEQ
+				AND SA.port_div  			= 'NP'
+			) 													AS nxtPort,		<!--  Next Port of Call -->
+		FROM 
+			TMT_VSL_SCH 										A, 
+			TMT_VSL_PART 										B
+		WHERE 
+			A.VSL_CD											= #{vslCd} 
+			AND A.CALL_YEAR										= #{callYear}
+			AND A.CALL_SEQ										= #{callSeq}
+			AND A.VSL_CD 										= B.VSL_CD	
+	</select>
+	
+	<select id="selectDGforUpdateCNS"   parameterType="dgDeclarationParm"  resultType="dgDeclarationItem">
+		SELECT /* dgdeclaration.selectDGforUpdateCNS */
+		    D.VSL_CD 											AS VSLCD,
+		    D.CALL_YEAR 										AS CALLYEAR,
+		    D.CALL_SEQ 											AS CALLSEQ,
+		    D.SEQ  												AS SEQ,
+		    (SELECT TOP(1)
+		        ENG_SNM 										AS ENGPTYNM
+		    FROM 
+				TB_PTNR PTNR, 
+				TB_PTNR_SYS SYS
+		    WHERE    
+				PTNR.PTNR_CODE 				= SYS.PTNR_CODE
+		        AND SYS.SYSTEM_CODE 		= 'MPTS'
+		        AND PTNR_TYPE 				= 'CNS'
+		        AND PTNR.PTNR_CODE 			= #{expCd}
+			) 													AS EXPNM,
+		    (SELECT TOP(1)
+		        ADDR ADDR
+		    FROM 
+				TB_PTNR 					PTNR, 
+				TB_PTNR_SYS 				SYS
+		    WHERE     
+				PTNR.PTNR_CODE 				= SYS.PTNR_CODE
+		        AND SYS.SYSTEM_CODE 		= 'MPTS'
+		        AND PTNR_TYPE 				= 'CNS'
+		        AND PTNR.PTNR_CODE 			=  #{expCd}
+			) 													AS EXPADDR,
+		    (SELECT TOP(1)
+		        ENG_SNM ENGPTYNM
+		    FROM 
+				TB_PTNR 					PTNR, 
+				TB_PTNR_SYS 				SYS
+		    WHERE     
+				PTNR.PTNR_CODE 				= SYS.PTNR_CODE
+		        AND SYS.SYSTEM_CODE 		= 'MPTS'
+		        AND PTNR_TYPE 				= 'CNS'
+		        AND PTNR.PTNR_CODE 			= #{impCd}
+			) 													AS IMPNM,
+		    (SELECT TOP(1)
+		        ADDR 											AS ADDR
+			FROM 
+				TB_PTNR 										AS PTNR, 
+				TB_PTNR_SYS 									AS SYS
+		    WHERE     
+				PTNR.PTNR_CODE 				= SYS.PTNR_CODE
+		        AND SYS.SYSTEM_CODE 		= 'MPTS'
+		        AND PTNR_TYPE				= 'CNS'
+		        AND PTNR.PTNR_CODE 			= #{impCd}
+			) 													AS IMPADDR
+		FROM 
+			TMT_DG 												D
+		INNER JOIN 
+			TMT_VSL_SCH 										S						          	
+				ON D.VSL_CD 									= S.VSL_CD
+				AND D.CALL_YEAR 								= S.CALL_YEAR
+				AND D.CALL_SEQ 									= S.CALL_SEQ
+		INNER JOIN 
+			TMT_CONFM_SLP_DTL 									CD				          	
+				ON CD.VSL_CALL_ID 								= S.VSL_CALL_ID 
+				AND CD.DG_SEQ 									= D.SEQ
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+		    AND D.SEQ 											= #{seq}
+	</select>	
+		
+	<insert id = "insertDGDoc"  parameterType = "dgDeclarationItem">
+		INSERT /* dgdeclaration.insertDGDoc */
+		INTO TMT_CLR_DOC(
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			DOC_ID,
+			DOC_SNO,
+			DOC_APPLY_STAT,
+			DOC_APPLY_DTM,
+			DOC_APPRV_STAT,
+			INS_DTM,
+			INS_USER_ID,
+			SUBMIT_USER_ID
+			) 
+		VALUES(
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			'DGD',
+			(SELECT TOP(1)
+				DOC_SNO 
+			FROM 
+				TMT_CLR_DOC 
+			WHERE  
+				VSL_CD 			= #{vslCd}  
+				AND CALL_YEAR 	= #{callYear} 
+				AND CALL_SEQ  	= #{callSeq} 
+			),
+			'ST',
+			SYSDATETIME(),
+			'IP',
+			SYSDATETIME(),
+			#{userId},
+			#{userId}
+			)
+	</insert>	
+
+	<insert id = "insertDGDeclarationItem"  parameterType = "dgDeclarationItem">
+		INSERT /* dgdeclaration.insertDGDeclarationItem */
+		INTO TMT_DG(
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			CG_NO,
+			IMDG,
+			UNNO,
+			SUBSTANCE,
+			IMP_NM,
+			IMP_ADDR,
+			EXP_NM,
+			EXP_ADDR,
+			FREE_ZONE_DIV,
+			FLASH_PNT,
+			HAZ_CHEM,
+			PRI_CD,
+			PRI_GRP,
+			PKG ,
+			PKG_QTY,
+			RMK1,
+			DG_CHK ,
+			CMPL_CHK,
+			EMP_CD,
+			DCL_DT,  
+			UPDATE_TIME,
+			PROP_SNM,
+			STAT_CD,
+			SEQ,
+			REF_NO,
+			CONTACT_PERSON,
+			CONTACT_NUMBER
+		) VALUES (
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{cgNo},
+			#{imdg},
+			#{unno},
+			#{substance},
+			#{impNm},
+			#{impAddr},
+			#{expNm},
+			#{expAddr},
+			#{freeZoneDiv},
+			#{flashPnt},
+			#{hazChem},
+			#{priCd},
+			#{priGrp},
+			#{pkg},
+			#{pkgQty},
+			#{rmk1},
+			'S',
+			'N',
+			#{userId},
+			SYSDATETIME(),  
+			SYSDATETIME(),
+			#{propSnm},
+			'N',
+			#{seq},
+			#{seq},
+			#{contactNm},
+			#{contactNo}
+		)
+	</insert>  
+
+	<insert id = "insertDGStatus"  parameterType = "dgDeclarationItem">
+		INSERT /* dgdeclaration.insertDGStatus */
+		INTO TMT_DOC_APPRV(
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			DOC_ID,
+			APPRV_CD,
+			APPRV_SEQ,
+			APPRV_DT,
+			EMP_NO
+		) 
+		VALUES (
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			'DGD',
+			'IP',
+			(SELECT 
+				RIGHT('0000' + CONVERT(VARCHAR, ISNULL(MAX(TRY_CONVERT(INT, APPRV_SEQ)) + 1, 1)), 4) 
+			FROM   
+				TMT_DOC_APPRV   
+			WHERE  
+				VSL_CD 											= #{vslCd}  
+				AND CALL_YEAR 									= #{callYear} 
+				AND CALL_SEQ 									= #{callSeq} 
+				AND DOC_ID 										= 'DGD'),
+			SYSDATETIME(),
+			#{userId}
+		)
+	</insert>
+
+	<update id = "updateShippingNote"  parameterType = "dgDeclarationItem">
+		UPDATE /* dgdeclaration.updateShippingNote */
+			TMT_SHIPG_NOTE 
+		SET 
+			DG_SEQ 												= #{seq}
+		<if test="cgTpCd != 'LQE'">
+			<if test="cgTpCd != 'LQN'">
+				, PKG_TP_CD 									= #{pkg}
+		</if>
+		</if>	 
+		WHERE 
+			DG_SEQ 												= #{seq}
+	</update>
+
+	<update id = "updateCs2"  parameterType = "dgDeclarationItem">
+		UPDATE /* dgdeclaration.updateCs2 */
+			TMT_CONFM_SLP_DTL 
+		SET 
+			DG_SEQ 												= #{seq}
+		<if test="cgTpCd != 'LQE'">
+			<if test="cgTpCd != 'LQN'">
+				, PKG_TP_CD 									= #{pkg}
+		</if>
+		</if>	
+		WHERE 
+			DG_SEQ 												= #{seq}		
+	</update>
+	
+	<update id = "updateDGDeclarationItem"  parameterType = "dgDeclarationItem">
+		UPDATE /* dgdeclaration.updateDGDeclarationItem */
+			TMT_DG
+		SET  
+			IMDG 												= #{imdg},
+			UNNO 												= #{unno},
+			SUBSTANCE 											= #{substance},
+			IMP_NM												= #{impNm},
+			IMP_ADDR 											= #{impAddr},
+			EXP_NM  											= #{expNm},
+			EXP_ADDR  											= #{expAddr},
+			FREE_ZONE_DIV 										= #{freeZoneDiv},
+			FLASH_PNT  											= #{flashPnt},
+			HAZ_CHEM  											= #{hazChem},
+			PRI_CD  											= #{priCd},
+			PRI_GRP  											= #{priGrp},
+			PKG   												= #{pkg},
+			PKG_QTY 											= #{pkgQty},
+			RMK1  												= #{rmk1},				
+			EMP_CD  											= #{userId},
+			UPD_DT  											= SYSDATE,
+			PROP_SNM  											= #{propSnm},
+			CONTACT_PERSON 										= #{contactNm},
+			CONTACT_NUMBER										= #{contactNo}
+			<if test="dgChk == 'N'">
+				, DG_CHK 										= 'N'
+			</if>
+		 WHERE 
+		 	SEQ 												= #{seq}
+	</update> 
+
+	<update id = "updateDGIfItem"  parameterType = "dgDeclarationItem">
+		UPDATE /* dgdeclaration.updateDGIfItem */ 
+			TMT_DG_IF 
+		SET 
+			QTY 												= #{pkgQty} 
+		WHERE 
+			REF_NO 												= #{seq} + '/' + 'MT'
+	</update> 
+
+	<update id = "updateNewSnNoItem"  parameterType = "dgDeclarationItem">
+		UPDATE /* dgdeclaration.updateNewSnNoItem */ 
+			TMT_DG
+		SET  
+			CG_NO 												= #{cgNo} 
+		WHERE 
+			SEQ 												= #{seq}
+	</update> 
+
+	<delete id = "deleteDGDeclarationItem"  parameterType = "dgDeclarationItem">
+		DELETE /* dgdeclaration.deleteDGDeclarationItem */ 
+		FROM 
+			TMT_DG
+		WHERE 
+			SEQ 												= #{seq}
+	</delete> 
+	
+	<update id = "updateCnsforDG"  parameterType = "dgDeclarationItem">
+		UPDATE /* dgdeclaration.updateCnsforDG */ 
+			TMT_DG
+		SET  
+			IMP_NM 												= #{impNm},
+			IMP_ADDR 											= #{impAddr},
+			EXP_NM 												= #{expNm},
+			EXP_ADDR 											= #{expAddr}
+		WHERE  
+		 	VSL_CD 												= #{vslCd} 
+		    AND CALL_YEAR 										= #{callYear}
+		    AND CALL_SEQ 										= #{callSeq} 
+		    AND SEQ 											= #{seq}
+	</update> 
+</mapper>

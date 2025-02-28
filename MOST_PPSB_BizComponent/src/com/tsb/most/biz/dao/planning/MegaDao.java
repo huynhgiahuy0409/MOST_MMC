@@ -1,0 +1,257 @@
+package com.tsb.most.biz.dao.planning;
+
+import com.tsb.most.biz.dataitem.planning.MegaItem;
+import com.tsb.most.biz.parm.planning.SearchMegaParm;
+import com.tsb.most.framework.bizparm.base.DeleteItemsBizParm;
+import com.tsb.most.framework.bizparm.base.InsertItemsBizParm;
+import com.tsb.most.framework.bizparm.base.UpdateItemsBizParm;
+import com.tsb.most.framework.dao.BaseDao;
+import com.tsb.most.framework.dataitem.DataItem;
+import com.tsb.most.framework.dataitem.DataItemList;
+import com.tsb.most.framework.exception.DaoException;
+import com.tsb.most.framework.tx.TxTraceInfo;
+
+public class MegaDao extends BaseDao implements IMegaDao {
+    public DataItemList selectMegaList(SearchMegaParm parm) throws DaoException {
+        return unifiedDao.getItemsPage("mega.selectMegaList", parm);
+    }
+    
+    public DataItemList selectMegaCnttList(SearchMegaParm parm) throws DaoException {
+        return unifiedDao.getItemsPage("mega.selectMegaCnttList", parm);
+    }
+    
+    public DataItemList selectShippingNoteList(SearchMegaParm parm) throws DaoException {
+        return unifiedDao.getItems("mega.selectShippingNote", parm);
+    }
+    
+    public DataItemList selectDeliveryOrderList(SearchMegaParm parm) throws DaoException {
+        return unifiedDao.getItems("mega.selectDeliveryOrder", parm);
+    }
+    
+    public DataItemList selectPenaltyCode(SearchMegaParm parm) throws DaoException {
+        return unifiedDao.getItems("mega.selectPenaltyCode", parm);
+    }
+    public DataItemList selectMegaDetailList(SearchMegaParm parm) throws DaoException {
+        return unifiedDao.getItems("mega.selectMegaDetail", parm);
+    }
+    
+    public DataItemList selectMaxMegaNoList(SearchMegaParm parm) throws DaoException {
+        return unifiedDao.getItems("mega.selectMaxMegaNo", parm);
+    }
+
+    public DataItemList selectMaxSeqNoList(SearchMegaParm parm) throws DaoException {
+        return unifiedDao.getItems("mega.selectMaxSeqNo", parm);
+    }
+    
+    public DataItemList selectMegaStevedoreList(SearchMegaParm parm) throws DaoException {
+        return unifiedDao.getItems("mega.selectMegaStevedoreList", parm);
+    }
+    
+    public DataItemList selectMegaEquipmentList(SearchMegaParm parm) throws DaoException {
+        return unifiedDao.getItems("mega.selectMegaEquipment", parm);
+    }
+    
+    public DataItemList selectInternalMegaList(SearchMegaParm parm) throws DaoException {
+        return unifiedDao.getItemsPage("mega.selectInternalMegaList", parm);
+    }
+    
+    public DataItemList selectMegaCgDtlList(SearchMegaParm parm) throws DaoException {
+        return unifiedDao.getItems("mega.selectMegaCgDtlList", parm);
+    }
+    
+    public DataItemList selectValidationCode(SearchMegaParm parm) throws DaoException{
+        return unifiedDao.getItems("mega.selectValidationCode", parm);
+    }
+    
+    public DataItemList selectConfirmationSlipDryBreakBulk(SearchMegaParm parm) throws DaoException {
+		return unifiedDao.getItems("mega.selectConfirmationSlipDryBreakBulk", parm);
+    }
+    
+    public DataItemList selectStevedoreList(SearchMegaParm parm) throws DaoException {
+		return unifiedDao.getItems("mega.selectStevedoreList", parm);
+    }
+    
+    public DataItemList insertMegaItems(InsertItemsBizParm parm) throws DaoException {
+    	try{
+    		DataItemList insertItems = parm.getInsertItems();
+    		
+    		setNewVersion(insertItems);	
+    		unifiedDao.insertItems(null,"mega.insertMegaItems", insertItems);
+    		setVersion(insertItems);			
+    		
+    		return insertItems;
+    		
+		}catch(Exception e){
+			throw new DaoException(e);
+		}
+    }
+    
+    public DataItemList insertMegaDetailItems(InsertItemsBizParm parm) throws DaoException {
+    	try{
+    		DataItemList insertItems = parm.getInsertItems();
+    		
+    		setNewVersion(insertItems);	
+    		unifiedDao.insertItems(null,"mega.insertMegaDetailItems", insertItems);
+    		setVersion(insertItems);			
+    		
+    		return insertItems;
+    		
+		}catch(Exception e){
+			throw new DaoException(e);
+		}
+    }
+    public DataItemList insertMegaStevedoreItems(InsertItemsBizParm parm) throws DaoException {
+    	try{
+    		DataItemList insertItems = parm.getInsertItems();
+    		
+    		setNewVersion(insertItems);	
+    		unifiedDao.insertItems(null,"mega.insertMegaStevedoreItems", insertItems);
+    		setVersion(insertItems);			
+    		
+    		return insertItems;
+    		
+		}catch(Exception e){
+			throw new DaoException(e);
+		}
+    }
+
+    public void insertMegaEquipmentItem(TxTraceInfo traceInfo, MegaItem item) throws DaoException {
+    	unifiedDao.insertItem(traceInfo, "mega.insertMegaEquipmentItem", item);
+    }
+
+    public void insertMegaOperItems(TxTraceInfo traceInfo, MegaItem item) throws DaoException {
+		unifiedDao.insertItem(traceInfo,"mega.insertMegaOperItems", item);
+    }
+    
+    public DataItemList insertMegaCgDtlItems(InsertItemsBizParm parm) throws DaoException {
+    	try{
+    		DataItemList insertItems = parm.getInsertItems();
+    		
+    		setNewVersion(insertItems);	
+    		unifiedDao.insertItems(null,"mega.insertMegaCgDtlItems", insertItems);
+    		setVersion(insertItems);			
+    		
+    		return insertItems;
+    		
+		}catch(Exception e){
+			throw new DaoException(e);
+		}
+    }
+    
+    public DataItemList updateMegaItems(UpdateItemsBizParm parm) throws DaoException {
+    	try{
+			DataItemList updateItems = parm.getUpdateItems();
+			
+			setNewVersion(updateItems);
+			unifiedDao.updateItemsWithTimeCheck(null, "mega.updateMegaItems", updateItems);
+			setVersion(updateItems);
+			
+			return updateItems;
+		
+    	}catch(Exception ex){
+			throw new DaoException(ex);
+		}
+    }
+    
+    public DataItemList updateMegaDetailItems(UpdateItemsBizParm parm) throws DaoException {
+    	try{
+			DataItemList updateItems = parm.getUpdateItems();
+			
+			setNewVersion(updateItems);
+			unifiedDao.updateItemsWithTimeCheck(null, "mega.updateMegaDetailItems", updateItems);
+			setVersion(updateItems);
+			
+			return updateItems;
+		
+    	}catch(Exception ex){
+			throw new DaoException(ex);
+		}
+    }
+
+    public DataItemList updateMegaStevedoreItems(UpdateItemsBizParm parm) throws DaoException {
+    	try{
+			DataItemList updateItems = parm.getUpdateItems();
+			
+			setNewVersion(updateItems);
+			unifiedDao.updateItemsWithTimeCheck(null, "mega.updateMegaStevedoreItems", updateItems);
+			setVersion(updateItems);
+			
+			return updateItems;
+    	}catch(Exception ex){
+			throw new DaoException(ex);
+		}
+    }
+    
+    public void updateMegaEquipmentItem(TxTraceInfo traceInfo, MegaItem item) throws DaoException {
+    	unifiedDao.updateItem(traceInfo, "mega.updateMegaEquipmentItem", item);
+    }
+
+    public void updateMegaOperItems(TxTraceInfo traceInfo, MegaItem item) throws DaoException {
+		unifiedDao.updateItem(traceInfo, "mega.updateMegaOperItems", item);
+    }
+    
+    public void  updateMegaInternalEquipmentItems(UpdateItemsBizParm parm) throws DaoException {
+    	unifiedDao.updateItems("mega.updateMegaInternalEquipmentItems", parm.getUpdateItems());
+    }
+
+    public DataItemList updateMegaHistoryMasterItems(UpdateItemsBizParm parm) throws DaoException {
+    	try{
+			DataItemList updateItems = parm.getUpdateItems();
+			
+			setNewVersion(updateItems);
+			unifiedDao.updateItems(null, "mega.updateMegaHistoryMasterItems", updateItems);
+			setVersion(updateItems);
+			
+			return updateItems;
+		
+    	}catch(Exception ex){
+			throw new DaoException(ex);
+		}
+    }
+    
+    public void updateMegaInternalMasterItems(UpdateItemsBizParm parm) throws DaoException {
+    	DataItemList items = parm.getUpdateItems();
+    	setNewVersion(items);
+        unifiedDao.updateItems("mega.updateMegaInternalMasterItems", items);
+    }
+
+    public DataItemList updateCargoTonItems(UpdateItemsBizParm parm) throws DaoException {
+    	try{
+			DataItemList updateItems = parm.getUpdateItems();
+			
+			setNewVersion(updateItems);
+			unifiedDao.updateItemsWithTimeCheck(null, "mega.updateCargoTonItems", updateItems);
+			setVersion(updateItems);
+			
+			return updateItems;
+		
+    	}catch(Exception ex){
+			throw new DaoException(ex);
+		}
+    }
+    
+    public void deleteMegaItems(DeleteItemsBizParm parm) throws DaoException {
+    	 try {
+ 			setNewVersion(parm.getDeleteItems());
+ 			
+ 			unifiedDao.deleteItems(null, "mega.deleteMegaDetailItems", parm.getDeleteItems());
+ 			unifiedDao.deleteItems(null, "mega.deleteMegaDtlOperItems", parm.getDeleteItems());
+ 			unifiedDao.deleteItems(null, "mega.deleteMegaItems", parm.getDeleteItems());
+ 		} catch (Exception e) {
+ 			throw new DaoException(e);
+ 		}
+    }
+    
+    public void deleteMegaEquipmentItem(TxTraceInfo traceInfo, DataItem item) throws DaoException {
+		unifiedDao.deleteItem(null, "mega.deleteMegaFlOperItem", item);
+		unifiedDao.deleteItem(null, "mega.deleteMegaEquipmentItem", item);
+    }
+
+    public void deleteMegaOperItems(TxTraceInfo traceInfo, MegaItem item) throws DaoException {
+		unifiedDao.deleteItem(traceInfo, "mega.deleteMegaOperItems", item);
+    }
+    
+    public DataItemList selectOldPenaltyCd(SearchMegaParm parm) throws DaoException {
+        return unifiedDao.getItems("mega.selectOldPenaltyCd", parm);
+    }
+}

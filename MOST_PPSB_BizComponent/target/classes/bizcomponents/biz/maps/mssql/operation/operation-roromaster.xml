@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="roroMaster">
+
+	<select id="selectIsExistedROROMst"   parameterType="roroMasterParm" resultType="java.lang.String">
+		SELECT TOP(1) /* roroMaster.selectIsExistedROROMst */
+			'1' 
+		FROM 	
+			TMT_RORO_MST
+		WHERE 	
+			VSL_CALL_ID 										= #{vslCallId}
+			AND MF_DOC_ID 										= #{mfDocId} 
+			AND CG_NO 											= #{cgNo}
+			<if test="unitNo != null and unitNo != ''">
+				AND CHASSIS_NO 									= #{unitNo}
+			</if>
+			AND CHASSIS_NO 										= #{unitNo}
+			<if test="unitNo == null or unitNo == ''">
+				AND CHASSIS_NO 									IS NULL
+			</if>
+			<!-- AND RORO_SEQ 									= #{roroSeq} -->
+	</select>
+	
+	<select id="selectIsCargoAvDvChk"   parameterType="roroMasterParm" resultType="java.lang.String">
+		SELECT TOP(1) /* roroMaster.selectIsCargoAvDvChk */
+			'1' 
+		FROM 
+			TMT_CG_ARRV_DELV
+		WHERE 
+			1 = 1
+			AND VSL_CALL_ID 									= #{vslCallId} 
+			AND CG_NO 											= #{cgNo}
+			AND LORRY_NO 										= #{lorryNo}
+			<if test="cgInOutCd != null and cgInOutCd != ''">
+				AND CG_IN_OUT_CD 								= #{cgInOutCd}
+			</if>
+			<if test="gateTxnNo != null and gateTxnNo != ''">
+				AND GATE_TXN_NO 								= #{gateTxnNo}
+			</if>
+			AND (GATE_PASS_NO IS NULL							OR GATE_PASS_NO = '')
+			AND (GATE_OUT_DT IS NULL							OR GATE_OUT_DT = '')
+	</select>
+	
+	
+	<insert id="insertROROMasterItems" parameterType="roroMasterItem">
+		INSERT /* roroMaster.insertROROMasterItems */
+		INTO TMT_RORO_MST (
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			VSL_CALL_ID,
+			MF_DOC_ID,
+			CG_NO,
+			SDO_NO,
+			CHASSIS_NO,
+			<!-- 
+			RORO_SEQ, 
+			-->
+			BRAND_CD,
+			MODEL_CD,
+			DOC_WGT,
+			CBM,
+			CATG_CD,
+			CG_TP_CD,
+			IX_CD,
+			NEW_YN,
+			STAT_CD,
+			LOC_ID,
+			PLAN_WH_ID,
+			PLAN_LOC_ID,
+			PLAN_BY,
+			PLAN_DTM,
+			STAFF_CD,
+			UPDATE_TIME
+		) VALUES (     
+			#{vslCd},
+			#{callYear},
+			#{callSeq},
+			#{vslCallId},
+			#{mfDocId},
+			<if test="blNo != null and blNo != ''">
+				#{blNo},
+			</if>
+			<if test="snNo != null and snNo != ''">
+				#{snNo},
+			</if>
+			#{sdoNo},
+			#{unitNo},
+
+			(SELECT    
+				RTRIM(LTRIM(FORMAT(MAX(A.roroSeq), '0000'))) 	AS roroSeq
+            FROM 
+				(SELECT    
+					CAST(MAX(RORO_SEQ) AS INT) + 1 				AS ROROSEQ
+				FROM    
+					TMT_RORO_MST
+				WHERE   
+					VSL_CALL_ID     							=  #{vslCallId}
+					AND MF_DOC_ID  								=  #{mfDocId}
+					<if test="blNo != null and blNo != ''">
+						AND CG_NO   							=  #{blNo}
+					</if>
+					<if test="snNo != null and snNo != ''">
+						AND CG_NO   							=  #{snNo}
+					</if>
+
+				UNION
+
+				SELECT 1 										AS ROROSEQ
+				) A
+			),
+
+			#{brandCd},
+			#{modelCd},
+			#{docWgt},
+			#{cbm},
+			#{catgCd},
+			#{cgTpCd},
+			#{ixCd},
+			#{newYn},
+			#{statCd},
+			#{locId},
+			SUBSTRING(#{locId}, 0, CHARINDEX('-', #{locId}) -1),
+			#{locId},
+			#{userId},
+			SYSDATETIME(),
+			#{userId},
+			SYSDATETIME()
+		)
+	</insert>
+	
+</mapper>

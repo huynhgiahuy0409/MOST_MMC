@@ -1,0 +1,14 @@
+/**
+ * Message Constants
+ */
+var FileConstant = function(){}
+
+FileConstant.EQUIPMENT_SCREEN_PGM_ID = 'CF106';
+FileConstant.BL_SCREEN_PGM_ID = 'DC_103';
+FileConstant.SHIPPINGNOTE_SCREEN_PGM_ID = 'DC_104';
+FileConstant.TRUCKASSIGNMENT_SCREEN_PGM_ID = 'DM108';
+FileConstant.DELIVERYORDER_SCREEN_PGM_ID = 'DC_105';
+FileConstant.DAMAGECHECK_SCREEN_PGM_ID = 'CT256';
+FileConstant.PARTNER_TARIFF_SCREEN_PGM_ID = 'BL_101';
+
+FileConstant.RORODAMAGECHECK_SCREEN_PGM_ID = 'CT237';

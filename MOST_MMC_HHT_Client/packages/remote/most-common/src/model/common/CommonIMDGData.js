@@ -1,0 +1,41 @@
+Ext.define('MOST.model.common.CommonIMDGData', {
+	extend : 'MOST.model.foundation.dataitem.DataItem',
+	fields: [
+	{
+		name:'imdg',
+		type:'string'
+	},
+	{
+		name:'unno',
+		type:'string'
+	},
+	{
+		name:'packingGroup',
+		type:'string'
+	},
+	{
+		name:'properShipName',
+		type:'string'
+	},
+	{
+		name:'limitedQty',
+		type:'string'
+	},
+	{
+		name:'subsidiaryRisk',
+		type:'string'
+	},
+	{
+		name:'marinePollut',
+		type:'string'
+	},
+	{
+		name:'ems',
+		type:'string'
+	},
+	{
+		name:'flashPoint',
+		type:'string'
+	}
+	]
+});

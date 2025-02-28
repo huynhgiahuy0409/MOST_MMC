@@ -1,0 +1,278 @@
+Ext.define('MOST.model.planning.SearchSpaceMovementPlanParm', {
+	extend : 'MOST.model.foundation.parm.BizParm',
+	fields: [
+	{
+		name:'reqNo',
+		type:'string'
+	},
+	{
+		name:'seq',
+		type:'string'
+	},
+	{
+		name:'reqTpCd',
+		type:'string'
+	},
+	{
+		name:'reqTpNm',
+		type:'string'
+	},
+	{
+		name:'reqDt',
+		type:'string'
+	},
+	{
+		name:'reqr',
+		type:'string'
+	},
+	{
+		name:'reqrNm',
+		type:'string'
+	},
+	{
+		name:'reqrTpCd',
+		type:'string'
+	},
+	{
+		name:'reqrTpNm',
+		type:'string'
+	},
+	{
+		name:'planDt',
+		type:'string'
+	},
+	{
+		name:'cgRefNo',
+		type:'string'
+	},
+	{
+		name:'reqPos',
+		type:'string'
+	},
+	{
+		name:'planLocId',
+		type:'string'
+	},
+	{
+		name:'prevLocId',
+		type:'string'
+	},
+	{
+		name:'prevCellId',
+		type:'string'
+	},
+	{
+		name:'rmk',
+		type:'string'
+	},
+	{
+		name:'reqQty',
+		type:'string'
+	},
+	{
+		name:'reqMsrmt',
+		type:'string'
+	},
+	{
+		name:'reqWgt',
+		type:'string'
+	},
+	{
+		name:'statCd',
+		type:'string'
+	},
+	{
+		name:'statNm',
+		type:'string'
+	},
+	{
+		name:'opeClassCd',
+		type:'string'
+	},
+	{
+		name:'refNo',
+		type:'string'
+	},
+	{
+		name:'vslCallId',
+		type:'string'
+	},
+	{
+		name:'shipgNoteNo',
+		type:'string'
+	},
+	{
+		name:'shipgNoteNo1',
+		type:'string'
+	},
+	{
+		name:'blNo',
+		type:'string'
+	},
+	{
+		name:'cgNo',
+		type:'string'
+	},
+	{
+		name:'blSn',
+		type:'string'
+	},
+	{
+		name:'shipgAgnt',
+		type:'string'
+	},
+	{
+		name:'fwdAgnt',
+		type:'string'
+	},
+	{
+		name:'cngShp',
+		type:'string'
+	},
+	{
+		name:'cnsne',
+		type:'string'
+	},
+	{
+		name:'shpr',
+		type:'string'
+	},
+	{
+		name:'strgNoteNo',
+		type:'string'
+	},
+	{
+		name:'insertType',
+		type:'string'
+	},
+	{
+		name:'chk',
+		type:'string'
+	},
+	{
+		name:'divCd',
+		type:'string'
+	},
+	{
+		name:'locId',
+		type:'string'
+	},
+	{
+		name:'reqSeq',
+		type:'string'
+	},
+	{
+		name:'eta',
+		type: 'date',
+		convert:function(value){
+			if (value) {
+				if (Ext.isDate(value)) 
+					return value;
+				else
+					return new Date(value);
+			}else{
+				return '';
+			}
+		}
+	},
+	{
+		name:'svcDt',
+		type: 'date',
+		convert:function(value){
+			if (value) {
+				if (Ext.isDate(value)) 
+					return value;
+				else
+					return new Date(value);
+			}else{
+				return '';
+			}
+		}
+	},
+	{
+		name:'period',
+		type:'string'
+	},
+	{
+		name:'reqM2',
+		type:'string'
+	},
+	{
+		name:'reqMt',
+		type:'string'
+	},
+	{
+		name:'grNo',
+		type:'string'
+	},
+	{
+		name:'dgYn',
+		type:'string'
+	},
+	{
+		name:'cgType',
+		type:'string'
+	},
+	{
+		name:'cgPkgType',
+		type:'string'
+	},
+	{
+		name:'reqYn',
+		type:'string'
+	},
+	{
+		name:'catgCd',
+		type:'string'
+	},
+	{
+		name:'payer',
+		type:'string'
+	},
+	{
+		name:'payerNm',
+		type:'string'
+	},
+	{
+		name:'no',
+		type:'string'
+	},
+	{
+		name:'mvTp',
+		type:'string'
+	},
+	{
+		name:'planBy',
+		type:'string'
+	},
+	{
+		name:'planSeq',
+		type:'string'
+	},
+	{
+		name:'items',
+		mapping: 'spcMovRequestMap'
+	},
+	{
+		name: 'isNotPlanned',
+		type: 'boolean',
+		defaultValue: false
+	},
+	{
+		name: 'planLocId',
+		type: 'string'
+	},
+	{
+		name: 'lotNo',
+		type: 'string'
+	}
+	],
+	
+    associations: [
+    	{
+			type: 'hasMany',
+			name: 'spcMovRequestMap',
+			model: 'MOST.model.planning.SpaceMovementPlan'
+    	}
+    ]
+});

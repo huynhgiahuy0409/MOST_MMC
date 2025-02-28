@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="brandModelCode">
+		
+		<resultMap 	id="brandResult" type="BrandModelCodeItem">
+	   		<result property = "brandCd"	column = "BRAND_CD"/>
+			<result property = "brandNm" 	column = "BRAND_NM"/>
+	 	</resultMap>
+	 	
+	 	<resultMap 	id="modelResult" type="BrandModelCodeItem">
+	   		<result property = "brandCd"	column = "BRAND_CD"/>
+			<result property = "modelCd" 	column = "MODEL_CD"/>
+			<result property = "modelNm" 	column = "MODEL_NM"/>
+	 	</resultMap>
+	 	
+	<select id="selectBrandCodeItems"   parameterType="brandModelCodeParm"  resultMap="brandResult">
+	 	<if test="pageNo != 0"> 
+             SELECT /*brandModelCode.selectBrandCodeItems*/
+             	* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getBrandCodeItems"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+			AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	
+	<select id="selectBrandCodeItemsCount" parameterType="brandModelCodeParm" resultType="java.lang.String">
+		SELECT COUNT(*)
+    		FROM (<include refid="getBrandCodeItems"/>)
+	</select>
+	
+	<sql id="getBrandCodeItems">
+		SELECT 	
+   			B.BRAND_CD AS BRAND_CD, 
+   			B.BRAND_NM AS BRAND_NM
+		FROM TMT_BRAND B
+	    <where>
+		  	<if test="brandNm != null and brandNm != ''">
+				AND B.BRAND_NM LIKE CONCAT('%', #{brandNm}) OR BRAND_NM LIKE CONCAT(#{brandNm},'%')
+		  	</if>
+			<if test="modelNm != null and modelNm != ''">
+				AND B.BRAND_CD IN (SELECT  DISTINCT M.BRAND_CD FROM TMT_BRAND_DTL M 
+				WHERE M.MODEL_NM LIKE  CONCAT('%', #{modelNm})  OR M.MODEL_NM LIKE CONCAT(#{modelNm},'%'))
+		  	</if>
+	    </where>
+		ORDER BY BRAND_CD			
+	</sql>
+	
+	<select id="selectModelCodeItems" parameterType="brandModelCodeParm"  resultMap="modelResult">
+	 	<if test="pageNo != 0"> 
+             SELECT /*brandModelCode.selectModelCodeItems*/
+             	* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getModelCodeItems"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+			AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	 
+	<select id="selectModelCodeItemsCount" parameterType="brandModelCodeParm" resultType="java.lang.String">
+		SELECT COUNT(*)
+        	FROM (<include refid="getModelCodeItems"/>)
+	</select>
+	 
+	<sql id="getModelCodeItems">
+		SELECT 	
+   			BRAND_CD AS BRAND_CD, 
+   			MODEL_CD AS MODEL_CD,
+   			MODEL_NM AS MODEL_NM
+		FROM TMT_BRAND_DTL 
+	    WHERE BRAND_CD = #{brandCd}
+		ORDER BY MODEL_CD			
+	</sql>
+	
+	<select id="brandCodeDuplicateCheck" parameterType="brandModelCodeParm" resultType="BrandModelCodeItem">
+		SELECT BRAND_CD brandCd
+		FROM TMT_BRAND
+		WHERE  BRAND_CD = #{brandCd}
+	</select>
+	
+	<select id="brandCodeRemoveCheck" parameterType="brandModelCodeParm" resultType="BrandModelCodeItem">
+		SELECT BRAND_CD brandCd
+		FROM TMT_BRAND_DTL
+		WHERE  BRAND_CD = #{brandCd}
+	</select>
+	
+	<select id="modelCodeDuplicateCheck" parameterType="brandModelCodeParm" resultType="BrandModelCodeItem">
+		SELECT MODEL_CD modelCd
+		FROM TMT_BRAND_DTL
+		WHERE  MODEL_CD = #{modelCd} AND BRAND_CD = #{brandCd}
+	</select>
+	
+	<insert id = "insertBrandCodeItem"  parameterType = "BrandModelCodeItem">
+		INSERT 	/*brandModelCode.insertBrandCodeItem*/
+		INTO TMT_BRAND (
+			BRAND_CD,
+			BRAND_NM,
+			STAFF_CD,
+			UPDATE_TIME
+		) VALUES (
+			#{brandCd},
+			#{brandNm},
+			#{userId},
+			systimestamp
+		)
+	</insert> 
+	
+	<insert id = "insertModelCodeItem"  parameterType = "BrandModelCodeItem">
+		INSERT 	/*brandModelCode.insertModelCodeItem*/
+		INTO TMT_BRAND_DTL (
+			BRAND_CD,
+			MODEL_CD,
+			MODEL_NM,
+			STAFF_CD,
+			UPDATE_TIME
+		) VALUES (
+			#{brandCd},
+			#{modelCd},
+			#{modelNm},
+			#{userId},
+			systimestamp
+		)
+	</insert>
+	
+	<update id = "updateBrandCodeItem"  parameterType="BrandModelCodeItem">
+		UPDATE 	/*brandModelCode.updateBrandCodeItem*/
+		TMT_BRAND SET
+			BRAND_NM = #{brandNm},
+			STAFF_CD = #{userId},
+			UPDATE_TIME = systimestamp
+		 WHERE BRAND_CD = #{brandCd}  
+	</update> 
+	
+	<update id = "updateModelCodeItem"  parameterType="BrandModelCodeItem">
+		UPDATE 	/*brandModelCode.updateModelCodeItem*/
+		TMT_BRAND_DTL SET 
+			MODEL_NM = #{modelNm},
+			STAFF_CD = #{userId},
+			UPDATE_TIME = systimestamp
+		WHERE BRAND_CD = #{brandCd}
+		AND MODEL_CD = #{modelCd}  
+	</update> 
+	
+	<delete id = "deleteBrandCodeItem"  parameterType = "BrandModelCodeItem">
+		DELETE 	/*brandModelCode.deleteBrandCodeItem*/
+		FROM TMT_BRAND 
+		WHERE BRAND_CD = #{brandCd}
+	</delete>  
+	
+	<delete id = "deleteModelCodeItem"  parameterType = "BrandModelCodeItem">
+		DELETE 	/*brandModelCode.deleteBrandCodeItem*/
+		FROM TMT_BRAND_DTL
+		WHERE BRAND_CD = #{brandCd}
+		AND MODEL_CD = #{modelCd} 
+	</delete>  
+</mapper>

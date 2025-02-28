@@ -1,0 +1,2144 @@
+Ext.define('MOST.view.operation.VesselDelayController', {
+	extend: 'MOST.view.foundation.BaseViewController',
+
+	requires: [
+	],
+
+	alias: 'controller.vesseldelay',
+	
+	/**
+	 * =========================================================================================================================
+	 * CONSTANT START
+	 */
+	MAX_DATE_PERIOD : 7,	// MAX PERIOD DATE
+	MAIN_GRID_REF_NAME: 'refVesselDelayGrid',				// Main Grid Name 
+	MAIN_STORE_NAME: 'vesselDelayList',
+	APFP_COMBO_STORE: 'apfpCombo',
+	/**
+	 * CONSTANT END
+	 * =========================================================================================================================
+	 */	
+	
+	/**
+	 * =========================================================================================================================
+	 * INITIALIZE START
+	 */
+	// After Renderer Event
+	onLoad: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var comboStore = me.getStore('vesselDelayCombo');
+		var equipmentStore = me.getStore('deployedEquipmentNoList');
+		var hatchNoStore = me.getStore('hatchNoCombo');
+		hatchNoStore.load();
+		equipmentStore.load();
+		
+		var shiftStore = me.getStore('shiftCombo');
+		shiftStore.load();
+		
+		var recvData = me.getView().recvData;
+		
+		me.getViewModel().set('theDelay', 	Ext.create('MOST.model.operation.VesselDelay'));
+		
+		comboStore.load({
+			params: {
+				searchType : 'comboList'
+			},
+			callback: function(records, operation, success) {
+				if (success) {
+					if(records != null && records.length > 0){
+//						shiftStore.setData(records[0].get('shiftList'));
+//						shiftStore.insert(0, [{shftNm: 'All',shftId: ''}]);
+//						
+//						hatchNoStore.setData(records[0].get('hatchNoList'));
+//						hatchNoStore.insert(0, [{scdNm: 'All',scd: ''}]);
+						
+//						equipmentStore.setData(records[0].get('equipmenNoList'));
+//						equipmentStore.insert(0, [{eqNm: 'All',eqNo: ''}]);
+					}
+				}
+			}
+		});
+		
+		var searchParm = Ext.create('MOST.model.operation.SearchVesselDelayParm');
+		me.setSearchParm(searchParm); // Settings Model Data Change
+		me.getViewModel().setData({theSearch:searchParm});
+		me.setComboBoxWithLocalCache(CacheServiceConstants.APFP_COMBOBOX, me.APFP_COMBO_STORE); 	// MOVE TYPE COMBO
+		me.updateViewStyle(me.getView());
+		searchParm.set('progress', 'N');
+		
+		if(recvData != null || recvData != undefined){
+			refs.ctlVslCallId.setValue(recvData.vslCallId);
+//	     	refs.ctlShiftCombo.setValue(recvData.shftId);
+//	     	refs.ctlVslCallId.setValue(recvData.vslCallId);
+	     	refs.ctlWorkYmdField.setValue(recvData.workYmd);
+			refs.ctlHatchCombo.setValue(recvData.hatchNo);
+	     	me.onSearch();
+		}
+	},
+	
+	onGettingHatchAndEq: function () {
+		var me = this;
+		var refs = me.getReferences();
+		var comboStore = me.getStore('vesselDelayCombo');
+		var hatchNoStore = me.getStore('hatchNoCombo');
+		var equipmentStore = me.getStore('deployedEquipmentNoList');
+		
+		if(refs.ctlVslCallId.getValue() != ''
+//			&& refs.refInputDate.getValue() != null				//Date field is removed
+				/*&& refs.refShiftId.getValue() != ''*/){		
+			comboStore.load({
+				params: {
+					searchType : 'comboList',
+					vslCallId:refs.ctlVslCallId.getValue(),
+//					stDt: Ext.Date.format(refs.refInputDate.getValue(), MOST.config.Locale.getShortDate()),
+					/*shftId: refs.refShiftId.getValue()*/
+				},
+				callback: function(records, operation, success) {
+					if (success) {
+						if(records != null && records.length > 0){
+							hatchNoStore.removeAll();
+							hatchNoStore.setData(records[0].get('hatchNoList2'));
+							hatchNoStore.insert(0, [{scdNm: 'All',scd: ''}]);
+							
+							equipmentStore.removeAll();
+							equipmentStore.setData(records[0].get('equipmenNoList2'));
+							equipmentStore.insert(0, [{eqNm: 'All',eqNo: ''}]);
+						}
+					}
+				}
+			});
+		}
+	},
+	
+	onGetEquipmenttList: function (){
+		var me = this;
+		var refs = me.getReferences();
+		var equipmentStore =  me.getStore('deployedEquipmentNoList');
+		equipmentStore.clearFilter();
+		
+		if(!StringUtil.isNullorEmpty(refs.refVesselDelayHatchNo.getValue())){
+			var hatchNo = refs.refVesselDelayHatchNo.getSelection().get('hatchNo');
+			
+			equipmentStore.filterBy(function(rec) {
+				if(rec.get('hatchNo')){
+					if(rec.get('hatchNo').indexOf(hatchNo) > -1){
+						return true;
+					}	
+					else {
+					    return false;
+					}	
+				}
+			});
+		}
+		
+	},
+	
+	getEquipmentSettingList: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var eqSettingList = me.getStore('equipmentSettingList');
+		eqSettingList.load({
+			params: {
+				scn: refs.ctlScn.getValue(),
+				vslCallId: refs.ctlVslCallId.getValue(),
+				searchType: 'info'
+			},
+			callback: function(records, operation, success) {
+				if(success){
+					
+				}
+			}
+		});
+	},
+
+	onChangeDelayDate:function( e, newDate, oldDate, eOpts ) {
+		var me = this;
+		var refs = me.getReferences();
+		
+		var selectedRecord = me.getViewModel().get('theDelay');
+		if(selectedRecord && selectedRecord.phantom){
+			var workDate = Ext.Date.format(newDate, 'd/m/Y');
+			var formShiftTime = me.setFmTimeByShift(selectedRecord.get('shftId'), workDate);
+			refs.refStartDate.setValue(formShiftTime);
+			refs.refEndDate.setValue((me.setToTimeByShift(selectedRecord.get('shftId'), workDate, formShiftTime)));
+		}
+	},
+
+	onSelectShift:function( ) {
+		var me = this;
+		var refs = me.getReferences();
+		
+		var selectedRecord = me.getViewModel().get('theDelay');
+		if(selectedRecord && selectedRecord.phantom){
+			var workDate = Ext.Date.format(refs.refInputDate.getValue(), 'd/m/Y');
+			var formShiftTime = me.setFmTimeByShift(selectedRecord.get('shftId'), workDate);
+			refs.refStartDate.setValue(formShiftTime);
+			refs.refEndDate.setValue((me.setToTimeByShift(selectedRecord.get('shftId'), workDate, formShiftTime)));
+		}
+	},
+	
+	setFmTimeByShift: function(shftId, workYmd){
+		var me = this;
+		var refs = me.getReferences();
+		
+		var shiftListStore = me.getStore('shiftCombo');
+		var shift = shiftListStore.findRecord('shftId', shftId);
+		var fmShiftTime;
+		
+		if(shift){
+			fmShiftTime = Ext.Date.parse(workYmd + ' ' + shift.get('fmHhMm').substr(0,2) + ':' + shift.get('fmHhMm').substr(2,2),  'd/m/Y H:i');
+		}
+		
+		return fmShiftTime;
+	},
+	
+	setToTimeByShift: function(shftId, workYmd, fromShiftTime){
+		var me = this;
+		var refs = me.getReferences();
+		
+		var shiftListStore = me.getStore('shiftCombo');
+		var shift = shiftListStore.findRecord('shftId', shftId);
+		var toShiftTime;
+		if(shift){
+			toShiftTime = Ext.Date.parse(workYmd + ' ' + shift.get('toHhMm').substr(0,2) + ':' + shift.get('toHhMm').substr(2,2),  'd/m/Y H:i');
+		}
+		
+		if(shftId === 'SF0013' || fromShiftTime > toShiftTime){
+			toShiftTime.setDate(toShiftTime.getDate() + 1);
+		}
+		
+		return toShiftTime;
+	},
+	
+	
+	updateDelayStartDate:function(value){
+		var me = this;
+		var refs = me.getReferences();
+		
+		var grid = me.lookupReference('refVesselDelayGrid');
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+		
+		if(!selection) return;
+		
+		selection.set('stDt', Ext.Date.format(value, MOST.config.Locale.getDefaultDateFormatWithNoSeconds()));
+		var totalHRS = me.getTotalHRS(selection);
+		if(totalHRS != selection.get('totalHRS')){
+			selection.set('totalHRS',	totalHRS);
+		}
+	},
+
+	updateDelayEndDate:function(value){
+		var me = this;
+		var refs = me.getReferences();
+		
+		var grid = me.lookupReference('refVesselDelayGrid');
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+		
+		if(!selection) return;
+		
+		selection.set('endDt', Ext.Date.format(value, MOST.config.Locale.getDefaultDateFormatWithNoSeconds()));
+		
+		var totalHRS = me.getTotalHRS(selection);
+		if(totalHRS != selection.get('totalHRS')){
+			selection.set('totalHRS',	totalHRS);
+		}
+	},
+    /**
+	 * INITIALIZE END
+	 * =========================================================================================================================
+	 */
+	
+	/**
+	 * =========================================================================================================================
+	 * EVENT HANDLER START
+	 */
+	// Search Event Handler
+	onSearch: function() {
+		var me = this;
+     	var refs = me.getReferences();
+    	var store = me.getStore('vesselDelayList');
+    	var params = me.getSearchCondition();
+    	
+    	if(params == null){
+    		return;
+    	}
+    	
+		store.load({
+			params: params,
+			callback: function(records, operation, success) {
+				if (success) {
+					me.getView().getEl().unmask();
+					me.onClear();
+					
+					me.getEquipmentSettingList();
+				}
+			}
+		});
+	},
+//	/**
+//	 * EVENT HANDLER END
+//	 * =========================================================================================================================
+//	 */
+//	
+//	/**
+//	 * =========================================================================================================================
+//	 * GENERAL METHOD START
+//	 */
+//	
+	
+	// Grid Edit
+	onEdit : function(editor, context){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference('refVesselDelayGrid');
+		var editor = grid.getPlugin('vesselDelayGridEditor');
+		var shiftListStore = me.getStore('shiftCombo');
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+		if(selection == null) return;
+		var inputDt = refs.refInptDt.getEditor().rawValue;
+		var startDt = refs.refStDt.getEditor().lastValue;
+		var endDt =  refs.refEndDt.getEditor().lastValue;
+		
+		/*var shftId = editor.grid.down('[dataIndex=shftNm]').getEditor().getValue();
+		var shift = shiftListStore.findRecord('shftId', shftId);
+		if(shift == null || shift == ''){
+			shift = shiftListStore.findRecord('shftNm', shftId);
+		}*/
+		
+		selection.set('inptDt',		inputDt.toString());
+		selection.set('stDt',		startDt.toString());
+		selection.set('endDt',		endDt.toString());
+		selection.set('vslCallId',	refs.ctlVslCallId.getValue());
+		/*selection.set('shftId', 	shift.get('shftId'));
+		selection.set('shftNm', 	shift.get('shftNm'));*/
+		selection.set('rsnCdNm', 	refs.refRsnCdNm.getEditor().getValue());
+		selection.set('acptYN', 	refs.refAcptYN.getEditor().getValue());
+		selection.set('contractor', refs.refTxtContractor.getValue());
+		
+		var totalHRS = me.getTotalHRS(selection);
+		selection.set('totalHRS',	totalHRS);
+	},
+	
+    onCancelEdit : function(rowEditing, context) {
+		var me = this;
+		me.gridCancelEdit(rowEditing, context);
+	},
+	
+	onChecked : function (model, record, index, eOpts) {
+		if(record.data.itChk){
+			record.data.itChk=false;
+		}
+		else{
+			record.data.itChk=true;
+		}
+    },
+    
+    onClear: function(){
+    	var me = this;
+    	var refs = me.getReferences();
+
+//    	refs.refInputDate.suspendEvents();	//Date field is removed
+    	refs.refStartDate.suspendEvents();
+    	refs.refEndDate.suspendEvents();
+    	
+    	me.getViewModel().set('theDelay', 	Ext.create('MOST.model.operation.VesselDelay'));
+    	refs.refBtnSave.setDisabled(true);
+    	//refs.refBtnCreate.setDisabled(false);
+    	refs.refTxtContractor.setDisabled(true);
+    	
+//    	refs.refInputDate.setValue('');	//Date field is removed
+    	refs.refStartDate.setValue('');
+    	refs.refEndDate.setValue('');
+
+//    	refs.refInputDate.resumeEvents();
+    	refs.refStartDate.resumeEvents();
+    	refs.refEndDate.resumeEvents();
+    },
+
+    onSave: function(){
+    	var me = this;
+    	me.getView().getEl().mask('Processing...');
+    	saveDelayTask.delay(200, null, me, [me]);
+    },
+    
+    onDelaySave:function(){
+    	var me = this;
+		var refs = me.getReferences();
+		var store = me.getStore('vesselDelayList');
+
+		var bValidation = true
+		store.getModifiedRecords().forEach(function(record, index, array){
+			if(!me.onValidation(record)){
+				bValidation = false;
+				me.getView().getEl().unmask();
+				return
+			}
+			
+			if(!me.onValidationBeforeSave(record)){
+				bValidation = false;
+				me.getView().getEl().unmask();
+				return
+			}
+
+			//return true;
+			var vslCallId 	= refs.ctlVslCallId.getValue();
+			var inptDt 		= record.get('inptDt');
+			var shftId 		= record.get('shftId');
+			var rsnCd 		= record.get('rsnCd');		
+			var eqNo 		= record.get('eqNo');
+			var hatchNo 	= record.get('hatchNo');
+			var acptYN 		= record.get('acptYN');
+			var hatchDrtCd 	= record.get('hatchDrtCd');
+			var stDt 		= record.get('stDt');
+			var endDt 		= record.get('endDt');
+			var seq 		= record.get('seq');
+			var rmk			= record.get('rmk');
+			
+			var params = {
+					tyCd : 'checkExisted',
+					col1 : vslCallId,
+					/*col2 : inptDt,*/
+					/*col3 : shftId,*/
+					col4 : rsnCd,
+					col5 : eqNo,
+					col6 : hatchNo,
+					col7 : acptYN,
+					col8 : hatchDrtCd,
+					/*col9 : stDt,
+					col10 : endDt,*/
+					col11 : seq,
+					col12 : stDt,
+					col13 : endDt,
+					col14 : rmk
+			};
+			
+			var validationCodeStore = me.getStore('vesselDelayDuplicatedValidationCode'); 	   	
+			validationCodeStore.load({
+				params : params,			
+				callback: function(records, operation, success) {
+					if (success) {
+						if(records[0].get("isValidated") !== "Y"){
+							MessageUtil.alert('warning', 'tbl_delayVessel_duplicate');
+							bValidation = false;
+							return;
+						}
+                 
+						if(index === store.getModifiedRecords().length-1){
+							if(bValidation){
+								store.sync({
+									success:function(){
+										MessageUtil.saveSuccess();
+										me.getView().getEl().unmask();
+										me.onSearch();
+										me.getViewModel().set('theDelay', 	Ext.create('MOST.model.operation.VesselDelay'));
+									}
+								});
+							}
+							me.getView().getEl().unmask();
+						}
+						
+					} else {
+						MessageUtil.alert('warning', 'tbl_delayVessel_duplicate');
+						bValidation = false;
+						return;
+					}
+				}
+			});	
+							
+		});
+		me.getView().getEl().unmask();
+
+    },
+
+    onValidation: function(record){
+    	var me = this;
+		var refs = me.getReferences();
+		var store = me.getStore('vesselDelayList');
+		var shiftListStore = me.getStore('shiftCombo');
+		
+		var startDate = Ext.Date.parse(record.get('stDt'),MOST.config.Locale.getDefaultDateFormatWithNoSeconds());
+		var endDate = Ext.Date.parse(record.get('endDt'),MOST.config.Locale.getDefaultDateFormatWithNoSeconds());
+//		var shftId = record.get('shftId');
+//		var inptDt = record.get('inptDt');			//Date field is removed
+		
+		if(StringUtil.isNullorEmpty(record.get('vslCallId'))){
+			MessageUtil.alert('Warning', 'vesseldelay_msg_vslcallid');
+			return false;
+		}
+//		if(!record.get('inptDt')){					//Date field is removed
+//			MessageUtil.alert('Warning', 'vesseldelay_msg_date');
+//			return false;
+//		}
+		
+		if(!record.get('rsnCd')){
+			MessageUtil.alert('Warning', 'vesseldelay_msg_code');
+			return false;
+		}
+		if(!record.get('stDt')){
+			MessageUtil.alert('Warning', 'vesseldelay_msg_fromtime');
+			return false;
+		}
+		if(!record.get('endDt')){
+			MessageUtil.alert('Warning', 'vesseldelay_msg_totime');
+			return false;
+		}
+		
+		if(record.get('rsnCd').substring(0,1) === 'E'){
+			if(!record.get('contractor')){
+				MessageUtil.alert('Warning', 'vesseldelay_msg_contractor');
+				return false;
+			}
+		}
+		
+		/*var shift = shiftListStore.findRecord('shftId', shftId);
+		if(shift == null || shift == ''){
+			shift = shiftListStore.findRecord('shftNm', shftId);
+		}
+		
+		var fmShiftTime = Ext.Date.parse(inptDt + ' ' + shift.get('fmHhMm').substr(0,2) + ':' + shift.get('fmHhMm').substr(2,2),  MOST.config.Locale.getDefaultDateFormatWithNoSeconds());
+		var toShiftTime = Ext.Date.parse(inptDt + ' ' + shift.get('toHhMm').substr(0,2) + ':' + shift.get('toHhMm').substr(2,2),  MOST.config.Locale.getDefaultDateFormatWithNoSeconds());
+		var fmShiftTime = Ext.Date.parse(inptDt + ' 00:00' ,  MOST.config.Locale.getDefaultDateFormatWithNoSeconds());
+		var toShiftTime = Ext.Date.parse(inptDt + ' 23:59' ,  MOST.config.Locale.getDefaultDateFormatWithNoSeconds());
+
+		if(shftId == 'SF0013' || shftId == '3RD' || fmShiftTime > toShiftTime){
+			toShiftTime.setDate(toShiftTime.getDate() + 1);
+		}*/
+		
+		if(startDate != '' && startDate != null  && endDate != '' && endDate != null){
+			var dateValidation = me.validateFromToDate(startDate, endDate);
+			
+			if(!dateValidation){
+				return false;
+			}
+		}
+		
+		/*if(startDate != '' && startDate != null){
+			if(startDate < fmShiftTime ||  endDate > toShiftTime){
+				MessageUtil.alert('Warning', 'vesselDelay_start_shift_time_msg');
+				return false;
+			}
+		}
+		
+		if(endDate != '' && endDate != null){
+			if(endDate < fmShiftTime ||  endDate > toShiftTime){
+				MessageUtil.alert('Warning', 'vesselDelay_end_shift_time_msg');
+				return false;
+			}
+		}*/
+		
+		var eqSettingList = me.getStore('equipmentSettingList');
+		if(eqSettingList && eqSettingList.getData().length > 0){
+			/* ADP removed:
+			if(!record.get('hatchNo')){
+				MessageUtil.alert('Warning', 'Please select the Hatch No');
+				return false;
+			}
+			
+			if(!record.get('eqNo')){
+				MessageUtil.alert('Warning', 'Please select the Equipment No');
+				return false;
+			}
+			
+			var eqItems =  eqSettingList.queryBy(function(record2){
+		        return (record2.get('vslCallId') == record.get('vslCallId') 
+		        		&& record2.get('shftId') == record.get('shftId') 
+		        		&& Ext.Date.format(record2.get('workYmd'), 	MOST.config.Locale.getShortDate()) == record.get('inptDt')
+		        		&& record2.get('eqFacNo') == record.get('eqNo')
+		        		&& record2.get('hatchNo') == record.get('hatchNo'));
+		    });
+
+		    if (eqItems.getCount() > 0) {
+		    	var fmEqTime = eqItems.items[0].get('workStDt');
+				var toEqTime = eqItems.items[0].get('workEndDt');
+				
+				if (eqItems.getCount() > 1) {
+					for(var i = 1; i< eqItems.getCount(); i++){
+						if(eqItems.items[i].get('workStDt') < fmEqTime){
+							fmEqTime = eqItems.items[i].get('workStDt');
+						}
+						if(eqItems.items[i].get('workEndDt') > toEqTime){
+							toEqTime = eqItems.items[i].get('workEndDt');
+						}
+					}
+				}
+				
+				if(startDate >= fmEqTime && endDate <= toEqTime){
+					
+				} else {
+					var params=[Ext.Date.format(fmEqTime, MOST.config.Locale.getDefaultDateFormatWithNoSeconds()), Ext.Date.format(toEqTime, MOST.config.Locale.getDefaultDateFormatWithNoSeconds())]
+					MessageUtil.warning('warning_msg', 'vesselDelay_start_eqSetting_time_msg', params[0] + ' - ' + params[1]);
+					return false;
+				}
+		    }*/
+		} else {
+			var detailVsl = me.getViewModel().get('theVsl');
+			if(startDate < detailVsl.get('atb')){
+				MessageUtil.warning('warning_msg', 'vesselDelay_start_atb_time_msg', Ext.Date.format(detailVsl.get('atb'), MOST.config.Locale.getDefaultDateFormatWithNoSeconds()));
+				return false;
+			}
+		}
+	
+		return true;
+    },
+    
+    onValidationBeforeSave:function(record){
+    	var me = this;
+		var refs = me.getReferences();
+		var store = me.getStore('vesselDelayList');
+    	for(var i = 0; i < store.data.items.length; i++){
+			var rec = store.data.items[i]
+			if(rec !== record){
+				if(	rec.get('inptDt') === record.get('inptDt') && 
+					/*rec.get('shftNm') === record.get('shftNm') && */
+					rec.get('hatchDrtCd') === record.get('hatchDrtCd') &&
+					rec.get('hatchNo') === record.get('hatchNo')
+					/* && rec.get('rsnCd') === record.get('rsnCd')*/){
+					
+					if(rec.get('stDt') <= record.get('stDt') && record.get('stDt') < rec.get('endDt')){
+						MessageUtil.alert('Warning', 'The inputted data is duplicated.');
+						return false;
+					}
+
+					if(rec.get('stDt') < record.get('endDt') && record.get('endDt') < rec.get('endDt')){
+						MessageUtil.alert('Warning', 'The inputted data is duplicated.');
+						return false;
+					}
+				}
+			}
+		}
+    	
+    	return true;
+    },
+
+	onVerify:function(){
+		var me = this;
+		var store = me.getStore('vesselDelayList');
+		var refs = me.getReferences();
+		var arrItems = new Array();
+		var grid = me.lookupReference('refVesselDelayGrid');
+		var editor = grid.getPlugin('vesselDelayGridEditor');
+		var masterItem = Ext.create('MOST.model.operation.VesselDelay');
+		var selectedGrid = false;
+		var valid = true;
+
+		store.each(function(record,index){
+			if(record.data.itChk && (record.data.verifyStatus != 'VERIFIED')){
+				record.data.verifyStatus = 'VERIFIED';
+				record.data.verifyBy = MOST.config.Token.getUserId();
+				
+				arrItems.push(record.data);
+			}
+		});
+		
+		if(masterItem.dirty||arrItems.length>0){
+			var proxy = masterItem.getProxy();
+			proxy.url= MOST.config.Locale.getRestApiDestUrl() + '/v1/vesseldelay/verified';
+			masterItem.set("items",arrItems);
+			masterItem.save({
+				success:function(){
+					store.reload();
+					MessageUtil.saveSuccess();
+				}
+			});
+		}else{
+			MessageUtil.warning("Vessel Delay", "vesselDelay_nodata_save_msg");
+			return;
+		}
+	},
+
+	onGridClick: function(){
+		var me = this;
+		var refs = me.getReferences();
+
+		var grid = me.lookupReference('refVesselDelayGrid');
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+		
+		if(!selection) return;
+		
+		me.getViewModel().set('theDelay',selection);	
+		
+		if(selection.get('rsnCd').substring(0,1) === 'E'){
+			refs.refTxtContractor.setDisabled(false);
+		}else{
+			refs.refTxtContractor.setDisabled(true);
+		}
+		
+//		refs.refInputDate.setValue(Ext.Date.parse(selection.get('inptDt'), MOST.config.Locale.getShortDate()));	//Date field is removed
+		refs.refStartDate.setValue(Ext.Date.parse(selection.get('stDt'), MOST.config.Locale.getDefaultDateFormatWithNoSeconds()));
+		refs.refEndDate.setValue(Ext.Date.parse(selection.get('endDt'), MOST.config.Locale.getDefaultDateFormatWithNoSeconds()));
+
+		refs.refBtnSave.setDisabled(false);
+		refs.refBtnDelete.setDisabled(false);		
+	},
+	
+	// Popup is closed and receives return value
+	afterSetCodePopupData:function(xtype, targetControl, returnValue){
+		var me = this;
+		var refs = me.getReferences();
+		if(targetControl === 'ctlVslCallId'){
+			if(returnValue){
+				me.getViewModel().setData({theVsl:returnValue.item});
+				me.onGettingHatchAndEq();
+				
+				me.getEquipmentSettingList();
+				me.onSearch();
+				
+				refs.ctlScn.setValue(returnValue.item.get('scn'));
+			}else{
+				me.getViewModel().setData({theVsl:null});
+			}
+		}else if(targetControl === 'refTxtDelayCode'){
+			refs.refTxtDelayCode.setValue(returnValue.rsnCd);
+			refs.refTxtDelayCodeName.setValue(returnValue.rsnCdNm);
+			refs.refTxtAcptYN.setValue(returnValue.acptYN);
+			
+			if(returnValue.rsnCd.substring(0,1) === 'E'){
+				refs.refTxtContractor.setDisabled(false);
+			}else{
+				refs.refTxtContractor.setValue('');
+				refs.refTxtContractor.setDisabled(true);
+			}
+			
+		}else if(targetControl === 'refTxtContractor'){
+			if(returnValue){
+				refs.refTxtContractor.setValue(returnValue.code);
+			}
+			
+		}else if(targetControl === 'refTxtTblContractor'){
+			if(returnValue){
+				refs.refTxtTblContractor.setValue(returnValue.code);
+			}
+			
+		} if(targetControl === 'ctlScn'){ 
+			if(returnValue){
+				refs.ctlScn.setValue(returnValue.code);
+
+				if(!StringUtil.isNullorEmpty(returnValue.item.get('vslCallId'))){
+					refs.ctlVslCallId.setValue(returnValue.item.get('vslCallId'));
+					me.getViewModel().setData({theVsl:returnValue.item});
+				}else {
+					refs.ctlVslCallId.setValue('');
+					me.getViewModel().setData({theVsl:null});
+				}
+			} 
+		}
+	},
+	// Search Condition
+	getSearchCondition : function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var store = me.getStore(me.MAIN_STORE_NAME);
+		var grid = me.lookupReference(me.MAIN_GRID_REF_NAME);
+		var pageNo = store.currentPage;
+		var sizePerPage = CommonConstants.PAGE_SIZE;
+		var searchParm = me.getViewModel().get('theSearch');
+		var params = me.createParam(searchParm);
+     	
+     	var jpvcNo = searchParm.data.vslCallId;
+     	var scn = searchParm.data.scn;
+     	var workYmd = DateUtil.checkDate(me, 'ctlWorkYmdField').dateString;
+    	
+     	if(!StringUtil.isNullorEmpty(jpvcNo) || !StringUtil.isNullorEmpty(scn)){ 
+     		params['vslCallId'] = jpvcNo;
+     		params['scn'] = scn;
+     		params['stDt'] = workYmd;
+     		params['searchType'] = 'DelayRecordList';
+    		params['pageNo'] = pageNo;
+    		params['sizePerPage'] = sizePerPage;
+    		params['sort'] = grid.getSortString();
+     	}else{
+     		MessageUtil.error('fail_msg', "requiredJpvcmessage");
+			params = null;
+     	}
+    	
+    	return params;
+	},
+	
+	onExportExcelPdfWithServer : function(gridNameString,isExcel) {
+		var me = this;
+		var searchBizParm = me.getSearchCondition();
+		searchBizParm.classID = 'com.tsb.most.biz.parm.operation.SearchVesselDelayParm';
+		searchBizParm.serviceID = 'MOST.vesselDelay.selectVesselDelayList'
+
+		me.exportExcelPdfWithServer(gridNameString,searchBizParm, isExcel);
+	},
+	
+	onAdd: function(){
+    	var me = this;
+    	addDelayTask.delay(300, null, me, [me]);
+	},
+	
+	onAddEvent: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var store = me.getStore('vesselDelayList');
+		var record = me.getViewModel().get('theDelay');
+		
+		if(StringUtil.isNullorEmpty(refs.ctlVslCallId.getValue()) && StringUtil.isNullorEmpty(refs.ctlScn.getValue())){
+			MessageUtil.info('Warning', 'vorExistedVslCallId');
+			return;
+		}else{
+			if(record.phantom){
+				var newRecord = Ext.create('MOST.model.operation.VesselDelay');
+				newRecord.set("userId", 	MOST.config.Token.getUserId());
+				newRecord.set("vslCallId", 	refs.ctlVslCallId.getValue());
+				newRecord.set("scn", 		refs.ctlScn.getValue());
+//				newRecord.set('inptDt', 	Ext.Date.format(refs.refInputDate.getValue(), 	MOST.config.Locale.getShortDate()));	//Date field is removed
+				newRecord.set('stDt', 		Ext.Date.format(refs.refStartDate.getValue(), 	MOST.config.Locale.getDefaultDateFormatWithNoSeconds()));
+				newRecord.set('endDt', 		Ext.Date.format(refs.refEndDate.getValue(), 	MOST.config.Locale.getDefaultDateFormatWithNoSeconds()));
+				/*newRecord.set('shftId', 	refs.refShiftId.getValue());
+				newRecord.set('shftNm', 	refs.refShiftId.getDisplayValue());*/
+				newRecord.set('hatchNo', 	refs.refVesselDelayHatchNo.getValue());
+				newRecord.set('eqNo', 		refs.refVesselDelayEquipmentNo.getValue());
+				newRecord.set('rsnCd', 		refs.refTxtDelayCode.getValue());
+				newRecord.set('rsnCdNm', 	refs.refTxtDelayCodeName.getValue());
+				newRecord.set('acptYN', 	refs.refTxtAcptYN.getValue());
+				newRecord.set('hatchDrtCd', refs.refVesselDelayHatchDrtC.getValue());
+				newRecord.set('contractor', refs.refTxtContractor.getValue());
+				newRecord.set('totalHRS', 	refs.refTotalHRS.getValue());
+				newRecord.set('rmk', 		refs.refRmk.getValue());
+
+				me.getViewModel().set('theDelay', newRecord);
+				if(me.onValidation(newRecord)){
+					if(me.onValidationBeforeSave(newRecord)){
+						store.insert(0, newRecord);
+					}
+					
+				}
+			}else{
+				var newRecord = record.clone();
+				var newRecord1 = Ext.create('MOST.model.operation.VesselDelay');
+				newRecord.id = newRecord1.id;
+				newRecord.phantom = true;
+
+				newRecord.set("userId", 	MOST.config.Token.getUserId());
+				newRecord.set("vslCallId", 	refs.ctlVslCallId.getValue());
+				/*newRecord.set('shftNm', 	refs.refShiftId.getDisplayValue());*/
+//				newRecord.set('inptDt', 	Ext.Date.format(refs.refInputDate.getValue(), 	MOST.config.Locale.getShortDate()));	//Date field is removed
+				newRecord.set('stDt', 		Ext.Date.format(refs.refStartDate.getValue(), 	MOST.config.Locale.getDefaultDateFormatWithNoSeconds()));
+				newRecord.set('endDt', 		Ext.Date.format(refs.refEndDate.getValue(), 	MOST.config.Locale.getDefaultDateFormatWithNoSeconds()));
+				
+				if(me.onValidation(newRecord)){
+					if(me.onValidationBeforeSave(newRecord)){
+						store.insert(0, newRecord);
+					}
+				}
+				record.reject();
+			}
+			refs.refBtnSave.setDisabled(false);
+		}
+	},
+	
+	// Grid Row Remove
+	onRemove: function() {
+		var me = this;
+		var store = me.getStore('vesselDelayList'); 
+		var grid = me.lookupReference('refVesselDelayGrid');
+		
+		MessageUtil.question('remove', 'infodelete_msg', null,
+			function(button){
+				if (button === 'ok') {
+					store.data.each(function(record){
+						if(record.data.itChk){
+							store.remove(record);
+							
+						}
+					});
+					
+					store.sync({
+						success: function(){
+							MessageUtil.saveSuccess();
+							me.onClear();
+						}
+					});
+					store.commitChanges();
+				}
+			}
+		);
+	},
+	
+	removeComplete : function(me){
+		MessageUtil.saveSuccess(); // Success Message
+	},
+	
+	onDownloadPDF : function(){
+		var me = this;
+		var refs = me.getReferences();
+		var params = {
+				previewType : 'DOWNLOAD',
+				vslCallId: refs.ctlVslCallId.getValue(),
+				userId: MOST.config.Token.getUserId(),
+				searchType: 'DelayRecordList'
+		};
+		
+		var detailVsl = me.getViewModel().get('theVsl');
+		if(detailVsl != null){
+			params['eta'] = detailVsl.data.eta==null?null:Ext.Date.format(detailVsl.data.eta, MOST.config.Locale.getDefaultDateFormatWithNoSeconds());
+			params['etb'] = detailVsl.data.etb==null?null:Ext.Date.format(detailVsl.data.etb, MOST.config.Locale.getDefaultDateFormatWithNoSeconds());
+			params['atb'] = detailVsl.data.atb;
+			params['atw'] = detailVsl.data.atw;
+			params['atc'] = detailVsl.data.atc;
+			params['atu'] = detailVsl.data.atu;
+			params['vslNm'] = detailVsl.data.vslNm;
+			params['berthLoc'] = detailVsl.data.berthLoc;
+			params['sa'] = detailVsl.data.depSaId;
+		}
+		
+		me.getView().detailViewAlias = 'app-vesseldelaygeneratepdf';
+		me.openDetailPopup(params, 'Download');
+	},
+	
+	onPreviewPDF:function(){
+		var me = this;
+		var refs = me.getReferences();
+		
+		var params = {
+				previewType : 'PREVIEW',
+				vslCallId: refs.ctlVslCallId.getValue(),
+				userId: MOST.config.Token.getUserId(),
+				searchType: 'DelayRecordList'
+		};
+		
+		var detailVsl = me.getViewModel().get('theVsl');
+		if(detailVsl != null){
+			params['eta'] = detailVsl.data.eta==null?null:Ext.Date.format(detailVsl.data.eta, MOST.config.Locale.getDefaultDateFormatWithNoSeconds());
+			params['etb'] = detailVsl.data.etb==null?null:Ext.Date.format(detailVsl.data.etb, MOST.config.Locale.getDefaultDateFormatWithNoSeconds());
+			params['atb'] = detailVsl.data.atb;
+			params['atw'] = detailVsl.data.atw;
+			params['atc'] = detailVsl.data.atc;
+			params['atu'] = detailVsl.data.atu;
+			params['vslNm'] = detailVsl.data.vslNm;
+			params['berthLoc'] = detailVsl.data.berthLoc;
+			params['sa'] = detailVsl.data.depSaId;
+		}
+		
+		me.getView().detailViewAlias = 'app-vesseldelaygeneratepdf';
+		me.openDetailPopup(params, 'Preview');
+		
+	},
+	onLoadPopupPDF:function(){
+		
+		var me = this;
+		var refs = me.getReferences();
+		var recvData = me.getView().recvData;
+		var params = recvData.params;
+		var crtRadioVal = refs.ctl_optRpt.getValue();
+		
+		if(crtRadioVal.rptOpt === 'RCS10101'){
+			refs.cltJpvc.setDisabled(true);
+			refs.cltJpvc.setValue('');
+			params.reportId = 'RCS10101';
+			params.fromDate = datefromStrg;
+			params.fromDate = datetoStrg;
+			refs.ctlDateFromDt.setDisabled(false);
+			refs.ctlDateToDt.setDisabled(false);
+		}else{
+			refs.cltJpvc.setDisabled(false);
+			refs.cltJpvc.setValue(params.vslCallId);
+			params.reportId = 'RCS011';
+			params.hatchNo = '';
+			params.shftId = '';
+			params.stDt = '';
+			refs.ctlDateFromDt.setDisabled(true);
+			refs.ctlDateToDt.setDisabled(true);
+		}
+		
+	},
+	onCheckRptOpt:function(){
+		var me = this;
+		var refs = me.getReferences();
+		
+		var params = me.getView().recvData.params;
+		var crtRadioVal = refs.ctl_optRpt.getValue();
+		var fromDate = refs.ctlDateFromDt.getValue();
+		var toDate = refs.ctlDateToDt.getValue();
+		var datefromStrg = fromDate==null?null:Ext.Date.format(fromDate, MOST.config.Locale.getShortDate());
+		var datetoStrg = toDate==null?null:Ext.Date.format(toDate, MOST.config.Locale.getShortDate());
+		
+		if(crtRadioVal.rptOpt === 'RCS10101'){
+			refs.cltJpvc.setDisabled(false);
+			refs.cltJpvc.setValue(params.vslCallId);
+			params.reportId = 'RCS10101';
+			refs.ctlDateFromDt.setDisabled(true);
+			refs.ctlDateToDt.setDisabled(true);
+			
+		}else{
+			refs.cltJpvc.setDisabled(true);
+			refs.cltJpvc.setValue('');
+			params.reportId = 'RCS011';
+			params.fromDate = datefromStrg;
+			params.fromDate = datetoStrg;
+			refs.ctlDateFromDt.setDisabled(false);
+			refs.ctlDateToDt.setDisabled(false);
+		}
+	},
+	onCancel:function(){
+		var me = this;
+		var window = me.getView().up('window');
+		window.close();
+	},
+	onOkPDF:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var window = me.getView().up('window');
+		var previewPDF = me.getStore('generatePDFvesselDelay');
+		var params = me.getView().recvData.params;
+
+		previewPDF.load({
+			params: params,
+			callback: function(records, operation, success) {
+				if (success) {
+					me.openPDFPreview (records, operation, success);
+					window.close();
+				}
+			}
+		});
+		
+	},
+	setSrchStrReport:function(selection){
+		var me = this;
+		var refs = me.getReferences();
+		var params = null;
+		var detailVsl = me.getViewModel().get('theVsl');
+		var vslCallId = detailVsl.data.vslCallId;
+		var eta = detailVsl.data.eta==null?null:Ext.Date.format(detailVsl.data.eta, MOST.config.Locale.getDefaultDateFormatWithNoSeconds());
+		var etb = detailVsl.data.etb==null?null:Ext.Date.format(detailVsl.data.etb, MOST.config.Locale.getDefaultDateFormatWithNoSeconds());
+		var atb = detailVsl.data.atb;
+		var atw = detailVsl.data.atw;
+		var atc = detailVsl.data.atc;
+		var atu = detailVsl.data.atu;
+		var vslNm = detailVsl.data.vslNm;
+		var berthLoc = detailVsl.data.berthLoc;
+		var sa = detailVsl.data.depSaId;
+		var userId = MOST.config.Token.getUserId();
+		
+		/*var shftId = selection.data.shftId;
+		var shftNm = selection.data.shftNm;*/
+		var cmd = selection.data.comodityCode;
+		var hatchNo = selection.data.hatchNo;
+		var rsnCd = selection.data.rsnCd;
+		var rsnCdNm = selection.data.rsnCdNm;
+		//var stDt = selection.data.inptDt;
+		var fromDt = selection.data.stDt;
+		var toDt = selection.data.endDt;
+		
+		var stDt = Ext.Date.format(refs.ctlWorkYmdField.getValue(), MOST.config.Locale.getShortDate());
+		/*var shftId = refs.ctlShiftCombo.getValue();
+		var shftNm = refs.ctlShiftCombo.getRawValue();*/
+		
+		params = {
+				vslCallId : vslCallId,
+				eta:eta,
+				etb:etb,
+				atb:atb,
+				atw:atw,
+				atc:atc,
+				atu:atu,
+				vslNm:vslNm,
+				berthLoc:berthLoc,
+				sa:sa,
+				userId: userId,
+				/*shftId:shftId,
+				shftNm:shftNm,*/
+				cmd:cmd,
+				hatchNo:hatchNo,
+				rsnCd:rsnCd,
+				rsnCdNm:rsnCdNm,
+				stDt:stDt,
+				fromDate:fromDt,
+				toDate:toDt,
+				reportId: '',
+				searchType: 'DelayRecordList',
+				previewType: '',
+		}
+		return params
+	},
+	getDelayCode:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference('refVesselDelayGrid');
+//		var store = me.getStore('delayCodeList');
+		var editor = grid.getPlugin('vesselDelayGridEditor');
+		var delayCode= editor.grid.down('[dataIndex=rsnCd]').getEditor().getValue();
+		var delayCodeListStore = me.getStore('delayCodeList');
+		if(delayCode != null && delayCode != ''){
+			refs.refRsnCdNm.getEditor().setValue(delayCodeListStore.findRecord('rsnCd', delayCode).data.rsnCdNm);
+			refs.refAcptYN.getEditor().setValue(delayCodeListStore.findRecord('rsnCd', delayCode).data.acptYN);
+		}
+	},
+	
+	onValidateEdit: function(editor, context){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference('refVesselDelayGrid');
+		var editor = grid.getPlugin('vesselDelayGridEditor');
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+		
+		if(selection == null) return;
+		
+		var startDate = editor.grid.down('[dataIndex=stDt]').getEditor().getValue();
+		var endDate = editor.grid.down('[dataIndex=endDt]').getEditor().getValue();
+		
+		if(startDate == null || startDate == undefined){
+			
+		}
+		
+//		var shiftListStore = me.getStore('shiftCombo');
+//		var shftId = editor.grid.down('[dataIndex=shftNm]').getEditor().getValue();
+//		var shift = shiftListStore.findRecord('shftId', shftId);
+//		if(shift == null || shift == ''){
+//			shift = shiftListStore.findRecord('shftNm', shftId);
+//		}
+		
+//		var inptDt = selection.data.inptDt;	//Date field is removed
+//		if(inptDt == null || inptDt == ''){
+//			inptDt = editor.grid.down('[dataIndex=inptDt]').getEditor().rawValue;
+//		}
+		var fmShiftTime = Ext.Date.parse(inptDt + ' ' + shift.get('fmHhMm').substr(0,2) + ':' + shift.get('fmHhMm').substr(2,2),  'd/m/Y H:i');
+		var toShiftTime = Ext.Date.parse(inptDt + ' ' + shift.get('toHhMm').substr(0,2) + ':' + shift.get('toHhMm').substr(2,2),  'd/m/Y H:i');
+			
+//		if(shftId == 'SF0013' || shftId == '3RD'){
+//			toShiftTime.setDate(toShiftTime.getDate() + 1);
+//		}
+		
+		if(startDate != '' && startDate != null  && endDate != '' && endDate != null){
+		var dateValidation = me.validateFromToDate(startDate, endDate);
+		
+			if(!dateValidation){
+				return false;
+			}
+		}
+
+		if(startDate != '' && startDate != null){
+			if(startDate < fmShiftTime ||  startDate > toShiftTime){
+				MessageUtil.alert('Warning', 'vesselDelay_start_shift_time__msg');
+				return false;
+			}
+		}
+		
+		if(endDate != '' && endDate != null){
+			if(endDate < fmShiftTime ||  endDate > toShiftTime){
+				MessageUtil.alert('Warning', 'vesselDelay_end_shift_time_msg');
+				return false;
+			}
+		}
+		
+		//return true;
+		var vslCallId = refs.ctlVslCallId.getValue();
+//		var inptDt = Ext.Date.format(editor.grid.down('[dataIndex=inptDt]').getEditor().getValue(), MOST.config.Locale.getShortDate());	//Date field is removed
+		var rsnCd = editor.grid.down('[dataIndex=rsnCd]').getEditor().getValue();		
+		var eqNo = editor.grid.down('[dataIndex=eqNo]').getEditor().getValue();
+		var hatchNo = editor.grid.down('[dataIndex=hatchNo]').getEditor().getValue();
+		var acptYN = editor.grid.down('[dataIndex=acptYN]').getEditor().getValue();
+		var hatchDrtCd = editor.grid.down('[dataIndex=hatchDrtCd]').getEditor().getValue();
+		var stDt = Ext.Date.format(editor.grid.down('[dataIndex=stDt]').getEditor().getValue(), MOST.config.Locale.getDefaultDateFormatWithNoSeconds());
+		var endDt = Ext.Date.format(editor.grid.down('[dataIndex=endDt]').getEditor().getValue(), MOST.config.Locale.getDefaultDateFormatWithNoSeconds());
+		
+		var params = {
+			tyCd : 'checkExisted',
+			col1 : vslCallId,
+			col2 : inptDt,
+//			col3 : shift.get('shftId'),
+			col4 : rsnCd,
+			col5 : eqNo,
+			col6 : hatchNo,
+			col7 : acptYN,
+			col8 : hatchDrtCd,
+			col9 : stDt,
+			col10 : endDt				
+		};
+		
+     	var validationCodeStore = me.getStore('vesselDelayDuplicatedValidationCode'); 	   	
+     	validationCodeStore.load({
+     		params : params,			
+			callback: function(records, operation, success) {
+				if (success) {
+					if(records[0].get("isValidated") === "Y"){
+						me.gridEdit(editor, context, false);					
+					} else {
+						MessageUtil.alert('warning', 'tbl_delayVessel_duplicate');
+						return;
+					}
+				} else {
+					MessageUtil.alert('warning', 'tbl_delayVessel_duplicate');
+					return;
+				}
+			}
+     	});
+	},
+	
+	getTotalHRS: function(masterItem){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference('refVesselDelayGrid');
+		
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+
+		var startDate = selection.get('stDt'); 	//masterItem.data.stDt;
+		var endDate = selection.get('endDt'); 	//masterItem.data.endDt;
+
+		var startTime = Ext.Date.parse(startDate,  'd/m/Y H:i');
+		var endTime = Ext.Date.parse(endDate,  'd/m/Y H:i');
+		
+		if (startTime != null && endTime != null) {
+			totalHours = Math.round((endTime.getTime()-startTime.getTime())*0.001/3600*100)/100;
+		}
+		
+		return totalHours;
+		
+	},
+	
+	onOpenDelayCodePopup:function(field, button, e){
+		var me = this;
+		var refs = me.getReferences();
+		var params = {
+			lcd: 'BBK'
+		};
+		me.openCodePopup('popup-delaycodepopup', 'refTxtDelayCode', params);
+	},
+	
+	onOpenPartnerCdPopup: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var params={
+			searchDivCd: 'VDPR'
+		}
+		me.openCodePopup('popup-partnercdpopup','refTxtContractor',params );
+	},
+	
+	onCheckedContractor: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var delayCode = refs.refTxtDelayCode.getValue();
+		
+		var store = this.getStore('delayCodePopup');
+		var selection =  me.getViewModel().get('theDelay');	
+		
+		if (delayCode != null && delayCode != ''){
+			store.load({
+				params: {
+					scd: delayCode,
+					tyCd: 'CD'
+				},
+				callback: function(record, operation, success){
+	    			if(success){
+	    				if (record.length == 0){
+	    					selection.set('rsnCd', '');
+	    					selection.set('acptYN', '');
+	    					selection.set('rsnCdNm', '');
+	    				}else {
+	    					selection.set('rsnCd', record[0].get('scd'));
+	    					selection.set('rsnCdNm', record[0].get('scdNm'));
+	    					selection.set('acptYN', record[0].get('acptYN'));
+	    				}
+	    			}
+	    		}
+			});
+		}
+		
+		if (delayCode == null || delayCode.substr(0,1) != 'E'){
+			selection.set('contractor','');
+			refs.refTxtContractor.setValue('');
+			refs.refTxtContractor.setDisabled(true);
+		};
+		if (delayCode.substr(0,1) == 'E'){
+			refs.refTxtContractor.setDisabled(false);
+		}
+	},
+	
+    exportTo: function(btn) {
+    	var me = this;
+    	var refs = me.getReferences();
+    	
+        var cfg = Ext.merge({
+            title: 'Vessel Delay',
+            fileName: 'VesselDelay' + '.' + (btn.cfg.ext || btn.cfg.type)
+        }, btn.cfg);
+
+        var grid = refs.refVesselDelayGrid;
+        grid.saveDocumentAs(cfg);
+    },
+	
+	/**
+	 * GENERAL METHOD END
+	 * =========================================================================================================================
+	 */
+	/*
+	 * ROBERT ADDED.
+	 * FOR MODERN - TABLET VERSION
+	 * =========================================================================================================================
+	 * */
+	/*
+	 * Event Function:
+	 * */
+	IS_GridSelect: false,
+	clicked: false,
+	eqSettingIsEmpty: false,
+	isInvalidTime: false,
+	isOutRangeTime: false,
+	matchEqTime: false,
+	
+	onTblSearchDelayCd: function(ctl) {
+		var store = this.getStore('delayCodePopup');
+		store.clearFilter();
+		var tpVal = 'CD';//this.lookupReference('refTypeCombo').getValue();
+		var scdVal = ''
+		var col1Val = '';
+		var refDlyList = this.lookupReference('refLstDlyCtgCd');
+		
+		if(ctl.xtype === 'list'){
+			this.lookupReference('txtDelayCd').reset();
+			col1Val = (refDlyList.getSelection()) ? refDlyList.getSelection().getData().dlyCgt : '';
+		} else if (ctl.xtype === 'combobox') {
+			this.lookupReference('txtDelayCd').reset();
+			col1Val = (refDlyList.getSelection()) ? refDlyList.getSelection().getData().dlyCgt : '';			
+		}else {
+
+			scdVal = this.lookupReference('txtDelayCd').getValue();
+		}
+		store.load({
+			params: {
+				tyCd: tpVal,
+				scd: scdVal,
+				lcd: 'BRK',
+				col1: col1Val,
+			},
+			callback: function(record, ope, success){
+				if(success){
+					store.each(function (record, index) {
+						var fullCdNm = record.get('scd') + ' - ' + record.get('scdNm');
+						record.set('fullCdNm', fullCdNm);
+					});
+					store.commitChanges();
+				}
+			}
+		});
+	},
+	
+	onChangeDelaycd: function (ref, newVal, oldVal){
+		var me = this;
+		var refs = me.getReferences();
+		var delayStore = me.getStore('delayCodePopup');
+		delayStore.clearFilter();
+		if(!newVal){
+			refs.refTxtTblContractor.setValue('');
+			return;
+		}
+		oldVal = (oldVal == null) ? "" : oldVal;
+		ref.setValue(newVal.toUpperCase());
+		if(newVal.toUpperCase()!== oldVal.toUpperCase()){
+			delayStore.filter(function(record){
+				if(record.get('scd').toLowerCase().includes(newVal.toLowerCase())
+					||record.get('scdNm').toLowerCase().includes(newVal.toLowerCase())){
+					return record;
+				}
+			});
+		}
+		var newValue = newVal.toUpperCase();
+		if(!newValue.startsWith("E", 0)){
+			refs.refTxtTblContractor.setValue('');
+		}
+		refs.refTxtTblContractor.setDisabled(!newValue.startsWith("E", 0));
+		refs.refTxtTblContractor.setRequired(newValue.startsWith("E", 0));
+		refs.refBtnContractor.setDisabled(!newValue.startsWith("E", 0));
+		
+	},
+	
+//	onTblSearchDelayCd: function(ctl) {
+//		var store = this.getStore('delayCodePopup');
+//		var tpVal = 'CD';//this.lookupReference('refTypeCombo').getValue();
+//		var scdVal = ''
+//			var col1Val = '';
+//		var refDlyList = this.lookupReference('refLstDlyCtgCd');
+//		
+//		if(ctl.xtype === 'list'){
+//			this.lookupReference('txtDelayCd').reset();
+//			col1Val = (refDlyList.getSelection()) ? refDlyList.getSelection().getData().dlyCgt : '';
+//		}else {
+//			refDlyList.setSelection(false);
+//			scdVal = this.lookupReference('txtDelayCd').getValue();
+//		}
+//		store.load({
+//			params: {
+//				tyCd: tpVal,
+//				scd: scdVal,
+//				col1: col1Val,
+//			},
+//			callback: function(record, ope, success){
+//				if(success){
+//				}
+//			}
+//		});
+//	},
+	
+	onTblLoad: function(){
+		var me = this;
+		var refs = me.getReferences();
+		if(!me.checkGlobalJpvcNo()){
+			return;
+		}
+		//Set data from Global:
+		var glbVslCallId = me.getViewModel().get('globalVesselCallId');
+		var glbDt = Ext.Date.format(MOST.config.Token.getWorkDate(), 'd/m/Y');
+		var glbShft = MOST.config.Token.getWorkShift();
+		var comboStore = me.getStore('vesselDelayCombo');
+//		var hatchNoStore = me.getStore('hatchNoCombo');
+//		var shiftStore = me.getStore('shiftCombo');
+		var equipmentCombo = me.getStore('deployedEquipmentNoList');
+		
+		//For validate time with EQSetting:
+		var eqSettingList = me.getStore('equipmentSettingList');
+		
+		//var recvData = me.getView().recvData;
+		//var shiftId = refs.refCbxShft.getValue();
+		
+		comboStore.load({
+			params: {
+				searchType : 'comboList',
+				stDt: glbDt,
+				shftId: glbShft,
+				vslCallId: glbVslCallId
+			},
+			callback: function(records, operation, success) {
+				if (success) {
+					if(records != null && records.length > 0){
+//						shiftStore.setData(records[0].get('shiftList'));
+//						shiftStore.insert(0, [{shftNm: 'All',shftId: ''}]);
+//						shiftStore.commitChanges();
+//						
+//						hatchNoStore.setData(records[0].get('hatchNoList2'));
+//						hatchNoStore.insert(0, [{hatchNo: 'Select',hatchNo: ''}]);
+//						hatchNoStore.commitChanges();
+						
+						equipmentCombo.setData(records[0].get('deployedEquipmentNoList'));
+						equipmentCombo.insert(0, [{eqNm: 'Select',eqNo: ''}]);
+						equipmentCombo.commitChanges();
+					}
+					me.setShiftDateWorking();
+					me.onTblRetrieve();
+					me.getEqSettingList();
+				}
+			}
+		});
+		
+		me.onTblSearchDelayCd(refs.refBtnVslDelayRetrieve);
+	},
+	
+	eqSettingListArr: null,
+	getEqSettingList: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var eqSettingList = me.getStore('equipmentSettingList');
+		me.eqSettingListArr = new Array();
+		eqSettingList.load({
+			params: {
+				vslCallId: me.getViewModel().get('globalVesselCallId'),
+				searchType: 'info',
+				shift: me.getViewModel().get('globalWorkShift'),
+				workYmd: me.getViewModel().get('globalWorkDate')
+			},
+			callback: function(records, operation, success) {
+				if(success){
+					for(var rc of records){
+						me.makeDistinctEqSettingTimeArr(rc.getData());
+					}
+					console.log(me.eqSettingListArr);
+					//me.setDefaultValue();
+				}
+			}
+		});
+	},
+	
+	makeDistinctEqSettingTimeArr: function(theEqstt){
+		var me = this;
+		var refs = me.getReferences();
+
+		/*if(!theEqstt.workEndDt){
+			var wkDtStr = me.getViewModel().get('globalWorkDate');
+			var endDtStr = '';
+			
+			if(theEqstt.shftId === 'SF0014'){
+				endDtStr = wkDtStr + ' 14:59';
+			}else if(theEqstt.shftId === 'SF0012'){
+				endDtStr = wkDtStr + ' 22:59';
+			}else if(theEqstt.shftId === 'SF0013'){
+				endDtStr = wkDtStr + ' 06:59';
+			}
+			var workEndTime =  Ext.Date.parse(endDtStr,  'd/m/Y H:i');
+			if(theEqstt.shftId === 'SF0013'){
+				workEndTime = new Date(workEndTime.getTime() + (24 * 60 * 60 * 1000));
+			}
+			theEqstt.workEndDt = workEndTime;
+		}*/
+		
+		var checkHatch = me.eqSettingListArr.filter(eqStt => (eqStt.hatchNo === theEqstt.hatchNo));
+		if(checkHatch.length == 0 || !theEqstt.workEndDt){//If difference Hatch -> adding
+			me.eqSettingListArr.push(theEqstt);
+		}else if(theEqstt.workEndDt){
+			//Base on all Equipment setting is same Date/Shift/Vessel with valid start end time:
+            for(var item of me.eqSettingListArr){
+            	if(item.hatchNo !== theEqstt.hatchNo){
+            		continue;
+            	}
+			    theEqstt_workEndDt = new Date(theEqstt.workEndDt.getTime() + 60*1000);
+			    item_workEndDt = new Date(item.workEndDt.getTime() + 60*1000);
+			    
+            	if(item_workEndDt < theEqstt.workStDt || item.workStDt > theEqstt_workEndDt){
+            		me.eqSettingListArr.push(theEqstt);
+            	}else if(item.workStDt > theEqstt.workStDt && item_workEndDt < theEqstt_workEndDt){
+            		item.workStDt = theEqstt.workStDt;
+            		item.workEndDt = theEqstt.workEndDt;
+            	}else if(item.workStDt >= theEqstt.workStDt && item_workEndDt >= theEqstt_workEndDt){
+            		item.workStDt = theEqstt.workStDt;
+            	}else if(item.workStDt <= theEqstt.workStDt && item_workEndDt <= theEqstt_workEndDt){
+            		item.workEndDt = theEqstt.workEndDt;
+            	}
+            }
+		}
+	},
+	
+	setDefaultValue: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var hatchNoStore = me.getStore('hatchNoCombo');
+		var equipmentCombo = me.getStore('deployedEquipmentNoList');
+		
+		if(hatchNoStore.getData().length > 1){
+			var selection = hatchNoStore.getData().items[1];
+			refs.refCbxHatch.setSelection(selection);
+		}
+		if(equipmentCombo.getData().length > 1){
+			var selection = equipmentCombo.getData().items[1];
+			refs.refEqNo.setSelection(selection);
+		}
+		me.onTblSelectHatchNo();
+		
+		//Incase Not Declare EQ Stting yet => Allow Add vessel delay just base on Code and Time
+		var eqSettingList = me.getStore('equipmentSettingList');
+		eqSettingList.clearFilter();
+		me.eqSettingIsEmpty = (eqSettingList.getData().length === 0);
+	},
+	
+	onTblSelectHatchNo: function(ref){
+		var me = this;
+		var refs = me.getReferences();
+		
+		if(me.IS_GridSelect){
+			return;
+		}
+		//var shiftId = me.getViewModel().get('globalWorkShift');
+		//var workDt = me.getViewModel().get('globalWorkDate');
+		var selectedHatch = refs.refCbxHatch.getValue();
+		var obj = me.eqSettingListArr.find(eqSetting => eqSetting.hatchNo === selectedHatch);
+		if(!obj){
+			return;
+		}
+		//var startDt = obj.workStDt;
+		//var endDt = obj.workEndDt;
+		var eqFacNo = obj.eqFacNo;
+
+		//refs.refDelayFromTime.setValue(startDt);
+		//refs.refDelayToTime.setValue(endDt);
+		refs.refEqNo.setValue(eqFacNo);
+	},
+
+	onSearchContractorHHT: function(ref){
+		var me = this;
+		var refs = me.getReferences();
+		var searchType = 'CTT';
+		var title = 'Common Code';
+		var targetCtl = '';
+		if(ref.reference == 'refBtnContractor'){
+			title = 'Contractor';
+			searchType = 'CTT';
+			targetCtl = 'refTxtTblContractor';
+		}
+		var params = {
+			title: title,
+			searchType: searchType,
+		};		
+		ViewUtil.openCodePopup(this, 'app-commoncodepopuphht', targetCtl, params);	
+	},
+	
+	setShiftDateWorking: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var glbDt = Ext.Date.format(MOST.config.Token.getWorkDate(), 'd/m/Y');
+		var glbShft = MOST.config.Token.getWorkShift();
+		refs.refWorkingDate.setValue('');
+		refs.refCbxShft.setValue('');
+		refs.refWorkingDate.setValue(glbDt);
+		refs.refCbxShft.setValue(glbShft);
+		me.setStartEndTimeWithShift();
+	},
+
+	setStartEndTimeWithShift: function(){
+		var me = this;
+		var refs = me.getReferences();
+		//var shift = refs.refCbxShft.getSelection();
+		//var strWKDate = refs.refWorkingDate.getDate();
+		//var strStartDt = strWKDate + ' ' + shift.get('fmHhMm').substr(0,2) + ':' + shift.get('fmHhMm').substr(2,4);
+		//var strEndDt = strWKDate + ' ' + shift.get('toHhMm').substr(0,2) + ':' + shift.get('toHhMm').substr(2,4);
+
+		var shift = me.getViewModel().get('globalWorkShiftInfo');
+		var strWKDate = me.getViewModel().get('globalWorkDate');
+		var strStartDt = strWKDate + ' '+ shift.fmHhMm.substr(0,2) + ':' + shift.fmHhMm.substr(2,4);
+		var strEndDt = strWKDate + ' ' + shift.toHhMm.substr(0,2) + ':' + shift.toHhMm.substr(2,4);
+		
+		//if(shift.get('shftId') === 'SF0013'){
+		if(shift.shftId === 'SF0013'){
+			var temp = Ext.Date.parse(strEndDt, 'd/m/Y H:i');
+			var endShftDTime = new Date(temp.getTime() + (24 * 60 * 60 * 1000));
+			strEndDt = Ext.Date.format(endShftDTime, 'd/m/Y H:i');
+		}
+		
+		me.getViewModel().set('theDelayVessel.stDt', strStartDt);
+		me.getViewModel().set('theDelayVessel.endDt', strEndDt);
+		refs.refDelayFromTime.setValue(strStartDt);
+		refs.refDelayToTime.setValue(strEndDt);
+	},
+	
+	onTblRetrieve: function(){
+		var me = this;
+		if(!me.checkGlobalJpvcNo()){
+			return;
+		}
+		me.onTblClear();
+		var refs = me.getReferences();
+		var store = me.getStore('vesselDelayList');
+		var params = me.getTblSearchCondition();
+		if(params == null){
+			return;
+		}
+
+		store.load({
+			params: params,
+			callback: function(records, operation, success) {
+				if (success) {
+				}
+			}
+		});
+	},
+		
+	onTblSelectDelayCdGrid: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var row = refs.refDelayCodeGrid.getSelection();
+		var delayCd = row.data.scd;
+		refs.txtDelayCd.setValue(delayCd);
+	},
+	
+	onTblSelectDelayVslGrid: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = refs.delayVslGrid;
+		var row = grid.getSelection();
+		
+		if(row == null){
+			return;
+		}
+		me.setButtonControl('UPD');
+		me.IS_GridSelect = true;
+		me.getViewModel().set('theDelayVessel', row.getData());
+
+		/*var isEmtyHatchDelay = (!row.get('hatchNo') && !row.get('eqFacNo'));
+		refs.refCbxHatch.setRequired(!isEmtyHatchDelay);
+		refs.refCbxHatch.setDisabled(isEmtyHatchDelay);
+		refs.refEqNo.setRequired(!isEmtyHatchDelay);
+		refs.refEqNo.setDisabled(isEmtyHatchDelay);*/
+		
+		refs.refDelayFromTime.setValue(row.getData().stDt);
+		refs.refDelayToTime.setValue(row.getData().endDt);
+		
+		refs.refWorkingDate.setValue(row.getData().inptDt);
+		refs.refCbxShft.setValue(row.getData().shftId);
+	},
+	
+	onTblClear :function(){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = refs.delayVslGrid;
+		grid.setSelection(false);
+		me.IS_GridSelect = false;
+		var theDl = me.getViewModel().get('theDelayVessel');
+		if(theDl != null){
+			me.getViewModel().set('theDelayVessel', null);
+		}
+		me.setButtonControl('ADD');
+		//refs.delayDetail.reset();
+		me.setShiftDateWorking();
+		refs.refTxtTblContractor.setDisabled(true);
+		refs.refBtnContractor.setDisabled(true);
+		
+		refs.refCbxHatch.setRequired(false)
+		refs.refCbxHatch.setDisabled(false);
+		refs.refEqNo.setRequired(false);
+		refs.refEqNo.setDisabled(false);
+		
+		me.clicked = false;
+	},
+	
+	setButtonControl: function(mode){
+		var me = this;
+		var refs = me.getReferences();
+		
+		switch (mode){
+		case 'ADD':
+			refs.refBtnVslDelayAdd.setDisabled(false);
+			refs.refBtnVslDelayUpdate.setDisabled(true);
+			refs.refBtnVslDelayDelete.setDisabled(true);
+			
+			break;
+		case 'UPD':
+			//refs.refBtnVslDelayAdd.setDisabled(true);
+			refs.refBtnVslDelayUpdate.setDisabled(false);
+			refs.refBtnVslDelayDelete.setDisabled(false);
+			
+			break;
+		default:
+			break
+		}
+	},
+	
+	onTblUpdate: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var delayCodeStore = me.getStore('delayCodePopup');
+		var store = me.getStore('vesselDelayList');
+		var grid = refs.delayVslGrid;
+		
+		var selectedRecord = grid.getSelection();
+		if(!selectedRecord){
+			MessageUtil.warning("warning_msg", "tbl_vesselDelay_select_update");
+			return;
+		}
+		
+//		me.validFormWithEqSettingTime();//Remvove by ADP
+		
+		var detailForm = refs.delayDetail.validate();
+		//Check required field:
+		if(!detailForm){
+			MessageUtil.warning('warning_msg', 'tbl_vesselDelay_missing_require');
+			return;
+		}
+				
+		var sltIndex = grid.store.indexOf(selectedRecord);
+		var editItem = me.getViewModel().get('theDelayVessel');
+		
+		//Update row:
+		var delayCdRecord = delayCodeStore.findRecord('scd', editItem.rsnCd);
+		editItem.acptYN = delayCdRecord.get('acptYN');
+		
+		editItem.stDt = refs.refDelayFromTime.getValue();
+		editItem.endDt = refs.refDelayToTime.getValue();
+		editItem.inptDt = refs.refWorkingDate.getDate();
+		editItem.shftId = refs.refCbxShft.getValue();
+		var fromDT = Ext.Date.parse(editItem.stDt,'d/m/Y h:i');
+		var toDT = Ext.Date.parse(editItem.endDt,'d/m/Y h:i');
+		editItem.totalHRS = (toDT - fromDT)/1000/3600;
+		
+		//Check time with shift rule:
+		if(!me.validateTimeShift (editItem)){
+			return;
+		}
+		
+		if(!me.eqSettingIsEmpty && !me.validateTimeWithHatchEqSetting (editItem)){
+			return;
+		}	
+		//Check biz rule data:
+		this.validateData(editItem, function(){
+			store.each(function (record, index){
+				if(index === sltIndex){
+					record.data = editItem;
+					record.dirty = true;
+				}
+			});
+			store.sync({
+				success:function(){
+					MessageUtil.saveSuccess();
+					me.onTblRetrieve();
+				}
+			});
+			
+			/*No need to Ask confirm before adding.
+			MessageUtil.questionModern('tbl_confrm_update','tbl_delayVessel_update', null,function(button){
+				if(button === 'ok'){
+					
+				}
+			});*/
+		});
+	},
+	
+	validFormWithEqSettingTime: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var delayFrom = Ext.Date.parse(refs.refDelayFromTime.getValue(), 'd/m/Y H:i');
+		var delayTo = Ext.Date.parse(refs.refDelayToTime.getValue(), 'd/m/Y H:i');
+		
+		refs.refCbxHatch.setRequired(false);
+		refs.refEqNo.setRequired(false);
+		me.isOutRangeTime = false;
+		me.isInvalidTime = false;
+		me.matchEqTime = false;
+		
+		//If ListEQ empty:
+		if(me.eqSettingIsEmpty){
+			me.isOutRangeTime = true;
+			return;
+		}
+		
+		for(var eqSetting of me.eqSettingListArr){
+			//if has delay time match to at least one of EQ
+			if(eqSetting.workStDt && eqSetting.workEndDt &&
+					(delayFrom >= eqSetting.workStDt && delayTo <= eqSetting.workEndDt)){
+				refs.refCbxHatch.setRequired(true);
+				refs.refEqNo.setRequired(true);
+				me.matchEqTime = true;
+				return;
+			}
+		}
+		//if not match EqTime
+		for(var item of me.eqSettingListArr){
+			if(item.workStDt && item.workEndDt &&
+				(
+					(delayFrom >= item.workStDt && delayFrom <= item.workEndDt && delayTo > item.workEndDt)
+				 || (delayFrom < item.workStDt && delayTo >= item.workStDt && delayTo <= item.workEndDt)
+				 || (delayFrom <= item.workStDt && delayTo >= item.workEndDt) // covered outside one EQTime
+				)){//if Delay Time alternating with Eq Time => time Invalid
+				me.isInvalidTime = true;
+				return
+			}
+		}
+		//Else => time out of EQ
+		me.isOutRangeTime = true;
+	},
+
+	//Checking duplicate with overlap time record:
+	validateData: function(detailData, fn){
+		var me = this;
+		var refs = me.getReferences();
+		var validStore = me.getStore('delayVesselValidate');
+		var isDuplicate = false;
+		validStore.load({
+			params : {
+				tyCd : 'existsVslDelay',
+				col1 : detailData.vslCallId,
+				col2 : detailData.inptDt,
+				col3 : detailData.shftId,
+				col4 : detailData.rsnCd,
+				col5 : detailData.eqNo,
+				col6 : detailData.hatchNo,
+				col7 : (detailData.acptYN=='Y'?'Y':'N'),
+				col8 : detailData.hatchDrtCd,
+				col9 : detailData.stDt,
+				col10 : detailData.endDt,
+				col11 : detailData.seq,
+			},
+			callback: function(records, operation, success) {
+				if (success) {
+					if(records != null && records.length > 0){
+						if(records[0].get('ref1') == '' || records[0].get('ref1') == null){
+							MessageUtil.warning('warning_msg', 'tbl_delayVessel_invalidDlCd');
+							me.clicked = false;
+							return;
+						}
+						if(records[0].get('isValidated') === 'N'){
+							MessageUtil.warning('warning_msg', 'tbl_delayVessel_blockAddUpdate');
+							me.clicked = false;
+							return;
+						}
+						fn();
+					}
+				}
+			}
+		});
+	}
+	,
+	onTblCreate: function(){
+		var me = this;
+		if(me.clicked){
+			return;
+		}
+		me.clicked = true;
+
+		var refs = me.getReferences();
+		var delayCodeStore = me.getStore('delayCodePopup');
+		var form = me.getView();
+		
+		//me.validFormWithEqSettingTime(); //Remvove by ADP
+		
+		var detailForm = refs.delayDetail.validate();
+		//Check required field:
+		if(!detailForm){
+			MessageUtil.warning('warning_msg', 'tbl_vesselDelay_missing_require');
+			me.clicked = false;
+			return;
+		}
+		var delayFrom = refs.refDelayFromTime.getValue();
+		var delayTo = refs.refDelayToTime.getValue();
+		var dlayDT = refs.refWorkingDate.getDate();
+		var shftId = refs.refCbxShft.getValue();
+		
+		// Process to add new Data:
+		var detailData = me.getViewModel().get('theDelayVessel');
+		var delayCdRecord = delayCodeStore.findRecord('scd', detailData.rsnCd);
+		detailData.acptYN = delayCdRecord.get('acptYN');
+		
+		detailData.stDt = delayFrom;
+		detailData.endDt = delayTo;
+		detailData.inptDt = dlayDT;
+		detailData.shftId = shftId;
+		detailData.userId = MOST.config.Token.getUserId();
+		detailData.seq = '';
+		var fromDT = Ext.Date.parse(delayFrom,'d/m/Y h:i');
+		var toDT = Ext.Date.parse(delayTo,'d/m/Y h:i');
+		detailData.totalHRS = (toDT - fromDT)/1000/3600;
+		detailData.vslCallId = me.getViewModel().get('globalVesselCallId');
+		
+		//Check time with shift rule:
+		if(!me.validateTimeShift (detailData)){
+			me.clicked = false;
+			return;
+		}
+		
+		if(!me.eqSettingIsEmpty &&!me.validateTimeWithHatchEqSetting (detailData)){
+			me.clicked = false;
+			return;
+		}
+		
+		//Check dublicate data
+		this.validateData(detailData, function(){
+			var masterItem = Ext.create('MOST.model.operation.VesselDelay');
+			masterItem.data = detailData;
+			
+			if(masterItem.data){
+				var proxy = masterItem.getProxy();
+				proxy.url = MOST.config.Locale.getRestApiDestUrl() + '/v1/vesseldelay/list';
+				//proxy.url = store.getProxy().url;
+				masterItem.set("workingStatus", "C");			
+				masterItem.set('newVersion', me.generateUuid());
+				masterItem.save({
+					success:function(){
+						MessageUtil.saveSuccess();
+						me.onTblRetrieve();
+						me.onTblClear();
+						me.clicked = false;
+					}
+				});
+				
+				/* No need Ask to confirm before adding.
+				 * MessageUtil.questionModern('tbl_confrm_add', 'tbl_delayVessel_addnew', null, function(button){
+					if(button === 'ok'){
+						
+					}
+				});*/
+			}
+		});
+	},
+	
+	onTblDelete: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var store = me.getStore('vesselDelayList');
+		var grid = refs.delayVslGrid;
+		
+		var selectedRecord = grid.getSelection();
+		if(!selectedRecord){
+			MessageUtil.warning('Warning', 'tbl_vesselDelay_select_delete');
+			return;
+		}
+		
+		var sltIndex = grid.store.indexOf(selectedRecord);
+		var item = Ext.create('MOST.model.operation.VesselDelay');
+
+		var editItem = me.getViewModel().get('theDelayVessel');
+		var myData = editItem.hatchNo;
+		
+		MessageUtil.questionModern('tbl_confrm_delete', 'tbl_delayVessel_delete',null,
+			function(button){
+				if (button === 'ok') {
+					store.each(function (record, index){
+						if(index === sltIndex){
+							store.remove(record);
+						}
+					});
+					store.sync({
+						success:function(){
+							MessageUtil.saveSuccess();
+							me.onTblClear();
+						}
+					});
+				}else if(button === 'cancel'){
+					return;
+				};
+			}
+		);
+	},
+	
+
+	/*
+	 * ===================================== Table Generate Function ===================================== 
+	 * */
+	//Get Date Time from Control:
+	getDelayDateTime: function(txtDate, txtTime){
+		var dateString = txtDate.getValue();
+		if(txtTime){
+			var timeString = txtTime.getValue();
+		}
+		if(dateString){
+			var sYear = dateString.substring(0,4);
+			var sMonth = dateString.substring(5,7);
+			var sDay = dateString.substring(8,10);
+		}
+		if(timeString == null){
+			return sDay + '/' + sMonth + '/' + sYear;
+		}else{
+			return sDay + '/' + sMonth + '/' + sYear + ' ' + timeString;
+		}
+		return null;
+	},
+	
+	//dd/mm/YYYY HH:MI 04/10/2019 01:30  to textField Format Y-m-d:
+	convertDateStringFormat: function(value, frm){
+		if(value != '' && value != null){
+			var day = value.substring(0,2)
+			var month = value.substring(3,5);
+			var year = value.substring(6,10);
+			var hhmm = value.substring(11,16);
+			
+			if(frm === 'Y-m-d'){
+				return (year+'-'+month+'-'+day);
+			}else if (frm === 'h:i'){
+				return hhmm;
+			}
+		}
+		return null;
+	},
+	getTblSearchCondition : function(){
+		var me = this;
+		var refs = me.getReferences();
+		var jpvcNo = me.getViewModel().get('globalVesselCallId');
+		if(jpvcNo == null || jpvcNo === ''){
+			MessageUtil.warning('warning_msg','tbl_global_jpvc_selected');
+			return null;
+		}
+		var params = {
+			vslCallId : jpvcNo,
+			searchType : 'DelayRecordList',
+			shftId: me.getViewModel().get('globalWorkShift'),
+			stDt: me.getViewModel().get('globalWorkDate')
+		};
+		return params;
+	},
+	validateTimeShift: function(editItem){
+		var me = this;
+		var refs = me.getReferences();
+		//var idxShift = refs.refCbxShft.store.indexOf(refs.refCbxShft.selection());
+		var sltedShift = refs.refCbxShft.getSelection();
+		var strShftDt = refs.refWorkingDate.getDate();
+		var stShftDTime = null;
+		var endShftDTime = null;
+		
+		var strFromDt = strShftDt+' '+sltedShift.get('fmHhMm').substr(0,2)+':'+sltedShift.get('fmHhMm').substr(2,4);
+		var strToDt = strShftDt+' '+sltedShift.get('toHhMm').substr(0,2)+':'+sltedShift.get('toHhMm').substr(2,4);
+		stShftDTime =  Ext.Date.parse(strFromDt,  'd/m/Y H:i');
+		endShftDTime = Ext.Date.parse(strToDt, 'd/m/Y H:i');
+		if(sltedShift.get('shftId') === 'SF0013'){
+			endShftDTime = new Date(endShftDTime.getTime() + (24 * 60 * 60 * 1000));
+		}
+		
+		var inputStDTime = Ext.Date.parse(refs.refDelayFromTime.getValue(),  'd/m/Y H:i');
+		var inputEndDTime = Ext.Date.parse(refs.refDelayToTime.getValue(),  'd/m/Y H:i');
+
+		if(inputStDTime < stShftDTime || inputEndDTime > endShftDTime){
+			MessageUtil.warning('warning_msg', 'From Time and To Time must be within the shift time range');
+			return false;
+		}
+		
+		var atb = me.getViewModel().get('globalAtb');
+		if(inputStDTime < atb){
+			MessageUtil.warning('warning_msg', 'tbl_vesselDelay_validate_atb',Ext.Date.format(atb, 'd/m/Y H:i'));
+			return false;
+		}
+		
+		if(inputStDTime >= inputEndDTime){
+			MessageUtil.warning('warning_msg', 'From Time must be less than End Time');
+			return false;
+		}
+		return true;
+	},
+	
+	validateTimeWithHatchEqSetting: function(item){
+		var me = this;
+		var refs = me.getReferences();
+		
+		var inputStDTime = Ext.Date.parse(refs.refDelayFromTime.getValue(),  'd/m/Y H:i');
+		var inputEndDTime = Ext.Date.parse(refs.refDelayToTime.getValue(),  'd/m/Y H:i');
+		var atb = me.getViewModel().get('globalAtb');
+		
+		if(inputStDTime < atb){
+			MessageUtil.warning('warning_msg', 'tbl_vesselDelay_validate_atb',Ext.Date.format(atb, 'd/m/Y H:i'));
+			return false;
+		}
+		
+		if(inputStDTime >= inputEndDTime){
+			MessageUtil.warning('warning_msg', 'The From Time must be less than the End Time');
+			return false;
+		}
+		
+		/*var arrEQstt = me.eqSettingListArr.filter(eqStt => (eqStt.hatchNo === item.hatchNo));
+		if(!arrEQstt || arrEQstt.length === 0){
+			return true;
+		}
+		for(eqSttItem of arrEQstt){
+			if(inputStDTime >= eqSttItem.workStDt && inputEndDTime <= eqSttItem.workEndDt){
+				return true;
+			}
+		}*/
+		
+		if(me.isInvalidTime){
+			MessageUtil.warning('warning_msg', 'The From Time and To Time must be within the Hatch Equipment Setting time range');
+			return false;
+		}
+		if(me.matchEqTime){
+			var arrEQstt = me.eqSettingListArr.filter(eqStt => (eqStt.hatchNo === item.hatchNo && eqStt.eqFacNo === item.eqNo));
+			if(!arrEQstt || arrEQstt.length === 0){
+				MessageUtil.warning('warning_msg', 'The From Time and To Time must be within the Hatch Equipment Setting time range');
+				return false;
+			}
+			for(eqSttItem of arrEQstt){
+				if(!(inputStDTime >= eqSttItem.workStDt && inputEndDTime <= eqSttItem.workEndDt)){
+					MessageUtil.warning('warning_msg', 'The From Time and To Time must be within the Hatch Equipment Setting time range');
+					return false;
+				}
+			}
+		}
+		return true;
+	},
+	
+	
+	checkGlobalJpvcNo: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var globalJpvcNo = me.getViewModel().get('globalVesselCallId');
+		if(!globalJpvcNo){
+			MessageUtil.warning('warning_msg', 'tbl_global_jpvc_selected');
+			return false;
+		}
+		return true;
+	}
+	
+	/*
+	 * TABLET GENERAL METHOD END
+	 * */
+	
+});
+
+var saveDelayTask = new Ext.util.DelayedTask(function() {
+	arguments[0].onDelaySave();
+});
+
+var addDelayTask = new Ext.util.DelayedTask(function() {
+	arguments[0].onAddEvent();
+});

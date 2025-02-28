@@ -1,0 +1,1019 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="invoice">
+	<sql id="atbAtwAtcAtuForIv">
+		FORMAT (
+                (SELECT MAX (ATB) FROM TMT_VSL_SCH VSCH WHERE VSCH.VSL_CALL_ID = TBI.VSL_CALL_ID),
+                <choose>
+                	<when test=" searchType == 'invoice' ">
+                		 'dd-Mon-yyyy HH:mm'
+                	</when>
+                	<otherwise>
+                		'dd/MM/yyyy HH:mm'
+                	</otherwise>
+                </choose>
+                ) AS ATB,
+        FORMAT (
+                (SELECT MAX (ATW) FROM TMT_VSL_SCH VSCH WHERE VSCH.VSL_CALL_ID = TBI.VSL_CALL_ID),
+                <choose>
+                	<when test=" searchType == 'invoice' ">
+                		 'dd-Mon-yyyy HH:mm'
+                	</when>
+                	<otherwise>
+                		'dd/MM/yyyy HH:mm'
+                	</otherwise>
+                </choose>
+                ) AS ATW,
+        FORMAT (
+                (SELECT MAX (ATC) FROM TMT_VSL_SCH VSCH WHERE VSCH.VSL_CALL_ID = TBI.VSL_CALL_ID),
+                <choose>
+                	<when test=" searchType == 'invoice' ">
+                		 'dd-Mon-yyyy HH:mm'
+                	</when>
+                	<otherwise>
+                		'dd/MM/yyyy HH:mm'
+                	</otherwise>
+                </choose>
+                ) AS ATC, 
+        FORMAT (
+             	(SELECT MAX(ATD) FROM TMT_VSL_SCH VSCH WHERE VSCH.VSL_CALL_ID = TBI.VSL_CALL_ID),
+	    		 <choose>
+	                	<when test=" searchType == 'invoice' ">
+	                		 'dd-Mon-yyyy HH:mm'
+	                	</when>
+	                	<otherwise>
+	                		'dd/MM/yyyy HH:mm'
+	                	</otherwise>
+	                </choose>
+    		) AS ATD, 
+		FORMAT (
+                (SELECT MAX (ATU) FROM TMT_VSL_SCH VSCH WHERE VSCH.VSL_CALL_ID = TBI.VSL_CALL_ID),
+                <choose>
+                	<when test=" searchType == 'invoice' ">
+                		 'dd-Mon-yyyy HH:mm'
+                	</when>
+                	<otherwise>
+                		'dd/MM/yyyy HH:mm'
+                	</otherwise>
+                </choose>
+			) AS ATU
+	</sql>
+	
+	<sql id="sqlInvoiceItemList">
+		SELECT /*invoice.sqlInvoiceItemList*/
+			MBI.IV_NO 														AS ivNo,
+			MBI.VSL_CALL_ID 												AS vslCallId,
+			TVP.VSL_NM 														AS vslNm,
+			MBI.PAYER 														AS payer,
+			MBI.ERP_STAT_CD 												AS erpStatCd,
+			FORMAT (TVS.ATB, 'dd/MM/yyyy HH:mm') 							AS atb,
+			FORMAT (TVS.ATU, 'dd/MM/yyyy HH:mm') 							AS atu,
+			FORMAT (MBI.UPDATE_TIME, 'dd/MM/yyyy HH:mm') 					AS crDate,
+			FORMAT (MBI.IV_DT, 'dd/MM/yyyy') 								AS ivDt,
+			DATEDIFF (DAY, TVS.ATU, MBI.IV_DT) 								AS billDays,
+			MBI.IV_AMT 														AS ivAmt,
+			DBO.F_GET_PARTNER_INFO (MBI.PAYER, 'ACC_NO') 					AS accNo,
+			TVS.BERTH_LOC 													AS berthLoc,
+			MBI.STAT_CD 													AS statCd,
+			DBO.F_CM_CODE_NM ('MT', 'IVSTAT', MBI.STAT_CD) 					AS statusNm,
+			CASE 	
+				WHEN (SELECT COUNT (*) FROM TMT_FILE_INFO WHERE PGM_ID = 'BL01401' AND CATG_CD = MBI.IV_NO) = 0 
+					THEN 'N' 
+				ELSE 'Y' 
+			END 															AS ISFILEATT,
+			FORMAT (MBI.VW_DT, 'dd/MM/yyyy HH:mm') 							AS vwDt,
+			MBI.VW_USER_ID 													AS vwUserId,
+			MBI.STAFF_CD 													AS userId,
+			ISNULL(MBI.IV_AMT, 0) 											AS frgnAmt,
+			CASE MBI.PAY_TP_CD WHEN 'M' THEN 'Cash' ELSE 'Credit' END 		AS PAYTPCD
+			,ISNULL(MBI.IV_AMT, 0) 											AS revsAmt
+			,ISNULL( MBI.TAX_AMT, 0) 										AS gstAmount
+			,ISNULL(MBI.TOTAL_AMT, IV_AMT) 									AS totalAmount
+			,CASE WHEN MBI.PAID_ST='Y' THEN 'true' ELSE 'false' END 		AS paidSt
+			,CASE WHEN MBI.PAID_ST='Y' THEN 'true' ELSE 'false' END 		AS paidStOrg
+			,MBI.RMK 														AS RMK
+		FROM 	
+			TMT_B_IV MBI
+		INNER JOIN 
+			TMT_VSL_SCH TVS 
+		ON
+			MBI.VSL_CALL_ID = TVS.VSL_CALL_ID
+		INNER JOIN 
+			TMT_VSL_PART TVP 
+		ON 
+			TVS.VSL_CD 		= TVP.VSL_CD
+		WHERE   
+			1=1
+			<if test="vslCallId != null and vslCallId != ''">
+				AND MBI.VSL_CALL_ID = #{vslCallId}
+			</if>
+			<if test="vslCallId == null or vslCallId == ''">
+				AND MBI.VSL_CALL_ID <![CDATA[<>]]> 'STRG'
+			</if>
+			<if test="atb == 'true'">
+				<if test="fromDate != null and fromDate != ''"> 
+					AND TVS.ATB >= CONVERT(DATE, #{fromDate}, 103)
+				</if>
+				<if test="toDate != null and toDate != ''"> 
+					AND DATEADD(DAY, 1, CONVERT(DATE, #{toDate}, 103)) > TVS.ATB 
+				</if>
+			</if>
+			<if test="invoiceDate == 'true'">
+				<if test="fromDate != null and fromDate != ''"> 
+					AND MBI.IV_DT >= CONVERT(DATE, #{fromDate}, 103)
+				</if>
+				<if test="toDate != null and toDate != ''"> 
+					AND DATEADD(DAY, 1, CONVERT(DATE, #{toDate}, 103)) > MBI.IV_DT
+				</if>
+			</if>
+			<if test="erpStatCd == 'true'">
+				AND MBI.ERP_STAT_CD IS NULL
+				<if test="fromDate != null and fromDate != ''"> 
+					AND MBI.IV_DT >= CONVERT(DATE, #{fromDate}, 103)
+				</if>
+				<if test="toDate != null and toDate != ''"> 
+					AND DATEADD(DAY, 1, CONVERT(DATE, #{toDate}, 103)) > MBI.IV_DT
+				</if>
+			</if>
+			<if test="status != null and status != ''">
+				AND MBI.STAT_CD = #{status}
+			</if>
+			<if test="invoiceType != null and invoiceType != ''">
+				AND (SELECT TOP 1 BILL_TP_CD FROM TMT_B_IV_DATA X WHERE X.IV_NO = MBI.IV_NO) = #{invoiceType}
+			</if>
+			<if test="ivPrfx != null and ivPrfx != ''">
+				AND MBI.IV_NO LIKE #{ivPrfx} + '%'
+			</if>
+			<if test="checkRole != null and checkRole != ''">
+				<if test="checkRole == 'true'">
+					AND MBI.IV_PRFX = 'LME'
+				</if>
+			</if>
+			<if test="payer != null and payer != ''">
+				AND PAYER = #{payer}
+			</if>
+			<if test="invoiceNo != null and invoiceNo != ''">
+				AND IV_NO LIKE '%' + #{invoiceNo} + '%'
+			</if>
+			<if test="reportID != null and reportID != ''">
+				AND (
+					(MBI.ERP_STAT_CD = 'Y' AND (MBI.IV_PRFX = 'XMS' OR MBI.PAY_TP_CD = 'M'))
+					OR 
+					(MBI.PAY_TP_CD <![CDATA[<>]]> 'M' OR MBI.PAY_TP_CD IS NULL)
+				)
+			</if>
+				
+	</sql>
+
+	<select id="selectInvoiceItemList" parameterType="invoiceParm" resultType="invoiceItem">
+		<if test="pageNo != 0"> 
+			SELECT 
+				*
+			FROM 
+				(SELECT 
+					inner_query.*, 
+					ROW_NUMBER() OVER(ORDER BY IVNO, ATB DESC) row_num 
+				FROM ( 
+		</if>
+				<include refid="sqlInvoiceItemList"/>
+		
+		<if test="pageNo != 0"> 
+				)inner_query 
+			)inner_query 
+			WHERE 
+				inner_query.row_num <![CDATA[>]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1'ELSE #{pageNo} END AS INT) -1)* CAST(#{sizePerPage} AS INT)
+				AND inner_query.row_num <![CDATA[<=]]> CAST(CASE WHEN #{pageNo} = '0' THEN '1'ELSE #{pageNo} END AS INT) * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<select id="selectInvoiceItemListCount" parameterType="invoiceParm" resultType="java.lang.String">
+	 	SELECT
+			COUNT(*)
+		FROM 
+			(<include refid="sqlInvoiceItemList"/>) AS sqlInvoiceItemList
+         
+	</select>
+	
+	<select id = "selectInvoiceItemStatCd" parameterType="invoiceParm" resultType="invoiceItem">
+		SELECT	
+			COUNT(*) AS totalRowCount 
+		FROM 
+			TMT_B_IV 
+		WHERE
+			(ERP_STAT_CD IS NULL OR ERP_STAT_CD = 'N') 
+			AND IV_NO = #{ivNo}
+	</select>
+	
+	<update id = "updateXmsInvoiceStatus" parameterType="invoiceItem">
+		UPDATE 
+			TMT_B_IV 
+		SET
+			PAID_ST = #{paidSt} 
+		WHERE 
+			IV_NO = #{ivNo}
+	</update>
+	
+	<update id="updateNullInvoiceNoInInvoiceDataItem" parameterType="invoiceDataItem">
+		UPDATE 	
+			TMT_B_IV_DATA
+		SET		
+			IV_NO 		= '', 
+			STAT_CD 	= 'VF',	
+			STAFF_CD 	= #{userId},
+			UPDATE_TIME = GETDATE(),
+			VERSION 	= #{newVersion}
+		WHERE	
+			IV_NO 		= #{ivNo}
+	</update>
+	 
+	<!-- INVOICE DETAIL -->
+	<select id="selectInvoiceNo" parameterType="invoiceParm"  resultType="java.lang.String">
+	 	SELECT (#{ivPrfx} 
+		        + FORMAT (GETDATE(), 'yyMM') 
+		        + TRIM(FORMAT(ISNULL(MAX(CAST(RIGHT(IV_NO, 5) AS INT) + 1), 1),'00000'))) AS ivNo
+		FROM 
+			TMT_B_IV
+		WHERE
+			SUBSTRING(IV_NO, 1, LEN(IV_NO) - 5) = (#{ivPrfx} + FORMAT(GETDATE(), 'yyMM'))
+ 	</select>
+	
+	<select id="selectGatherNo" parameterType="invoiceParm" resultType="java.lang.String">
+		SELECT	
+		    CASE 
+		        WHEN #{billTpCd} IS NULL OR #{billTpCd} = '' THEN ''
+		        ELSE #{billTpCd}
+		    END
+		    + FORMAT(GETDATE(), 'yyyyMMdd')
+		    + TRIM(FORMAT(ISNULL(MAX(CAST(RIGHT(GATHER_NO, 4) AS INT) + 1), 1), '0000000'))
+		FROM 	
+		    TMT_B_IV_DATA
+		WHERE
+		    GATHER_NO LIKE 
+		    CASE 
+		        WHEN #{billTpCd} IS NULL OR #{billTpCd} = '' THEN ''
+		        ELSE #{billTpCd}
+		    END
+		    + FORMAT(GETDATE(), 'yyyyMMdd') + '%';
+
+			
+			
+	</select>
+	
+	<select id="selectInvoiceDetailItem" parameterType="invoiceParm" resultType="invoiceDataItem">
+		SELECT	/*invoice.selectInvoiceDetailItem*/
+			TBIV.VSL_CALL_ID 																		AS VSLCALLID,
+			<include refid="atbAtwAtcAtuForIv"/>,
+			(SELECT TOP 1 
+				VSL_NM 
+			FROM
+				TMT_VSL_SCH VSCH
+			WHERE
+				VSCH.VSL_CALL_ID = TBi.VSL_CALL_ID) 												AS VSLNM,
+			(SELECT 
+				INB_VOY + '/' + OUTB_VOY 
+			FROM
+				TMT_VSL_SCH VSCH 
+			WHERE 
+				VSCH.VSL_CALL_ID = TBi.VSL_CALL_ID) 												AS VOYAGE,
+			(SELECT 
+				ARRV_SA_ID 
+			FROM 
+				TMT_VSL_SCH VSCH 
+			WHERE 
+				VSCH.VSL_CALL_ID = TBi.VSL_CALL_ID) 												AS ARRVSAID,
+			(SELECT BERTH_LOC FROM TMT_VSL_SCH VSCH WHERE VSCH.VSL_CALL_ID = TBi.VSL_CALL_ID) 		AS BERTHLOC,
+			FORMAT (TBI.IV_DT, 'dd/MM/yyyy') 														AS IVDT, 
+			FORMAT (TBI.IV_DUE_DT, 'dd/MM/yyyy HH:mm') 												AS IVDUEDT, 
+			TBIV.GATHER_NO 																			AS GATHERNO, 
+			TBIV.IV_NO 																				AS IVNO, 
+			TBIV.TRF_CD 																			AS TRFCD, 
+			TBIV.SUB_TRF_CD 																		AS SUBTRFCD,
+			TBIV.TRF_DESCR 																			AS TRFDESCR,  
+			DBO.F_CM_CODE_NM ('MT', 'TRFTP', TBTC.TRF_TP_CD) 										AS TRFTPCD, 
+			PKG_TRF_NM 																				AS PKGTRFNM,
+			ISNULL(TBIV.COST_CENT_CD, '') 															AS COSTCENTCD,
+			TBTC.IV_UNIT1																			AS IVUNIT1,
+			TBTC.IV_UNIT2																			AS IVUNIT2,
+			TBTC.IV_UNIT3																			AS IVUNIT3,
+			TBIV.UNIT1_VAL 																			AS UNIT1VAL, 
+			TBIV.UNIT2_VAL 																			AS UNIT2VAL, 
+			TBIV.UNIT3_VAL 																			AS UNIT3VAL,
+			TBIV.APLY_RATE 																			AS APLYRATE, 
+			TBIV.STD_RATE 																			AS STDRATE, 
+			TBIV.APLY_AMT 																			AS APLYAMT,
+			TBIV.APLY_AMT 																			AS STDAMT,
+			CASE WHEN ISNULL(TBIV.REVS_AMT, '0') = '0' THEN TBIV.APLY_AMT ELSE TBIV.REVS_AMT END 	AS REVSAMT,
+			TBIV.ADHOC_YN 																			AS ADHOCYN,
+			CASE 
+				WHEN TBIV.REVS_UNIT1_VAL IS NULL THEN TBIV.UNIT1_VAL
+				WHEN TBIV.REVS_UNIT1_VAL = 0 THEN TBIV.UNIT1_VAL
+				ELSE TBIV.REVS_UNIT1_VAL 
+			END 																					AS REVSUNIT1VAL, 
+			CASE 
+				WHEN TBIV.REVS_UNIT2_VAL IS NULL THEN TBIV.UNIT2_VAL 
+				WHEN TBIV.REVS_UNIT2_VAL = 0 THEN TBIV.UNIT2_VAL 
+				ELSE TBIV.REVS_UNIT2_VAL 
+			END 																					AS REVSUNIT2VAL, 
+			CASE 
+				WHEN TBIV.REVS_UNIT3_VAL IS NULL THEN TBIV.UNIT3_VAL 
+				WHEN TBIV.REVS_UNIT3_VAL = 0 THEN TBIV.UNIT3_VAL 
+				ELSE TBIV.REVS_UNIT3_VAL 
+			END 																					AS REVSUNIT3VAL, 
+			CASE 
+				WHEN ISNULL(TBIV.REVS_RATE, '0') = '0' THEN TBIV.APLY_RATE 
+				ELSE TBIV.REVS_RATE 
+			END 																					AS REVSRATE,
+			'FALSE' 																				AS ISSELECTED,
+			TBIV.PAYER 																				AS PAYER,
+			DBO.F_GET_PARTNER_INFO (TBIV.PAYER, 'ENG_SNM') 											AS PAYERNM,
+			DBO.F_GET_PARTNER_INFO (TBIV.PAYER, 'ACC_NO') 											AS ACCNO,
+			DBO.F_GET_PARTNER_INFO (TBIV.PAYER, 'ADDR') 											AS ADDR,
+			DBO.F_GET_PARTNER_INFO (TBIV.PAYER, 'TEL') 												AS TELNO,
+			(SELECT TOP 1 CUST_CD FROM TMT_PTNR WHERE PTNR_CODE = TBIV.PAYER
+			UNION
+			SELECT TOP 1 CUST_CD FROM TMT_AGENCY_INFO WHERE AGENCY_CODE = TBIV.PAYER) 				AS CUSTCD,
+			TBIV.IV_PRFX 																			AS IVPRFX,
+			TBI.STAT_CD 																			AS STATCD,
+			CASE TBIV.SCR_ID WHEN 'PRF' THEN 'Proforma' WHEN 'OPE' THEN 'Operation' WHEN 'SSR' THEN 'SSR/Add Hoc' ELSE '' END AS SCRID,
+			CASE 
+				(   CASE TBIV.SCR_ID
+						WHEN 'SSR' THEN (SELECT PAY_TP_CD FROM TMT_B_SSR WHERE SSR_NO = TBIV.REF_NO2)
+						ELSE TBI.PAY_TP_CD
+					END
+				)
+			  WHEN  'M' THEN 'Cash' ELSE 'Credit' END 												AS PAYTPCD,
+			REF_NO1																					AS REFNO,
+			TBIV.REF_NO2																			AS REFNO2,
+			ISNULL(TBIV.TOTAL_AMT, 0) 																AS TOTALAMT,
+			ISNULL(TBIV.TAX_AMT, 0) 																AS GSTAMT,
+			ISNULL(TBIV.TAX_TYPE, '') 																AS GSTTYPE,
+			<!-- TRIM(FORMAT (ISNULL(TBIV.TAX_VALUE, 0),'999999990.99')) + '%' AS GSTVALUE, --> <!--OLD  -->
+			FORMAT(CONVERT(numeric(11,2), ISNULL(TBIV.TAX_VALUE, '0.00')), 'N2') + '%' AS GSTVALUE,<!--NEW  -->
+			TVP.LOA 																				AS LOA,
+			TVP.GRT 																				AS GRT,
+			(SELECT TOP 1 TMNL_NM
+			   FROM TMT_TMNL_DEF
+			  WHERE TMNL_CD = 'JPB' 
+			  AND TMNL_TP_CD = 'INTEG')																AS TMNLNM,
+			(SELECT TOP 1  ADDR
+			   FROM TMT_TMNL_DEF
+			  WHERE TMNL_CD = 'JPB' 
+			  AND TMNL_TP_CD = 'INTEG')																AS TMNLADDR,
+			(SELECT TOP 1  TEL_NO
+			   FROM TMT_TMNL_DEF
+			  WHERE TMNL_CD = 'JPB' 
+			  AND TMNL_TP_CD = 'INTEG')																AS TMNLTEL,
+			(SELECT TOP 1  FAX_NO
+			   FROM TMT_TMNL_DEF
+			  WHERE TMNL_CD = 'JPB' 
+			  AND TMNL_TP_CD = 'INTEG')																AS TMNLFAX,
+			(SELECT TOP 1 BL_NO FROM TMT_BL WHERE BL_NO = TBIV.REF_NO1) 							AS BLNO,
+			(SELECT TOP 1 SHIPG_NOTE_NO FROM TMT_SHIPG_NOTE WHERE SHIPG_NOTE_NO = TBIV.REF_NO1) 	AS SNNO,
+			(SELECT TOP 1 MF_DOC_ID FROM TMT_BL WHERE MF_DOC_ID = TBIV.REF_NO2) 					AS MASTERBL,
+			(SELECT TOP 1 MF_DOC_ID FROM TMT_SHIPG_NOTE WHERE MF_DOC_ID = TBIV.REF_NO2) 			AS BOOKINGNO,
+			TBTC.TAX_VALUE 																			AS GSTRATE
+		FROM 	
+			TMT_B_IV_DATA TBIV
+		INNER JOIN 
+			TMT_B_TRF_CD TBTC 
+		ON
+			TBIV.TRF_CD 		= TBTC.TRF_CD 
+			AND TBIV.SUB_TRF_CD = TBTC.SUB_TRF_CD
+		LEFT OUTER JOIN 
+			TMT_B_IV TBI 
+		ON 
+			TBIV.IV_NO 			= TBI.IV_NO
+		LEFT OUTER JOIN 
+			TMT_VSL_SCH TVS 
+		ON
+			TBIV.VSL_CALL_ID 	= TVS.VSL_CALL_ID
+		LEFT OUTER JOIN
+			TMT_VSL_PART TVP 
+		ON 
+			TVP.VSL_CD 			= TVS.VSL_CD
+		WHERE 
+			TBIV.VSL_CALL_ID 	= #{vslCallId}
+			AND TBIV.STAT_CD 	!= 'WV'
+			<if test="payer != null and payer != '' and payer != 'All'">
+				AND TBIV.PAYER = #{payer}
+			</if>
+			<if test="checkRole != null and checkRole != ''">
+				<if test="checkRole == 'true'">
+					 AND TBIV.IV_PRFX = 'LME'
+				</if>
+			</if>
+			<if test="invoiceNo != null and invoiceNo != ''">
+				AND TBIV.IV_NO = #{invoiceNo}
+			</if>
+			<if test="invoiceNo == null or invoiceNo == ''">
+				AND (TBIV.IV_NO IS NULL OR TBIV.IV_NO = '') 
+				AND TBIV.STAT_CD = 'VF'
+				<if test="ivPrfx != null and ivPrfx != '' and ivPrfx != 'All'">
+					AND TBIV.IV_PRFX = #{ivPrfx}
+				</if>
+			</if>
+			<if test="paymentTp != null and paymentTp != ''">
+				<if test='paymentTp eq "C".toString()'>
+					AND ( TBIV.SCR_ID != 'SSR' OR TBIV.SCR_ID IS NULL OR (TBIV.SCR_ID IS NULL AND ADHOC_YN ='Y') OR TBIV.REF_NO2 IN (SELECT SSR_NO FROM TMT_B_SSR WHERE SSR_NO = TBIV.REF_NO2 AND PAY_TP_CD = 'C') )
+				</if>
+				<if test='paymentTp eq "-".toString()'>
+					AND ( TBIV.SCR_ID != 'SSR' OR TBIV.SCR_ID IS NULL OR TBIV.REF_NO2 IN (SELECT SSR_NO FROM TMT_B_SSR WHERE SSR_NO = TBIV.REF_NO2) )
+				</if>
+			</if>
+        ORDER BY 
+			TBIV.PAYER, TBIV.IV_PRFX, TBIV.TRF_DESCR
+	</select>
+	
+	<select id="getInvoicePayerInfos" parameterType="invoiceParm" resultType="invoicePayerItem">
+		SELECT DISTINCT /*invoice.getInvoicePayerInfos*/  
+			A.PTNRCD,
+			A.ENGSNM,
+			A.ACCNO,
+			A.ADDR
+		FROM (SELECT  
+				TP.PTNRCD,
+				TP.ENGSNM,
+				TP.ACCNO,
+				TP.ADDR
+			FROM (
+				SELECT DISTINCT 
+					e.PTNR_CODE AS PTNRCD,
+					e.ENG_SNM AS ENGSNM,
+					e.ACC_NO AS ACCNO,
+					e.ADDR AS ADDR
+				FROM 
+					TMT_PTNR e
+				WHERE 
+					PTNR_CODE in(SELECT DISTINCT 
+									payer AS ptnrCd
+								FROM  
+									TMT_B_IV_DATA
+								WHERE 1=1
+							  <if test="vslCallId != null and vslCallId != ''">
+								 AND VSL_CALL_ID = #{vslCallId}
+							  </if>)
+			) TP
+			  ) A
+        ORDER BY 
+			A.PTNRCD
+	</select>
+	
+	<select id="searchInvoiceDataItemsForExternal" parameterType="invoiceParm" resultType = "invoiceDataItem">
+        SELECT /*invoice.searchInvoiceDataItemsForExternal*/
+            TBI.IV_NO 											AS ivNo,
+            TBID.TRF_CD 										AS trfCd,
+            TBID.SUB_TRF_CD 									AS subTrfCd,
+            (SELECT 
+				TRF_TP_CD 
+			FROM
+				TMT_B_TRF_CD T 
+			WHERE 
+				T.TRF_CD 			= TBID.TRF_CD 
+				AND T.SUB_TRF_CD 	= TBID.SUB_TRF_CD) 			AS TRFTPCD,
+            (SELECT 
+				B.S_CD_NM
+			FROM 
+				TMT_B_TRF_CD A, TMT_CD_MSTD B
+			WHERE     
+				A.TRF_CD 			= TBID.TRF_CD
+				AND A.SUB_TRF_CD 	= TBID.SUB_TRF_CD
+				AND A.TRF_TP_CD 	= B.S_CD
+				AND M_CD 			= 'TRFTP'
+				AND L_CD 			= 'MT') 					AS trfTpCd,
+             TBID.PKG_TRF_NM 									AS pkgTrfNm,
+             TBID.TRF_DESCR 									AS trfDescr,
+             ISNULL(TBID.COST_CENT_CD, '')						AS costCentCd,
+             TBID.UNIT1_VAL 									AS unit1Val,
+             TBID.UNIT2_VAL 									AS unit2Val,
+             TBID.UNIT3_VAL 									AS unit3Val,
+             TBID.APLY_RATE 									AS aplyRate,
+             TBID.STD_RATE 										AS stdRate,
+             TBID.APLY_AMT 										AS aplyAmt,
+             TBID.APLY_AMT 										AS stdAmt,
+             CASE ISNULL(TBID.REVS_AMT, '0')
+				WHEN '0' THEN TBID.APLY_AMT 
+				ELSE TBID.REVS_AMT 
+			END                									AS revsAmt,
+             ISNULL (TBID.REVS_UNIT1_VAL, TBID.UNIT1_VAL) 		AS revsUnit1Val,
+             ISNULL (TBID.REVS_UNIT2_VAL, TBID.UNIT2_VAL) 		AS revsUnit2Val,
+             ISNULL (TBID.REVS_UNIT3_VAL, TBID.UNIT3_VAL) 		AS revsUnit3Val,
+             CASE ISNULL(TBID.REVS_RATE, '0')
+				WHEN '0' THEN TBID.APLY_RATE
+				ELSE TBID.REVS_RATE END 						AS revsRate,
+             ISNULL(TBID.REF_NO1, TBID.REF_NO2) 				AS refNo,
+             TBID.ADHOC_YN 										AS adhocYn,
+             TBID.PAYER 										AS ptnrCd,
+             TBID.PAYER 										AS payer,
+             DBO.F_GET_PARTNER_INFO (TBI.PAYER, 'ENG_SNM') 		AS engSnm,
+             DBO.F_GET_PARTNER_INFO (TBI.PAYER, 'ADDR') 		AS payerAddr,
+             DBO.F_GET_PARTNER_INFO (TBI.PAYER, 'TEL') 			AS telNo,
+             FORMAT (TBI.IV_DT, 'dd/MM/yyyy') 					AS ivDt,
+             FORMAT (TBI.IV_DUE_DT, 'dd/MM/yyyy') 				AS ivDueDt,
+             TVS.ARRV_SA_ID 									AS arrvSaId,
+             TVS.BERTH_LOC 										AS berthLoc,
+             TVP.VSL_NM 										AS vslNm,
+             TVS.VSL_CALL_ID 									AS vslCallId,
+             TVP.LOA 											AS loa,
+             TVP.GRT 											AS grt,
+             TBID.REF_NO2,
+             <include refid="atbAtwAtcAtuForIv"/>,           
+             TVS.INB_VOY + '/' + tvs.OUTB_VOY 					AS VOYAGE,
+             TBI.IV_PRFX 										AS ivPrfx,
+             CASE (CASE TBID.SCR_ID
+                      WHEN 'SSR'
+                      THEN
+                         (SELECT PAY_TP_CD
+                            FROM TMT_B_SSR
+                           WHERE SSR_NO = TBID.REF_NO2)
+                      ELSE
+                         'C'
+                   END) 
+                 WHEN 'M' THEN 'Cash' ELSE 'Credit'
+			 END									 			AS PAYTPCD,
+             TBI.STAT_CD 										AS statCd,
+			CASE 
+				WHEN TBID.TOTAL_AMT = '' THEN 0 
+				ELSE TBID.TOTAL_AMT 
+			END 												AS totalAmt,
+			ISNULL(TBID.TAX_AMT, 0) 							AS gstAmt,
+			TBID.TAX_TYPE 										AS gstType,
+			FORMAT(
+				CONVERT(
+					NUMERIC(11,2), 
+					ISNULL(TAX_VALUE * 100, '0.00')
+				),
+				'N2'
+			) + '%' 											AS gstValue,
+			DBO.F_GET_PARTNER_INFO (TBI.PAYER, 'TEL') 			AS telNo,
+			(SELECT TOP 1 
+				COMP_REG_NO
+			FROM
+				TMT_TMNL_DEF
+			WHERE
+				TMNL_CD 				= 'AEFJR' 
+				AND TMNL_TP_CD 			= 'OWN'
+			) 													AS comRegNo,
+			(SELECT TOP 1
+				TMNL_NM
+			FROM 
+				TMT_TMNL_DEF
+			WHERE
+				TMNL_CD 				= 'AEFJR' 
+				AND TMNL_TP_CD 			= 'OWN'
+			) 													AS tmnlNm,
+			(SELECT TOP 1
+				ADDR
+			FROM 
+				TMT_TMNL_DEF
+			WHERE
+				TMNL_CD					= 'AEFJR' 
+				AND TMNL_TP_CD 			= 'OWN'
+			) 													AS tmnlAddr,
+			(SELECT TOP 1
+				TEL_NO
+			FROM 
+				TMT_TMNL_DEF
+			WHERE 
+				TMNL_CD 				= 'AEFJR' 
+				AND TMNL_TP_CD 			= 'OWN'
+			) 													AS tmnlTel,
+			(SELECT TOP 1 
+				FAX_NO
+			FROM 
+				TMT_TMNL_DEF
+			WHERE 
+				TMNL_CD 				= 'AEFJR' 
+				AND TMNL_TP_CD 			= 'OWN'
+			) 													AS tmnlFax,
+			(SELECT TOP 1 
+				CUST_CD
+			FROM 
+				TMT_PTNR PTNR
+			WHERE 
+				PTNR.PTNR_CODE 			= TBID.PAYER
+			UNION
+			SELECT 
+				CUST_CD
+			FROM 
+				TMT_AGENCY_INFO 		PTNR
+			WHERE 
+				PTNR.AGENCY_CODE 		= TBID.PAYER
+			) 													AS accNo,
+			DBO.F_GET_PARTNER_INFO (TBI.PAYER, 'ADDR') 			AS accNm,
+			TBID.TAX_TYPE 										AS taxCd,
+			ISNULL(TBID.TAX_VALUE, 0) 							AS taxValue,
+			ISNULL(TBID.TAX_AMT, 0) 							AS taxAmt,
+			  (
+				  SELECT TOP 1 TAX_CD
+				  FROM (
+				  	  SELECT 
+						TAX_CD 
+				  	  FROM 
+						TMT_PTNR 
+				  	  WHERE 
+						PTNR_CODE = TBI.PAYER
+						
+				  	  UNION
+				  	  SELECT
+						TAX_CD
+				  	  FROM
+						TMT_AGENCY_INFO
+				  	  WHERE 
+						AGENCY_CODE = TBI.PAYER
+				  ) A
+				 
+			  ) AS payerTaxCd
+        FROM
+			TMT_B_IV 											TBI
+		INNER JOIN 
+			TMT_B_IV_DATA 										TBID 
+		ON
+			TBI.IV_NO 											= TBID.IV_NO 
+			AND TBI.VSL_CALL_ID 								= TBID.VSL_CALL_ID
+		INNER JOIN 
+			TMT_VSL_SCH 										TVS
+		ON 								
+			TBI.VSL_CALL_ID										= TVS.VSL_CALL_ID
+		LEFT OUTER 
+			JOIN TMT_VSL_PART 									TVP 
+		ON
+			TVP.VSL_CD 											= TVS.VSL_CD
+        WHERE 
+			TBI.IV_NO 											= #{invoiceNo}
+			AND TBI.VSL_CALL_ID 								= #{vslCallId}
+        ORDER BY 
+            TBID.PAYER,
+            TBID.GATHER_NO,
+            TBID.IV_PRFX,
+            TBID.TRF_DESCR
+    </select>
+    	
+	<insert id="insertInvoiceDataItem" parameterType="invoiceDataItem"> 
+		INSERT /*invoice.insertInvoiceDataItem*/
+		INTO TMT_B_IV_DATA (
+		 	 TRF_CD,
+		 	 SUB_TRF_CD,
+		 	 PAYER,
+		 	 GATHER_NO,
+			 BILL_TP_CD,
+		 	 IV_PRFX,
+		 	 VSL_CALL_ID,
+		 	 TRF_DESCR,
+		 	 UNIT1_VAL,
+		 	 UNIT2_VAL,
+		 	 UNIT3_VAL,
+		 	 STAT_CD,
+		 	 IV_NO,
+		 	 GATHER_DT,
+		 	 CAL_FM_YMD,
+		 	 CAL_TO_YMD,
+		 	 PKG_TRF_NM,
+		 	 APLY_RATE,
+		 	 APLY_AMT,
+		 	 TOTAL_AMT,
+		 	 STD_RATE,
+		 	 ADHOC_YN,
+		 	 REVS_RATE,
+		 	 REVS_AMT,
+		 	 REVS_UNIT1_VAL,
+		 	 REVS_UNIT2_VAL,
+		 	 REVS_UNIT3_VAL,
+		 	 AREA,
+		 	 UPDATE_TIME,
+		 	 STAFF_CD,
+		 	 VERSION,
+		 	 REF_NO1,
+		 	 REF_NO2,
+		 	 SCR_ID,
+		 	 COST_CENT_CD,
+		 	 PAYER_TP_CD,
+		 	 TAX_TYPE,
+		 	 TAX_VALUE,
+		 	 TAX_AMT
+		) VALUES (
+			 #{trfCd},
+			 #{subTrfCd},
+			 #{payer},
+			 #{gatherNo},
+			 #{billTpCd},
+			 #{ivPrfx},
+			 #{vslCallId},
+			 #{trfDescr},
+			 ISNULL(TRY_CONVERT(NUMERIC(15,3), #{unit1Val}), 0),
+		 	 ISNULL(TRY_CONVERT(NUMERIC(15,3), #{unit2Val}),0),
+		 	 ISNULL(TRY_CONVERT(NUMERIC(15,3), #{unit3Val}),0),
+		 	 #{statCd},
+		 	 #{ivNo},
+	     	 CONVERT(DATE, #{gatherDt}, 103),
+			 #{calFmYmd},
+			 #{calToYmd},
+			 #{pkgTrfNm},
+			 TRY_CONVERT(NUMERIC(15,3), #{aplyRate}),
+			 ROUND(ISNULL(TRY_CONVERT(NUMERIC(15,3), #{aplyAmt}),0),2),
+			 TRY_CONVERT(NUMERIC(15,3), #{totalAmount}),
+			 TRY_CONVERT(NUMERIC(15,3), #{stdRate}),
+			 #{adhocYn},
+			 TRY_CONVERT(NUMERIC(15,3), #{revsRate}),
+			 ROUND(ISNULL(TRY_CONVERT(NUMERIC(15,3), #{revsAmt}),0),2),
+			 TRY_CONVERT(NUMERIC(15,3), #{revsUnit1Val}),
+			 TRY_CONVERT(NUMERIC(15,3), #{revsUnit2Val}),
+			 TRY_CONVERT(NUMERIC(15,3), #{revsUnit3Val}),
+			 #{area},
+			 GETDATE(),
+			 #{userId},
+			 #{newVersion},
+			 #{refNo},
+			 #{refNo2},
+			 #{scrId},
+			 #{costCentCd},
+		 	 #{payerTpCd},
+		 	 #{gstTpCd},
+		 	 TRY_CONVERT(NUMERIC(15,3), #{gstValue}),
+			 TRY_CONVERT(NUMERIC(15,3), #{gstAmount})
+		)
+	</insert>
+	
+	<insert id="insertInvoiceItem" parameterType="invoiceItem">
+		INSERT /*invoice.insertInvoiceItem*/
+		INTO TMT_B_IV (
+		 	 IV_NO,
+		 	 PAYER,
+		 	 IV_PRFX,
+		 	 STAT_CD,
+		 	 VSL_CALL_ID,
+		 	 IV_AMT,
+		 	 IV_DT,
+		 	 IV_DUE_DT,
+		 	 PAY_TP_CD,
+		 	 UPDATE_TIME,
+		 	 STAFF_CD,
+		 	 VERSION,
+		 	 TOTAL_AMT,
+		 	 PAYER_TP_CD,
+		 	 IV_TP,
+		 	 ERP_STAT_CD,
+		 	 TAX_AMT
+		) VALUES (
+		    #{ivNo},
+		    #{payer},
+		    #{ivPrfx},
+		    #{statCd},
+		    #{vslCallId},
+		    TRY_CONVERT(NUMERIC(15,3), #{ivAmt}),
+			GETDATE(),
+		    DATEADD(DAY, 30, GETDATE()),
+		    #{payTpCd},
+		    GETDATE(),
+		    #{userId},
+		    #{newVersion},
+		    TRY_CONVERT(NUMERIC(15,3), #{totalWithAmt}),
+		    #{payerTpCd},
+		    #{ivTpCd},
+		    <if test="ivPrfx == 'PRF'">
+		    	null,
+		    </if>
+		    <if test="ivPrfx != 'PRF'">
+		    	'Y',
+		    </if>
+		    TRY_CONVERT(NUMERIC(15,3), #{gstAmount})
+		)
+	</insert>
+	
+	<insert id="insertInvoiceDataItemDirectInvoice" parameterType="invoiceDataItem"> 
+		INSERT /*invoice.insertInvoiceDataItemDirectInvoice*/
+		INTO TMT_B_IV_DATA (
+			TRF_CD,
+			SUB_TRF_CD,
+		 	PAYER,
+		 	GATHER_NO,
+			BILL_TP_CD,
+		 	IV_PRFX,
+		 	VSL_CALL_ID,
+		 	TRF_DESCR,
+		 	UNIT1_VAL,
+		 	UNIT2_VAL,
+		 	UNIT3_VAL,
+		 	STAT_CD,
+		 	IV_NO,
+		 	GATHER_DT,
+		 	CAL_FM_YMD,
+		 	CAL_TO_YMD,
+		 	PKG_TRF_NM,
+		 	APLY_RATE,
+		 	APLY_AMT,
+		 	STD_RATE,
+		 	ADHOC_YN,
+		 	AREA,
+		 	UPDATE_TIME,
+		 	STAFF_CD,
+		 	VERSION,
+		 	<if test="adhocYn != null">
+		 	 	<if test='adhocYn eq "Y".toString()'>
+			 	 	REF_NO1,
+				</if>
+		 	</if>
+		 	<if test="refNo2 != null and refNo2 != ''">
+		 		REF_NO2,
+			</if>
+		 	SCR_ID,
+		 	COST_CENT_CD,
+		 	TAX_AMT,
+		 	TOTAL_AMT,
+			TAX_TYPE,
+			TAX_VALUE
+		) VALUES (
+			#{trfCd},
+			#{subTrfCd},
+			#{payer},	 
+			#{gatherNo},
+			#{billTpCd},
+			#{ivPrfx}, 	
+			#{vslCallId}, 	 	
+			#{trfDescr}, 	 	 	
+			ISNULL(TRY_CONVERT(NUMERIC(15,3), #{unit1Val}),0),  	 	 
+		 	ISNULL(TRY_CONVERT(NUMERIC(15,3), #{unit2Val}),0),    	 	 
+		 	ISNULL(TRY_CONVERT(NUMERIC(15,3), #{unit3Val}),0),	  	 	 
+		 	#{statCd}, 	 	 	
+		 	#{ivNo}, 	 	 		
+	     	CONVERT(DATE,#{gatherDt}, 103),
+			#{calFmYmd},
+			#{calToYmd},
+			#{pkgTrfNm},	 	 	
+			TRY_CONVERT(NUMERIC(15,3), #{aplyRate}), 	 	 
+			ROUND(ISNULL(TRY_CONVERT(NUMERIC(15,3), #{aplyAmt}),0),2), 	 	 
+			TRY_CONVERT(NUMERIC(15,3), #{stdRate}),
+			#{adhocYn},
+			#{area},
+			getdate(),
+			#{userId},
+			#{newVersion},
+			<if test="adhocYn != null">
+		 	 	<if test='adhocYn eq "Y".toString()'>
+			 	 	#{refNo},
+				</if>
+		 	</if>
+			<if test="refNo2 != null and refNo2 != ''">
+		 	 	#{refNo2},
+		 	</if>
+			#{scrId},
+			#{costCentCd},
+ 			TRY_CONVERT(NUMERIC(15,3), #{gstAmt}),
+			TRY_CONVERT(NUMERIC(15,3), #{totalAmt}),
+			#{gstType},
+			#{gstValueHidden}
+		)
+	</insert>
+
+    <update id = "updateInvoiceDataItem" parameterType="invoiceDataItem">
+		UPDATE /*invoice.updateInvoiceDataItem*/
+			TMT_B_IV_DATA 
+		SET
+	 		TRF_CD 			= #{trfCd},
+	 		SUB_TRF_CD 		= #{subTrfCd}, 
+		 	TRF_DESCR 		= #{trfDescr}, 
+	 		STAT_CD 		= #{statCd},  
+	 		IV_NO 			= #{ivNo},  
+	 		COST_CENT_CD 	= #{costCentCd},
+	  		<if test="ivPrfx != null and ivPrfx != ''" >	
+	  			<if test='ivPrfx == "XMS"'>
+					APLY_RATE 		= TRY_CONVERT(NUMERIC(15,3), #{aplyRate}),
+					APLY_AMT 		= ROUND(ISNULL(TRY_CONVERT(NUMERIC(15,3), #{aplyAmt}), 0), 2),
+					UNIT1_VAL		= TRY_CONVERT(NUMERIC(15,3), #{unit1Val}),  
+					UNIT2_VAL 		= TRY_CONVERT(NUMERIC(15,3), #{unit2Val}), 
+					UNIT3_VAL 		= TRY_CONVERT(NUMERIC(15,3), #{unit3Val}),	
+					REVS_RATE 		= TRY_CONVERT(NUMERIC(15,3), #{revsRate}), 
+					REVS_AMT 		= ROUND(ISNULL(TRY_CONVERT(NUMERIC(15,3), #{revsAmt}), 0), 2), 
+					REVS_UNIT1_VAL 	= TRY_CONVERT(NUMERIC(15,3), #{revsUnit1Val}),  
+					REVS_UNIT2_VAL 	= TRY_CONVERT(NUMERIC(15,3), #{revsUnit2Val}), 
+					REVS_UNIT3_VAL 	= TRY_CONVERT(NUMERIC(15,3), #{revsUnit3Val}),
+					
+				</if>
+				<if test='ivPrfx != "XMS"'>
+		   			<if test="statCd != null and statCd != ''">
+					   <if test='statCd == "IV"'>	
+						 	APLY_RATE 		= TRY_CONVERT(NUMERIC(15,3), #{revsRate}),
+							APLY_AMT 		= ROUND(ISNULL(TRY_CONVERT(NUMERIC(15,3), #{revsAmt}), 0), 2),
+							UNIT1_VAL 		= TRY_CONVERT(NUMERIC(15,3), #{revsUnit1Val}),  
+							UNIT2_VAL 		= TRY_CONVERT(NUMERIC(15,3), #{revsUnit2Val}), 
+							UNIT3_VAL 		= TRY_CONVERT(NUMERIC(15,3), #{revsUnit3Val}),	
+							REVS_RATE 		= TRY_CONVERT(NUMERIC(15,3), #{revsRate}), 
+							REVS_AMT 		= ROUND(ISNULL(TRY_CONVERT(NUMERIC(15,3), #{revsAmt}), 0), 2), 
+							REVS_UNIT1_VAL 	= TRY_CONVERT(NUMERIC(15,3), #{revsUnit1Val}),  
+							REVS_UNIT2_VAL 	= TRY_CONVERT(NUMERIC(15,3), #{revsUnit2Val}), 
+							REVS_UNIT3_VAL 	= TRY_CONVERT(NUMERIC(15,3), #{revsUnit3Val}),
+						</if>	
+			  			<if test='statCd != "IV"'>	
+							APLY_RATE 		= TRY_CONVERT(NUMERIC(15,3), #{aplyRate}),
+							APLY_AMT 		= ROUND(ISNULL(TRY_CONVERT(NUMERIC(15,3), #{aplyAmt}), 0), 2),
+							UNIT1_VAL	 	= TRY_CONVERT(NUMERIC(15,3), #{unit1Val}),  
+							UNIT2_VAL		= TRY_CONVERT(NUMERIC(15,3), #{unit2Val}), 
+							UNIT3_VAL 		= TRY_CONVERT(NUMERIC(15,3), #{unit3Val}),	
+							REVS_RATE 		= TRY_CONVERT(NUMERIC(15,3), #{revsRate}), 
+							REVS_AMT 		= ROUND(ISNULL(TRY_CONVERT(NUMERIC(15,3), #{revsAmt}), 0), 2), 
+							REVS_UNIT1_VAL 	= TRY_CONVERT(NUMERIC(15,3), #{revsUnit1Val}),  
+							REVS_UNIT2_VAL 	= TRY_CONVERT(NUMERIC(15,3), #{revsUnit2Val}), 
+							REVS_UNIT3_VAL 	= TRY_CONVERT(NUMERIC(15,3), #{revsUnit3Val}),
+							
+			 			</if>	
+		  			</if>
+				</if>
+			</if> 
+			<if test="adhocYn != null and adhocYn != ''">
+				<if test='adhocYn == "Y"'>
+					REF_NO1 = #{refNo},
+			 	</if>
+		 	</if>
+		 	<if test='adhocYn != "Y"'>
+		 	 	<if test='scrId == "OPE"'>
+			 	 	REF_NO1 = #{refNo},
+			 	</if>
+			 	<if test='scrId == "WHR"'>
+			 		REF_NO1 = #{refNo},
+			 	</if>
+			</if>
+	 		UPDATE_TIME = GETDATE(),
+	 		STAFF_CD 	= #{userId}, 
+	 		VERSION 	= #{newVersion},
+	 		IV_PRFX 	= #{ivPrfx}
+	 		<if test="payableAmount != null and payableAmount != '' ">
+				,TOTAL_AMT = TRY_CONVERT(NUMERIC(15,3), #{payableAmount})
+			</if>
+			<if test="totalAmt != null and totalAmt != '' ">
+				,TOTAL_AMT = TRY_CONVERT(NUMERIC(15,3), #{totalAmt})
+			</if>
+			<if test="gstTpCd != null and gstTpCd != '' ">
+				,TAX_TYPE = #{gstTpCd}
+			</if>
+			<if test="disSurRate != null and disSurRate != '' ">
+				,DIS_RATE = TRY_CONVERT(NUMERIC(15,3), #{disSurRate})
+			</if>
+			<if test="disSurAmount != null and disSurAmount != '' ">
+				,DIS_AMT = TRY_CONVERT(NUMERIC(15,3), #{disSurAmount})
+			</if>
+			<if test="wthAmount != null and wthAmount != '' ">
+				,WTH_AMT = TRY_CONVERT(NUMERIC(15,3), #{wthAmount})
+			</if>
+			<if test="payer != null and payer != '' ">
+				,PAYER = #{payer}
+			</if>
+		 WHERE 
+		 	GATHER_NO = #{gatherNo}
+	</update>
+	
+	<update id = "updateInvoiceErpStatCd" parameterType="invoiceItem">
+		UPDATE /*invoice.updateInvoiceErpStatCd*/
+		TMT_B_IV SET 
+			<if test="ivPrfx == 'PRF'">
+		    	ERP_STAT_CD = null
+		    </if>
+		    <if test="ivPrfx != 'PRF'">
+		    	ERP_STAT_CD = 'Y'
+		    </if>
+			ERP_STAT_CD = 'Y'
+		WHERE IV_NO = #{ivNo}
+	</update>
+	
+	<update id = "updateSsrStatus" parameterType="invoiceItem">
+		UPDATE /*invoice.updateSsrStatus*/
+			TMT_B_SSR
+		SET 
+	    	SSR_STAT_CD = #{statCd},
+	    	IV_NO = #{ivNo}
+		WHERE 
+			VSL_CALL_ID = #{vslCallId}
+			AND SSR_NO = #{refNo}
+	</update>
+	
+	<delete id="deleteInvoiceItems" parameterType="invoiceDataItem">
+		UPDATE /* invoiceList.deleteInvoiceItems */ 
+			TMT_B_IV 
+		SET 	 
+			STAT_CD 		= 'IC'
+			,RMK 			= #{rmk}
+			,IV_CANCEL 		= 'Y'
+			,UPDATE_TIME 	= GETDATE()
+       		,STAFF_CD 		= #{userId}
+       		,VERSION 		= #{newVersion}
+		WHERE 
+			IV_NO 			= #{ivNo}
+			AND VSL_CALL_ID = #{vslCallId}
+			AND STAT_CD IN ('IV', 'VF', 'PC', 'SM')
+	</delete>
+
+	<delete id="deleteInvoiceDataItems" parameterType="invoiceDataItem">
+		UPDATE /* invoiceList.deleteInvoiceDataItems */ 
+			TMT_B_IV_DATA 
+		SET
+			STAT_CD = 'IC'
+			,UPDATE_TIME = GETDATE()
+			,STAFF_CD = #{userId}
+       		,VERSION = #{newVersion}
+		WHERE 
+			IV_NO 			= #{ivNo}
+			AND VSL_CALL_ID = #{vslCallId}
+			AND STAT_CD IN ('IV', 'VF', 'PC', 'SM')
+	</delete>
+</mapper>

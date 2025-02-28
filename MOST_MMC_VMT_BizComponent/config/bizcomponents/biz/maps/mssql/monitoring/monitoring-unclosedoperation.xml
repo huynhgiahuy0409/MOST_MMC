@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+<mapper namespace="unclosedOperation">
+
+		
+	<!--  ################ Query Statement Define ######################################### -->
+		<sql id="getUnclosedOperationList">
+			SELECT * FROM (
+			    SELECT
+		            'Loading' AS CGOPTP,
+		            M.VSL_CALL_ID AS vslCallId,
+					(SELECT TOP 1 VSL_NM FROM TMT_VSL_PART V
+								  JOIN TMT_CG_MST C ON C.VSL_CD = V.VSL_CD WHERE VSL_CALL_ID = 'ASHL') AS VSLNM,
+		            FORMAT(SC.ATB, 'dd/MM/yyyy HH:mm:ss') AS ATB,
+		            FORMAT(SC.ATU, 'dd/MM/yyyy HH:mm:ss') AS ATU,
+		            M.SHIPG_NOTE_NO AS BLSN,
+		            M.CG_NO AS GRNO,
+		            dbo.F_CM_CODE_NM('MT', 'CGCOCD', C.JOB_CO_CD) AS CGCOND,
+		            dbo.F_GET_UNCLOSED_STATUS_REASON(M.STAT_CD) AS RSN,
+		            (
+		                SELECT COUNT(JOB_GROUP)
+		                FROM (
+		                    SELECT DISTINCT JOB_GROUP, CG_NO, JOB_CO_CD
+		                    FROM TMT_JOB
+		                    WHERE VSL_CALL_ID = M.VSL_CALL_ID
+		                ) AS JobGroups
+		                WHERE CG_NO = M.CG_NO AND JOB_CO_CD = C.JOB_CO_CD
+		            ) AS JOBSTRIP
+		        FROM TMT_CG_MST AS M
+		        JOIN TMT_VSL_SCH AS SC ON SC.VSL_CALL_ID = M.VSL_CALL_ID
+		        JOIN TMT_GR AS G ON M.VSL_CALL_ID = G.VSL_CALL_ID AND M.CG_NO = G.GR_NO
+		        JOIN (
+		            SELECT AA.VSL_CALL_ID, AA.CG_NO, AA.JOB_CO_CD
+		            FROM TMT_JOB AS AA
+		            WHERE JOB_CO_CD IS NOT NULL AND (AA.SP_CA_CO_CD <![CDATA[<>]]> 'S' OR AA.SP_CA_CO_CD IS NULL)
+		            GROUP BY VSL_CALL_ID, CG_NO, JOB_CO_CD
+		        ) AS C ON M.VSL_CALL_ID = C.VSL_CALL_ID AND M.CG_NO = C.CG_NO
+		        WHERE 1=1 
+		            <if test="vslCallId == null or vslCallId == ''">
+		                AND FORMAT(SC.ATB, 'yyyyMMdd') BETWEEN FORMAT(CONVERT(datetime, #{fromATB}, 103), 'yyyyMMdd') AND FORMAT(CONVERT(datetime, #{toATB}, 103), 'yyyyMMdd')
+		            </if>
+		            <if test="vslCallId != null and vslCallId != ''">
+		                AND M.VSL_CALL_ID = #{vslCallId}
+		            </if>
+					    
+		        UNION
+		
+		        SELECT
+		            'Discharging' AS CGOPTP,
+		            M.VSL_CALL_ID AS vslCallId,
+		            (SELECT TOP 1 VSL_NM FROM TMT_VSL_PART V
+								  JOIN TMT_CG_MST C ON C.VSL_CD = V.VSL_CD WHERE VSL_CALL_ID = 'ASHL') AS VSLNM,
+		            FORMAT(SC.ATB, 'dd/MM/yyyy HH:mm:ss') AS ATB,
+		            FORMAT(SC.ATU, 'dd/MM/yyyy HH:mm:ss') AS ATU,
+		            M.CG_NO AS BLSN,
+		            '' AS GRNO,
+					dbo.F_CM_CODE_NM('MT', 'CGCOCD', C.JOB_CO_CD) AS CGCOND,
+		            dbo.F_GET_UNCLOSED_STATUS_REASON(M.STAT_CD) AS RSN,
+		            (
+		                SELECT COUNT(JOB_GROUP)
+		                FROM (
+		                    SELECT DISTINCT JOB_GROUP, CG_NO, JOB_CO_CD
+		                    FROM TMT_JOB
+		                    WHERE VSL_CALL_ID = M.VSL_CALL_ID
+		                ) AS JobGroups
+		                WHERE CG_NO = M.CG_NO AND JOB_CO_CD = C.JOB_CO_CD
+		            ) AS JOBSTRIP
+		        FROM TMT_CG_MST AS M
+		        JOIN TMT_VSL_SCH AS SC ON SC.VSL_CALL_ID = M.VSL_CALL_ID
+		        JOIN (
+		            SELECT AA.VSL_CALL_ID, AA.CG_NO, AA.JOB_CO_CD
+		            FROM TMT_JOB AS AA
+		            WHERE JOB_CO_CD IS NOT NULL
+		            GROUP BY VSL_CALL_ID, CG_NO, JOB_CO_CD
+		        ) AS C ON M.VSL_CALL_ID = C.VSL_CALL_ID AND M.CG_NO = C.CG_NO
+		        WHERE 
+		            M.SHIPG_NOTE_NO IS NULL
+		            <if test="vslCallId == null or vslCallId == ''">
+		                AND FORMAT(SC.ATB, 'yyyyMMdd') BETWEEN FORMAT(CONVERT(datetime, #{fromATB}, 103), 'yyyyMMdd') AND FORMAT(CONVERT(datetime, #{toATB}, 103), 'yyyyMMdd')
+		            </if>
+		            <if test="vslCallId != null and vslCallId != ''">
+		            </if>
+		                AND M.VSL_CALL_ID = 'ASHL'
+			  ) AS RS
+			ORDER BY ATB, vslCallId, CGOPTP, BLSN, GRNO
+		</sql>
+		<select id="selectUnclosedOperationList"  parameterType="UnclosedOperationParm" resultType="UnclosedOperationItem">
+			<if test="pageNo != 0"> 
+				SELECT
+					*
+				FROM 
+					(SELECT 
+						inner_querry.*, ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num 
+					FROM ( 
+			</if>
+					<include refid="getUnclosedOperationList"/>
+			<if test="pageNo != 0"> 
+					)inner_querry 
+				)inner_querry 
+				WHERE 
+					inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+					AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+			</if>
+		</select>
+		
+		<!-- <select id="selectNumbPage"  parameterType="UnclosedOperationParm" resultType="int">
+			
+		</select> -->
+</mapper>

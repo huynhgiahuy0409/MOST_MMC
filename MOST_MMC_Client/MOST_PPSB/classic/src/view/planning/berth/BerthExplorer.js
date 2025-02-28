@@ -1,0 +1,428 @@
+Ext.define('MOST.view.planning.berth.BerthExplorer', {
+	extend: 'Ext.panel.Panel',
+
+	alias: 'widget.app-berthexplorer',
+
+	requires: [
+		'Ext.grid.plugin.RowEditing',
+		'Ext.grid.plugin.Exporter',
+		'Ext.grid.plugin.Clipboard',
+		'Ext.grid.filters.Filters',
+		'Ext.grid.selection.SpreadsheetModel',
+		'TSB.gux.berth.BerthRenderer',
+		'MOST.view.planning.berth.BerthExplorerModel',
+		'MOST.view.planning.berth.BerthExplorerController',
+		'MOST.view.planning.berth.VesselSchduleInfoTab',
+		'MOST.view.planning.berth.BerthVesselList',
+		'MOST.view.planning.berth.BerthVesselSchDetailInfo',
+	],
+
+	config: {
+		selectedCell: {},
+		prevCell: {},
+	},
+
+	constructor: function (config) {
+		this.callParent(arguments);
+	},
+
+	controller: 'berthexplorer',
+	viewModel: {
+		type: 'berthexplorer',
+	},
+
+	layout: {
+		type: 'border',
+	},
+
+	stateful: true,
+	stateId: 'stateareBerthExplorere',
+
+	initComponent: function () {
+		var me = this;
+
+		Ext.apply(me, {
+			items: [
+				{
+					xtype: 'panel',
+					itemId: 'berthexplorerPanelId',
+					reference: 'panel-berthexplorer',
+					scrollable: true,
+					region: 'center',
+					layout: 'fit',
+					height: '100%',
+					items: [
+						{
+							layout: {
+								type: 'vbox',
+								align: 'stretch',
+							},
+							items: [
+								{
+									xtype: 'panel',
+									flex: 1,
+									reference: 'refBerthLayout',
+									layout: {
+										type: 'absolute',
+									},
+									scrollable: true,
+								},
+								{
+									xtype: 'app-vesselschduleinfotab',
+									header: false,
+									collapsible: true,
+									collapsed: false,
+									split: true,
+									stateId: 'stateBerthExplorerVessehScheduleInfoTab',
+									stateful: true,
+									region: 'south',
+									height: 'auto',
+									scrollable: true,
+								},
+							],
+
+							dockedItems: [
+								{
+									xtype: 'container',
+									style: { 'background-color': 'white' },
+									layout: {
+										type: 'hbox',
+									},
+									defaults: {
+										margin: '1 1 1 1',
+									},
+									items: [
+										{
+											xtype: 'tbfill',
+										},
+										{
+											xtype: 'button',
+											itemId: 'inquiryItemId',
+											reference: 'refBtnRetrieve',
+											text: ViewUtil.getLabel('search'),
+											iconCls: 'x-fa fa-search',
+											cls: 'search-button',
+											listeners: {
+												click: 'onSearch',
+											},
+										},
+										{
+											xtype: 'button',
+											itemId: 'btnDelete',
+											reference: 'refBtnDelete',
+											text: ViewUtil.getLabel('remove'),
+											ui: 'delete-button',
+											iconCls: 'x-fa fa-minus',
+											listeners: {
+												click: 'onRemove',
+											},
+										},
+										{
+											xtype: 'button',
+											itemId: 'exportToExcelButton',
+											text: ViewUtil.getLabel('exportToExcel'),
+											iconCls: 'excel-button-image',
+											cls: 'excel-button',
+											listeners: {
+												click: {
+													fn: 'onExportExcelPdfWithServer',
+													args: [me.MAIN_GRID_REF_NAME, true],
+												},
+											},
+										},
+										{
+											xtype: 'button',
+											itemId: 'exportToPdfButton',
+											text: ViewUtil.getLabel('exportToPdf'),
+											iconCls: 'x-fa fa-file-pdf-o',
+											cls: 'excel-button',
+											listeners: {
+												click: {
+													fn: 'onExportExcelPdfWithServer',
+													args: [me.MAIN_GRID_REF_NAME, false],
+												},
+											},
+										},
+										{
+											xtype: 'button',
+											reference: 'refBtnSave',
+											text: ViewUtil.getLabel('save'),
+											iconCls: 'x-fa fa-save',
+											handler: 'onSave',
+											bind: {
+												disabled: '{!selectedBerthPlan.dirty}',
+											},
+										},
+										{
+											xtype: 'button',
+											cls: 'column-setting-button',
+											iconCls: 'x-fa fa-columns',
+											text: ViewUtil.getLabel('column'),
+											listeners: {
+												click: 'onColumnSettingPopup',
+												args: [me.MAIN_GRID_REF_NAME],
+											},
+										},
+									],
+								},
+								{
+									xtype: 'toolbar',
+									overflowHandler: 'menu',
+									dock: 'top',
+									margin: '1 0 0 0',
+									hidden: false,
+									items: [
+										{
+											xtype: 'shipcallnofield',
+											reference: 'ctlScn',
+											fieldLabel: ViewUtil.getLabel('shipCallNo'),
+											labelWidth: 70,
+											width: 200,
+											bind: {
+												value: '{theSearch.scn}',
+											},
+										},
+										{
+											xtype: 'vesselcalllistfield',
+											labelWidth: 45,
+											width: 200,
+											reference: 'ctlVesselCallId',
+											fieldStyle: 'background-color:#ebd1ea;',
+										},
+										{
+											xtype: 'combobox',
+											reference: 'refBerthType',
+											labelAlign: 'right',
+											labelWidth: 30,
+											fieldLabel: ViewUtil.getLabel('berth'),
+											queryMode: 'local',
+											displayField: 'scdNm',
+											valueField: 'scd',
+											width: 130,
+											matchFieldWidth: false,
+											editable: false,
+											bind: {
+												store: '{terminals}',
+											},
+											listeners: {
+												change: 'onTerminalSelectionChange',
+											},
+										},
+										{
+											xtype: 'datefield',
+											reference: 'ctlFromYearMonth',
+											width: 115,
+											margin: '5 0 0 5',
+											format: MOST.config.Locale.getShortDate(),
+											labelAlign: 'right',
+											labelWidth: 50,
+											listeners: {
+												blur: 'onMonthfieldChanged',
+											},
+										},
+										{
+											xtype: 'datefield',
+											reference: 'ctlToYearMonth',
+											width: 115,
+											margin: '5 0 0 5',
+											format: MOST.config.Locale.getShortDate(),
+											labelAlign: 'right',
+											labelWidth: 50,
+											listeners: {
+												blur: 'onMonthfieldChanged',
+												specialkey: function (field, e) {
+													if (e.getKey() == e.ENTER) {
+														me.getController().onMonthfieldRetrevie();
+													}
+												},
+											},
+										},
+										{
+											xtype: 'combobox',
+											reference: 'refBerthStatus',
+											labelAlign: 'right',
+											labelWidth: 80,
+											fieldLabel: ViewUtil.getLabel('berthingstatus'),
+											matchFieldWidth: false,
+											queryMode: 'local',
+											displayField: 'scdNm',
+											valueField: 'scd',
+											width: 250,
+											value: '',
+											bind: {
+												store: '{berthingStatusCombo}',
+											},
+										},
+										{
+											xtype: 'checkboxfield',
+											reference: 'ctlPlanCheckbox',
+											margin: '2 0 0 0',
+											boxLabel: 'Plan',
+											checked: false,
+										},
+										{
+											margin: '0 0 0 10',
+											xtype: 'button',
+											text: ViewUtil.getLabel('berthMaintenance'),
+											reference:'refBtnBerthMaintenance',
+											listeners: {
+												click: 'onOpenBerthMaintenance'
+											}
+										
+										},
+										'->',
+										'-',
+										{
+											xtype: 'segmentedbutton',
+											reference: 'refTglWorkMode',
+											items: [
+												//		                    	{
+												//		                    	iconCls: 'fa fa-cogs',
+												//		                    	tooltip: 'Planning by Auto',
+												//		                    	value: 'auto',
+												//		                    	pressed: true,
+												//		                    	handler: 'onSearchClick'
+												//		                    },
+												{
+													iconCls: 'fa fa-keyboard-o',
+													tooltip: 'Planning by Manual',
+													pressed: true,
+													value: 'manual',
+													handler: 'onSearchClick',
+												},
+											],
+										},
+										'-',
+										{
+											xtype: 'button',
+											text: ViewUtil.getLabel('timeZoom'),
+											iconCls: 'x-fa fa-search-plus',
+											arrowAlign: 'right',
+											tooltip: 'Time Zoom',
+											menu: [
+												{
+													xtype: 'segmentedbutton',
+													vertical: false,
+													items: [
+														{
+															text: '-20%',
+															tooltip: 'Zoom Out (-20%)',
+															handler: 'onZoomTime',
+															value: '-20',
+														},
+														{
+															xtype: 'button', //return 100% size
+															text: '100%',
+															tooltip: 'Zoom to 100%',
+															handler: 'onZoomTime',
+															value: 100,
+															pressed: true,
+														},
+														{
+															text: '+20%',
+															tooltip: 'Zoom In (+20%)',
+															handler: 'onZoomTime',
+															value: '20',
+														},
+													],
+												},
+											],
+										},
+										{
+											xtype: 'button',
+											text: ViewUtil.getLabel('berthZoom'),
+											iconCls: 'x-fa fa-search-plus',
+											arrowAlign: 'right',
+											tooltip: 'Berth Zoom',
+											menu: [
+												{
+													xtype: 'segmentedbutton',
+													vertical: false,
+													items: [
+														{
+															text: '-20%',
+															tooltip: 'Zoom Out (-20%)',
+															handler: 'onZoomBerth',
+															value: '-20',
+														},
+														{
+															xtype: 'button', //return 100% size
+															text: '100%',
+															tooltip: 'Zoom to 100%',
+															handler: 'onZoomBerth',
+															value: 100,
+															pressed: true,
+														},
+														{
+															text: '+20%',
+															tooltip: 'Zoom In (+20%)',
+															handler: 'onZoomBerth',
+															value: '20',
+														},
+														{
+															text: 'Fit',
+															tooltip: 'Fit to Window',
+															handler: 'onZoomBerth',
+															value: 'fit',
+														},
+													],
+												},
+											],
+										},
+										//	                    {
+										//	                    	xtype:'button',
+										//	                    	enableToggle: true,
+										//	                    	text: me.lbl'SnapBerth,
+										//	                    	iconCls: 'x-fa fa-magnet',
+										//	                    	tooltip: 'Snap per Meters',
+										//	                    	reference: 'refSnapBerth'
+										//	                    }, {
+										//	                    	xtype:'button',
+										//	                    	enableToggle: true,
+										//	                    	text: me.lbl'SnapTime,
+										//	                    	iconCls: 'x-fa fa-magnet',
+										//	                    	tooltip: 'Snap per Times',
+										//	                    	reference: 'refSnapTime'
+										//	                    },
+										{
+											xtype: 'button',
+											text: 'Undo',
+											iconCls: 'x-fa fa-undo',
+											handler: 'onUndo',
+											bind: {
+												disabled: '{!undoRemained}',
+											},
+										},
+										{
+											xtype: 'checkboxfield',
+											boxLabel: ViewUtil.getLabel('keepFitBerthToWindow'),
+											name: 'fitWindow',
+											reference: 'refFit',
+											listeners: {
+												change: 'onFitChecked',
+											},
+										},
+									],
+								},
+							],
+						},
+					],
+				},
+			],
+		});
+
+		me.callParent();
+	},
+
+	afterRender: function () {
+		var me = this;
+
+		me.getController().onLoad();
+
+		var ref = me.getReferences().refBerthLayout;
+		ref.getScrollable().on('scroll', me.getController().onScroll, me.getController());
+		ref.on('resize', me.getController().onResize, me.getController());
+
+		me.callParent(arguments);
+	},
+});

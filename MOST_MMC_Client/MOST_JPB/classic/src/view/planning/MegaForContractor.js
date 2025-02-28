@@ -1,0 +1,593 @@
+Ext.define("MOST.view.planning.MegaForContractor", {
+    extend: "Ext.panel.Panel",
+    alias: "widget.app-megaforcontractor",
+    requires: [
+        "MOST.view.planning.MegaForContractorModel",
+        "MOST.view.planning.MegaForContractorController",
+        "Ext.grid.plugin.RowEditing",
+        "Ext.grid.plugin.Exporter",
+        "Ext.grid.plugin.Clipboard",
+        "Ext.grid.filters.Filters",
+        "Ext.grid.selection.SpreadsheetModel",
+    ],
+
+    controller: "megaforcontractor",
+
+    detailViewAlias: "app-megaforcontractordetail",
+
+    viewModel: {
+        type: "megaforcontractor",
+    },
+
+    listeners: {
+        afterrender: "onLoad",
+    },
+
+    initComponent: function () {
+        var me = this;
+
+        Ext.apply(me, {
+            layout: {
+                type: "vbox",
+                align: "stretch",
+            },
+            items: [
+                {
+                    xtype: "fieldset",
+                    margin: '5 5 0 0',
+                    padding: '10 10 0 10',
+                    layout: {
+                        type: "hbox",
+                        align: "stretch",
+                    },
+                    defaults: {
+                        flex: 1,
+                    },
+                    items: [
+                        {
+                            xtype: "container",
+                            flex: 0.9,
+                            layout: {
+                                type: "vbox",
+                                align: "stretch",
+                            },
+                            defaults: {
+                                labelAlign: "right",
+                                labelWidth: 75,
+                                margin: "5 0 0 0",
+                                width: '100%'
+                            },
+                            items: [
+                                {
+                                    xtype: "shipcallnofield",
+                                    reference: "ctlScn",
+                                    margin: "0 0 0 0",
+                                    fieldLabel: ViewUtil.getLabel("shipCallNo"),
+                                    bind: {
+                                        value: "{theSearch.scn}",
+                                    },
+                                },
+                                {
+                                    xtype: "vesselcalllistfield",
+                                    fieldLabel: ViewUtil.getLabel("vessel"),
+                                    allowBlank: false,
+                                    reference: "ctlJpvc",
+                                    bind: {
+                                        value: "{theSearch.vslCallId}",
+                                    },
+                                },
+                            ],
+                        },
+                        {
+                            xtype: "container",
+                            flex: 1.2,
+                            layout: {
+                                type: "vbox",
+                                align: "stretch",
+                            },
+                            defaults: {
+                                labelAlign: "right",
+                                labelWidth: 75,
+                                width: '100%'
+                            },
+                            items: [
+                                {
+                                    xtype: "container",
+                                    margin: "0 0 5 0",
+                                    layout: {
+                                        type: "hbox",
+                                        align: "stretch",
+                                    },
+                                    items: [
+                                        {
+                                            xtype: 'label',
+                                            text: ViewUtil.getLabel("saDate"),
+                                            style: "text-align:right",
+                                            margin: "5 5 0 0",
+                                            width: 75
+                                        },
+                                        {
+                                            xtype: "datefield",
+                                            reference: "ctlFromDt",
+                                            flex: 1,
+                                            margin: '0 5 0 0',
+                                            allowBlank: false,
+                                            format: MOST.config.Locale.getShortDate(),
+                                            listeners: {
+                                                change: "onDateChange",
+                                            },
+                                            editable: false,
+                                        },
+                                        {
+                                            xtype: "datefield",
+                                            reference: "ctlToDt",
+                                            flex: 1,
+                                            allowBlank: false,
+                                            format: MOST.config.Locale.getShortDate(),
+                                            listeners: {
+                                                change: "onDateChange",
+                                            },
+                                            editable: false,
+                                        },
+                                    ],
+                                },
+                                {
+                                    xtype: "datefield",
+                                    reference: "ctlServiceDate",
+                                    fieldLabel: ViewUtil.getLabel("workYmd"),
+                                    format: MOST.config.Locale.getShortDate(),
+                                    listeners: {
+                                        change: "onServiceDateChange",
+                                    },
+                                },
+                            ],
+                        },
+                        {
+                            xtype: "container",
+                            layout: {
+                                type: "vbox",
+                                align: "stretch",
+                            },
+                            defaults: {
+                                labelAlign: "right",
+                                labelWidth: 75,
+                                margin: '5 0 0 0',
+                            },
+                            items: [
+                                {
+                                    xtype: "partnercdfield",
+                                    fieldLabel: ViewUtil.getLabel("sa"),
+                                    margin: '0 0 0 0',
+                                    fieldStyle: "background-color: #ffccff;",
+                                    reference: "ctlSa",
+                                    params: {
+                                        searchDivCd: "SHA",
+                                    },
+                                },
+                                {
+                                    xtype: "partnercdfield",
+                                    reference: "refCboContractorForklift",
+                                    fieldLabel: ViewUtil.getLabel("contractor"),
+                                    queryMode: "local",
+                                    editable: false,
+                                    displayField: "engPtyNm",
+                                    valueField: "ptyCd",
+                                    filter: "string",
+                                    editable: false,
+                                    params: {
+                                        searchDivCd: "CTT",
+                                    },
+                                },
+                            ],
+                        },
+                        {
+                            xtype: "container",
+                            layout: {
+                                type: "vbox",
+                                align: "stretch",
+                            },
+                            defaults: {
+                                labelAlign: "right",
+                                labelWidth: 90,
+                                margin: '5 0 0 0',
+                            },
+                            items: [
+                                {
+                                    xtype: "combo",
+                                    reference: "ctlDeploymentCombo",
+                                    margin: '0 0 0 0',
+                                    fieldLabel: ViewUtil.getLabel("deploymentYn"),
+                                    queryMode: "local",
+                                    bind: {
+                                        store: "{megaRequisitionDeploymentCombo}",
+                                    },
+                                    displayField: "scdNm",
+                                    valueField: "scd",
+                                    value: "",
+                                    editable: false,
+                                    allowBlank: true,
+                                },
+                                {
+                                    xtype: "combo",
+                                    reference: "ctlMegaStatusCombo",
+                                    fieldLabel: ViewUtil.getLabel("megaStatus"),
+                                    queryMode: "local",
+                                    bind: {
+                                        store: "{megaRequisitionMegaStatusCombo}",
+                                    },
+                                    displayField: "scdNm",
+                                    valueField: "scd",
+                                    value: "",
+                                    editable: false,
+                                    allowBlank: true,
+                                },
+                            ],
+                        },
+                        {
+                            xtype: "container",
+                            layout: {
+                                type: "vbox",
+                                align: "stretch",
+                            },
+                            defaults: {
+                                labelAlign: "right",
+                                labelWidth: 75,
+                                margin: '5 0 0 0',
+                            },
+                            items: [
+                                {
+                                    xtype: "combo",
+                                    reference: "ctlPurposeCombo",
+                                    margin: '0 0 0 0',
+                                    fieldLabel: ViewUtil.getLabel("purpose"),
+                                    queryMode: "local",
+                                    bind: {
+                                        store: "{megaRequisitionPurposeCombo}",
+                                    },
+                                    displayField: "scdNm",
+                                    valueField: "scd",
+                                    value: "",
+                                    editable: false,
+                                    allowBlank: true,
+                                },
+                                {
+                                    xtype: "cmmcdfield",
+                                    reference: "ctlCommodity",
+                                    fieldLabel: ViewUtil.getLabel("commodity"),
+                                    fieldStyle: "background-color: #ffccff;",
+                                    params: {
+                                        searchType: "CMDT",
+                                    },
+                                },
+                            ],
+                        },
+                        {
+                            xtype: "container",
+                            flex: 0.9,
+                            layout: {
+                                type: "vbox",
+                                align: "stretch",
+                            },
+                            defaults: {
+                                labelAlign: "right",
+                                labelWidth: 75,
+                            },
+                            items: [
+                                {
+                                    xtype: "combo",
+                                    reference: "ctlShiftCombo",
+                                    fieldLabel: ViewUtil.getLabel("shift"),
+                                    queryMode: "local",
+                                    bind: {
+                                        store: "{megaRequisitionShiftCombo}",
+                                    },
+                                    displayField: "shftNm",
+                                    valueField: "shftId",
+                                    value: "",
+                                    editable: false,
+                                    allowBlank: true,
+                                },
+                            ],
+                        },
+                    ],
+                },
+                {
+                    xtype: "tsb-datagrid",
+                    reference: "refMegaContractorGrid",
+                    flex: 1,
+                    margin: '0 5 0 0',
+                    stateId: "statemegaContractorGrid",
+                    plugins: ["gridexporter", "gridfilters", "clipboard"],
+                    bind: {
+                        store: "{megaContractor}",
+                    },
+                    selModel: {
+                        type: "checkboxmodel",
+                        checkOnly: false,
+                        showHeaderCheckbox: true,
+                    },
+                    listeners: {
+                        cellclick: "onMegaGridClick",
+                        celldblclick: "onDblClick",
+                    },
+                    columns: {
+                        defaults: {
+                            style: "text-align:center",
+                            align: "center",
+                        },
+                        items: GridUtil.getGridColumns("MegaForContractor")
+                    },
+                },
+                {
+                    xtype: "fieldset",
+                    padding: '10 10 10 10',
+                    layout: {
+                        type: "vbox",
+                        align: "stretch",
+                    },
+                    margin: "0 5 5 0",
+                    items: [
+                        {
+                            xtype: "container",
+                            margin: '0 0 5 0',
+                            layout: {
+                                type: "hbox",
+                            },
+                            defaults: {
+                                labelAlign: "right",
+                                labelWidth: 100,
+                                editable: false,
+                                flex: 1
+                            },
+                            items: [
+                                {
+                                    xtype: "label",
+                                    text: ViewUtil.getLabel("breakBulk"),
+                                    flex: 0,
+                                    margin: '5 0 0 0',
+                                    width: 100
+                                },
+                                {
+                                    xtype: "textfield",
+                                    reference: "ctlNosofGang",
+                                    fieldLabel: ViewUtil.getLabel("nosofGang"),
+                                    value: "0",
+                                },
+                                {
+                                    xtype: "textfield",
+                                    reference: "ctlBBSupervisor",
+                                    fieldLabel: ViewUtil.getLabel("supervisor"),
+                                    value: "0",
+                                },
+                                {
+                                    xtype: "textfield",
+                                    reference: "ctlWinchMen",
+                                    fieldLabel:
+                                        ViewUtil.getLabel("winchMen"),
+                                    value: "0",
+                                },
+                                {
+                                    xtype: "textfield",
+                                    reference: "ctlBBGeneralWorkers",
+                                    fieldLabel: ViewUtil.getLabel("generalWorkers"),
+                                    value: "0",
+                                },
+                                {
+                                    xtype: 'container',
+                                },
+                                {
+                                    xtype: 'container',
+                                }
+                            ],
+                        },
+                        {
+                            xtype: "container",
+                            layout: {
+                                type: "hbox",
+                            },
+                            defaults: {
+                                labelAlign: "right",
+                                labelWidth: 100,
+                                editable: false,
+                                flex: 1
+                            },
+                            items: [
+                                {
+                                    xtype: "label",
+                                    text: ViewUtil.getLabel("dryBulk"),
+                                    flex: 0,
+                                    margin: '5 0 0 0',
+                                    width: 100
+                                },
+                                {
+                                    xtype: "textfield",
+                                    reference: "ctlNosofHatch",
+                                    fieldLabel: ViewUtil.getLabel("nosofHatch"),
+                                    value: "0",
+                                },
+                                {
+                                    xtype: "textfield",
+                                    reference: "ctlDBSupervisor",
+                                    fieldLabel: ViewUtil.getLabel("supervisor"),
+                                    value: "0",
+                                },
+                                {
+                                    xtype: "textfield",
+                                    reference: "ctlSignalMen",
+                                    fieldLabel: ViewUtil.getLabel("signalMen"),
+                                    value: "0",
+                                },
+                                {
+                                    xtype: "textfield",
+                                    reference: "ctlDeckMen",
+                                    fieldLabel: ViewUtil.getLabel("deckMen"),
+                                    value: "0",
+                                },
+                                {
+                                    xtype: "textfield",
+                                    reference: "ctlHoperMen",
+                                    fieldLabel: ViewUtil.getLabel("hoperMen"),
+                                    value: "0",
+                                },
+                                {
+                                    xtype: "textfield",
+                                    reference: "ctlDBGeneralWorkers",
+                                    fieldLabel: ViewUtil.getLabel("generalWorkers"),
+                                    value: "0",
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+
+            dockedItems: [
+                {
+                    xtype: "container",
+                    margin: "5 0 0 0",
+                    layout: {
+                        type: "hbox",
+                        align: "right",
+                        pack: "end",
+                    },
+                    defaults: {
+                        margin: "0 5 0 0",
+                    },
+                    items: [
+                        {
+                            xtype: "button",
+                            text: ViewUtil.getLabel("search"),
+                            itemId: "inquiryItemId",
+                            iconCls: "x-fa fa-search",
+                            cls: "search-button",
+                            reference: "refBtnRetrieve",
+                            listeners: {
+                                click: "onSearchBtn",
+                            },
+                        },
+                        {
+                            xtype: "button",
+                            text: ViewUtil.getLabel("add"),
+                            itemId: "createItemId",
+                            ui: "create-button",
+                            iconCls: "x-fa fa-plus",
+                            reference: "refBtnCreate",
+                            listeners: {
+                                click: "onAdd",
+                            },
+                            hidden: true
+                        },
+                        {
+                            xtype: "button",
+                            reference: "refBtnDelete",
+                            itemId: "deleteItemId",
+                            text: ViewUtil.getLabel("remove"),
+                            ui: "delete-button",
+                            iconCls: "x-fa fa-minus",
+                            listeners: {
+                                click: "onRemove",
+                            },
+                            hidden: true
+                        },
+                        {
+                            xtype: "button",
+                            reference: "refBtnPreview",
+                            text: ViewUtil.getLabel("preview"),
+                            itemId: "previewItemId",
+                            name: "detailPreview",
+                            cls: "excel-button",
+                            iconCls: "fa fa-file-pdf-o",
+                            listeners: {
+                                click: "onMegaPreviewPDF",
+                            },
+                            hidden: true
+                        },
+                        {
+                            xtype: "button",
+                            reference: "refBtnDownload",
+                            itemId: "downloadItemId",
+                            text: ViewUtil.getLabel("download"),
+                            cls: "excel-button",
+                            iconCls: "fa fa-file-excel-o",
+                            listeners: {
+                                click: "onExport",
+                            },
+                        },
+                        {
+                            ui: "default-toolbar",
+                            xtype: "button",
+                            cls: "dock-tab-btn",
+                            text: "Export to ...",
+                            menu: {
+                                defaults: {
+                                    handler: "exportTo",
+                                },
+                                items: [
+                                    {
+                                        text: "Excel xlsx",
+                                        cfg: {
+                                            type: "excel07",
+                                            ext: "xlsx",
+                                        },
+                                    },
+                                    {
+                                        text: "Excel xlsx (include groups)",
+                                        cfg: {
+                                            type: "excel07",
+                                            ext: "xlsx",
+                                            includeGroups: true,
+                                            includeSummary: true,
+                                        },
+                                    },
+                                    {
+                                        text: "Excel xml",
+                                        cfg: {
+                                            type: "excel03",
+                                            ext: "xml",
+                                        },
+                                    },
+                                    {
+                                        text: "Excel xml (include groups)",
+                                        cfg: {
+                                            includeGroups: true,
+                                            includeSummary: true,
+                                        },
+                                    },
+                                    {
+                                        text: "CSV",
+                                        cfg: {
+                                            type: "csv",
+                                        },
+                                    },
+                                    {
+                                        text: "TSV",
+                                        cfg: {
+                                            type: "tsv",
+                                            ext: "csv",
+                                        },
+                                    },
+                                    {
+                                        text: "HTML",
+                                        cfg: {
+                                            type: "html",
+                                        },
+                                    },
+                                    {
+                                        text: "HTML (include groups)",
+                                        cfg: {
+                                            type: "html",
+                                            includeGroups: true,
+                                            includeSummary: true,
+                                        },
+                                    },
+                                ],
+                            },
+                        },
+                    ],
+                },
+            ],
+        });
+
+        me.callParent();
+    },
+});

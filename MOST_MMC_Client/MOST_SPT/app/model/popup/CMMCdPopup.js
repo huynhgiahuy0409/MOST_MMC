@@ -1,0 +1,53 @@
+Ext.define('MOST.model.popup.CMMCdPopup', {
+	extend : 'MOST.model.foundation.dataitem.DataItem',
+	fields: [
+	{
+		name:'divCd',
+		type:'string'
+	},
+	{
+		name:'divNm',
+		type:'string'
+	},
+	{
+		name:'cd',
+		type:'string'
+	},
+	{
+		name:'cdNm',
+		type:'string'
+	},
+	{
+		name:'tyCd',
+		type:'string'
+	},
+	{
+		name:'lcd',
+		type:'string'
+	},
+	{
+		name:'ref1',
+		type:'string'
+	},
+	{
+		name:'ref2',
+		type:'string'
+	},
+	{
+		name:'ref3',
+		type:'string'
+	},
+	{
+		name:'ref4',
+		type:'string'
+	},
+	{
+		name:'ref5',
+		type:'string'
+
+	},
+	{
+		name:'chkMulti',
+		type:'int'
+	}]
+});

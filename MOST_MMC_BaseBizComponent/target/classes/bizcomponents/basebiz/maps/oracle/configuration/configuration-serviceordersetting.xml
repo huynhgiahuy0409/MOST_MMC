@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="serviceOrderSetting">
+
+    <resultMap id="ServiceOrderSettingMap" type="ServiceOrderSettingItem">
+        <result column="CATEGORY1" property="category1"/>
+        <result column="CATEGORY1NM" property="category1Nm"/>
+        <result column="SEQ" property="seq"/>
+        <result column="CATEGORY2" property="category2"/>
+        <result column="CATEGORY2NM" property="category2Nm"/>
+        <result column="CATEGORY3" property="category3"/>
+        <result column="CATEGORY3NM" property="category3Nm"/>
+        <result column="SVCDTFMT" property="svcDtFmt"/>
+        <result column="SVCDTTP" property="svcDtTp"/>
+        <result column="DT1CHK" property="dt1Chk"/>
+        <result column="DT1TIT" property="dt1Tit"/>
+        <result column="DT1FMT" property="dt1Fmt"/>
+        <result column="DT1TP" property="dt1Tp"/>
+        <result column="DT2CHK" property="dt2Chk"/>
+        <result column="DT2TIT" property="dt2Tit"/>
+        <result column="DT2FMT" property="dt2Fmt"/>
+        <result column="DT2TP" property="dt2Tp"/>
+        <result column="SHFTCHK" property="shftChk"/>
+        <result column="UNITTIT" property="unitTit"/>
+        <result column="UNITUOM" property="unitUom"/>
+        <result column="UNITUOMNM" property="unitUomNm"/>
+        <result column="UNITDEC" property="unitDec"/>
+        <result column="UNIT1CHK" property="unit1Chk"/>
+        <result column="UNIT1TIT" property="unit1Tit"/>
+        <result column="UNIT1UOM" property="unit1Uom"/>
+        <result column="UNIT1UOMNM" property="unit1UomNm"/>
+        <result column="UNIT1DEC" property="unit1Dec"/>
+        <result column="UNIT2CHK" property="unit2Chk"/>
+        <result column="UNIT2TIT" property="unit2Tit"/>
+        <result column="UNIT2UOM" property="unit2Uom"/>
+        <result column="UNIT2UOMNM" property="unit2UomNm"/>
+        <result column="UNIT2DEC" property="unit2Dec"/>
+        <result column="PAYTPCD" property="payTpCd"/>
+        <result column="PAYTPNM" property="payTpNm"/>
+        <result column="PRCTPCD" property="prcTpCd"/>
+        <result column="PRCTPNM" property="prcTpNm"/>
+        <result column="PRCTPDESC" property="prcTpDesc"/>
+        <result column="LOCCHK" property="locChk"/>
+        <result column="RMKCHK" property="rmkChk"/>
+        <result column="CMDTYCHK" property="cmdtyChk"/>
+        <result column="DOCUMENTCHK" property="documentChk"/>
+        <result column="UNITCHK" property="unitChk"/>
+        <result column="DOCUMENTTYPE" property="documentTp"/>
+        <result column="DOCUMENTNM" property="documentNm"/>
+    </resultMap>
+
+    <select id="selectServiceOrderSettingList" parameterType="ServiceOrderSettingParm" resultMap="ServiceOrderSettingMap">
+        SELECT /* serviceOrderSetting.selectServiceOrderSettingList */
+        	CATEGORY1 CATEGORY1
+            ,F_CM_012('MT', 'SVCORDCTG1', CATEGORY1) CATEGORY1NM
+            ,SEQ SEQ
+            ,CATEGORY2 CATEGORY2
+            ,F_CM_012('MT', 'SVCORDCTG2', CATEGORY2) CATEGORY2NM
+            ,CATEGORY3 CATEGORY3
+            ,F_CM_012('MT', 'SVCORDCTG3', CATEGORY3) CATEGORY3NM
+            ,SVC_DT_FMT SVCDTFMT
+            ,SVC_DT_TP SVCDTTP
+            ,DT1_CHK DT1CHK
+            ,DT1_TIT DT1TIT
+            ,DT1_FMT DT1FMT
+            ,DT1_TP DT1TP
+            ,DT2_CHK DT2CHK
+            ,DT2_TIT DT2TIT
+            ,DT2_FMT DT2FMT
+            ,DT2_TP DT2TP
+            ,SHFT_CHK SHFTCHK
+            ,UNIT_TIT UNITTIT
+            ,UNIT_UOM UNITUOM
+            ,F_CM_012('MT', 'UOMTP', UNIT_UOM) UNITUOMNM
+            ,UNIT_DEC UNITDEC
+            ,UNIT1_CHK UNIT1CHK
+            ,UNIT1_TIT UNIT1TIT
+            ,UNIT1_UOM UNIT1UOM
+            ,F_CM_012('MT', 'UOMTP', UNIT1_UOM) UNIT1UOMNM
+            ,UNIT1_DEC UNIT1DEC
+            ,UNIT2_CHK UNIT2CHK
+            ,UNIT2_TIT UNIT2TIT
+            ,UNIT2_UOM UNIT2UOM
+            ,F_CM_012('MT', 'UOMTP', UNIT2_UOM) UNIT2UOMNM
+            ,UNIT2_DEC UNIT2DEC
+            ,PAY_TP_CD PAYTPCD
+            ,F_CM_012('MT', 'PAYTP', PAY_TP_CD) PAYTPNM
+            ,PRC_TP_CD PRCTPCD
+            ,F_CM_012('MT', 'ODRPRCTP', PRC_TP_CD) PRCTPNM
+            ,(SELECT S_CD_DESC FROM TMT_CD_MSTD WHERE L_CD = 'MT' AND M_CD = 'ODRPRCTP' AND S_CD = PRC_TP_CD) PRCTPDESC
+            ,LOC_CHK LOCCHK
+            ,RMK_CHK RMKCHK
+            ,CMDTY_CHK CMDTYCHK
+            ,DOCUMENT_CHK DOCUMENTCHK
+       		,UNIT_CHK UNITCHK
+       		,DOCUMENT_TYPE DOCUMENTTYPE
+       		,DOCUMENT_NM DOCUMENTNM
+        FROM TMT_SVC_ODR_CONF CONF
+        WHERE 1=1
+        <if test="category1 != null and category1 != ''">
+            AND CONF.CATEGORY1 = #{category1}
+        </if>
+        <if test="seq != null and seq != 0">
+            AND CONF.SEQ = #{seq}
+        </if>
+        <if test="category2 != null and category2 != ''">
+            AND CONF.CATEGORY2 = #{category2}
+        </if>
+        <if test="category3 != null and category3 != ''">
+            AND CONF.CATEGORY3 = #{category3}
+        </if>
+        <if test="payTpCd != null and payTpCd != ''">
+            AND CONF.PAY_TP_CD = #{payTpCd}
+        </if>
+        <if test="prcTpCd != null and prcTpCd != ''">
+            AND CONF.PRC_TP_CD = #{prcTpCd}
+        </if>
+    </select>
+
+	<select id="selectExtendCategoryCd" parameterType="ServiceOrderSettingParm" resultType="ServiceOrderSettingItem">
+        <if test="category2 != null and category2 != ''">
+            SELECT DISTINCT /* ServiceOrderSetting.selectExtendCategoryCd */
+       			   CATEGORY1, 
+       			   F_CM_012('MT', 'SVCORDCTG1', CATEGORY1) CATEGORY1NM,
+       			   CATEGORY2, 
+       			   F_CM_012('MT', 'SVCORDCTG2', CATEGORY2) CATEGORY2NM
+       		FROM TMT_SVC_ODR_CONF CONF
+       		WHERE CONF.CATEGORY2 = #{scdLgv}
+        </if>
+        
+        <if test="category3 != null and category3 != ''">
+        	SELECT DISTINCT /* ServiceOrderSetting.selectExtendCategoryCd */
+       			   CATEGORY2, 
+       			   F_CM_012('MT', 'SVCORDCTG2', CATEGORY2) CATEGORY2NM,
+       			   CATEGORY3, 
+       			   F_CM_012('MT', 'SVCORDCTG3', CATEGORY3) CATEGORY3NM
+       		FROM TMT_SVC_ODR_CONF CONF
+       		WHERE CONF.CATEGORY3 = #{scdLgv}
+        </if>      
+    </select>
+
+    <insert id="insertServiceOrderSettingItem" parameterType="ServiceOrderSettingItem">
+        INSERT /* serviceOrderSetting.insertServiceOrderSettingItem */
+        INTO TMT_SVC_ODR_CONF (
+            CATEGORY1, SEQ, CATEGORY2, CATEGORY3,
+            SVC_DT_FMT, SVC_DT_TP,
+            DT1_CHK, DT1_TIT, DT1_FMT, DT1_TP,
+            DT2_CHK, DT2_TIT, DT2_FMT, DT2_TP, SHFT_CHK,
+            UNIT_TIT, UNIT_UOM, UNIT_DEC,
+            UNIT1_CHK, UNIT1_TIT, UNIT1_UOM, UNIT1_DEC,
+            UNIT2_CHK, UNIT2_TIT, UNIT2_UOM, UNIT2_DEC,
+            PAY_TP_CD, PRC_TP_CD, LOC_CHK, RMK_CHK,
+            UPDATE_TIME, STAFF_CD, VERSION, CMDTY_CHK, 
+            DOCUMENT_CHK, DOCUMENT_TYPE, DOCUMENT_NM, UNIT_CHK
+        ) VALUES (
+            #{category1},
+            (SELECT NVL(MAX(SEQ), 0)+1 FROM TMT_SVC_ODR_CONF WHERE CATEGORY1 = #{category1}),
+            #{category2},
+            #{category3},
+            #{svcDtFmt},
+            DECODE(#{svcDtTp}, 'Y', #{svcDtTp}, 'N'),
+            DECODE(#{dt1Chk}, 'Y', #{dt1Chk}, 'N'),
+            DECODE(#{dt1Chk}, 'Y', #{dt1Tit}, null),
+            DECODE(#{dt1Chk}, 'Y', #{dt1Fmt}, null),
+            DECODE(#{dt1Chk}, 'Y', DECODE(#{dt1Tp}, 'Y', #{dt1Tp}, 'N'), null),
+            DECODE(#{dt2Chk}, 'Y', #{dt2Chk}, 'N'),
+            DECODE(#{dt2Chk}, 'Y', #{dt2Tit}, null),
+            DECODE(#{dt2Chk}, 'Y', #{dt2Fmt}, null),
+            DECODE(#{dt2Chk}, 'Y', DECODE(#{dt2Tp}, 'Y', #{dt2Tp}, 'N'), null),
+            DECODE(#{shftChk}, 'Y', #{shftChk}, 'N'),
+            #{unitTit},
+            #{unitUom},
+            #{unitDec},
+            DECODE(#{unit1Chk}, 'Y', #{unit1Chk}, 'N'),
+            DECODE(#{unit1Chk}, 'Y', #{unit1Tit}, null),
+            DECODE(#{unit1Chk}, 'Y', #{unit1Uom}, null),
+            DECODE(#{unit1Chk}, 'Y', #{unit1Dec}, null),
+            DECODE(#{unit2Chk}, 'Y', #{unit2Chk}, 'N'),
+            DECODE(#{unit2Chk}, 'Y', #{unit2Tit}, null),
+            DECODE(#{unit2Chk}, 'Y', #{unit2Uom}, null),
+            DECODE(#{unit2Chk}, 'Y', #{unit2Dec}, null),
+            #{payTpCd},
+            #{prcTpCd},
+            DECODE(#{locChk}, 'Y', #{locChk}, 'N'),
+            DECODE(#{rmkChk}, 'Y', #{rmkChk}, 'N'),
+            SYSDATE,
+            #{userId},
+            #{newVersion},
+            DECODE(#{cmdtyChk}, 'Y', #{cmdtyChk}, 'N'),
+            #{documentChk},
+            #{documentTp},
+            #{documentNm},
+            #{unitChk}
+       )
+    </insert>
+
+    <update id="updateServiceOrderSettingItem" parameterType="ServiceOrderSettingItem">
+        UPDATE /* serviceOrderSetting.updateServiceOrderSettingItem */
+        TMT_SVC_ODR_CONF SET
+            CATEGORY2 = #{category2},
+            CATEGORY3 = #{category3},
+            SVC_DT_FMT = #{svcDtFmt},
+            SVC_DT_TP = DECODE(#{svcDtTp}, 'Y', #{svcDtTp}, 'N'),
+            DT1_CHK = DECODE(#{dt1Chk}, 'Y', #{dt1Chk}, 'N'),
+            DT1_TIT = DECODE(#{dt1Chk}, 'Y', #{dt1Tit}, null),
+            DT1_FMT = DECODE(#{dt1Chk}, 'Y', #{dt1Fmt}, null),
+            DT1_TP = DECODE(#{dt1Chk}, 'Y', DECODE(#{dt1Tp}, 'Y', #{dt1Tp}, 'N'), null),
+            DT2_CHK = DECODE(#{dt2Chk}, 'Y', #{dt2Chk}, 'N'),
+            DT2_TIT = DECODE(#{dt2Chk}, 'Y', #{dt2Tit}, null),
+            DT2_FMT = DECODE(#{dt2Chk}, 'Y', #{dt2Fmt}, null),
+            DT2_TP = DECODE(#{dt2Chk}, 'Y', DECODE(#{dt2Tp}, 'Y', #{dt2Tp}, 'N'), null),
+            SHFT_CHK = DECODE(#{shftChk}, 'Y', #{shftChk}, 'N'),
+            UNIT_TIT = #{unitTit},
+            UNIT_UOM = #{unitUom},
+            UNIT_DEC = #{unitDec},
+            UNIT1_CHK = DECODE(#{unit1Chk}, 'Y', #{unit1Chk}, 'N'),
+            UNIT1_TIT = DECODE(#{unit1Chk}, 'Y', #{unit1Tit}, null),
+            UNIT1_UOM = DECODE(#{unit1Chk}, 'Y', #{unit1Uom}, null),
+            UNIT1_DEC = DECODE(#{unit1Chk}, 'Y', #{unit1Dec}, null),
+            UNIT2_CHK = DECODE(#{unit2Chk}, 'Y', #{unit2Chk}, 'N'),
+            UNIT2_TIT = DECODE(#{unit2Chk}, 'Y', #{unit2Tit}, null),
+            UNIT2_UOM = DECODE(#{unit2Chk}, 'Y', #{unit2Uom}, null),
+            UNIT2_DEC = DECODE(#{unit2Chk}, 'Y', #{unit2Dec}, null),
+            PAY_TP_CD = #{payTpCd},
+            PRC_TP_CD = #{prcTpCd},
+            LOC_CHK = DECODE(#{locChk}, 'Y', #{locChk}, 'N'),
+            RMK_CHK = DECODE(#{rmkChk}, 'Y', #{rmkChk}, 'N'),
+            CMDTY_CHK = DECODE(#{cmdtyChk}, 'Y', #{cmdtyChk}, 'N'),
+            DOCUMENT_CHK = DECODE(#{documentChk}, 'Y', #{documentChk}, 'N'),
+            DOCUMENT_TYPE = #{documentTp},
+            DOCUMENT_NM = #{documentNm},
+            UNIT_CHK = DECODE(#{unitChk}, 'Y', #{unitChk}, 'N'),
+            UPDATE_TIME = SYSDATE,
+            STAFF_CD = #{userId},
+            VERSION = #{newVersion}
+        WHERE CATEGORY1 = #{category1}
+		AND SEQ = ${seq}
+    </update>
+
+    <delete id="deleteServiceOrderSettingItem" parameterType="ServiceOrderSettingItem">
+        DELETE /* ServiceOrderSetting.deleteServiceOrderSettingItem */
+        FROM TMT_SVC_ODR_CONF
+        WHERE CATEGORY1 = #{category1}
+        AND SEQ = ${seq}
+    </delete>
+</mapper>

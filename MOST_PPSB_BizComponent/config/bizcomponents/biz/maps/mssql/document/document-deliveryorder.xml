@@ -1,0 +1,1560 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace = "deliveryOrder">
+	<resultMap 	id="resultPackageItem" 	type="deliveryOrderItem">
+   		<result property = "callyear"		column = "CALL_YEAR"/>
+   		<result property = "callseq"		column = "CALL_SEQ"/>
+   		<result property = "vslCallId"		column = "VSL_CALL_ID"/>
+   		<result property = "mfdocid"		column = "MF_DOC_ID"/>
+   		<result property = "blno"			column = "REF_NO"/>
+   		<result property = "pkgNo"			column = "PKG_NO"/>
+   		<result property = "pkgDesc"		column = "PKG_DESC"/>
+   		<result property = "pkgMt"			column = "CG_WGT"/>
+   		<result property = "pkgM3"			column = "CG_VOL"/>
+   		<result property = "width" 			column = "WIDTH"/>
+   		<result property = "height"			column = "HEIGHT"/>
+   		<result property = "length"			column = "LENGTH"/>
+   		<result property = "sdono"			column = "SDO_NO"/>
+   		<result property = "isVA"			column = "IS_VA"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultSdoReportItem" 	type="deliveryOrderItem">
+   		<result property = "vslCallId"		column = "VSL_CALL_ID"/>
+   		<result property = "vslNm"			column = "VSL_NM"/>
+   		<result property = "inbVoyage"		column = "INB_VOY"/>
+   		<result property = "mfdocid"		column = "MF_DOC_ID"/>
+   		<result property = "blno"			column = "BL_NO"/>
+   		<result property = "sdono"			column = "SDO_NO"/>
+   		<result property = "validDate"		column = "VALID_DATE"/>
+   		<result property = "shpr"			column = "SHPR"/>
+   		<result property = "shprNm"			column = "SHP_NM"/>
+   		<result property = "shprAddr" 		column = "SHP_ADDR"/>
+   		<result property = "cnsneecd"		column = "CNSNE"/>
+   		<result property = "cnsneenm"		column = "CNSNE_NM"/>
+   		
+   		<result property = "cnsneeaddr1"	column = "CNSNE_ADDR"/>
+   		<result property = "berthLoc"		column = "BERTH_LOC"/>
+   		<result property = "whLoc"			column = "PLAN_LOC_ID"/>
+   		<result property = "cgtpcd"			column = "CG_TP_CD"/>
+   		<result property = "cgTpCdNm"		column = "CG_TP_NM"/>
+   		<result property = "paymentTpNm"	column = "PAYMENT_TYPE"/>
+   		<result property = "cmdtcd"			column = "CMDT_CD"/>
+   		<result property = "cmdtcdnm"		column = "CMDT_NM"/>
+   		<result property = "cmdtGroupCdNm" 	column = "CMDT_GRP_NM"/>
+   		<result property = "podnm"			column = "POD_NM"/>
+   		
+   		<result property = "lotNo"			column = "LOT_NO"/>
+   		<result property = "pkgtpcd"		column = "PKG_TP_CD"/>
+   		<result property = "pkgtpnm"		column = "PKG_TP_NM"/>
+   		<result property = "wgt"			column = "CG_WGT"/>
+   		<result property = "vol"			column = "CG_VOL"/>
+   		<result property = "pkgqty"			column = "PKG_QTY"/>
+   		<result property = "tsptr"			column = "TRANSPORT"/>
+   		<result property = "tsptCompNm"		column = "TRANSPORT_NM"/>
+   		<result property = "lorryNo"		column = "LORRY_NO"/>
+   		<result property = "lorryRegValidDate"		column = "LORRY_REG_VALID_DT"/>
+   		<result property = "chassisNo" 		column = "CHASSIS_NO"/>
+   		<result property = "chassisRegValidDate"	column = "CHASSIS_REG_VALID_DT"/>
+   		<result property = "driverId"		column = "DRIVER_ID"/>
+   		
+   		<result property = "driverNm"		column = "DRIVER_NM"/>
+   		<result property = "delvTpCd"		column = "DELV_TP_CD"/>
+   		<result property = "delvTpNm"		column = "DELV_TP_NM"/>
+   		<result property = "shaCd"			column = "SHA_CD"/>
+   		<result property = "shaNm"			column = "SHA_NM"/>
+   		<result property = "shaAddr"		column = "SHA_ADDR"/>
+   		<result property = "markNo"			column = "MARK_NO"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="dataCheckForIndirectItem" 	type="deliveryOrderItem">
+ 		<result property = "chassisNo" 		column = "CHASSIS_NO"/>
+ 		<result property = "mt" 			column = "MT"/>
+ 		<result property = "m3" 			column = "M3"/>
+ 		<result property = "qty" 			column = "QTY"/>
+ 	</resultMap>
+ 	
+ 	<select id="getWhCheckDataForIndirect" parameterType="deliveryOrderParm" resultMap="dataCheckForIndirectItem">
+		SELECT /*deliveryOrder.getWhCheckDataForIndirect AW*/
+			(ISNULL (CAST (SUM (CG_WGT) AS FLOAT), 0)) 	AS MT,
+	        (ISNULL (CAST (SUM (CG_VOL) AS FLOAT), 0)) 	AS M3,
+	        (ISNULL (CAST (SUM (PKG_QTY) AS INT), 0)) 	AS QTY,
+	        (SELECT
+				STRING_AGG (CHAS_NO, ', ')  WITHIN GROUP (ORDER BY CHAS_NO)
+	        FROM (
+				SELECT DISTINCT
+					CHAS_NO
+	            FROM
+					TMT_JOB
+	            WHERE
+					VSL_CALL_ID 					= JB.VSL_CALL_ID
+	                AND CG_NO 						= JB.CG_NO
+	                AND JOB_PURP_CD 				= 'AW'
+				) AS CHAS_NO
+			) 										AS CHASSIS_NO
+	    FROM
+			TMT_JOB JB
+	    WHERE
+			JB.VSL_CALL_ID 							= #{vslCallId}
+			AND JB.CG_NO 							= #{blno}
+	        AND JB.JOB_PURP_CD 						= 'AW'
+	    GROUP BY
+			JB.VSL_CALL_ID,
+			JB.CG_NO
+ 	</select>
+ 	
+ 	<select id="getApronCheckDataForIndirect" parameterType="deliveryOrderParm" resultMap="dataCheckForIndirectItem">
+		SELECT /*deliveryOrder.getApronCheckDataForIndirect VA*/
+			(ISNULL (CAST (SUM (CG_WGT) AS FLOAT), 0)) 	AS MT,
+	        (ISNULL (CAST (SUM (CG_VOL) AS FLOAT), 0)) 	AS M3,
+	        (ISNULL (CAST (SUM (PKG_QTY) AS INT), 0)) 	AS QTY,
+	        (SELECT
+				STRING_AGG (CHAS_NO, ', ')  WITHIN GROUP (ORDER BY CHAS_NO)
+	        FROM (
+				SELECT DISTINCT
+					CHAS_NO
+	            FROM
+					TMT_JOB
+	            WHERE
+					VSL_CALL_ID 					= JB.VSL_CALL_ID
+	                AND CG_NO 						= JB.CG_NO
+	                AND JOB_PURP_CD 				= 'VA'
+				) AS CHAS_NO
+			) 										AS CHASSIS_NO
+	    FROM
+			TMT_JOB JB
+	    WHERE
+			JB.VSL_CALL_ID 							= #{vslCallId}
+			AND JB.CG_NO 							= #{blno}
+	        AND JB.JOB_PURP_CD 						= 'VA'
+	    GROUP BY
+			JB.VSL_CALL_ID,
+			JB.CG_NO
+ 	</select>
+ 	
+	
+	<sql id="sqlDeliveryOrder">
+			WITH SDO_INFORMATION AS( 
+				SELECT  
+					VSL_CALL_ID,
+					BL_NO,
+					DO_NO,
+					SUM(ISNULL(D_MT,0))  	DMT,
+					SUM(ISNULL(D_M3,0))  	DM3,
+					SUM(ISNULL(D_QTY,0)) 	DQTY,
+					MAX(TSPT_TP_CD)   		TSPT_TP_CD,
+					SUM(ISNULL(I_MT,0))  	IMT,
+					SUM(ISNULL(I_M3,0))  	IM3,
+					SUM(ISNULL(I_QTY,0)) 	IQTY,
+					MAX(I_TSPT_TP_CD) 		I_TSPT_TP_CD
+			  FROM  
+					TMT_DO_DTL
+			  WHERE 1=1
+				 <if test="vslCallId != null and vslCallId != ''">
+					AND VSL_CALL_ID 		= #{vslCallId}
+				</if>
+				<if test="blno != null and blno != ''">
+					AND BL_NO 				= #{blno}
+				</if>
+			        
+			  GROUP BY 
+				VSL_CALL_ID, BL_NO, DO_NO
+			),
+		sqlDeliveryOrder AS (
+			SELECT 	/* sqlDeliveryOrder */
+				SCH.VSL_CALL_ID        												AS VSLCALLID,
+				(SELECT TOP(1) VSL_NM FROM TMT_VSL_PART WHERE VSL_CD = SCH.VSL_CD ) AS VSLNM,
+				SCH.CALL_YEAR      													AS CALLYEAR,
+				SCH.CALL_SEQ       													AS CALLSEQ,
+				SCH.ARRV_SA_ID     													AS ARRVSAID,
+				SCH.DEPR_SA_ID														AS DEPRSAID,
+				ISNULL(DBO.F_GET_PTNR_SNM(SCH.ARRV_SA_ID), ' ') 					AS ARRVSANM,
+				FORMAT(SCH.ETA, 'dd/MM/yy hh:mm')									AS ETA,
+				SCH.INB_VOY        													AS INBVOYAGE,
+				SCH.OUTB_VOY        												AS OUTBVOYAGE,
+				SCH.SHIP_CALL_NO     												AS SCN,
+				(SELECT TOP(1) VSL_FLAG_CD FROM TMT_VSL_PART WHERE VSL_CD = SCH.VSL_CD )  AS FLAGCD,
+				BERTH_LOC          													AS BERTHLOC,
+				BL.VSL_CD          													AS VSLCD,
+				BL.BL_NO           													AS BLNO,
+				BL.MF_DOC_ID		  												AS MFDOCID,
+				BL.PKG_QTY         													AS PKGQTY,
+				CASE 
+					WHEN BL.DOMESTIC_CHK = 'Y' THEN 'Domestic Cargo'
+					ELSE ' '
+				END 																AS DOMESTICCHK,
+				BL.PROJECT_CARGO													AS PROJECTCARGO,
+				FORMAT(DO.UPDATE_TIME, 'dd/MM/yy hh:mm')							AS UPDDTM,
+				BL.PKG_TP_CD														AS PKGTPCD,
+				BL.GDS_RMK              											AS GDSRMK,
+				BL.MARK_NO              											AS MARKNO,
+				DBO.F_CM_CODE_NM('MT', 'PKGTP', BL.PKG_TP_CD) 						AS PKGTPNM,
+				BL.CG_TP_CD        													AS CGTPCD,
+				DBO.F_CM_CODE_NM('MT', 'CGTP', BL.CG_TP_CD) 						AS CGTPCDNM,
+				BL.IMDG_CLASS      													AS IMDGCLASS,
+				BL.UNNO            													AS TFZUNNO,
+				( ISNULL (BL.UNNO, '') +  ' / '  + ISNULL (BL.IMDG_CLASS, ''))  	AS IMDGUNNO,
+				DO.TSPT_COMP           												AS TSPTR ,
+				BL.DELV_TP_CD      													AS DELVTPCD,
+				CASE BL.DELV_TP_CD
+					WHEN 'I' THEN 'Indirect'
+					WHEN 'D' THEN 'Direct'
+					WHEN 'B' THEN 'Both Direct/Indirect'
+					ELSE ''
+				END 																AS DELVTPNM,
+				DO.DO_NO           													AS DONO,
+			
+			 	ISNULL(DO.D_MT, 0) 													AS DMT,
+				ISNULL(DO.D_M3, 0) 													AS DM3,
+				ISNULL(DO.D_QTY, 0) 												AS DQTY,
+				DO.TSPT_TP_CD 														AS TSPTTPCD,
+				ISNULL(DO.I_MT, 0) 													AS IMT,
+				ISNULL(DO.I_M3, 0) 													AS IM3,
+				ISNULL(DO.I_QTY, 0) 												AS IQTY,
+				DO.I_TSPT_TP_CD 													AS ITSPTTPCD,
+				(CASE
+					WHEN (ISNULL(BL.CG_WGT, 0) - ISNULL(SDO.DMT, 0) - ISNULL(SDO.IMT, 0)) <![CDATA[<]]> 0
+							THEN 0
+					ELSE ISNULL(BL.CG_WGT, 0) - ISNULL(SDO.DMT, 0) - ISNULL(SDO.IMT, 0)
+				END)    															AS BALMT,
+				(CASE
+					WHEN (ISNULL(BL.CG_VOL, 0) - ISNULL(SDO.DM3, 0) - ISNULL(SDO.IM3, 0)) <![CDATA[<]]> 0
+						THEN 0
+					ELSE ISNULL(BL.CG_VOL, 0) - ISNULL(SDO.DM3, 0) - ISNULL(SDO.IM3, 0)
+				END)    															AS BALM3,
+				(CASE
+					WHEN (ISNULL(BL.PKG_QTY, 0) - ISNULL(SDO.DQTY, 0) - ISNULL(SDO.IQTY, 0)) <![CDATA[<]]> 0
+						THEN 0
+					ELSE ISNULL(BL.PKG_QTY, 0) - ISNULL(SDO.DQTY, 0) - ISNULL(SDO.IQTY, 0)
+				END) 																AS BALQTY,
+				
+				(SELECT TOP(1) 
+					ENG_SNM 
+				FROM 
+					TMT_AGENCY_INFO 
+				WHERE 
+					AGENCY_CODE = SCH.ARRV_SA_ID  ) SA,
+				(SELECT TOP(1) 
+					ADDR 
+				FROM 
+					TMT_AGENCY_INFO 
+				WHERE 
+					AGENCY_CODE = SCH.ARRV_SA_ID ) SAADDR1,
+			
+				FORMAT(DO.EST_ARRV_DT, 'dd/MM/yyyy HH:mm:ss') 						AS ESTDT,
+				CONVERT(datetime,FORMAT(DO.EST_ARRV_DT, 'dd/MM/yyyy HH:mm:ss'), 103)AS ESTARRVDT,
+				BL.CMDT_CD          												AS CMDTCD,
+				(SELECT CMDT_DESC FROM TMT_CMDT WHERE CMDT_CD = BL.CMDT_CD) 		AS CMDTCDNM,
+				DBO.F_GET_INV_LOC(BL.VSL_CALL_ID, BL.BL_NO) 						AS WHLOC,
+				ISNULL(DO.QTY, 0) 													AS QTY,
+				CASE 
+					WHEN DO.MT = 0 THEN '0'
+					WHEN ROUND(BL.CG_WGT, 0) = 0 THEN '0'+ CONVERT(VARCHAR, DO.MT)
+					ELSE CONVERT(VARCHAR, DO.MT)
+				END 																AS MT,
+				CASE 
+					WHEN DO.M3 = 0 THEN '0'
+					WHEN ROUND(BL.CG_VOL, 0) = 0 THEN '0'+ CONVERT(VARCHAR, DO.M3)
+					ELSE CONVERT(VARCHAR, DO.M3)
+				END 																AS M3,
+				'TNE'              													AS WGTUNIT,
+				CASE 
+					WHEN BL.CG_WGT = 0 THEN '0'
+					WHEN ROUND(BL.CG_WGT, 0) = 0 THEN '0'+ CONVERT(VARCHAR, BL.CG_WGT)
+					ELSE CONVERT(VARCHAR, BL.CG_WGT)
+				END 																AS WGT,
+				CASE 
+					WHEN BL.CG_VOL = 0 THEN '0'
+					WHEN ROUND(BL.CG_VOL, 0) = 0 THEN '0'+ CONVERT(VARCHAR, BL.CG_VOL)
+					ELSE CONVERT(VARCHAR, BL.CG_VOL)
+				END 																AS VOL,
+				BL.HS_CODE         													AS HSCD,
+				BL.POL             													AS POL,
+				BL.POD             													AS POD,
+				BL.FND																AS dofnlportcd,
+				BL.STAFF_CD     													AS UPDUSERID,
+				(SELECT PORT_NM FROM TMT_PORT_MST WHERE BL.POL = (CNTRY_CD + PORT_CD)) 		AS polNm,
+				(SELECT PORT_NM FROM TMT_PORT_MST WHERE BL.POD = (CNTRY_CD + PORT_CD)) 		AS podNm,
+				(SELECT PORT_NM FROM TMT_PORT_MST WHERE BL.FND = (CNTRY_CD + PORT_CD)) 		AS dofnlportcdnm,
+				<if test='authority == "FWD"'>
+					ISNULL(BL.FWRD, ' ')               								AS PTNRCD,
+				</if>
+				<if test='authority == "CNS"'>
+					ISNULL(BL.CNSNE, ' ')											AS PTNRCD,
+				</if>
+				ISNULL(DBO.F_GET_PTNR_SNM(BL.FWRD), ' ') 							AS PTNRNM,
+				BL.EACH_WGT 														AS EACHWGT,
+				         BL.EACH_VOL 												AS EACHVOL,
+				         DO.ADDITIONAL_CHK											AS ADDITIONALCHK,
+				         BL.SHPR													AS SHPR,
+				         (SELECT TOP(1) ENG_SNM FROM TMT_PTNR where BL.SHPR = PTNR_CODE ) 	AS SHPRNM,
+				(SELECT TOP(1) 
+					ADDR 
+				FROM 
+					TMT_PTNR 
+				where 
+					BL.SHPR = PTNR_CODE ) 											AS SHPRADDR1,
+				         BL.CNSNE 													AS CNSNEECD,
+				(SELECT TOP(1) 
+					ENG_SNM 
+				FROM 
+					TMT_PTNR 
+				where 
+					BL.CNSNE = PTNR_CODE ) 											AS CNSNEENM,
+				(SELECT TOP(1) 
+					ADDR 
+				FROM 
+					TMT_PTNR 
+				where 
+					BL.CNSNE = PTNR_CODE ) 											AS CNSNEEADDR1,
+				CASE 
+					WHEN (
+						SELECT 
+							COUNT(CG.GATE_PASS_NO) 
+						FROM 
+							TMT_CG_ARRV_DELV CG 
+						WHERE 
+							CG.GATE_PASS_NO IS NOT NULL AND CG.GATE_PASS_NO <![CDATA[<>]]>'' 
+							AND CG.CG_NO = BL.BL_NO 
+							AND CG.VSL_CALL_ID = SCH.VSL_CALL_ID
+					) = 0 THEN 'N'
+					ELSE 'Y'
+				END 																AS GPYN,
+				CASE 
+		         	WHEN BL.WGT_CHK != DO.WGT_CHK THEN DO.WGT_CHK
+					ELSE BL.WGT_CHK 
+				END 																AS WGTCHK,
+				BL.CMDT_GRP_CD 														AS cmdtGroupCd,
+				(SELECT TOP(1) 
+					CMDT.CMDT_GRP_DESC 
+				FROM 
+					TMT_CMDT_GRP CMDT 
+				WHERE 
+					CMDT.CMDT_GRP_CD = BL.CMDT_GRP_CD 
+				) 																	AS cmdtGroupCdNm,
+				DO.RMK 																AS RMK,
+				<!-- DO.FZ_PKG_TP_CD												AS fzippkgtpcd,
+				DO.NIL_MARKS														AS nilmarks, -->
+				DO.D_MT 															AS doDMt,
+				DO.D_M3 															AS doDM3,
+				DO.D_QTY															AS doDQty,
+				ISNULL(DO.I_MT, 0)  												AS doIMt,
+				ISNULL(DO.I_M3, 0)  												AS doIM3,
+				ISNULL(DO.I_QTY, 0) 												AS doIQty,
+				ISNULL(DO.D_LR_MT, 0) 												AS doDLrMt,
+				ISNULL(DO.D_LR_M3, 0) 												AS doDLrM3,
+				ISNULL(DO.D_LR_QTY, 0) 												AS doDLrQty,
+				ISNULL(DO.D_VSL_MT, 0)												AS doDVslMt,
+				ISNULL(DO.D_VSL_M3, 0)												AS doDVslM3,
+				ISNULL(DO.D_VSL_QTY, 0)												AS doDVslQty,
+				ISNULL(DO.I_LR_MT, 0) 												AS doILrMt,
+				ISNULL(DO.I_LR_M3, 0)												AS doILrM3,
+				ISNULL(DO.I_LR_QTY, 0)												AS doILrQty,
+				ISNULL(DO.D_MT, 0) 												AS DMTCHK,
+				ISNULL(DO.I_MT, 0)												AS IMTCHK,
+				ISNULL(DO.D_WAGON_MT, 0) 											AS dwagonmt,
+				ISNULL(DO.I_WAGON_MT, 0)											AS iwagonmt,
+				ISNULL(DO.D_CONVEYOR_MT, 0) 											AS dcnvymt,
+				ISNULL(DO.I_CONVEYOR_MT, 0)											AS icnvymt
+			FROM	
+				TMT_BL 																BL 
+			LEFT OUTER JOIN 
+				TMT_DO 																DO 
+			ON 
+				BL.VSL_CALL_ID 														= DO.VSL_CALL_ID 
+				AND BL.BL_NO 														= DO.BL_NO
+			LEFT OUTER JOIN 
+				SDO_INFORMATION 													SDO 
+			ON 
+				BL.VSL_CALL_ID 														= SDO.VSL_CALL_ID 
+				AND BL.BL_NO 														= SDO.BL_NO 
+				AND DO.DO_NO 														= SDO.DO_NO
+			LEFT OUTER JOIN 
+				TMT_VSL_SCH 														SCH 
+			ON 
+				BL.VSL_CALL_ID 														= SCH.VSL_CALL_ID
+			WHERE 	
+				BL.STAT_CD 															= 'AP'
+				AND (BL.WGT_CHK = 'N'
+					OR (
+						BL.WGT_CHK = 'Y' 
+						AND BL.CG_TP_CD IN ('LQD', 'LQE', 'LQN')))
+				<!-- 				
+				AND BL.CATG_CD 														IN ('I','T') 
+				-->
+				<if test="fwrd != null and fwrd != ''">
+				    AND BL.FWRD 													= #{fwrd}
+				</if>
+		        <if test="vslCallId != null and vslCallId != ''">
+					AND SCH.VSL_CALL_ID 											= #{vslCallId}
+				</if>
+				<if test="mfdocid != null and mfdocid != ''">
+					AND BL.MF_DOC_ID 												LIKE '%' + #{mfdocid} + '%'
+				</if>
+				<if test="vslCallId == null or vslCallId == ''">
+					<if test="etaFrom != null and etaFrom != ''">
+						AND	SCH.ETA BETWEEN CONVERT(date, #{etaFrom},103) AND CONVERT(date, #{etaTo},103)
+					</if>
+				</if>
+				<if test="blno != null">
+					<if test="blno != null and blno != ''">
+		   				AND
+						<if test='searchType == "detail"'>
+							BL.BL_NO 												= #{blno}
+						</if>
+						<if test='searchType != "detail"'>
+						    BL.BL_NO 												LIKE #{blno} + '%' 
+						</if>
+					</if>
+				</if>
+			)
+	</sql>
+	
+	<select id="selectDeliveryOrder" parameterType="deliveryOrderParm" resultType="deliveryOrderItem">
+	 	<include refid="getDeliveryOrder"/>
+	 	<choose>
+	 	
+		 	<when test="pageNo != 0"> 
+	            SELECT /*deliveryOrder.selectDeliveryOrder*/
+	             	* 
+				FROM 
+					(SELECT 
+						inner_querry.*, ROW_NUMBER() OVER(ORDER BY UPDDTM DESC) row_num 
+					FROM  
+						getDeliveryOrder AS inner_querry
+					)inner_querry 
+					WHERE 
+						inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+						AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+			</when>
+					
+			<otherwise> 
+				SELECT /*deliveryOrder.selectDeliveryOrder*/
+	             	* 
+				FROM 
+					getDeliveryOrder AS getDeliveryOrder
+				ORDER BY 
+					UPDDTM DESC
+			</otherwise>
+		</choose>
+	</select>
+	 
+	<select id="selectDeliveryOrderCount" parameterType="deliveryOrderParm" resultType="java.lang.String">
+		<include refid="getDeliveryOrder"/>
+		
+		SELECT 
+			COUNT(*) /*deliveryOrder.selectDeliveryOrderCount*/
+		FROM 
+			getDeliveryOrder AS getDeliveryOrder
+	</select>
+	 
+	<sql id="getDeliveryOrder">
+		<include refid="sqlDeliveryOrder"/>
+		
+ 		, getDeliveryOrder AS (
+		SELECT /*deliveryOrder.getDeliveryOrder*/
+			A.*
+		FROM 
+			sqlDeliveryOrder AS A
+		WHERE 1=1
+		<if test='authority == "FWD" or authority == "CNS"'>
+			AND A.BLNO IS NOT NULL AND A.BLNO <![CDATA[<>]]>'' 
+  			AND A.PTNRCD = #{ptnrcd}
+		</if>
+		<if test='authority == "SHA"'>
+  				AND ( A.ARRVSAID = #{ptnrcd}  
+  					OR A.DEPRSAID = #{ptnrcd})
+		</if>
+		<if test='authority == "BH"'>
+		</if>
+		
+	)
+	</sql>
+
+	<sql id="getSubDeliveryOrder">
+		SELECT DISTINCT /* getSubDeliveryOrder */
+			SDO.VSL_CD 																AS VSLCD, 
+			SDO.CALL_SEQ 															AS CALLSEQ, 
+			SDO.CALL_YEAR 															AS CALLYEAR, 
+			SDO.VSL_CALL_ID 														AS VSLCALLID, 
+			SDO.MF_DOC_ID 															AS MFDOCID,
+			SDO.BL_NO 																AS BLNO, 
+			SDO.DO_NO 																AS DONO, 
+			SDO.SDO_NO 																AS SDONO, 
+			SDO.SDO_MARK 															AS SDOMARK, 
+			SDO.CNSNE 																AS CNSNE,
+			(SELECT TOP(1)
+		 		CG_TP_CD 
+	 		FROM 
+	 			TMT_BL B 
+ 			where
+ 			 	B.BL_NO 			= SDO.BL_NO 
+ 			 	AND B.VSL_CALL_ID 	= DO.VSL_CALL_ID )  							AS CGTPCD,
+			ISNULL(SDO.TSPT_COMP, DO.TSPT_COMP) 									AS TSPTR, 
+			CONVERT(datetime,FORMAT(SDO.EST_ARRV_DT, 'dd/MM/yyyy HH:mm:ss'), 103) 	AS ESTARRVDT,
+			FORMAT(SDO.VALID_DATE, 'dd/MM/yyyy hh:mm') 								AS VALIDDATE,
+			SDO.D_MT 																AS DMT, 
+			SDO.D_M3 																AS DM3, 
+			SDO.D_QTY 																AS DQTY, 
+			SDO.I_MT 																AS IMT, 
+			SDO.I_M3 																AS IM3, 
+			SDO.I_QTY 																AS IQTY, 
+			DO.ADDITIONAL_CHK 														AS ADDITIONAL_CHK,
+			SDO.TSPT_TP_CD 															AS TSPTTPCD, 
+			SDO.I_TSPT_TP_CD 														AS ITSPTTPCD,
+			CASE 
+				WHEN SDO.DELV_TP_CD = 'I' THEN SDO.I_TSPT_TP_CD
+				ELSE SDO.TSPT_TP_CD
+			END 																	AS BTSPTTPCDNM,
+			SDO.DELV_TP_CD      													AS DELVTPCD,
+		 	(SELECT 
+				COUNT(1) 
+			FROM 
+				TMT_PKG_INFO P 
+			WHERE 
+				P.SDO_NO = SDO.SDO_NO) 												AS PKGQTY,
+		 	SDO.RMK 																AS SDORMK,
+		 	SDO.WGT_CHK 															AS sdoWgtChk,
+		 	SDO.ADDITIONAL_CHK 														AS SDOADDITIONALCHK,
+		 	DO.D_MT 																AS doDMt,
+			DO.D_M3 																AS doDM3,
+			DO.D_QTY																AS doDQty,
+			DO.I_MT 																AS doIMt,
+			DO.I_M3 																AS doIM3,
+			DO.I_QTY																AS doIQty,
+			ISNULL(DO.D_LR_MT, 0) 													AS doDLrMt,
+			ISNULL(DO.D_LR_M3, 0)  													AS doDLrM3,
+			ISNULL(DO.D_LR_QTY, 0) 													AS doDLrQty,
+			ISNULL(DO.D_VSL_MT, 0) 													AS doDVslMt,
+			ISNULL(DO.D_VSL_M3, 0) 													AS doDVslM3,
+			ISNULL(DO.D_VSL_QTY, 0) 												AS doDVslQty,
+			ISNULL(DO.I_LR_MT, 0) 													AS doILrMt,
+			ISNULL(DO.I_LR_M3, 0) 													AS doILrM3,
+			ISNULL(DO.I_LR_QTY, 0) 													AS doILrQty,
+			CASE
+				WHEN ISNULL(SDO.TSPT_TP_CD, SDO.I_TSPT_TP_CD) <![CDATA[ <> ]]> 'SE' THEN
+											  	CASE
+										            WHEN CG.GATE_IN_DT IS NOT NULL AND CG.GATE_IN_DT <![CDATA[<>]]>''
+										            THEN 'Y'
+										            ELSE 'N'
+										        END
+				ELSE ''
+            END 																	AS delivered,
+            SDO.PKG_TP_CD 															AS PKGTPCD,
+            DBO.F_CM_CODE_NM('MT', 'PKGTP', SDO.PKG_TP_CD) 							AS PKGTPNM
+		FROM 
+			TMT_DO_DTL SDO
+		INNER JOIN 
+			TMT_DO DO
+		ON  
+			SDO.VSL_CALL_ID 	= DO.VSL_CALL_ID
+			AND SDO.MF_DOC_ID 	= DO.MF_DOC_ID
+			AND SDO.BL_NO 		= DO.BL_NO
+			AND SDO.DO_NO 		= DO.DO_NO
+		LEFT OUTER JOIN 
+			TMT_CG_ARRV_DELV CG
+		ON 
+			CG.VSL_CALL_ID 		= SDO.VSL_CALL_ID 
+			AND CG.SDO_NO 		= SDO.SDO_NO
+		WHERE 
+			SDO.VSL_CALL_ID 	= #{vslCallId}
+			AND SDO.BL_NO 		= #{blno}
+		<if test="sdono != null and sdono != ''">
+			AND SDO.SDO_NO 		= #{sdono}
+		</if>
+	</sql>
+	
+	<select id="selectSubDeliveryOrder" parameterType="deliveryOrderParm" resultType="deliveryOrderItem">
+	 	<if test="pageNo != 0"> 
+             SELECT /*deliveryOrder.selectSubDeliveryOrder*/
+             	* FROM 
+					(SELECT 
+						inner_querry.*, ROW_NUMBER() OVER(ORDER BY(SELECT NULL)) row_num 
+					FROM ( 
+		</if>
+				<include refid="getSubDeliveryOrder"/>
+		<if test="pageNo != 0"> 
+				)inner_querry 
+			)inner_querry 
+			WHERE 
+				inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	 
+	<select id="selectSubDeliveryOrderCount" parameterType="deliveryOrderParm" resultType="java.lang.String">
+		SELECT  /*deliveryOrder.selectSubDeliveryOrderCount*/
+			COUNT(*)
+		FROM 
+			(<include refid="getSubDeliveryOrder"/>) AS getSubDeliveryOrder
+	</select>
+
+	<select id="selectDeliveryOrderList" parameterType="deliveryOrderParm" resultType="deliveryOrderItem">
+		<include refid="sqlDeliveryOrder"/>
+		
+		SELECT /*deliveryOrder.selectDeliveryOrderList*/
+			A.*,
+			(SELECT TOP(1) 
+				CNTRY_NM 
+			FROM 
+				TMT_CNTRY_MST CM 
+			WHERE 
+				CM.CNTRY_CD = SUBSTRING (A.POL, 1, 2) ) ORGCNTY,
+			(SELECT TOP(1) 
+				CNTRY_NM 
+			FROM 
+				TMT_CNTRY_MST CM 
+			WHERE 
+				CM.CNTRY_CD = SUBSTRING (A.POD, 1, 2) ) DISCNTY
+		FROM 
+			sqlDeliveryOrder AS A
+		WHERE 1=1
+		<if test="delvtpcd != null and delvtpcd != ''">
+			AND A.DELVTPCD = #{delvtpcd}
+		</if>
+		<choose>
+			<when test="authority == 'FWD' or authority == 'CNS'">
+				AND A.BLNO IS NOT NULL AND A.BLNO <![CDATA[<>]]>'' 
+				AND A.PTNRCD = #{ptnrcd}
+			</when>
+			<when test="authority == 'SHA'">
+				AND (A.ARRVSAID = #{ptnrcd}  
+				OR A.DEPRSAID = #{ptnrcd})
+			</when>
+			<when test="authority == 'BH'">
+				AND ((A.ARRVSAID = #{ptnrcd} 
+				OR A.DEPRSAID = #{ptnrcd}) 
+				OR A.PTNRCD = #{ptnrcd})
+			</when>
+		</choose>
+		 ORDER BY 
+			A.VSLCALLID
+	</select>
+	
+	<select id="selectCargoMasterList" parameterType="cargoMasterParm" resultType="cargoMasterItem">
+		SELECT /*deliveryOrder.selectCargoMasterList*/
+			VSL_CALL_ID          VSLCALLID,
+			CG_NO                CGNO,
+			STAT_CD              STATCD
+		FROM 
+			TMT_CG_MST 
+		WHERE 
+			VSL_CALL_ID			= #{vslCallId}
+		<if test="shipgNoteNo != null and shipgNoteNo != ''">
+  			AND SHIPG_NOTE_NO	= #{shipgNoteNo}
+		</if>
+		<if test="blNo != null and blNo != ''">
+ 			AND BL_NO			= #{blNo}
+ 			AND STAT_CD IN ('OV', 'DV')
+		</if>
+	</select>
+	
+	<select id="subDoNoDuplicateChk" parameterType="deliveryOrderParm" resultType="deliveryOrderItem">
+		SELECT /*deliveryOrder.subDoNoDuplicateChk*/
+			SDO_NO 				AS SDONO 
+		FROM 
+			TMT_DO_DTL
+		WHERE 
+			MF_DOC_ID 			= #{mfdocid}
+			AND BL_NO 			= #{blno}
+			AND DO_NO 			= #{dono}
+			AND SDO_NO 			= #{sdono}
+	</select>
+	
+	<select id="selectSubDoNoItems" parameterType="deliveryOrderParm" resultType="deliveryOrderItem">
+		SELECT /*deliveryOrder.selectSubDoNoItems*/
+			#{dono} +'_'+ RIGHT('00000' + CAST(ISNULL(MAX(CAST(SUBSTRING(SDO_NO, LEN(SDO_NO) - 4, 5) AS INT)), 0) + 1 AS NVARCHAR(5)), 5) AS SDONO
+		FROM 
+			TMT_DO_DTL 
+		WHERE 
+			SDO_NO LIKE #{dono} +'_'+ '%'
+    </select>
+    
+    <select id="selectPackageItems" parameterType="deliveryOrderParm" resultMap="resultPackageItem">
+    	WITH PKG_NO_VA_JOB AS (
+    		SELECT 
+				PJ.VSL_CALL_ID,
+				PJ.MF_DOC_ID,
+				PJ.REF_NO,
+				PJ.PKG_NO
+    		FROM 
+				TMT_PKG_JOB PJ 
+			INNER JOIN 
+				TMT_JOB J 
+			ON 
+				PJ.VSL_CALL_ID 		= J.VSL_CALL_ID 
+				AND PJ.REF_NO 		= J.CG_NO 
+				AND PJ.JOB_NO 		= J.JOB_NO
+    		WHERE 
+				J.JOB_PURP_CD 		= 'VA' 
+				AND PJ.VSL_CALL_ID	= #{vslCallId} 
+				AND PJ.MF_DOC_ID 	= #{mfdocid} 
+				AND PJ.REF_NO 		= #{blno}
+    	)
+		SELECT 	/*deliveryOrder.selectPackageItems*/
+			PI.CALL_YEAR, 
+			PI.CALL_SEQ, 
+			PI.VSL_CALL_ID, 
+			PI.PKG_NO, 
+			PI.PKG_DESC, 
+			PI.CG_WGT, 
+			PI.CG_VOL, 
+			PI.WIDTH, 
+			PI.LENGTH, 
+			PI.HEIGHT,
+			PI.SDO_NO,
+			CASE WHEN PVA.PKG_NO IS NULL OR PVA.PKG_NO ='' THEN 'N' ELSE 'Y' END AS IS_VA
+		FROM 	
+			TMT_PKG_INFO PI 
+		LEFT OUTER JOIN 
+			PKG_NO_VA_JOB PVA 
+		ON 
+			PVA.VSL_CALL_ID 		= PI.VSL_CALL_ID 
+			AND PVA.MF_DOC_ID 		= PI.MF_DOC_ID
+			AND PVA.REF_NO 			= PI.REF_NO
+			AND PVA.PKG_NO 			= PI.PKG_NO
+		WHERE 	
+			PI.VSL_CALL_ID			= #{vslCallId}
+			AND PI.MF_DOC_ID 		= #{mfdocid}
+			AND PI.REF_NO 			= #{blno}
+		ORDER BY 
+			PI.SDO_NO ASC
+<!-- 				<choose>
+					<when test = "searchType == 'SDO'">
+						<if test="delvtpcd == null or delvtpcd == '' or delvtpcd eq 'I'.toString()">
+							<if test="sdono != null and sdono != ''">
+								AND (PI.SDO_NO = #{sdono} OR PI.SDO_NO IS NULL)
+							</if>
+							<if test="sdono == null or sdono == ''">
+								AND PI.SDO_NO IS NULL
+							</if>
+						</if>
+						<if test="delvtpcd eq 'D'.toString()">
+							<if test="sdono != null and sdono != ''">
+								AND (PI.SDO_NO = #{sdono} OR PI.SDO_NO IS NULL) AND PVA.PKG_NO IS NULL
+							</if>
+							<if test="sdono == null or sdono == ''">
+								AND PI.SDO_NO IS NULL AND PVA.PKG_NO IS NULL
+							</if>
+						</if>
+					</when>
+					<otherwise>
+						
+					</otherwise>
+				</choose> -->
+	</select>
+	
+	<select id="selectDeliveryOrderWgtCheck" parameterType="deliveryOrderParm" resultType="deliveryOrderItem">
+		SELECT /*deliveryOrder.selectDeliveryOrderWgtCheck*/
+			D_MT 			AS DMT, 
+			D_M3 			AS DM3, 
+			D_QTY 			AS DQTY,
+			I_MT 			AS IMT, 
+			I_M3 			AS IM3, 
+			I_QTY 			AS IQTY
+		FROM 
+			TMT_DO_DTL
+		WHERE 
+			VSL_CALL_ID		= #{vslCallId}
+			AND MF_DOC_ID 	= #{mfdocid}
+			AND BL_NO 		= #{blno}
+			AND DO_NO 		= #{dono}
+	</select>
+	
+	<select id="selectSubDeliveryOrderReport" parameterType="deliveryOrderParm" resultMap="resultSdoReportItem">
+		<include refid="getSubDeliveryOrderReport"/>
+		
+		SELECT TOP(1) /*deliveryOrder.selectSubDeliveryOrderReport*/
+			*
+		FROM 
+			getSubDeliveryOrderReport AS getSubDeliveryOrderReport
+	</select>
+	<sql id="getSubDeliveryOrderReport">
+	WITH WH_PLAN AS (
+            SELECT DISTINCT
+				VSL_CALL_ID,
+				BL_NO,
+				PLAN_LOC_ID
+            FROM    
+				TMT_SPC_REQ
+            WHERE   
+				VSL_CALL_ID 	= #{vslCallId}
+				AND BL_NO 		= #{blno}
+				AND STAT_CD 	= 'CNF'
+        ),
+		DIRECT AS (
+			SELECT 
+				J.VSL_CALL_ID, J.CG_NO, ISNULL(SUM(J.CG_WGT),0) AS CGWGT
+            FROM 
+				TMT_JOB J 
+            INNER 
+				JOIN TMT_BL B 
+			ON 
+				J.VSL_CALL_ID = B.VSL_CALL_ID 
+				AND J.CG_NO = B.BL_NO 
+            WHERE 
+				J.JOB_PURP_CD 		= 'VG' 
+				AND J.VSL_CALL_ID 	= #{vslCallId} 
+				AND J.CG_NO 		= #{blno}
+            GROUP BY 
+				J.VSL_CALL_ID, J.CG_NO
+		),
+            
+		INDIRECT AS (
+			SELECT 
+				J.VSL_CALL_ID, J.CG_NO, ISNULL(SUM(J.CG_WGT),0) AS CGWGT
+            FROM 
+				TMT_INV_LOC J 
+            INNER JOIN 
+				TMT_BL B 
+			ON 
+				J.VSL_CALL_ID 	= B.VSL_CALL_ID 
+				AND J.CG_NO 	= B.BL_NO 
+            WHERE 
+				J.VSL_CALL_ID 	= #{vslCallId} AND J.CG_NO = #{blno}
+            GROUP BY 
+				J.VSL_CALL_ID, J.CG_NO
+		),
+		
+      	getSubDeliveryOrderReport AS (
+	        SELECT  /*deliveryOrder.getSubDeliveryOrderReport*/
+				D.VSL_CALL_ID,
+				P.VSL_NM,
+				V.INB_VOY,
+				B.MF_DOC_ID,
+				B.BL_NO,
+				D.SDO_NO,
+				FORMAT(D.VALID_DATE, 'dd/MM/yyyy hh:mm') 																	AS VALID_DATE,
+				V.ARRV_SA_ID 																								AS SHA_CD,
+				DBO.F_GET_PARTNER_INFO (V.ARRV_SA_ID, 'ENG_SNM') 															AS SHA_NM,
+				DBO.F_GET_PARTNER_INFO (V.ARRV_SA_ID, 'ADDR') 																AS SHA_ADDR,
+				B.SHPR,
+				DBO.F_GET_PARTNER_INFO (B.SHPR, 'ENG_SNM') 																	AS SHP_NM,
+				DBO.F_GET_PARTNER_INFO (B.SHPR, 'ADDR') 																	AS SHP_ADDR,
+				B.CNSNE,
+				DBO.F_GET_PARTNER_INFO (B.CNSNE, 'ENG_SNM') 																AS CNSNE_NM,
+				DBO.F_GET_PARTNER_INFO (B.CNSNE, 'ADDR') 																	AS CNSNE_ADDR,
+				V.BERTH_LOC,
+				(SELECT 
+					STRING_AGG(W.PLAN_LOC_ID, ', ') WITHIN GROUP (ORDER BY W.PLAN_LOC_ID) 
+				FROM 
+					WH_PLAN W) 																								AS PLAN_LOC_ID,
+				B.CG_TP_CD,
+				DBO.F_CM_CODE_NM('MT', 'CGTP', B.CG_TP_CD) 																	AS CG_TP_NM,
+				DBO.F_GET_PARTNER_INFO (B.CNSNE, 'PAYMENT_TYPE') 															AS PAYMENT_TYPE,
+				B.CMDT_CD,
+				(SELECT TOP(1) 
+					CMDT_DESC
+			 	FROM 
+			 		TMT_CMDT 
+		 		WHERE 
+		 			CMDT_CD = B.CMDT_CD ) 																					AS CMDT_NM,
+				B.CMDT_GRP_CD,
+				(SELECT TOP(1) 
+					CMDT_GRP_DESC 
+				FROM 
+					TMT_CMDT_GRP 
+				WHERE 
+					CMDT_GRP_CD = B.CMDT_GRP_CD ) 																			AS CMDT_GRP_NM,
+				B.POD,
+				DBO.F_CM_CODE_NM ('MT', 'PORT', B.POD) 																		AS POD_NM,
+				B.LOT_NO,
+				ISNULL(D.PKG_TP_CD, B.PKG_TP_CD) 																			AS PKG_TP_CD,
+				DBO.F_CM_CODE_NM('MT', 'PKGTP', ISNULL(D.PKG_TP_CD, B.PKG_TP_CD)) 											AS PKG_TP_NM,
+				FORMAT(ISNULL(D.D_MT, 0) + ISNULL(D.I_MT, 0), '0.000') 														AS CG_WGT,
+				FORMAT(ISNULL(D.D_M3, 0) + ISNULL(D.I_M3, 0), '0.000') 														AS CG_VOL,
+				FORMAT(ISNULL(D.D_QTY, 0) + ISNULL(D.I_QTY, 0), '0.000') 													AS PKG_QTY,
+				(SELECT TOP(1) PTNR_CD FROM TMT_TRUCK_MST WHERE LORRY_NO = A.LORRY_NO ) 									AS TRANSPORT,
+				DBO.F_GET_PARTNER_INFO ((SELECT TOP(1) PTNR_CD FROM TMT_TRUCK_MST WHERE LORRY_NO = A.LORRY_NO ), 'ENG_SNM') AS TRANSPORT_NM,
+				A.LORRY_NO,
+				(SELECT TOP(1) 
+					FORMAT(MEASURE_DT, 'dd/MM/yyyy') 
+				FROM 
+					TMT_TRUCK_MST 
+				WHERE 
+					LORRY_NO = A.LORRY_NO) 																					AS LORRY_REG_VALID_DT,
+				A.CHASSIS_NO,
+				(SELECT TOP(1) 
+					FORMAT(MEASURE_DT, 'dd/MM/yyyy') 
+				FROM 
+					TMT_CHASSIS_MST 
+				WHERE 
+					PLATE_NO = A.CHASSIS_NO ) 																				AS CHASSIS_REG_VALID_DT,
+				A.DRIVER_ID,
+				(SELECT TOP(1) 
+					DRIVER_NM 
+				FROM 
+					TMT_DRIVER_MST 
+				WHERE DRIVER_ID = A.DRIVER_ID ) 																			AS DRIVER_NM,
+				D.DELV_TP_CD,
+				DBO.F_CM_CODE_NM('MT', 'DELVTP', D.DELV_TP_CD) 																AS DELV_TP_NM,
+				D.RMK 																										AS SDORMK,
+				FORMAT((ISNULL(CASE 
+					WHEN D.DELV_TP_CD = 'D' AND D.TSPT_TP_CD = 'LR' THEN (SELECT TOP(1) 
+																			ISNULL(D_LR_MT, 0) 
+																		FROM 
+																			TMT_DO 
+																		WHERE 
+																			VSL_CALL_ID = D.VSL_CALL_ID 
+																			AND DO_NO = D.DO_NO )
+					WHEN D.DELV_TP_CD = 'D' AND D.TSPT_TP_CD = 'SE' THEN (SELECT TOP(1) 
+																			ISNULL(D_VSL_MT, 0) 
+																		FROM 
+																			TMT_DO 
+																		WHERE 
+																			VSL_CALL_ID = D.VSL_CALL_ID 
+																			AND DO_NO = D.DO_NO )
+					WHEN D.DELV_TP_CD = 'I' THEN (SELECT 
+													SUM(AA.MT) 
+												FROM (SELECT  DISTINCT 
+														ISNULL(JOB1.CG_WGT, 0) MT, 
+														SDO1.DO_NO DONO, 
+														SDO1.BL_NO BLNO, 
+														SDO1.VSL_CALL_ID VSLCALLID, 
+														JOB1.JOB_NO JOBNO
+													FROM 
+														TMT_JOB JOB1 
+													INNER JOIN 
+														TMT_DO_DTL SDO1 
+													ON 
+														JOB1.VSL_CALL_ID 		= SDO1.VSL_CALL_ID 
+														AND JOB1.CG_NO 			= SDO1.BL_NO
+													WHERE 
+														JOB1.JOB_TP_CD		 	= 'DS'
+														AND JOB1.JOB_PURP_CD 	= 'AW'
+														AND JOB1.DELV_TP_CD 	= 'I'
+														AND SDO1.DO_NO 			= D.DO_NO) AA)
+					ELSE 0
+				END, 0) - 
+				ISNULL(CASE
+					WHEN D.DELV_TP_CD = 'D' AND D.TSPT_TP_CD = 'LR' THEN (SELECT 
+																			SUM(AA.MT) 
+																		  FROM 
+																			(SELECT  DISTINCT 
+																				ISNULL(JOB1.CG_WGT, 0) MT, 
+																				JOB1.SDO_NO SDONO, 
+																				DIRECTLR.DO_NO DONO, 
+																				DIRECTLR.BL_NO BLNO, 
+																				DIRECTLR.VSL_CALL_ID VSLCALLID, 
+																				DIRECTLR.TSPT_TP_CD TSPT, 
+																				JOB1.JOB_NO JOBNO
+																		  FROM 
+																			TMT_JOB JOB1 
+																		  INNER JOIN 
+																			(SELECT 
+																				BB.SDO_NO, 
+																				BB.VSL_CALL_ID, 
+																				BB.BL_NO, BB.DO_NO, 
+																				BB.TSPT_TP_CD 
+																			FROM 
+																				TMT_DO_DTL BB 
+																			WHERE 
+																				BB.DELV_TP_CD = 'D' AND BB.TSPT_TP_CD = 'LR') DIRECTLR 
+																		  ON 
+																			JOB1.VSL_CALL_ID 	= DIRECTLR.VSL_CALL_ID 
+																			AND JOB1.CG_NO 		= DIRECTLR.BL_NO 
+																		  WHERE 
+																			JOB1.JOB_TP_CD 			= 'DS'
+																			AND JOB1.JOB_PURP_CD 	= 'VG'
+																			AND JOB1.DELV_TP_CD 	= 'D'
+																			AND JOB1.CG_NO 			= D.BL_NO
+																			AND DIRECTLR.DO_NO 		= D.DO_NO
+																			AND JOB1.SDO_NO IN (DIRECTLR.SDO_NO)) AA)
+					WHEN D.DELV_TP_CD = 'D' AND D.TSPT_TP_CD = 'SE' THEN (SELECT 
+																			SUM(AA.MT) 
+																		FROM (SELECT  DISTINCT 
+																				ISNULL(JOB1.CG_WGT, 0) MT, 
+																				JOB1.SDO_NO SDONO, 
+																				DIRECTVSL.DO_NO DONO, 
+																				DIRECTVSL.BL_NO BLNO, 
+																				DIRECTVSL.VSL_CALL_ID VSLCALLID, 
+																				DIRECTVSL.TSPT_TP_CD TSPT, 
+																				JOB1.JOB_NO JOBNO
+																			FROM 
+																				TMT_JOB JOB1 
+																			INNER JOIN 
+																				(SELECT 
+																					BB.SDO_NO, 
+																					BB.VSL_CALL_ID, 
+																					BB.BL_NO, 
+																					BB.DO_NO, 
+																					BB.TSPT_TP_CD 
+																				FROM 
+																					TMT_DO_DTL BB 
+																				WHERE 
+																					BB.DELV_TP_CD 		= 'D' 
+																					AND BB.TSPT_TP_CD 	= 'SE') DIRECTVSL 
+																			ON 
+																				JOB1.VSL_CALL_ID 		= DIRECTVSL.VSL_CALL_ID 
+																				AND JOB1.CG_NO 			= DIRECTVSL.BL_NO 
+																		   WHERE 
+																				JOB1.JOB_TP_CD 			= 'DS'
+																				AND JOB1.JOB_PURP_CD 	= 'VB'
+																				AND JOB1.DELV_TP_CD 	= 'D'
+																				AND JOB1.CG_NO 			= D.BL_NO
+																				AND DIRECTVSL.DO_NO 	= D.DO_NO
+																				AND JOB1.SDO_NO IN (DIRECTVSL.SDO_NO)) AA)
+					WHEN D.DELV_TP_CD = 'I' THEN (SELECT 
+													SUM(AA.MT) 
+												FROM 
+													(SELECT  DISTINCT 
+														ISNULL(JOB1.CG_WGT, 0) MT, 
+														SDO1.DO_NO DONO, 
+														SDO1.BL_NO BLNO, 
+														SDO1.VSL_CALL_ID VSLCALLID, 
+														JOB1.JOB_NO JOBNO
+													FROM 
+														TMT_JOB JOB1 
+													INNER JOIN 
+														TMT_DO_DTL SDO1 
+													ON 
+														JOB1.VSL_CALL_ID 		= SDO1.VSL_CALL_ID 
+														AND JOB1.CG_NO 			= SDO1.BL_NO
+												   WHERE JOB1.JOB_TP_CD 		= 'LO'
+														 AND JOB1.JOB_PURP_CD 	= 'WG'
+														 AND JOB1.DELV_TP_CD 	= 'I'
+														 AND SDO1.DO_NO 		= D.DO_NO) AA)	     
+					ELSE 0
+				END, 0)), '0.000')							 		AS BALMT,
+				(SELECT 
+					STRING_AGG(PKG_NO, ', ') 
+				WITHIN GROUP 
+					(ORDER BY 
+						PKG_NO) 
+				FROM 
+					(SELECT DISTINCT 
+						PKG_NO 
+					FROM 
+						TMT_PKG_INFO 
+					WHERE 
+						VSL_CALL_ID = D.VSL_CALL_ID 
+						AND REF_NO = D.BL_NO 
+						AND SDO_NO = D.SDO_NO) AS pkg_no) 								AS MARK_NO
+	                
+	        FROM    
+				TMT_DO_DTL D
+			INNER JOIN 
+				TMT_BL B 
+			ON 
+				D.VSL_CALL_ID 	= B.VSL_CALL_ID 
+				AND D.BL_NO 	= B.BL_NO 
+				AND D.MF_DOC_ID = B.MF_DOC_ID
+			LEFT OUTER JOIN 
+				TMT_ASSIGN_TRANSPORT A 
+			ON 
+				D.VSL_CALL_ID 	= A.VSL_CALL_ID 
+				AND D.BL_NO 	= A.BL_NO 
+				AND D.SDO_NO 	= A.SDO_NO
+			LEFT OUTER JOIN 
+				TMT_VSL_SCH V 
+			ON 
+				D.VSL_CALL_ID 	= V.VSL_CALL_ID
+			LEFT OUTER JOIN 
+				TMT_VSL_PART P 
+			ON 
+				V.VSL_CD		= P.VSL_CD
+			LEFT OUTER JOIN 
+				DIRECT 
+			ON 
+				D.VSL_CALL_ID 	= DIRECT.VSL_CALL_ID 
+				AND D.BL_NO 	= DIRECT.CG_NO
+			LEFT OUTER JOIN 
+				INDIRECT 
+			ON 
+				D.VSL_CALL_ID 	= INDIRECT.VSL_CALL_ID 
+				AND D.BL_NO 	= INDIRECT.CG_NO
+	        WHERE   
+				D.VSL_CALL_ID 	= #{vslCallId}
+	            AND D.SDO_NO 	= #{sdono}
+           )
+	</sql>
+	
+	<insert id="insertDeliveryOrderItems" parameterType="deliveryOrderItem">
+		INSERT /*deliveryOrder.insertDeliveryOrderItems*/
+		INTO TMT_DO (
+			SHIP_CALL_NO,
+			VSL_CD,
+			CALL_SEQ,
+			CALL_YEAR,
+			VSL_CALL_ID,
+			MF_DOC_ID,
+			BL_NO,
+			DO_NO,
+			DO_MARK,
+			LORRY_MT,
+			WAGON_MT,
+			CONVEYOR_MT,
+			PIPELINE_MT,
+			MT,
+			M3,
+			QTY,
+			CMDT_CD,
+			TSPT_COMP,
+			TSPT_TP_CD,
+			CG_WGT,
+			EST_ARRV_DT,
+			UPDATE_TIME,
+			STAFF_CD,
+			DOMESTIC_CHK,
+			WGT_CHK,
+			RMK,
+			D_MT, 
+			D_M3, 
+			D_QTY,
+			I_MT, 
+			I_M3, 
+			I_QTY, 
+			D_LR_MT, 
+			D_LR_M3, 
+			D_LR_QTY, 
+			D_VSL_MT,
+			D_VSL_M3,
+			D_VSL_QTY,
+			I_LR_MT, 
+			I_LR_M3,
+			I_LR_QTY
+		) VALUES (
+			#{scn},
+			#{vslcd},
+			#{callseq},
+			#{callyear},
+            #{vslCallId},
+            #{mfdocid},
+            #{blno},
+            #{dono},
+            #{domark},
+            TRY_CONVERT(NUMERIC(15, 3), #{dlrrymt}),
+            TRY_CONVERT(NUMERIC(15, 3), #{dwagonmt}),
+            TRY_CONVERT(NUMERIC(15, 3), #{dcnvymt}),
+            TRY_CONVERT(NUMERIC(15, 3), #{dpplnmt}),
+            TRY_CONVERT(NUMERIC(15, 3), #{mt}),
+			TRY_CONVERT(NUMERIC(15, 3), #{m3}),
+			TRY_CONVERT(NUMERIC(10, 0), #{qty}), 
+            #{cmdtcd},
+            #{tsptr},
+            #{tspttpcd},
+            #{wgt1},
+			CONVERT(
+				DATETIME, 
+				CASE 
+					WHEN #{estDt} = '' THEN NULL 
+					ELSE #{estDt} 
+				END,
+				103
+			),
+            SYSDATETIME(),
+            #{userId},
+            #{domesticChk},
+            #{wgtChk},
+            #{rmk},
+			ISNULL(TRY_CONVERT(NUMERIC(15, 3), #{doDMt}),  0),
+			ISNULL(TRY_CONVERT(NUMERIC(15, 3), #{doDM3}),  0),
+			ISNULL(TRY_CONVERT(NUMERIC(10, 0), #{doDQty}), 0), 
+			ISNULL(TRY_CONVERT(NUMERIC(15, 3), #{doIMt}),  0),
+			ISNULL(TRY_CONVERT(NUMERIC(15, 3), #{doIM3}),  0),
+			ISNULL(TRY_CONVERT(NUMERIC(10, 0), #{doIQty}), 0),	 
+			ISNULL(TRY_CONVERT(NUMERIC(15, 3), #{doDLrMt}), 0),
+			ISNULL(TRY_CONVERT(NUMERIC(15, 3), #{doDLrM3}), 0),
+			ISNULL(TRY_CONVERT(NUMERIC(10, 0), #{doDLrQty}), 0),
+			ISNULL(TRY_CONVERT(NUMERIC(15, 3), #{doDVslMt}), 0),
+			ISNULL(TRY_CONVERT(NUMERIC(15, 3), #{doDVslM3}), 0),
+			ISNULL(TRY_CONVERT(NUMERIC(10, 0), #{doDVslQty}), 0),
+			ISNULL(TRY_CONVERT(NUMERIC(15, 3), #{doIMt}),  0),
+			ISNULL(TRY_CONVERT(NUMERIC(15, 3), #{doIM3}),  0),
+			ISNULL(TRY_CONVERT(NUMERIC(10, 0), #{doIQty}), 0) 	
+		)
+	</insert>
+	
+	<insert id="insertSubDeliveryOrderItems" parameterType="deliveryOrderItem">
+		INSERT /*deliveryOrder.insertDeliveryOrderDetailItems*/
+		INTO TMT_DO_DTL (
+			VSL_CD,
+			CALL_SEQ,
+			CALL_YEAR,
+			VSL_CALL_ID,
+			MF_DOC_ID,
+			BL_NO,
+			DO_NO,
+			SDO_NO,
+			SDO_MARK,
+			CNSNE,
+			TSPT_COMP,
+			EST_ARRV_DT,
+			VALID_DATE,
+			D_MT,
+			D_M3,
+			D_QTY,
+			TSPT_TP_CD,
+			I_MT,
+			I_M3,
+			I_QTY,
+			I_TSPT_TP_CD,
+			VERSION,
+			UPDATE_TIME,
+			STAFF_CD,
+			DELV_TP_CD,
+			RMK,
+			WGT_CHK,
+			ADDITIONAL_CHK,
+			PKG_TP_CD
+		) VALUES (
+			#{vslcd},
+			#{callseq},
+			#{callyear},
+			#{vslCallId},
+			#{mfdocid},
+			#{blno},
+			#{dono},
+			#{sdono},
+			#{sdoMark},
+			#{cnsne},
+			#{tsptr},
+			CASE 
+				WHEN #{estDt} = '' THEN NULL 
+				WHEN #{estDt} IS NULL THEN NULL
+				ELSE CONVERT(DATETIME, #{estDt}, 103)
+			END,
+			<!--sMantis: 0167009 -->
+			CASE 
+				WHEN #{validDate} = '' THEN NULL 
+				WHEN #{validDate} IS NULL THEN NULL
+				ELSE CONVERT(DATETIME, #{validDate}, 103)
+			END,
+			<!--eMantis: 0167009 -->
+			TRY_CONVERT(NUMERIC(15, 3), #{dmt}),
+			TRY_CONVERT(NUMERIC(15, 3), #{dm3}),
+			TRY_CONVERT(NUMERIC(10, 0), #{dqty}),
+			#{tspttpcd},
+			TRY_CONVERT(NUMERIC(15, 3), #{imt}),
+			TRY_CONVERT(NUMERIC(15, 3), #{im3}),
+			TRY_CONVERT(NUMERIC(10, 0), #{iqty}),
+			#{itspttpcd},
+			#{version},
+			SYSDATETIME(),
+			#{userId},
+			#{delvTpCd},
+			#{sdormk},
+			#{sdoWgtChk},
+			#{sdoAdditionalChk},
+            #{pkgtpcd}
+		)
+	</insert>
+	
+	<update id="updateDeliveryOrderItems" parameterType="deliveryOrderItem">
+		UPDATE /*deliveryOrder.updateDeliveryOrderItems*/
+			TMT_DO 
+		SET
+			DO_MARK 											= #{domark},			
+			LORRY_MT 											= CASE #{dlrrymt} WHEN '' THEN 0 ELSE TRY_CONVERT(NUMERIC(15, 3), #{dlrrymt}) END,
+			WAGON_MT 											= CASE #{dwagonmt} WHEN '' THEN 0 ELSE TRY_CONVERT(NUMERIC(15, 3), #{dwagonmt}) END,
+			CONVEYOR_MT 										= CASE #{dcnvymt} WHEN '' THEN 0 ELSE TRY_CONVERT(NUMERIC(15, 3), #{dcnvymt}) END,
+			PIPELINE_MT 										= CASE #{dpplnmt} WHEN '' THEN 0 ELSE TRY_CONVERT(NUMERIC(15, 3), #{dpplnmt}) END,
+			MT 													= CASE #{mt} WHEN '' THEN 0 ELSE TRY_CONVERT(NUMERIC(15, 3), #{mt}) END,
+			M3 													= CASE #{m3} WHEN '' THEN 0 ELSE TRY_CONVERT(NUMERIC(15, 3), #{m3}) END,
+			QTY 												= CASE #{qty} WHEN '' THEN 0 ELSE TRY_CONVERT(NUMERIC(10, 0), #{qty}) END, 
+			CMDT_CD 											= #{cmdtcd},
+			TSPT_COMP 											= #{tsptr},
+			TSPT_TP_CD 											= #{tspttpcd},
+			CG_WGT 												= #{wgt1},
+			EST_ARRV_DT 										= CONVERT(datetime, CASE WHEN #{estDt} = '' THEN NULL ELSE #{estDt} END,103),
+			UPDATE_TIME 										= SYSDATETIME(),
+			STAFF_CD 											= #{userId},
+			DOMESTIC_CHK 										= #{domesticChk},
+			WGT_CHK 											= #{wgtChk},
+			ADDITIONAL_CHK 										= #{additionalChk},
+			RMK 												= #{rmk},
+			D_MT 												= CASE #{doDMt} WHEN '' THEN 0 ELSE CAST(ISNULL(#{doDMt}, 0) AS NUMERIC(15,3)) END,
+			D_M3 												= CASE #{doDM3} WHEN '' THEN 0 ELSE CAST(ISNULL(#{doDM3}, 0) AS NUMERIC(15,3)) END,
+			D_QTY 												= CASE #{doDQty} WHEN '' THEN 0 ELSE CAST(ISNULL(#{doDQty}, 0) AS NUMERIC(10,0)) END,
+			I_MT 												= CASE #{doIMt} WHEN '' THEN 0 ELSE CAST(ISNULL(#{doIMt}, 0) AS NUMERIC(15,3)) END,
+			I_M3 												= CASE #{doIM3} WHEN '' THEN 0 ELSE CAST(ISNULL(#{doIM3}, 0) AS NUMERIC(15,3)) END,
+			I_QTY 												= CASE #{doIQty} WHEN '' THEN 0 ELSE CAST(ISNULL(#{doIQty}, 0) AS NUMERIC(10,0)) END,
+			D_LR_MT												= CASE #{doDLrMt} WHEN '' THEN 0 ELSE CAST(ISNULL(#{doDLrMt}, 0) AS NUMERIC(15,3)) END,
+			D_LR_M3 											= CASE #{doDLrM3} WHEN '' THEN 0 ELSE CAST(ISNULL(#{doDLrM3}, 0) AS NUMERIC(15,3)) END,
+			D_LR_QTY 											= CASE #{doDLrQty} WHEN '' THEN 0 ELSE CAST(ISNULL(#{doDLrQty}, 0) AS NUMERIC(10,0)) END,
+			D_VSL_MT 											= CASE #{doDVslMt} WHEN '' THEN 0 ELSE CAST(ISNULL(#{doDVslMt}, 0) AS NUMERIC(15,3)) END,
+			D_VSL_M3 											= CASE #{doDVslM3} WHEN '' THEN 0 ELSE CAST(ISNULL(#{doDVslM3}, 0) AS NUMERIC(15,3)) END,
+			D_VSL_QTY 											= CASE #{doDVslQty} WHEN '' THEN 0 ELSE CAST(ISNULL(#{doDVslQty}, 0) AS NUMERIC(10,0)) END,
+			I_LR_MT 											= CASE #{doIMt} WHEN '' THEN 0 ELSE CAST(ISNULL(#{doIMt}, 0) AS NUMERIC(15,3)) END,
+			I_LR_M3 											= CASE #{doIM3} WHEN '' THEN 0 ELSE CAST(ISNULL(#{doIM3}, 0) AS NUMERIC(15,3)) END,
+			I_LR_QTY 											= CASE #{doIQty} WHEN '' THEN 0 ELSE CAST(ISNULL(#{doIQty}, 0) AS NUMERIC(10,0)) END
+		WHERE
+			BL_NO 												= #{blno} 
+			AND VSL_CALL_ID										= #{vslCallId}
+	</update>
+	
+	<update id="updateSubDeliveryOrderItems" parameterType="deliveryOrderItem">
+		UPDATE /*deliveryOrder.updateDeliveryOrderDetailItems*/
+			TMT_DO_DTL 
+		SET
+			SDO_MARK 											= #{sdoMark},
+			D_MT 												= CAST(#{dmt} AS NUMERIC(15,3)),
+			D_M3 												= CAST(#{dm3} AS NUMERIC(15,3)),
+			D_QTY 												= CAST(#{dqty} AS NUMERIC(10,0)),
+			TSPT_TP_CD 											= #{tspttpcd},
+			I_MT 												= CAST(#{imt} AS NUMERIC(15,3)),
+			I_M3 												= CAST(#{im3} AS NUMERIC(15,3)),
+			I_QTY 												= CAST(#{iqty} AS NUMERIC(10,0)),
+			I_TSPT_TP_CD 										= #{itspttpcd},
+			TSPT_COMP 											= #{tsptr},
+			EST_ARRV_DT 										= 	CASE
+																		WHEN #{estDt} = '' THEN NULL
+																		WHEN #{estDt} IS NULL THEN NULL
+																		ELSE CONVERT(DATETIME, #{estDt},103)
+																	END,
+			VALID_DATE 											= 	CASE
+																		WHEN #{validDate} = '' THEN NULL
+																		WHEN #{validDate} IS NULL THEN NULL
+																		ELSE CONVERT(DATETIME, #{validDate},103)
+																	END,
+			UPDATE_TIME 										= SYSDATETIME(),
+			STAFF_CD 											= #{userId},
+			DELV_TP_CD 											= #{delvTpCd},
+			RMK 												= #{sdormk},
+			WGT_CHK 											= #{sdoWgtChk},
+			ADDITIONAL_CHK 										= #{sdoAdditionalChk},
+			PKG_TP_CD 											= #{pkgtpcd}
+		WHERE 
+			BL_NO 												= #{blno} 
+			AND VSL_CALL_ID 									= #{vslCallId}
+			AND DO_NO 											= #{dono}
+			AND SDO_NO 											= #{sdono}
+	</update>
+
+	<update id="updateDeliveryOrderBLItems" parameterType="deliveryOrderItem"> 
+		UPDATE /*deliveryOrder.updateDeliveryOrderBLItems*/
+			TMT_BL 
+		SET  
+			VSL_CALL_ID 	= #{vslCallId},
+			TSPTR 			= UPPER(#{tsptr}),
+			FDEST 			= #{dofnlportcd},
+			CG_WGT 			= #{wgt},
+			CG_VOL 			= #{vol},
+			PKG_QTY 		= #{pkgqty},
+			CG_WGT1 		= #{wgt1},
+			CG_WGT2 		= #{wgt2},
+			GDS_RMK			= #{gdsrmk},
+			VERSION 		= #{newVersion},
+			SHPR 			= #{shpr},
+			CNSNE 			= #{cnsneecd},
+			STAFF_CD		= #{userId},
+			UPDATE_TIME    	= SYSDATETIME(),
+			CMDT_GRP_CD 	= #{cmdtGroupCd},
+			PKG_TP_CD 		= #{pkgtpcd},
+			CMDT_CD 		= #{cmdtcd},
+			MARK_NO			= #{markNo},
+			FND				= #{dofnlportcd}
+		WHERE 
+			VSL_CALL_ID 	= #{vslCallId}
+			AND BL_NO 		= #{blno}
+	</update> 
+	
+	<update id="updateCargoMaster" parameterType="deliveryOrderItem">
+		UPDATE  /*deliveryOrder.updateCargoMaster*/
+			TMT_CG_MST 
+		SET
+			CMDT_CD 		= #{cmdtcd}
+		WHERE 
+			VSL_CALL_ID 	= #{vslCallId}
+			AND CG_NO 		= #{blno}
+	</update>
+	
+	<update id="updateDeliveryOrderAck" parameterType="deliveryOrderItem">
+		UPDATE /*deliveryOrder.updateDeliveryOrderAck*/
+			TMT_BL 
+		SET 
+			ACK_BY 			= #{ackby},
+			ACK_DT 			= SYSDATETIME()
+		WHERE 
+			VSL_CALL_ID 	= #{vslCallId}
+			AND BL_NO 		= #{blno}
+	</update>
+	
+	<update id="updatePackageItems" parameterType="deliveryOrderItem">
+		UPDATE /*deliveryOrder.updatePackageItems*/
+			TMT_PKG_INFO 
+		SET
+			DO_NO 			= #{dono}, 
+			SDO_NO 			= #{sdono}
+		WHERE 
+			MF_DOC_ID 		= #{mfdocid} 
+			AND VSL_CALL_ID = #{vslCallId}
+			AND REF_NO 		= #{blno}
+			AND PKG_NO 		= #{pkgNo}
+	</update>
+	
+	<update id="updateDeliveryOrderAdditionalChk" parameterType="deliveryOrderItem">
+		UPDATE /*deliveryOrder.updateDeliveryOrderAdditionalChk*/
+			TMT_DO 
+		SET 
+			ADDITIONAL_CHK 	= #{additionalChk}
+		WHERE 
+			VSL_CALL_ID 	= #{vslCallId}
+			AND MF_DOC_ID 	= #{mfdocid}
+			AND BL_NO 		= #{blno}
+			AND DO_NO 		= #{dono}
+	</update>
+	
+	<update id="deletePackageItems" parameterType="deliveryOrderItem">
+		UPDATE /*deliveryOrder.deletePackageItems*/
+			TMT_PKG_INFO 
+		SET
+			DO_NO 												= NULL, 
+			SDO_NO 												= NULL,
+			GR_NO 												= NULL
+		WHERE 
+			MF_DOC_ID 											= #{mfdocid} 
+			AND VSL_CALL_ID 									= #{vslCallId}
+			AND REF_NO 											= #{blno}
+		<if test ="sdono != null and sdono != ''">
+			AND SDO_NO 											= #{sdono}
+		</if>
+	</update>
+	
+	<delete id="deleteDeliveryOrderItems" parameterType="deliveryOrderItem">		
+		UPDATE /*deliveryOrder.deleteDeliveryOrderItems*/
+			TMT_BL 
+		SET 
+			TSPTR 			= null,
+			CMDT_CD 		= null,
+			PKG_TP_CD 		= null,
+			FDEST 			= null,
+			TSPT_TP_CD 		= null,
+			VERSION 		= null,
+			CNSNE 			= null,
+			UPDATE_TIME 	= SYSDATETIME(),
+			STAFF_CD 		= #{usedId}
+		WHERE 
+			VSL_CALL_ID	 	= #{vslCallId} 
+			AND BL_NO 		= #{blno}		   
+	</delete>
+	
+	<delete id="deleteAllSubDeliveryOrderItems" parameterType="deliveryOrderItem">
+		DELETE 	/*deliveryOrder.deleteDeliveryOrder*/
+		FROM	
+			TMT_DO_DTL		   
+		WHERE	
+			VSL_CALL_ID 	= #{vslCallId} 
+			AND DO_NO		= #{dono}
+			AND BL_NO 		= #{blno}
+	</delete>
+	
+	<delete id="deleteROROItems" parameterType="deliveryOrderItem">
+		DELETE 	/*deliveryOrder.deleteROROItems*/
+		FROM	
+			TMT_RORO_MST		   
+		WHERE	
+			VSL_CALL_ID 	= #{vslCallId} 
+			AND SDO_NO		= #{sdono}
+			AND CG_NO 		= #{blno}
+	</delete>
+	
+	<delete id="deleteDeliveryOrder" parameterType="deliveryOrderItem">
+		DELETE 	/*deliveryOrder.deleteDeliveryOrder*/
+		FROM	
+			TMT_DO		   
+		WHERE	
+			VSL_CALL_ID 	= #{vslCallId} 
+			AND DO_NO		= #{dono}
+			AND BL_NO 		= #{blno}
+	</delete>
+	
+	<delete id="deleteSubDeliveryOrderItems" parameterType="deliveryOrderItem">
+		DELETE 	/*deliveryOrder.deleteSubDeliveryOrderItems*/
+		FROM	
+			TMT_DO_DTL   
+		WHERE	
+			VSL_CALL_ID 	= #{vslCallId} 
+			AND DO_NO		= #{dono}
+			AND BL_NO 		= #{blno}
+			AND	SDO_NO 		= #{sdono}
+	</delete>
+	
+	<select id="selectManifestComboList" parameterType="deliveryOrderParm" resultType="deliveryOrderItem">
+		SELECT /*selectManifestComboList*/
+			 MF.VSL_CALL_ID 	AS VSLCALLID,
+			 MF.VSL_CD 		AS VSLCD,
+			 MF.CALL_YEAR 		AS CALLYEAR,
+			 MF.CALL_SEQ 		AS CALLSEQ,
+			 MF.MF_DOC_ID 		AS MFDOCID
+		FROM 
+			TMT_MF MF 
+		INNER JOIN  
+			TMT_BL BL  
+		ON 
+			BL.VSL_CALL_ID 		= MF.VSL_CALL_ID 
+			AND BL.MF_DOC_ID 	= MF.MF_DOC_ID
+			AND BL.CG_TP_CD <![CDATA[<>]]> 'RCV'
+		WHERE 
+			MF.VSL_CALL_ID 			= #{vslCallId}
+			<if test="docId !=null and docId !=''">
+				AND MF.MF_DOC_ID 	= #{docId}
+			</if>
+			<!-- <if test="opeClassCd !=null and opeClassCd !=''">
+				AND MF.OPE_CLASS_CD = #{opeClassCd}
+			</if> -->
+	 GROUP BY 
+		 MF.VSL_CALL_ID,
+		 MF.VSL_CD,
+		 MF.CALL_YEAR,
+		 MF.CALL_SEQ,
+		 MF.MF_DOC_ID
+	</select>
+	
+	<select id="selectDeliveryOrderBLComboList" parameterType="deliveryOrderParm" resultType="deliveryOrderItem">
+		SELECT  /*selectDeliveryOrderBLComboList*/
+			A.BL_NO 			AS BLNO,
+			A.MF_DOC_ID 		AS MFDOCID
+		FROM 
+			(SELECT 
+				 SCH.VSL_CALL_ID ,
+				BL.BL_NO ,
+				<!-- ,BL.CG_INOUT_TP -->
+				BL.DELV_TP_CD,
+				BL.CG_TP_CD ,
+				BL.MF_DOC_ID,
+				ISNULL(BL.FWRD, ' ') FWDCD 
+			FROM 
+				TMT_VSL_SCH SCH, TMT_BL BL, TMT_MF MF
+			WHERE 
+				BL.VSL_CALL_ID 				= MF.VSL_CALL_ID
+				AND BL.MF_DOC_ID 			= MF.MF_DOC_ID
+				<if test="vslCallId != null and vslCallId != ''">
+					AND SCH.VSL_CALL_ID 	= #{vslCallId}
+				</if>
+				<if test="mfdocid != null and mfdocid != ''">
+					AND MF.MF_DOC_ID 		= #{mfdocid}
+				</if>
+				<if test="vslCallId == null or vslCallId == ''">
+					<if test="etaFrom != null and etaFrom != ''">
+						AND EST_ARRV_DT BETWEEN CONVERT(datetime, #{etaFrom}+' 00:00',103)
+						AND CONVERT(datetime, #{etaTo}+' 23:59', 103)
+					</if>
+				</if>
+					AND SCH.VSL_CD 			= BL.VSL_CD 
+					AND SCH.CALL_SEQ 		= BL.CALL_SEQ 
+					AND SCH.CALL_YEAR 		= BL.CALL_YEAR ) A
+		WHERE 
+			CG_TP_CD <![CDATA[<>]]> 'RCV'
+			<!-- <if test="isRcv != null and isRcv != ''">
+		 		CG_TP_CD = 'RCV'
+		 	</if>
+		 	<if test="isRcv == null or isRcv == ''">
+		 		CG_TP_CD <![CDATA[<>]]> 'RCV'
+		 	</if> -->
+			<if test="cginouttp != null and cginouttp != ''">
+				AND A.CG_INOUT_TP = #{cginouttp} 
+				AND A.DELV_TP_CD IN
+					('B','I')
+			</if>
+			<if test="delvtpcd != null and delvtpcd != ''">
+				AND A.DELV_TP_CD = #{delvtpcd}
+			</if>
+		GROUP BY 
+			A.MF_DOC_ID, A.BL_NO 
+		ORDER BY 
+			A.MF_DOC_ID, BLNO
+	</select>
+</mapper>

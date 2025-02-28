@@ -1,0 +1,3659 @@
+Ext.define('MOST.view.planning.StaffAndDeploymentController', {
+	extend: 'MOST.view.foundation.BaseViewController',
+
+	requires: [
+	
+	],
+
+	alias: 'controller.staffanddeployment',
+	
+	/**
+	 * =========================================================================================================================
+	 * CONSTANT START
+	 */
+	MAX_PERIOD_DAY : 7,
+	jpbiDriverYn : null,	// MAX PERIOD DATE
+	workLoc: null,
+	oldWorkLoc: null,
+	viewType: null,
+	isFriday: false,
+	recvItem: null,
+	MAIN_GRID_REF_NAME: 'refVOperationDeployGrid',
+	MAIN_STORE_NAME: 'vOperationDeployList',
+	
+	STAFF_TYPE_STORE: 'staffTypeCombo',
+	OPERATOR_CONTRACT_FL_STORE: 'operContractFLCombo',
+	OPERATOR_CONTRACT_CO_STORE: 'operContractCOCombo',
+	CHANGE_SHIFT_STORE: 'changeShift',
+	/**
+	 * CONSTANT END
+	 * =========================================================================================================================
+	 */	
+	
+	/**
+	 * =========================================================================================================================
+	 * INITIALIZE START
+	 */
+	onLoad:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var purposeCombo = me.getStore('purposeCombo');
+		var shiftCombo = me.getStore('shiftCombo');
+		var searchParm = Ext.create('MOST.model.planning.SearchStaffAndDeploymentParm');
+		
+		me.recvItem = me.getView().recvData;
+		
+		purposeCombo.load();
+		shiftCombo.load();
+		
+		me.setDateInDays('dtETAFrom');
+		me.setSearchParm(searchParm);
+		me.getViewModel().setData({theSearch:searchParm});
+		me.updateViewStyle(me.getView());
+
+		searchParm.set('progress', 'N');
+	},
+	
+	inInitialByRecvItem: function(recvItem){
+		var me = this;
+		var refs = me.getReferences();
+		
+		refs.ctlJpvc.setValue(recvItem.get('vslCallId'));
+		refs.dtETAFrom.setValue(recvItem.get('workYmd'));
+		refs.dtETATo.setValue(recvItem.get('workYmd'));
+		refs.cboPurpose.setValue(recvItem.get('purpTpCd'));
+		refs.cboShift.setValue(recvItem.get('shftId'));
+		
+		me.onSearch();
+	},
+	
+	onDateChange:function( control, newValue, oldValue, eOpts ) {
+		var me = this;
+		var refs = me.getReferences();
+		var toDate = refs.dtETATo.getValue();
+		var fromDate = refs.dtETAFrom.getValue();
+        var Difference_In_Time = null; 
+        var Difference_In_Days = null; 
+		
+		if(control == refs.dtETAFrom){
+			me.setDateInDaysByDate('dtETATo', me.MAX_PERIOD_DAY, control.getValue());
+		} else {
+			Difference_In_Time = control.getValue().getTime() - fromDate.getTime();
+    	    Difference_In_Days = Difference_In_Time / (1000 * 3600 * 24);
+    	    
+    	    if (Difference_In_Days > 7){
+    	    	me.setDateInDaysByDate('dtETAFrom', -me.MAX_PERIOD_DAY, control.getValue());
+    	    } else if (Difference_In_Days < 0){
+    	    	refs.dtETATo.setValue(fromDate);
+    	    }
+		}
+	},
+	
+	getSearchCondition:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var store = me.getStore(me.MAIN_STORE_NAME);
+		var grid = me.lookupReference(me.MAIN_GRID_REF_NAME);
+     	var pageNo = store.currentPage;
+		var sizePerPage = CommonConstants.PAGE_SIZE;
+		var searchParm = me.getViewModel().get('theSearch');
+		var vslCallId = StringUtil.toUpperCase(searchParm.data.vslCallId);
+		var scn = StringUtil.toUpperCase(searchParm.data.scn);
+		var dtETAFrom = refs.dtETAFrom;
+		var dtETATo = refs.dtETATo;
+		var cboPurpose = StringUtil.toUpperCase(searchParm.data.purpTpCd);
+		var cboShift = StringUtil.toUpperCase(searchParm.data.shftId);
+		var dateCondition = '';
+		
+		if(scn == '' && vslCallId == '' && !(dtETAFrom.getValue() && dtETATo.getValue())){
+			MessageUtil.warning('warning_msg','Ship Call No, Vessel Call No or Date must be inputted.');
+			return null;
+		}
+		
+		if(refs.dtETAFrom.getValue() != null && refs.dtETATo.getValue() != null){
+			dateCondition = me.checkPeriodDate('dtETAFrom', 'dtETATo', me.MAX_PERIOD_DAY, true);
+            workStDt = dateCondition.fromDtString;
+            workEndDt = dateCondition.toDtString;
+        }
+		
+		var params = me.createParam(searchParm);
+		
+		params['vslCallId'] = vslCallId;
+		params['scn'] = scn;
+		params['purpTpCd'] = cboPurpose;
+		params['shftId'] = cboShift;
+		params['searchType'] = 'deploylist';
+		params['subSearchType'] = 'deploylist';
+		params['pageNo'] = pageNo;
+		params['sizePerPage'] = sizePerPage;
+		params['sort'] = grid.getSortString();
+		
+		if(dateCondition != null){
+    		params['etaFrom'] = dateCondition.fromDtString;
+    		params['etaTo'] = dateCondition.toDtString;
+    	}
+		
+		return params;
+	},
+
+	onSearch: function() {
+		var me = this;
+     	var refs = me.getReferences();
+    	var store = me.getStore('vOperationDeployList');
+    	var params = me.getSearchCondition();
+    	
+    	if(params == null){
+    		return;
+    	}
+    	
+		store.load({
+			params: params,
+			callback: function(records, operation, success){
+				if(success){
+					if (records && records.length <= 0) {
+						MessageUtil.noMatchData();
+					}
+					
+					if(records.length > 0){
+						if(me.recvItem != null){
+							me.viewType = 'update';
+							me.onResetStore();
+							records[0].data.viewType = 'update';
+							me.openDetailPopup(records[0], 'Staff And Equipment Deploy Detail');
+							me.recvItem = null;
+						}
+					}
+				}
+			}
+		});
+	},
+	
+	onDblClick: function() {
+		var me = this;
+		var grid = me.lookupReference('refVOperationDeployGrid');
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+		
+		if(selection == null){
+			return;
+		}else{
+			selection.data.viewType = 'update';
+		}
+		
+		me.viewType = 'update';
+		me.getView().detailViewAlias = 'app-staffanddeploymentdetail';
+		me.onResetStore();
+		me.openDetailPopup(selection, 'Staff and Equipment Deployment Detail');
+	},
+	
+	onDetailLoad:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailView = me.getDetailBizView();
+		var refStaffManPowerPnl = refs.refStaffManPowerPnl;
+		var refStaffPortCranePnl = refs.refStaffPortCranePnl;
+		var refStaffForkLiftPnl = refs.refStaffForkLiftPnl;
+		var refStaffStevedorePnl = refs.refStaffStevedorePnl;
+		var recvData = detailView.items.get(0).recvData;
+		var refVslCallId = refs.refVslCallId;
+		var txtWorkYmd = refs.txtWorkYmd;
+		var txtPurpose = refs.txtPurpose;
+		var txtShift = refs.txtShift;
+		var btnRetrieveStaffEquip = refs.btnRetrieveStaffEquip;
+		
+		me.clearDetailStore();
+
+		if(me.viewType == 'create'){
+			if(recvData.get('vslCallId') != '' || recvData.get('vslCallId') != null){
+				refs.refVslCallId.setValue(recvData.get('vslCallId'));
+				refs.refVslCallId.refs.ctlField.onFocusLeave();
+			}
+		}else{
+			refVslCallId.setDisabled(true);
+			txtWorkYmd.setReadOnly(true);
+			txtPurpose.setReadOnly(true);
+			txtShift.setReadOnly(true);
+			
+			me.onLoadDetailInfo();
+		}
+	},
+	
+	clearDetailStore: function(){
+		var me = this;
+		var shiftListStore = me.getStore('shiftList');
+		var standardStaffListStore = me.getStore('standardStaffList');
+		var standardGroupListStore = me.getStore('standardGroupList');
+		var extraStaffListStore = me.getStore('extraStaffList');
+		var extraGroupListStore = me.getStore('extraGroupList');
+		var otherStaffListStore = me.getStore('otherStaffList');
+
+		shiftListStore.removeAll();
+		standardStaffListStore.removeAll();
+		standardGroupListStore.removeAll();
+		extraStaffListStore.removeAll();
+		extraGroupListStore.removeAll();
+		otherStaffListStore.removeAll();
+	},
+
+	onLoadDetailInfo:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailView = me.getDetailBizView();
+		var recvData = detailView.items.get(0).recvData;
+		var staffAndEquipmentDetailStore = me.getStore('staffAndEquipmentDetail');
+		var megaSumListStore = me.getStore('megaSumList');
+		var megaSumOperatorListStore = me.getStore('megaSumOperatorList');
+		var megaRemarkListStore = me.getStore('megaRemarkList');
+		var vesselOperationDeployedStaffListStore = me.getStore('vesselOperationDeployedStaffList');
+		var vesselOperationDeployedPCStore = me.getStore('empPCCombo');
+		var vesselOperationDeployedFLStore = me.getStore('empFLCombo');
+		var megaSumPortCraneListStore = me.getStore('megaSumPortCraneList');
+		var megaSumShipCraneListStore = me.getStore('megaSumShipCraneList');
+		var portCraneDeployedListtStore = me.getStore('portCraneDeployedList');
+		var megaSumForkliftListStore = me.getStore('megaSumForkliftList');
+		var forkliftDeployedListStore = me.getStore('forkliftDeployedList');
+		var stevedoreCompanyListStore = me.getStore('stevedoreCompanyList');
+		var roleOtherListStore = me.getStore('roleOtherList');
+		var roleComboStore = me.getStore('roleComboList');
+		var allRoleListStore = me.getStore('allRoleList');
+		var comboGroupRosterListStore = me.getStore('comboGroupRosterList');
+		
+		var standardStaffListStore = me.getStore('standardStaffList');
+		var standardGroupListStore = me.getStore('standardGroupList');
+		var standardStaffGroupListStore = me.getStore('standardStaffGroupList');
+		var extraStaffListStore = me.getStore('extraStaffList');
+		var extraGroupListStore = me.getStore('extraGroupList');
+		var extraStaffGroupListStore = me.getStore('extraStaffGroupList');
+		var otherStaffListStore = me.getStore('otherStaffList');
+		var shiftListStore = me.getStore('shiftList');
+		var equipmentTypeCodeListStore = me.getStore('equipmentTypeCodeList');
+		var equipmentListStore = me.getStore('equipmentList');
+		var filteredEquipListStore = me.getStore('filteredEquipList');
+		var shipCraneEquipmentListStore = me.getStore('shipCraneEquipmentList');
+		var othersEquipmentListStore = me.getStore('othersEquipmentList');
+		var forkliftListStore = me.getStore('forkliftList');
+		var forkliftDriverListStore = me.getStore('forkliftDriverList');
+		var operatorCOList = me.getStore('operatorCOList');
+		var operatorFDList = me.getStore('operatorFDList');
+		var deployedStaffList = me.getStore('deployedStaffList');
+		var operatorListStore = me.getStore('operatorList');
+		var megaSumShoreCraneListStore = me.getStore('megaSumShoreCraneList');
+		var megaSumPortAndShipCraneListStore = me.getStore('megaSumPortAndShipCraneList');
+		
+		var refsStaffManPowerGrid = refs.refStaffManPowerGrid;
+		var refStaffEquipmentDeployGrid = refs.refStaffEquipmentDeployGrid;
+		var refStaffForkliftGrid = refs.refStaffForkliftGrid;
+		var refStaffManPowerPnl = refs.refStaffManPowerPnl;
+		var refStaffPortCranePnl = refs.refStaffPortCranePnl;
+		var refStaffForkLiftPnl = refs.refStaffForkLiftPnl;
+		var refStaffStevedorePnl = refs.refStaffStevedorePnl;
+		var refVslCallId = refs.refVslCallId;
+		var txtWorkYmd = refs.txtWorkYmd;
+		var txtPurpose = refs.txtPurpose;
+		var txtShift = refs.txtShift;
+		
+		var filteredStaffListStore = me.getStore('filteredStaffList');
+		var purposeTpCd = txtPurpose.getValue();
+		var theModel = Ext.create('MOST.model.operation.VSRCheckList');
+		var shftMethCd = '';
+		var params;
+		
+		theModel.phantom = false;
+		
+		if(recvData.get('vslCallId') == '' || recvData.get('vslCallId') == null){
+			recvData.data.vslCallId = refVslCallId.getValue()
+		};
+		
+		if(recvData.get('workYmd') == '' || recvData.get('workYmd') == null){
+			recvData.data.workYmd = Ext.Date.format(txtWorkYmd.getValue(), MOST.config.Locale.getShortDate());
+		};
+		
+		if(recvData.get('shftId') == '' || recvData.get('shftId') == null){
+			recvData.data.shftId = txtShift.getValue();
+		};
+		
+		if(recvData.get('purpTpCd') == '' || recvData.get('purpTpCd') == null){
+			recvData.data.purpTpCd = txtPurpose.getValue();
+		};
+		
+		if(me.viewType == 'update'){
+			theModel.data = recvData.data;
+			me.getViewModel().setData({theSearchDetail:theModel});
+		}
+
+		if(me.viewType == 'create'){
+			var workingYmd = Ext.Date.format(txtWorkYmd.getValue(), MOST.config.Locale.getShortDate());
+			
+			params = {
+					colColor1: 'CC0000',
+					colColor2: '0606CC',
+					staffType: 'ST',
+					scdLgv: 'EQ',
+					scdVal:'PC',
+					searchType: 'searchdeploylist',
+					workYmd: workingYmd,
+					shftId: txtShift.getValue(),
+					vslCallId: refVslCallId.getValue(),
+					purpTpCd: txtPurpose.getValue()
+			};
+		}else{
+			params = {
+					colColor1: 'CC0000',
+					colColor2: '0606CC',
+					staffType: 'ST',
+					scdLgv: 'EQ',
+					scdVal:'PC',
+					searchType: 'searchdeploylist',
+					purpLgvCd: recvData.get('purpType'),
+					workYmd: recvData.get('workYmd'),
+					shftId: recvData.get('shftId'),
+					vslCallId: recvData.get('vslCallId'),
+					purpTpCd: recvData.get('purpTpCd')
+			};
+		}
+		
+		refStaffManPowerPnl.setLoading(true);
+		refStaffPortCranePnl.setLoading(true);
+		refStaffForkLiftPnl.setLoading(true);
+		refStaffStevedorePnl.setLoading(true);
+		
+		standardStaffListStore.clearFilter();
+		standardGroupListStore.clearFilter();
+		allRoleListStore.clearFilter();
+		extraStaffListStore.clearFilter();
+		extraGroupListStore.clearFilter();
+		roleOtherListStore.clearFilter();
+		
+		allRoleListStore.load();
+		megaSumListStore.load({
+			params:{
+				purpTpCd: params.purpTpCd,
+				vslCallId: params.vslCallId,
+				shftId: params.shftId,
+				workYmd: params.workYmd
+			}
+		});
+		forkliftListStore.load();
+		equipmentTypeCodeListStore.load();
+		roleComboStore.load({
+			params:{
+				workYmd: params.workYmd,
+				shftId: params.shftId
+			}
+		});
+		megaSumOperatorListStore.load({
+			params:{
+				workYmd: params.workYmd
+			}
+		});
+		megaRemarkListStore.load({
+			params:{
+				vslCallId: params.vslCallId,
+				workYmd: params.workYmd,
+				shftId: params.shftId
+			}
+		});
+		megaSumPortCraneListStore.load({
+			params:{
+				workYmd: params.workYmd,
+				purpTpCd: params.purpTpCd,
+				vslCallId: params.vslCallId,
+				shftId: params.shftId
+			}
+		});
+		megaSumShipCraneListStore.load({
+			params:{
+				purpTpCd: params.purpTpCd,
+				vslCallId: params.vslCallId
+			}
+		});
+		portCraneDeployedListtStore.load({
+			params:{
+				purpTpCd: params.purpTpCd,
+				vslCallId: params.vslCallId,
+				workYmd: params.workYmd,
+				shftId: params.shftId
+			}
+		});
+		megaSumForkliftListStore.load({
+			params:{
+				purpTpCd: params.purpTpCd,
+				vslCallId: params.vslCallId,
+				workYmd: params.workYmd,
+				shftId: params.shftId
+			}
+		});
+		forkliftDeployedListStore.load({
+			params:{
+				workYmd: params.workYmd,
+				purpTpCd: params.purpTpCd,
+				vslCallId: params.vslCallId,
+				shftId: params.shftId
+			}
+		});
+		stevedoreCompanyListStore.load({
+			params:{
+				workYmd: params.workYmd,
+				purpTpCd: params.purpTpCd,
+				vslCallId: params.vslCallId,
+				shftId: params.shftId
+			}
+		});
+		megaSumShoreCraneListStore.load({
+			params:{
+				workYmd: params.workYmd,
+				purpTpCd: params.purpTpCd,
+				vslCallId: params.vslCallId,
+				shftId: params.shftId
+			}
+		});
+		megaSumPortAndShipCraneListStore.load({
+			params:{
+				workYmd: params.workYmd,
+				purpTpCd: params.purpTpCd,
+				vslCallId: params.vslCallId,
+				shftId: params.shftId
+			}
+		});
+		roleOtherListStore.load();
+		standardStaffListStore.load({
+			params:{
+				workYmd: params.workYmd,
+				purpTpCd: params.purpTpCd,
+				vslCallId: params.vslCallId,
+				shftId: params.shftId
+			}
+		});
+		standardGroupListStore.load({
+			params:{
+				workYmd: params.workYmd,
+				purpTpCd: params.purpTpCd,
+				vslCallId: params.vslCallId,
+				shftId: params.shftId
+			}
+		});
+		equipmentListStore.load({        
+			params: {
+				gridType: 'equipmentList'        
+			}    
+		});
+		filteredEquipListStore.load();
+		shiftListStore.load();
+		standardStaffGroupListStore.load({
+			params: params
+		});
+		deployedStaffList.load({
+			params:{
+				workYmd: params.workYmd,
+				shftId: params.shftId
+			}
+		});
+		extraGroupListStore.load({
+			params:params
+		});
+		extraStaffListStore.load({
+			params:params
+		});
+		extraStaffGroupListStore.load({
+			params:params
+		});
+		otherStaffListStore.load({
+			params:params
+		});
+		
+		allRoleListStore.commitChanges();
+		megaSumListStore.commitChanges();
+		forkliftListStore.commitChanges();
+		equipmentTypeCodeListStore.commitChanges();
+		roleComboStore.commitChanges();
+		megaSumOperatorListStore.commitChanges();
+		megaRemarkListStore.commitChanges();
+		megaSumPortCraneListStore.commitChanges();
+		portCraneDeployedListtStore.commitChanges();
+		megaSumForkliftListStore.commitChanges();
+		forkliftDeployedListStore.commitChanges();
+		stevedoreCompanyListStore.commitChanges();
+		megaSumShoreCraneListStore.commitChanges();
+		megaSumPortAndShipCraneListStore.commitChanges();
+		roleOtherListStore.commitChanges();
+		standardStaffListStore.commitChanges();
+		standardGroupListStore.commitChanges();
+		equipmentListStore.commitChanges();
+		filteredEquipListStore.commitChanges();
+		shiftListStore.commitChanges();
+		deployedStaffList.commitChanges();
+		extraGroupListStore.commitChanges();
+		extraStaffListStore.commitChanges();
+		extraStaffGroupListStore.commitChanges();
+		otherStaffListStore.commitChanges();
+		
+		staffAndEquipmentDetailStore.load({
+			params: params,
+			callback:function(records, operation, success){
+				if(success){
+					var operatorCOArr = new Array();
+					var operatorFDArr = new Array();
+					var roleArr = new Array();
+					var countChangeShft = 0;
+					
+					me.getViewModel().setData({detailItem:records[0]});
+
+					var detailItem = me.getViewModel().get('detailItem');
+					var vesselOperationDeployStaffList = records[0].get('vesselOperationDeployStaffList');
+					
+					vesselOperationDeployStaffList.forEach(item => item.empId_temp = item.empId)
+					vesselOperationDeployedStaffListStore.setData(vesselOperationDeployStaffList);
+					
+					vesselOperationDeployedPCStore.removeAll();
+					vesselOperationDeployedFLStore.removeAll();
+					
+					vesselOperationDeployedStaffListStore.each(function(staffRecord){
+						var roleCdItem = staffRecord.data.roleCd.split(',');
+
+						if(!StringUtil.isNullorEmpty(staffRecord.get('changeShft'))){
+							countChangeShft++;
+						}
+						
+						for (var i = 0; i < roleCdItem.length; i++) {
+							if (roleCdItem[i].trim() == 'CO') {
+								var existingRecord = vesselOperationDeployedPCStore.findBy(function(record) {
+								    return record.get('empId') === staffRecord.data.empId;
+								});
+								
+								if (existingRecord === -1) {
+								    vesselOperationDeployedPCStore.insert(0, { empNm: staffRecord.data.empId.substring(2) + ' ' + staffRecord.data.engNm, empId: staffRecord.data.empId });
+								}
+							} 
+							else if (roleCdItem[i].trim() == 'FD') {
+								var existingRecord = vesselOperationDeployedFLStore.findBy(function(record) {
+								    return record.get('empId') === staffRecord.data.empId;
+								});
+								
+								if (existingRecord === -1) {
+									vesselOperationDeployedFLStore.insert(0, { empNm: staffRecord.data.empId.substring(2) + ' ' + staffRecord.data.engNm, empId: staffRecord.data.empId });
+								}
+							}
+						}
+					});
+					
+					forkliftDriverListStore.setData(standardStaffListStore.queryBy(function(rec, id){
+						return rec.get('roleCd').indexOf('FD') > -1;
+					}));
+					
+					vesselOperationDeployedStaffListStore.each(function(record){
+						if(record.get('roleCd').indexOf('CO') > -1){
+							operatorCOArr.push(record.data);
+						}
+						
+						if(record.get('roleCd').indexOf('FD') > -1){
+							operatorFDArr.push(record.data);
+						}
+					});
+					
+					operatorCOList.setData(operatorCOArr);
+					operatorFDList.setData(operatorFDArr);
+					
+					vesselOperationDeployedStaffListStore.commitChanges();
+					operatorCOList.commitChanges();
+					operatorFDList.commitChanges();
+					
+					refStaffManPowerPnl.setLoading(false);
+					refStaffPortCranePnl.setLoading(false);
+					refStaffForkLiftPnl.setLoading(false);
+					refStaffStevedorePnl.setLoading(false);
+					
+					me.onDetailTabLoad();
+				}
+			}
+		})
+	},
+	
+	onDetailTabLoad:function(){
+		var me = this;
+		
+		me.updateManPowerDetailViewForm();
+		me.setDefaultShiftTime();
+		me.updatePortCraneDetailViewForm();
+		me.updateForkliftDetailViewForm();
+	},
+
+	onStaffManPowerDblClick:function(g, rowIndex, colIndex, e){
+		var me = this;
+		var refs = me.getView().getReferences();
+		var grid = me.lookupReference('refStaffManPowerGrid');
+		var cboStaffGroup = refs.cboStaffGroup;
+		var refColStaffGroup = refs.refColStaffGroup;
+		var refColGroup = refs.refColGroup;
+		var refColRole = refs.refColRole;
+		var txtShift = refs.txtShift;
+		var standardStaffListStore = me.getStore('standardStaffList');
+		var filteredStaffListStore = me.getStore('filteredStaffList');
+		var standardStaffGroupListStore = me.getStore('standardStaffGroupList');
+		var extraStaffListStore = me.getStore('extraStaffList');
+		var extraStaffGroupListStore = me.getStore('extraStaffGroupList');
+		var otherStaffListStore = me.getStore('otherStaffList');
+		var operatorCOList = me.getStore('operatorCOList');
+		var operatorFDList = me.getStore('operatorFDList');
+		var portCraneDeployedList = me.getStore('portCraneDeployedList');
+		var forkliftDeployedList = me.getStore('forkliftDeployedList');
+		var refColStaffType = refs.refColStaffType;
+		var allRoleListStore = me.getStore('allRoleList');
+		var roleOtherListStore = me.getStore('roleOtherList');
+		
+		me.setComboBoxWithLocalCache(CacheServiceConstants.STAFF_TYPE_COMBOBOX, me.STAFF_TYPE_STORE);
+		
+		refColStaffTypeEditore.setStore(staffTypeComboStore);
+		
+		var isDeployed = false;
+		var selection = grid.getSelection() === null ? null : grid.getSelection()[0];
+		var data = e.getData();
+		
+		portCraneDeployedList.each(function(record){
+			if(record.crudState != 'C'){
+				if(data.empId == record.get('driver')){
+					isDeployed = true;
+				}
+			}
+		});
+		
+		forkliftDeployedList.each(function(record){
+			if(record.crudState != 'C'){
+				if(data.empId == record.get('driver')){
+					isDeployed = true;
+				}
+			}
+		});
+		
+		if(isDeployed){
+			MessageUtil.info('info_msg','staffandmanpower_empid_deploy_msg');
+			return false;
+		}
+		
+		refColStaffGroup.setHidden(false);
+		staffGroupColEditor.setHidden(false);
+		
+		if(data.grp == "" || data.grp == null || data.grp == 'StStaffs'){
+			filteredStaffListStore.clearData();
+			
+			filteredStaffListStore.setData(standardStaffListStore.queryBy(function(rec, id){
+				return rec.get('roleCd').indexOf(e.get('roleCd')) > -1;
+			}));
+			
+			filteredStaffListStore.commitChanges();
+		}else{
+			if(data.grp == "ExStaffs"){
+				filteredStaffListStore.clearData();
+				
+				filteredStaffListStore.setData(extraStaffListStore.queryBy(function(rec, id){
+					if(rec.get('roleCd').indexOf(e.get('roleCd')) > -1){
+						
+						if(rec.get('groupCd') == e.get('shftGrpCd')){
+							return rec;
+						}
+					}
+				}));
+				
+				filteredStaffListStore.commitChanges();
+			}
+			
+			if(data.grp == "OthersStaffs"){
+				filteredStaffListStore.clearData();
+				
+				filteredStaffListStore.setData(otherStaffListStore.queryBy(function(rec, id){
+					return rec.get('roleCd').indexOf(e.get('roleCd')) > -1;
+				}));
+				
+				filteredStaffListStore.commitChanges();
+			}
+		}
+		
+		var shiftListStore = me.getStore('shiftList');
+		var shiftData = shiftListStore.findRecord('shftId', txtShift.getValue());
+		var refColStartTime = refs.refColStartTime;
+		var refColToTime = refs.refColToTime;
+		
+		refColStartTime.setEditor({
+			xtype: 'timefield',
+		    increment: 1,
+		    maskRe: /[0-9:]/,
+		    altFormats: 'Hi',
+		    filter: 'string',
+		    format: 'H:i',
+		    editable: true,
+		    allowBlank: true,
+		    listeners:{
+		       	select:'onFromTimeSelect'
+		    }
+		});
+	
+		refColToTime.setEditor({
+			xtype: 'timefield',
+		    increment: 1,
+		    maskRe: /[0-9:]/,
+		    altFormats: 'Hi',
+		    filter: 'string',
+		    format: 'H:i',
+		    editable: true,
+		    allowBlank: true,
+		    listeners:{
+		       	select:'onToTimeSelect'
+		    }
+		})
+		
+		var fmHhmm = shiftData.get('fmHhmm');
+		var toHhmm = shiftData.get('toHhmm');
+		
+		if(fmHhmm == "2300" && toHhmm == "0659"){
+			fmHhmm = '0000';
+			toHhmm = '2359';
+		}
+		
+		refColStartTimeEditor.setMinValue(fmHhmm);
+		refColStartTimeEditor.setMaxValue(toHhmm);
+		
+		refColToTimeEditor.setMinValue(fmHhmm);
+		refColToTimeEditor.setMaxValue(toHhmm);
+	},
+	
+	
+	onClickWorkingAreaForklift:function(field, button, e){
+		var me = this;
+		var controlName = field.reference;
+		var refs = me.getReferences();
+		var workYmd = Ext.Date.format(refs.txtWorkYmd.getValue(), MOST.config.Locale.getShortDate());
+		var forkliftDeployedList = refs.refStaffForkliftGrid.getStore().getData();
+		var params = {
+			purpTpCd: refs.txtPurpose.getValue(),
+			workYmd: workYmd,
+			vslCallId: refs.refVslCallId.getValue(),
+			shftId: refs.txtShift.getValue(),
+			forkliftDeployedList: forkliftDeployedList
+		}
+		
+		me.openCodePopup('popup-workingareaofforkliftdriverpopup', 'refBtnWorkingAreaFL' , params);
+	},
+	
+	
+	onSearchTriggerClick:function(field, button, e){
+		var me = this;
+		var refs = me.getReferences();
+		var controlName = field.reference;
+		
+		me.openCodePopup('popup-workingareamultipopup', controlName);
+	},
+
+	onSelectGroup:function(){
+		var me = this;
+		var refs = me.getReferences();
+
+		var staffStore = refs.refManPowerDetailGrid.getStore();
+		var staffRole = refs.refCboRole.getStore();
+		var allRoleListStore = me.getStore('allRoleList');
+		var roleOtherListStore = me.getStore('roleOtherList');
+		var groupCode = refs.refGroupCbo.getValue();
+		var radioSelect = refs.rdgRoster.getChecked()[0].getSubmitValue();
+		var toggleBtn = (toggleBtn)? toggleBtn: refs.toggleStaffType.getValue().toUpperCase();
+		var date = refs.txtWorkYmd.getValue();
+		var formattedDate;
+		
+		if (date instanceof Date) {
+		    var year = date.getFullYear(); 
+		    var month = (date.getMonth() + 1).toString().padStart(2, '0'); 
+		    var day = date.getDate().toString().padStart(2, '0'); 
+		
+		    formattedDate = year + month + day; 
+		    
+		}
+		
+		allRoleListStore.clearFilter();
+		allRoleListStore.load({
+			params:{
+				groupCd: groupCode,
+				searchType: 'ALL_ROLE',
+				workYmd: formattedDate
+			}
+		});
+		allRoleListStore.commitChanges();
+		
+		staffStore.clearFilter();
+		staffStore.filter(function(record){
+			if(record.get('groupCd') === groupCode || groupCode === ''){
+				return true;
+			}else{
+				return false;
+			}
+		})
+		
+		//reset staff role combobox to default
+		refs.refCboRole.setValue(staffRole.getAt(0).get(refs.refCboRole.getValue()));
+	},
+	
+	onGridComboRenderer:function(val, cell){
+		var me = this;
+        var refs = me.getView().getReferences();
+		var displayFieldName = 'roleCdNm';
+		var codeFieldName = 'roleCd';
+		var allRoleListStore = me.getViewModel().getStore('allRoleList');
+		var standardStaffListStore = me.getViewModel().getStore('standardStaffList');
+		var extraStaffListStore = me.getStore('extraStaffList');
+		var otherStaffListStore = me.getStore('otherStaffList');
+		var roleOtherListStore = me.getStore('roleOtherList');
+		var operatorCOList = me.getStore('operatorCOList');
+		var operatorFDList = me.getStore('operatorFDList');
+		var cellData = cell.record.getData();
+		var filteredStaffListStore = null;
+		var equipmentListComboStore = null;
+		var handlingModeStore = null;
+		var staffTypeComboStore = null;
+		
+		if(cell.column.dataIndex == 'roleCd'){
+			if(cell.record.data.grp.toUpperCase() == 'OTHERSSTAFFS' || cell.record.data.grp.toUpperCase() == "EXSTAFFS"){
+				roleOtherListStore.clearFilter();
+				codeComboStore = roleOtherListStore;
+			}else{
+				allRoleListStore.clearFilter();
+				codeComboStore = allRoleListStore;
+			}
+		}
+		
+		if(cell.column.dataIndex == 'grp'){
+			staffTypeComboStore = me.getViewModel().getStore('staffTypeCombo');
+		}
+		
+		if(cell.column.dataIndex == 'whworkDivCd'){
+			handlingModeStore = me.getViewModel().getStore('handlingMode');
+		}
+		
+		if(codeComboStore != null){
+			if(!StringUtil.isNullorEmpty(val)){
+				var indx = -1;
+				
+				indx = codeComboStore.find(codeFieldName, val);
+				
+				if (indx != -1){
+					return codeComboStore.getAt(indx).get(displayFieldName); 
+				}else{
+					if(cell.column.dataIndex == 'mbsCd'){ 	
+						return codeComboStore.getAt(0).get(displayFieldName); 
+					}
+				}
+			}
+		}
+		
+		if(staffTypeComboStore != null){
+			var indx = -1;
+			
+			if(val == "" || val == null){
+				val = 'StStaffs';
+			}
+			
+			indx = staffTypeComboStore.find('scd', val);
+			
+			if(indx != -1){
+				return staffTypeComboStore.getAt(indx).get('scdNm');
+			}else{
+				return staffTypeComboStore.getAt(0).get('scdNm'); 
+			}
+		}
+		
+		if(equipmentListComboStore != null){
+			var indx = -1
+			
+			indx = equipmentListComboStore.find('scd', val);
+			
+			if(indx != -1){
+				return equipmentListComboStore.getAt(indx).get('scdNm');
+			}else{
+				return equipmentListComboStore.getAt(0).get('scdNm');
+			}
+		}
+		
+		if(handlingModeStore != null){
+			var indx = -1
+			
+			indx = handlingModeStore.find('whworkDivCd', val);
+			
+			if(indx != -1){
+				return handlingModeStore.getAt(indx).get('whworkDivCdNm');
+			}else{
+				return handlingModeStore.getAt(0).get('whworkDivCdNm');
+			}
+		}
+		
+		return '';
+	},
+	
+	onGridChangeShftComboRenderer:function(val, cell){
+		var me = this;
+        var refs = me.getView().getReferences();
+        var changeShift = me.getStore('changeShift');
+        
+        me.setComboBoxWithLocalCache(CacheServiceConstants.CHANGE_SHIFT_COMBOBOX, me.CHANGE_SHIFT_STORE);
+        
+        if(!StringUtil.isNullorEmpty(val)){
+        	if(changeShift != null){
+        		var indx = -1
+        		
+				indx = changeShift.find('changeShft', val);
+				
+				if(indx != -1){
+					return changeShift.getAt(indx).get('changeShft');
+				}else{
+					return changeShift.getAt(0).get('changeShft');
+				}
+        	}
+        }
+	},
+	
+	onGridHandlingModeComboRenderer:function(val, cell){
+		var me = this;
+        var refs = me.getView().getReferences();
+        var handlingModeStore = null;
+        
+        if(cell.column.dataIndex == 'whworkDivCd'){
+			handlingModeStore = me.getViewModel().getStore('handlingMode');
+		};
+		
+		if(!StringUtil.isNullorEmpty(val)){
+			if(handlingModeStore != null){
+				var indx = -1
+				
+				indx = handlingModeStore.find('whworkDivCd', val);
+				
+				if(indx != -1){
+					return handlingModeStore.getAt(indx).get('whworkDivCdNm');
+				}else{
+					return handlingModeStore.getAt(0).get('whworkDivCdNm');
+				}
+			}
+		}
+		
+		return '';
+	},
+
+	onGridGroupComboRenderer:function(value, metaData, record, rowIndex, colIndex, store){
+		var me = this;
+		var refs = me.getReferences();
+		var groupCombo = null;
+		
+		groupCombo = refs.refColGroup.getEditor().getStore();
+			
+		if(!StringUtil.isNullorEmpty(val)){
+			
+			if(groupCombo != null){
+				var indx = -1
+				
+				indx = groupCombo.find('groupCd', val);
+				
+				if(indx != -1){
+					return groupCombo.getAt(indx).get('groupNm');
+				}else{
+					if(groupCombo.getData().items.length == 0){
+						return '';
+					}else{
+						return groupCombo.getAt(0).get('groupNm');
+					}
+				}
+			}
+		}
+		
+		return '';
+	},
+	
+	onGridStaffComboRenderer:function(val, cell){
+		var me = this;
+		var refs = me.getReferences();
+		var filteredStaffListStore = me.getStore('filteredStaffList');
+		var standardStaffListStore = me.getViewModel().getStore('standardStaffList');
+		var extraStaffListStore = me.getStore('extraStaffList');
+		var otherStaffListStore = me.getStore('otherStaffList');
+		var indx = -1
+		var standardStaffArr = new Array();
+		var otherStaffArr = new Array();
+		var extraStaffArr = new Array();
+		
+		standardStaffListStore.clearFilter();
+		extraStaffListStore.clearFilter();
+		otherStaffListStore.clearFilter();
+		filteredStaffListStore.clearData();
+		
+		standardStaffListStore.each(function(record){
+			standardStaffArr.push(record.data);
+		});
+		
+		extraStaffListStore.each(function(record){
+			extraStaffArr.push(record.data);
+		});
+		
+		otherStaffListStore.each(function(record){
+			otherStaffArr.push(record.data);
+		})
+		
+		var allStaffArr = standardStaffArr.concat(extraStaffArr, otherStaffArr);
+
+		filteredStaffListStore.setData(allStaffArr);
+		
+		filteredStaffListStore.commitChanges();
+		
+		indx = filteredStaffListStore.find('empId', val);
+
+		if(indx != -1){
+			return filteredStaffListStore.getAt(indx).get('engNm');
+		}else{
+			return filteredStaffListStore.getAt(0).get('engNm'); 
+		}
+		
+		return '';
+	},
+	
+	onForkliftGridComboRenderer:function(val, cell){
+		var me = this;
+		var refs = me.getReferences();
+		var forkliftListStore = null;
+		var forkliftDriverListStore = null;
+		var operContractComboStore = null;
+		var refColFLOperContract = refs.refColFLOperContract;
+	
+		me.setComboBoxWithLocalCache(CacheServiceConstants.OPERATOR_CONTRACT_FORKLIFT_COMBOBOX, me.OPERATOR_CONTRACT_FL_STORE);
+		me.setComboBoxWithLocalCache(CacheServiceConstants.OPERATOR_CONTRACT_CO_COMBOBOX, me.OPERATOR_CONTRACT_CO_STORE);
+		
+		if(cell.column.dataIndex == 'eqFacNo'){
+			forkliftListStore = me.getViewModel().getStore('forkliftList');
+		}
+		
+		if(cell.column.dataIndex == 'jpbiDriverYn'){
+			jpbiDriverYn = val;
+			operContractComboStore = me.getViewModel().getStore('operContractFLCombo');
+		}
+		
+		if(cell.column.dataIndex == 'driver'){
+			if(jpbiDriverYn == 'O'){
+				forkliftDriverListStore = me.getViewModel().getStore('operatorFDList');
+			}
+		}
+		
+		if(forkliftListStore != null){
+			var indx = -1
+			
+			if(val == null){
+				indx = forkliftListStore.find('eqFacNo', refs.refColForkliftList.getEditor().getValue());
+			}else{
+				indx = forkliftListStore.find('eqFacNo', val);
+			}
+			
+			if(indx != -1){
+				return forkliftListStore.getAt(indx).get('eqFacNm');
+			}else{
+				return forkliftListStore.getAt(0).get('eqFacNm');
+			}
+		}
+		
+		if(forkliftDriverListStore != null){
+			var indx = -1
+			
+			if(val == null){
+				indx = forkliftDriverListStore.find('empId', refs.refColForkliftDriver.getEditor().getValue());
+			}else{
+				indx = forkliftDriverListStore.find('empId', val);
+			}
+			
+			if(indx != -1){
+				return forkliftDriverListStore.getAt(indx).get('engNm');
+			}else{
+				return forkliftDriverListStore.getAt(0).get('engNm');
+			}
+		}
+		
+		if(operContractComboStore != null){
+			var indx = -1
+		
+			indx = operContractComboStore.find('scd', val);
+			
+			if(indx != -1){
+				return operContractComboStore.getAt(indx).get('scdNm');
+			}else{
+				return operContractComboStore.getAt(0).get('scdNm');
+			}
+		}
+	},
+	
+	onRdgEquipChange:function(radio, newValue, oldValue){
+		var me = this;
+		var refs = me.getReferences();
+		var detailGrid = refs.refStaffEquipmentPortCraneDetailGrid;
+		var eqSelected = newValue.rdgEquip;
+		var store;
+		
+		refs.refEqpQty.setValue(1);
+		
+		if(eqSelected === 'EQ'){
+			store = me.getStore('equipmentList');
+			store.load({        
+				params: {
+					gridType: 'equipmentList'        
+				}    
+			});
+			store.commitChanges();
+			
+			refs.refEqpQty.setDisabled(true);
+			refs.refEqTypeCbo.setDisabled(false);
+		} else if (eqSelected === 'SC'){
+			store = me.getStore('shipCraneEquipmentList')
+			refs.refEqpQty.setDisabled(false);
+			refs.refEqTypeCbo.setDisabled(true);
+			refs.refEqTypeCbo.setValue('');
+		} else if (eqSelected === 'OT'){
+			store = me.getStore('othersEquipmentList')
+		}
+		
+		detailGrid.setStore(store);
+		me.updatePortCraneDetailViewForm(newValue.rdgEquip, null);
+	},
+
+	onRdgOpChange:function(radio, newValue, oldValue){
+		var me = this;
+		var refs = me.getReferences();
+		var eqSelected = newValue.rdgOp;
+		
+		if(eqSelected === 'JPB'){
+			refs.refCboContractor.setValue('');
+		}else if(eqSelected === 'CTT'){
+			refs.refCboOperator.setValue('');
+		}else{
+			refs.refCboOperator.setValue('');
+			refs.refCboContractor.setValue('');
+		}
+	},
+
+	onRdgForkliftContractorChange:function(radio, newValue, oldValue){
+		var me = this;
+		var refs = me.getReferences();
+		var eqSelected = newValue.rdgFl;
+		
+		if(eqSelected === 'JPB'){
+			refs.refCboContractorForklift.setValue('');
+		}else if(eqSelected === 'CTT'){
+			refs.refCboJPBForklift.setValue('');
+		}else{
+			refs.refCboContractorForklift.setValue('');
+			refs.refCboContractor.setValue('');
+		}
+	},
+	
+	updatePortCraneDetailViewForm: function(eqSelected, opSelected){
+		var me = this;
+		var refs = me.getReferences();
+		var eqSelected = (eqSelected)? eqSelected :refs.refRdgEquip.getChecked()[0].getSubmitValue();
+		var opSelected = (opSelected)? opSelected :refs.refRdgOp.getChecked()[0].getSubmitValue();
+
+		me.renderByEqpSelectedPortCrane(eqSelected, opSelected);
+		
+//		refs.refEqTypeCbo.setValue('');
+		refs.refRdSc.setValue('');
+		refs.refCboOperator.setValue('');
+		refs.refCboContractor.setValue('');
+		refs.ctlWorkingAreaPort.setValue('');
+	},
+
+	updateForkliftDetailViewForm: function(rdSelected){
+		var me = this;
+		var refs = me.getReferences();
+		var rdSelected = (rdSelected)? rdSelected :refs.rdgFl.getChecked()[0].getSubmitValue();
+		var grid = refs.refStaffEquipmentForkliftDetailGrid;
+		
+		grid.setStore(me.getStore('forkliftList'));
+		
+		refs.refCboForklift.setValue('');
+		refs.refCboJPBForklift.setValue('');
+		refs.refCboContractorForklift.setValue('');
+		refs.ctlWorkingAreaForklift.setValue('');
+	},
+
+	renderByEqpSelectedPortCrane: function(eqSelected, opSelected){
+		var me = this;
+		var refs = me.getReferences();
+		var eqSelected = (eqSelected)? eqSelected :refs.refRdgEquip.getChecked()[0].getSubmitValue();
+		var opSelected = (opSelected)? opSelected :refs.refRdgOp.getChecked()[0].getSubmitValue();
+		var equipmentTypeCodeListStore = me.getStore('equipmentTypeCodeList');
+
+		refs.refRdCtt.setDisabled(false);
+		refs.refRdOp.setDisabled(false);
+		refs.refRdOp.setValue(true);
+		refs.refRdNop.setDisabled(true);
+
+		if (eqSelected === 'EQ'){			
+			equipmentTypeCodeListStore.load({
+				callback: function(records, operation, success) {
+					equipmentTypeCodeListStore.commitChanges();
+					refs.refEqTypeCbo.setStore(equipmentTypeCodeListStore);
+				}
+			});
+			
+			var eqType = refs.refEqTypeCbo.getValue();
+			
+			if(eqType === 'PC'){			
+				refs.refRdNop.setDisabled(false);
+				refs.refRdNop.setValue(true);				
+				refs.refRdCtt.setDisabled(true);
+				refs.refRdOp.setDisabled(true);
+			}
+		}else if (eqSelected === 'SC'){
+			if (opSelected === 'CTT'){
+				refs.refEqpQty.setEditable(true)
+			}else{
+				refs.refEqpQty.setEditable(false)
+			}
+		}
+	},
+
+	onSelectEquPortCrane: function( e, newValue, oldValue, eOpts ) {
+		var me = this;
+		var refs = me.getReferences();
+		var eqTypeCbo = refs.refEqTypeCbo;
+		var scd;
+		var eqSelected = (eqSelected)? eqSelected :refs.refRdgEquip.getChecked()[0].getSubmitValue();
+		
+		if (eqSelected !== 'EQ'){
+			refs.refRdEq.setValue(true);
+		}
+
+		if(!eqTypeCbo || !(scd = eqTypeCbo.getValue(), scd))
+			return
+
+		var store = me.getStore('equipmentList');
+		
+		store.clearFilter();
+		
+		store.filterBy((record) =>{
+			if (StringUtil.isNullorEmpty(scd) || (record.get('eqTpCd').includes(scd) && !StringUtil.isNullorEmpty(record.get('capaDescr')))){
+				return true
+			}else 
+				return false
+		})
+
+		var detailGrid = refs.refStaffEquipmentPortCraneDetailGrid;
+		
+		detailGrid.setStore(store);
+
+		me.updatePortCraneDetailViewForm();
+	},
+
+	getOvertimeValue:function(){
+		var me = this;
+		var refs = me.getReferences();
+
+		if(refs.toggleStaffType.getValue().toUpperCase() === 'STSTAFFS' || refs.toggleStaffType.getValue().toUpperCase() === 'OTHERSSTAFFS'){
+			return 'WD'
+		}else{
+			return 'OT'
+		}
+	},
+	
+	setDefaultShiftTime: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var startTime = me.getShiftStartTime();
+		var endTime = me.getShiftEndTime();
+		
+		if(!startTime || !endTime){
+			return
+		}else{
+			refs.ctlStartTime.setValue(startTime);
+			refs.ctlEndTime.setValue(endTime);
+		}
+	},
+	
+	updateManPowerDetailViewForm: function(radioSelect, toggleBtn){
+		var me = this;
+		var refs = me.getReferences();
+		var radioSelect = (radioSelect)? radioSelect :refs.rdgRoster.getChecked()[0].getSubmitValue();
+		var toggleBtn = (toggleBtn)? toggleBtn: refs.toggleStaffType.getValue().toUpperCase();
+
+		if(!radioSelect || !toggleBtn)
+			return
+			
+		me.renderDetailGridManPower(radioSelect,toggleBtn);
+		me.renderBySelectedRadioManPower(radioSelect,toggleBtn);
+		me.renderByToggleBtnManPower(radioSelect,toggleBtn);
+		
+		refs.refCboRole.setValue('');
+		refs.refGroupCbo.setValue('');
+	},
+
+	updateManPowerDetailViewFormRadio: function(radioSelect, toggleBtn){
+		var me = this;
+		var refs = me.getReferences();
+		var radioSelect = (radioSelect)? radioSelect :refs.rdgRoster.getChecked()[0].getSubmitValue();
+		var toggleBtn = (toggleBtn)? toggleBtn: refs.toggleStaffType.getValue().toUpperCase();
+
+		if(!radioSelect || !toggleBtn){
+			return
+		}
+
+		me.renderDetailGridManPower(radioSelect,toggleBtn);
+		me.renderBySelectedRadioManPower(radioSelect,toggleBtn);
+	},
+
+	renderBySelectedRadioManPower: function(radioSelect, toggleBtn){
+		var me = this;
+		var refs = me.getReferences();
+		var radioSelect = (radioSelect)? radioSelect :refs.rdgRoster.getChecked()[0].getSubmitValue();
+		var toggleBtn = (toggleBtn)? toggleBtn: refs.toggleStaffType.getValue().toUpperCase();
+
+		if(!radioSelect || !toggleBtn){
+			return
+		}
+
+		var roleOtherListStore = me.getStore('roleOtherList');
+		var allRoleListStore = me.getStore('allRoleList');
+		var manPowerDetailStore = refs.refManPowerDetailGrid.getStore();
+		
+		var numberrerGridColumn = refs.refManPowerDetailGrid.getColumns()[0]; 
+		numberrerGridColumn.setHidden(true);
+		
+		if (radioSelect === 'GRP'){
+//			var gridStore = refs.refManPowerDetailGrid.getStore();
+//			gridStore.each(function(record) {
+//			    var index = gridStore.indexOf(record);
+//			    var node = refs.refManPowerDetailGrid.getView().getNode(index);
+//			    if (node) {
+//			        node.style.display = 'none';
+//			    }
+//			});
+			
+			var standardGroupListStore = me.getStore('standardGroupList');
+			
+			manPowerDetailStore.each(function(record,idx){
+			});
+			
+			refs.refGroupCbo.setDisabled(false);
+			me.setDataStaffRoleCombo(allRoleListStore);
+		}
+		else{
+			refs.refGroupCbo.setDisabled(true);
+			refs.refGroupCbo.setValue('');
+		}
+	},
+	setDataStaffRoleCombo: function(store){
+		var me = this;
+		var refs = me.getReferences();
+		var roleArr = [];
+		var manPowerDetailGridStore =  refs.refManPowerDetailGrid.getStore();
+		
+		manPowerDetailGridStore.each((item) => {
+			item.data.roleCd.split(',').forEach((roleCdItem) => {
+				if (roleArr.indexOf(roleCdItem) === -1) {
+					roleArr.push(roleCdItem);
+				}
+			});
+		})
+		roleArr.splice(0, 0, '');
+		
+		store.clearFilter();
+		store.filterBy(function (record) {
+			var roleCd = record.get('roleCd');
+			var index = roleArr.indexOf(roleCd);
+			
+			if (index > -1) {
+				roleArr.splice(index, 1);
+				return true;
+			} else {
+				return false;
+			}
+		})
+		
+		refs.refCboRole.setStore(store);	
+	},
+	renderDetailGridManPower: function(radioSelect, toggleBtn){
+		var me = this;
+		var refs = me.getReferences();
+		var store;
+		var radioSelect = (radioSelect)? radioSelect :refs.rdgRoster.getChecked()[0].getSubmitValue();
+		var toggleBtn = (toggleBtn)? toggleBtn: refs.toggleStaffType.getValue().toUpperCase();
+
+		if(!radioSelect || !toggleBtn){
+			return
+		}
+
+		var standardStaffListStore = me.getStore('standardStaffList');
+		var standardGroupListStore = me.getStore('standardGroupList');
+		var extraStaffListStore = me.getStore('extraStaffList');
+		var extraGroupListStore = me.getStore('extraGroupList');
+		var otherStaffListStore = me.getStore('otherStaffList');
+		var storeDeployed = me.getStore('vesselOperationDeployedStaffList');
+		var detailGrid = refs.refManPowerDetailGrid;
+		
+		if(radioSelect === 'STF'){
+			if(toggleBtn === 'STSTAFFS'){
+				store = standardStaffListStore;
+				
+				store.clearFilter();
+				store.load({
+					params:{
+						workYmd: Ext.Date.format(refs.txtWorkYmd.getValue(), MOST.config.Locale.getShortDate()),
+						purpTpCd: refs.txtPurpose.getValue(),
+						vslCallId: refs.refVslCallId.getValue(),
+						shftId: refs.txtShift.getValue()
+					}
+				});
+				
+				store.commitChanges();
+			} else if(toggleBtn === 'EXSTAFFS'){
+				store = extraStaffListStore;
+			} else if(toggleBtn === 'OTHERSSTAFFS'){
+				store = otherStaffListStore;
+				
+			}			
+		} else if (radioSelect === 'GRP'){
+			if(toggleBtn === 'STSTAFFS'){
+				store = standardGroupListStore;
+				me.onSearchComboGroupRosterListByStaffType('ST');
+			} else if(toggleBtn === 'EXSTAFFS'){
+				store = extraGroupListStore;
+				me.onSearchComboGroupRosterListByStaffType('EX');
+			}
+		}
+		
+		if(store && store.getCount() > 0 ) {
+			store.each(item=>item.data.empId_temp = item.data.empId)
+			me.highlightDeployedStaffManPower(storeDeployed);
+		}
+		
+		detailGrid.setStore(store);
+	},
+	
+	onSearchComboGroupRosterListByStaffType: function(typeOfStaff) {
+		var me = this;
+		var refs = me.getReferences();
+		var standardStaffGroupListStore = me.getStore('standardStaffGroupList');
+		var comboGroupRosterListStore = me.getStore('comboGroupRosterList');
+		
+		var refVslCallId = refs.refVslCallId;
+		var txtWorkYmd = refs.txtWorkYmd;
+		var txtPurpose = refs.txtPurpose;
+		var txtShift = refs.txtShift;
+		var workingYmd = Ext.Date.format(txtWorkYmd.getValue(), MOST.config.Locale.getShortDate());
+		
+		var params = {
+				colColor1: 'CC0000',
+				colColor2: '0606CC',
+				staffType: typeOfStaff,
+				scdLgv: 'EQ',
+				scdVal:'PC',
+				searchType: 'searchdeploylist',
+				workYmd: workingYmd,
+				shftId: txtShift.getValue(),
+				vslCallId: refVslCallId.getValue(),
+				purpTpCd: txtPurpose.getValue()
+		};
+		
+		standardStaffGroupListStore.load({
+			params: params,
+			
+			callback:function(records, operation, success){
+				if (success) {
+		            comboGroupRosterListStore.removeAll();
+		            
+		            var combo = Ext.ComponentQuery.query('combobox[reference=refGroupCbo]')[0];
+					if (combo) {
+						combo.setValue(null);
+					}
+
+		            records.forEach(function (record) {
+		                comboGroupRosterListStore.insert(0, {
+		                    groupCd: record.get('groupCd'), 
+		                    groupNm: record.get('groupNm')  
+		                });
+		            });
+		        }
+			}
+		});
+	},
+	
+	validateAddManPower: function(record, bizName, isAddList){
+		var me = this;
+		var keys = ['empId','roleCd'];
+		var compareValue = record.getData().empId + record.getData().roleCd ;
+		
+		return me.validateAddForGrid(bizName, keys, compareValue, record, isAddList);
+	},
+
+	validateAddPortCrane: function(record, bizName){
+		var me = this;
+		var keys = ['eqTpCd','eqFacNo','driver'];
+		var compareValue = record.getData().eqTpCd + record.getData().eqFacNo + record.getData().driver;
+		
+		return me.validateAddForGrid(bizName, keys, compareValue, record);
+	},
+
+	validateAddForklift: function(record, bizName){
+		var me = this;
+		var keys = ['eqFacNo','capaDescr','driver'];
+		var compareValue = record.getData().eqFacNo + record.getData().capaDescr + record.getData().driver;
+		
+		return me.validateAddForGrid(bizName, keys, compareValue, record);
+	},
+
+	validateAddForGrid : function(bizName, keys, compareValue, record, isAddList) {
+		var me = this;
+		var refs = me.getReferences();
+
+		switch(bizName){
+			case 'ManPower':
+				var grid = me.lookupReference('refStaffManPowerGrid')
+				break
+			case 'PortCrane':
+				var grid = me.lookupReference('refStaffEquipmentDeployGrid')
+				break
+			case 'Forklift':
+				var grid = me.lookupReference('refStaffForkliftGrid')
+				break
+		}
+
+		if(!grid){
+			return
+		}
+
+		var store = grid.getStore();
+
+		if(record == null) return;	
+			var idx = store.findBy(function(item) {
+						return me.getRecordConcatString(item, keys) === compareValue;
+				  });
+		
+		if(idx >= 0){
+			if(store.getAt(idx) == record){
+				return true;
+			} else {
+				if (!(isAddList === true)){
+					MessageUtil.warning('warning_msg', 'exsist_msg');
+				}
+				return false;
+			}
+		}
+		
+		return true;
+	},
+
+	validateWorkingTime: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var shiftStartTime = me.getShiftStartTime();
+		var shiftEndTime = me.getShiftEndTime();
+		var startTime = refs.ctlStartTime.getValue();
+		var endTime = refs.ctlEndTime.getValue();
+		
+		if(startTime > endTime){
+			MessageUtil.warning('Warning','tbl_start_end_time')
+			return false
+		}
+
+		if(startTime < shiftStartTime || endTime > shiftEndTime){
+			MessageUtil.warning('Warning','warningdatetimeinshift')
+			return false
+		}
+		
+		return true;
+	},
+
+	
+
+	getShiftStartTime: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var workYmd = Ext.Date.format(refs.txtWorkYmd.getValue(),"dmY");
+		var purposeTpCd = refs.txtPurpose.getValue();
+		var fmHhmm = '';
+		var idShift = refs.txtShift.getValue();
+		
+		if(refs.txtWorkYmd.getValue().getDay() == 5){
+			me.isFriday = true;
+		} else {
+			me.isFriday = false;
+		}
+		
+		if(idShift != '' && idShift != null) {
+			fmHhmm = refs.txtShift.getSelection().get('fmHhMm');
+			if(me.isFriday){
+				me.isFriday = false;
+			}
+		}
+		
+//		if(purposeTpCd !== 'NP0002'){
+//			if(idShift === 'SF0014'){
+//				if(me.isFriday){
+//					fmHhmm = '0700';
+//					me.isFriday = false;
+//				} else {
+//					fmHhmm = '0700';
+//				}
+//			}else if(idShift === 'SF0013'){
+//				fmHhmm = '1500';
+//			}else if(idShift === 'SF0012'){
+//				fmHhmm = '2300';
+//			}
+//		} else {
+//			if(idShift === 'SF0014'){
+//				if(me.isFriday){
+//					fmHhmm = '0700';
+//					me.isFriday = false;
+//				} else {
+//					fmHhmm = '0700';
+//				}
+//			}else if(idShift === 'SF0013'){
+//				fmHhmm = '1500';
+//			}else if(idShift === 'SF0012'){
+//				fmHhmm = '2300';
+//			}
+//		}
+		
+		var startTime = Ext.Date.parse(workYmd.concat(fmHhmm),"dmYHi");
+		
+		return startTime;
+	},
+
+	getShiftEndTime: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var workYmd = Ext.Date.format(refs.txtWorkYmd.getValue(),"dmY");
+		var purposeTpCd = refs.txtPurpose.getValue();
+		var toHhmm = '';
+		var idShift = refs.txtShift.getValue();
+		
+		if(refs.txtWorkYmd.getValue().getDay() == 5){
+			me.isFriday = true;
+		} else {
+			me.isFriday = false;
+		}
+		
+		if(idShift != '' && idShift != null) {
+			toHhmm = refs.txtShift.getSelection().get('toHhMm');
+			if(me.isFriday){
+				me.isFriday = false;
+			}
+		}
+		
+//		if(purposeTpCd !== 'NP0002'){
+//			if(idShift === 'SF0014'){
+//				if(me.isFriday){
+//					toHhmm = '1244';
+//					me.isFriday = false;
+//				} else {
+//					toHhmm = '1459';
+//				}
+//			}else if(idShift === 'SF0013'){
+//				toHhmm = '2259';
+//			}else if(idShift === 'SF0012'){
+//				toHhmm = '0659';
+//			}
+//		} else {
+//			//Internal Usage
+//			if(idShift === 'SF0014'){
+//				if(me.isFriday){
+//					toHhmm = '1244';
+//					me.isFriday = false;
+//				} else {
+//					toHhmm = '1459';
+//				}
+//			}else if(idShift === 'SF0013'){
+//				toHhmm = '2259';
+//			}else if(idShift === 'SF0012'){
+//				toHhmm = '0659';
+//			}
+//		}
+		
+		var endTime = Ext.Date.parse(workYmd.concat(toHhmm),"dmYHi");
+		
+		if(refs.txtShift.getSelection().get('shftIdx') == 3){
+			endTime.setDate(endTime.getDate() + 1);
+		}
+		
+		return endTime;
+	},
+
+
+	onSelectStaffType:function(container, button, pressed){
+		var me = this;
+		var refs = me.getReferences();
+
+		if(refs.txtPurpose.getValue() === 'NP0002' || button.getValue() === 'OTHERSSTAFFS'){
+			refs.rdgRoster.setValue({rdgRoster: 'STF'})
+		}
+		
+		refs.refGrpRadio.setDisabled(false)
+
+		me.updateManPowerDetailViewForm();
+	},
+
+	onSelectStaffGroup:function(radio, newValue, oldValue){
+		var me = this;
+		
+		if (newValue.rdgRoster === 'STF') {
+			var refs = me.getReferences();
+			var allRoleListStore = me.getStore('allRoleList');
+			var staffRole = refs.refCboRole.getStore();
+			allRoleListStore.clearFilter();
+			allRoleListStore.load({
+				params:{
+					searchType: 'ALL_ROLE',
+					staffType: 'ST',
+					workYmd: Ext.Date.format(refs.txtWorkYmd.getValue(), MOST.config.Locale.getShortDate())
+				}
+			});
+			allRoleListStore.commitChanges();
+			refs.refCboRole.setValue(staffRole.getAt(0).get(refs.refCboRole.getValue()));
+		}
+		
+		me.updateManPowerDetailViewFormRadio(newValue.rdgRoster);
+	},
+
+	renderByToggleBtnManPower:function(radioSelect,toggleValue){
+		var me = this;
+		var refs = me.getReferences();
+		var radioSelect = (radioSelect)? radioSelect :refs.rdgRoster.getChecked()[0].getSubmitValue();
+		var toggleBtn = (toggleBtn)? toggleBtn: refs.toggleStaffType.getValue().toUpperCase();
+
+		if(!radioSelect || !toggleBtn)
+			return
+		
+		if(toggleValue == 'OTHERSSTAFFS' ){			
+			refs.changeShiftbtn.setDisabled(true);
+			refs.changeShiftbtn.setValue(false);
+			refs.rdgRoster.setValue({rdgRoster: 'STF'})
+			refs.refGrpRadio.setDisabled(false);	
+		}
+		else if (toggleValue == 'STSTAFFS'){
+			refs.changeShiftbtn.setDisabled(true);
+			refs.changeShiftbtn.setValue(false);
+			refs.refGrpRadio.setDisabled(false);	
+		}
+		else {
+			refs.changeShiftbtn.setDisabled(false);
+			refs.changeShiftbtn.setValue(false);
+			refs.refGrpRadio.setDisabled(false);
+		}
+	},
+
+	onTriggerSearchForklift:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var forklift = refs.refCboForklift.getValue();
+		var store = me.getStore('forkliftList');
+		
+		store.clearFilter();
+		store.filterBy((record) => {
+			if(forklift === '' || record.get('capaCd').includes(forklift)){
+				return true
+			}else{
+				return false
+			}
+		})
+
+	},
+	
+	onSelectStaffRole:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var roleCd = refs.refCboRole.getValue();
+		
+		me.renderDetailGridManPower();
+		
+		var detailGrid = refs.refManPowerDetailGrid;	
+		var detailStore = detailGrid.getStore();	
+		var detailStoreId = detailGrid.getStore().getStoreId();
+		var groupStore = refs.refGroupCbo.getStore();
+		var shftId = refs.txtShift.getValue();
+		var groupCd = '';
+		var rstrType = 'STF';
+		var radioValue = refs.rdgRoster.getValue();
+		
+		if (radioValue.rdgRoster == "GRP") {
+			groupCd = refs.refGroupCbo.getValue();
+			rstrType = 'GRP';
+		}
+		
+		
+		detailStore.clearFilter();
+		detailStore.load({
+			 params: {
+				 shftId: shftId,
+				 workYmd: Ext.Date.format(refs.txtWorkYmd.getValue(), MOST.config.Locale.getShortDate()),
+				 colColor1: 'CC0000',
+				 colColor2: '0606CC',
+				 rstrType: rstrType,
+				 groupCd: groupCd
+			 }
+		 });
+		detailStore.commitChanges();
+		
+		detailStore.filterBy((record) => {
+			if(roleCd === '' || record.get('roleCd').split(',').includes(roleCd)){
+				return true
+			}
+			else{
+				return false
+			}
+		})
+		
+		detailGrid.setStore(detailStore);
+	},
+	
+	onSelectStaffNm:function(ele, rec, idx){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference('refStaffManPowerGrid');
+		var shiftListStore = me.getStore('shiftList');
+		var record = grid.getSelection()[0];
+		var refColWorkingArea = refs.refColWorkingArea;
+		var shiftData = shiftListStore.findRecord('shftId', record.get('shftId'));
+		var refColStartTime = refs.refColStartTime;
+		var refColToTime = refs.refColToTime;
+		var roleStore = refs.refColCboRole.getStore();
+		var staffRole;
+		var filteredStaffListStore = me.getStore('filteredStaffList');
+		
+		indx = filteredStaffListStore.find('empId', rec.data.empId);
+		
+		var fmHhmm = shiftData.get('fmHhmm');
+		var toHhmm = shiftData.get('toHhmm');
+		
+		if(fmHhmm == "2300" && toHhmm == "0659"){
+			fmHhmm = '0000';
+			toHhmm = '2359';
+		}
+		
+		refColStartTimeEditor.setMinValue(fmHhmm);
+		refColStartTimeEditor.setMaxValue(toHhmm);
+		refColToTimeEditor.setMinValue(fmHhmm);
+		refColToTimeEditor.setMaxValue(toHhmm);
+		
+		roleStore.each(function(record){
+			if(rec.get('roleCd').indexOf(record.get('roleCd')) > -1){
+				staffRole = record.get('roleCd');
+				return staffRole;
+			}
+		})
+		
+		if(StringUtil.isNullorEmpty(refs.refColCboRole.getValue())){
+			refs.refColCboRole.setValue(staffRole);
+		}
+	},
+	
+	onStaffListEdit:function(editor, context){
+		var me = this;
+		var refs = me.getReferences();
+		var staffGrid = refs.refStaffManPowerGrid;
+		var selection  = staffGrid.getSelection()[0];
+		var refColStartTime = refs.refColStartTime;
+		var portCraneDeployedList = me.getStore('portCraneDeployedList');
+		var forkliftDeployedList = me.getStore('forkliftDeployedList');
+		var gridStore = staffGrid.getStore();
+		var standardStaffListStore = me.getStore('standardStaffList');
+		var deployedStaffList = me.getStore('deployedStaffList');
+		
+		context.record.data.workingStatus = context.record.crudState;
+		context.record.data.userId = MOST.config.Token.getUserId();
+		context.record.data.frmTime = refs.refColStartTime.getEditor().getRawValue();
+		context.record.data.endTime = refs.refColToTime.getEditor().getRawValue();
+		
+		var isDeployed = false;
+		
+		if(context.record.data.grp == 'ExStaffs'){
+			var empIndx = deployedStaffList.find('empId', context.record.data.empId);
+			
+			if(empIndx > -1){
+				MessageUtil.info('info_msg','staffandmanpower_empid_overtime_msg');
+				gridStore.remove(selection);
+				return;
+			}
+		}
+		
+		portCraneDeployedList.each(function(record){
+			if(record.crudState != 'C'){
+				if(selection.get('empId') == record.get('empId')){
+					isDeployed = true;
+				}
+			}
+		});
+		
+		forkliftDeployedList.each(function(record){
+			if(record.crudState != 'C'){
+				if(selection.get('empId') == record.get('empId')){
+					isDeployed = true;
+				}
+			}
+		});
+		
+		if(isDeployed){
+			MessageUtil.info('info_msg','staffandmanpower_empid_deploy_msg');
+			return;
+		}
+		
+		if(context.record.data.workLoc != refs.refColWorkingArea.getEditor().getValue()){
+			if(context.record.crudState != 'C' || context.record.data.workingStatus != 'C'|| context.record.crudStateWas != 'C'){
+				selection.set('workLoc', refs.refColWorkingArea.getEditor().getValue());
+				
+				context.record.crudState = 'U';
+				context.record.data.workingStatus = 'U';
+				context.record.crudStateWas = 'U';
+				context.record.dirty = true;
+				
+				var workLoc = {workLoc: refs.refColWorkingArea.getEditor().getValue()};
+				
+				if(staffGrid.getSelectionModel().getSelection()[0].modified == null){
+					staffGrid.getSelectionModel().getSelection()[0].modified = workLoc;
+				}else{
+					staffGrid.getSelectionModel().getSelection()[0].modified.workLoc = workLoc.workLoc;
+				}
+				
+				context.record.data.workLoc = refs.refColWorkingArea.getEditor().getValue();
+			}else{
+				context.record.data.workLoc = refs.refColWorkingArea.getEditor().getValue();
+			}
+		}
+		
+		if(context.record.get('roleCd').indexOf('CO') > -1){
+			var operatorCOList = me.getStore('operatorCOList');
+			var selectedOperator = standardStaffListStore.findRecord('empId', context.record.get('empId'));
+			
+			if(selectedOperator != null){
+				selectedOperator.set('workLoc', refs.refColWorkingArea.getEditor().getValue());
+			}
+			
+			
+			operatorCOList.insert(operatorCOList.getData().length, selectedOperator);
+		}
+		
+		if(context.record.get('roleCd').indexOf('FD') > -1){
+			var operatorFDList = me.getStore('operatorFDList');
+			var selectedOperator = standardStaffListStore.findRecord('empId', context.record.get('empId'));
+			
+			if(selectedOperator != null){
+				selectedOperator.set('workLoc', refs.refColWorkingArea.getEditor().getValue());
+			}
+			
+			operatorFDList.insert(operatorFDList.getData().length, selectedOperator);
+		}
+	},
+	
+	onCOCancelEdit:function(rowEditing, context){
+		var me = this;
+		me.gridCancelEdit(rowEditing, context);
+	},
+	
+	onFromTimeSelect:function(ele, rec, idx){
+		var me = this;
+		var refs = me.getReferences();
+		var refStaffManPowerGrid = refs.refStaffManPowerGrid;
+		var selection = refStaffManPowerGrid.getSelection() === null ? null : refStaffManPowerGrid.getSelection()[0];
+		
+		selection.data.frTime = ele.getRawValue();
+		
+	},
+	
+	onToTimeSelect:function(ele, rec, idx){
+		var me = this;
+		var refs = me.getReferences();
+		var refStaffManPowerGrid = refs.refStaffManPowerGrid;
+		var selection = refStaffManPowerGrid.getSelection() === null ? null : refStaffManPowerGrid.getSelection()[0];
+		
+		selection.data.endTime = ele.getRawValue();
+	},
+	
+	// Toolbar Save Button
+	onDetailSave:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailView = me.getDetailBizView();
+		var detailItem = me.getViewModel().get('theMain');
+		var portCraneDeployedListStore = me.getStore('portCraneDeployedList');
+		
+		if(portCraneDeployedListStore.getData().length > 0){
+			me.saveProcess();
+		} else {
+			//Validation: In case of existing approval MEGA of Port/Shore Crane following JPVC/Date/Shift/Purpose, system should alert to user 
+			if(refs.refVslCallId.getValue() && refs.txtPurpose.getValue() && refs.txtWorkYmd.getValue() && refs.txtShift.getValue()){
+				var validationCode = me.getStore('staffDeploymentJpvcValidationCodeStore');
+				
+				validationCode.load({
+		     		params : {
+						tyCd : 'ISEXISTED_APPROVAL_CRANE_MEGA',
+						vslCallId : refs.refVslCallId.getValue(),
+						purpTpCd : refs.txtPurpose.getValue(),
+						shftId : refs.txtShift.getValue(),
+						workYmd : Ext.Date.format(refs.txtWorkYmd.getValue(), MOST.config.Locale.getShortDate())
+					},
+					
+					callback: function(records, operation, success) {
+						if (success) {
+							if(records[0].get("isValidated") === "Y"){
+								MessageUtil.question('confirmation_msg', 'staffandeqDeployment_Crane_Msg',null, 
+										function(button){
+											if (button === 'ok') {
+												me.saveProcess();
+											}
+										}
+									);
+							} else {
+								me.saveProcess();
+							}
+						}
+					}
+		     	});
+			}else{
+				MessageUtil.show(Ext.Msg.INFO,'success_msg' ,'nothingchange_msg','',
+						function(button){
+							if (button === 'ok') {
+								me.onSearch();
+								var win = Ext.WindowManager.getActive();
+								if (win) {
+								    win.close();
+								}
+							}else{
+								me.onSearch();
+								var win = Ext.WindowManager.getActive();
+								if (win) {
+								    win.close();
+								}
+							}
+					});
+			}
+		}
+	},
+	
+	saveProcess:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var staffAndEquipmentDetailStore = me.getStore('staffAndEquipmentDetail');
+		var vesselOperationDeployedStaffListStore = me.getStore('vesselOperationDeployedStaffList');
+		var portCraneDeployedListStore = me.getStore('portCraneDeployedList');
+		var forkliftDeployedListStore = me.getStore('forkliftDeployedList');
+		var workingYmd = Ext.Date.format(refs.txtWorkYmd.getValue(), MOST.config.Locale.getShortDate());
+		var sendArray = new Array();
+		var portCraneArray = new Array();
+		var forkliftArray = new Array();
+		var detailItem = Ext.create('MOST.model.planning.StaffAndDeployment');
+		var detailView = me.getDetailBizView();
+		var isCreated = detailItem.phantom;
+		
+		vesselOperationDeployedStaffListStore.getModifiedRecords().forEach(function(record, index, array){
+			
+			if(record.get('frTime').length > 4){
+				var temp = record.get('frTime').split(':').join('');
+				record.set('frTime', temp);
+			}
+			
+			if(record.get('endTime').length > 4){
+				var temp = record.get('endTime').split(':').join('');
+				record.set('endTime', temp);
+			}
+			
+			sendArray.push(record.data);
+		});
+		
+		portCraneDeployedListStore.getModifiedRecords().forEach(function(record, index, array){
+			record.data.workYmd = workingYmd;
+			portCraneArray.push(record.data);
+		})
+		
+		vesselOperationDeployedStaffListStore.getRemovedRecords().forEach(function(record, index, array){
+			sendArray.push(record.data);
+		});
+		
+		portCraneDeployedListStore.getRemovedRecords().forEach(function(record, index, array){
+			portCraneArray.push(record.data);
+		});
+		
+		forkliftDeployedListStore.getModifiedRecords().forEach(function(record, index, array){
+			record.data.workYmd = workingYmd;
+			forkliftArray.push(record.data);
+		});
+		
+		forkliftDeployedListStore.getRemovedRecords().forEach(function(record, index, array){
+			forkliftArray.push(record.data);
+		})
+		
+		if(sendArray.length > 0){
+			var proxy = detailItem.getProxy();
+			
+			proxy.url = staffAndEquipmentDetailStore.getProxy().url;
+			
+			var headers = {
+				Accept:'application/json'
+			}
+			
+			proxy.headers = headers;
+			
+			detailItem.set('vesselOperationDeployStaffList', sendArray);
+		}
+		
+		if(portCraneArray.length >0){
+			var proxy = detailItem.getProxy();
+			
+			proxy.url = staffAndEquipmentDetailStore.getProxy().url;
+			
+			var headers = {
+				Accept:'application/json'
+			}
+			
+			proxy.headers = headers;
+			
+			detailItem.set('portCraneDeployedList', portCraneArray);
+		}
+		
+		if(forkliftArray.length >0){
+			var proxy = detailItem.getProxy();
+			
+			proxy.url = staffAndEquipmentDetailStore.getProxy().url;
+			
+			var headers = {
+				Accept:'application/json'
+			}
+			
+			proxy.headers = headers;
+			
+			detailItem.set('forkliftDeployedList', forkliftArray);
+		}
+		
+		var updateParm = Ext.create('MOST.model.foundation.parm.UpdateBizParm');
+		var isCreated = detailItem.phantom;
+		
+		updateParm.getProxy().url = staffAndEquipmentDetailStore.getProxy().url;
+		updateParm.set('workingStatus', isCreated ? WorkingStatus.INSERT : WorkingStatus.UPDATE);
+		updateParm.set('userId', MOST.config.Token.getUserId());
+		updateParm.set('item', detailItem.data);
+		updateParm.save({
+			success : function(records,success){
+				if(success.success){
+					staffAndEquipmentDetailStore.commitChanges();
+					vesselOperationDeployedStaffListStore.commitChanges();
+					portCraneDeployedListStore.commitChanges();
+					forkliftDeployedListStore.commitChanges();					
+
+					MessageUtil.saveSuccess();
+					me.onRetrieveStaffEquip();
+				}
+			}
+		});
+	},
+	
+	onAddStaffManPower:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailGrid = me.lookupReference('refManPowerDetailGrid');
+		var detailGridSelection = (detailGrid.getSelection() === null ? null: detailGrid.getSelection()[0]);
+		
+		if (detailGridSelection == null){
+			MessageUtil.warning('warning_msg', 'selectadddata_msg');
+			return;
+		}
+		
+		var params = {
+			shftId : refs.txtShift.getValue(),
+			empId : detailGridSelection.get('empId'),
+			shftGrpCd: detailGridSelection.get('groupCd'),
+			shftGrpNm: detailGridSelection.get('groupNm'),
+			workYmd : Ext.Date.format(refs.txtWorkYmd.getValue(), MOST.config.Locale.getShortDate()),
+		};
+
+		if(me.validateWorkingTime()){
+			var store = me.getStore('staffDeploymentStaffValidation');
+			
+			store.load({
+				params: params,
+				callback: function(records, operation, success) {
+					if (success) {
+						me.insertDeployedStaffManPower(detailGridSelection);
+					}
+				}
+			});
+		}
+	},
+
+	onAddStaffPortCrane:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailGrid = me.lookupReference('refStaffEquipmentPortCraneDetailGrid')
+		var detailGridSelection = (detailGrid.getSelection() === null ? null: detailGrid.getSelection()[0]);
+		
+		if (detailGridSelection == null){
+			MessageUtil.warning('warning_msg', 'selectadddata_msg');
+			return;
+		}
+		me.insertDeployedPortCrane(detailGridSelection)
+	},
+
+	onAddStaffForklift:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailGrid = me.lookupReference('refStaffEquipmentForkliftDetailGrid')
+		var detailGridSelection = (detailGrid.getSelection() === null ? null: detailGrid.getSelection()[0]);
+		
+		if (detailGridSelection == null){
+			MessageUtil.warning('warning_msg', 'selectadddata_msg');
+			return;
+		}
+		
+		me.insertDeployedForklift(detailGridSelection);
+	},
+
+	onAddListStaffManPower:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailGrid = me.lookupReference('refManPowerDetailGrid');
+		var store = detailGrid.getStore();
+		
+		store.each(function(rec){
+			me.insertDeployedStaffManPower(rec,true)
+		})
+	},
+
+	insertDeployedForklift:function(detailGridSelection){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference('refStaffForkliftGrid');
+		var store = me.getStore('forkliftDeployedList');
+		var record = Ext.create('MOST.model.planning.StaffAndDeployment');
+
+		var rdSelected = (rdSelected)? rdSelected :refs.rdgFl.getChecked()[0].getSubmitValue();
+		
+		if (rdSelected === 'JPB'){
+			for(var i=0; i<store.data.items.length; i++){
+				var rec = store.data.items[i];
+				
+				if(rec.get('driver') === refs.refCboJPBForklift.getValue()){
+					MessageUtil.warning('warning_msg', 'The staff has already been assigned.');
+					return false;
+				}
+			}
+		}
+		
+		grid.filters.clearFilters();
+		grid.filters.disable();
+
+		store.clearFilter();
+				
+	 	var idx = 0;
+	 	
+	 	if(grid.getSelection() && grid.getSelection().length>0) {
+	 		idx = store.indexOfId(grid.getSelection()[0].get('id'));
+	 	}
+
+		var purposeTpCd = refs.txtPurpose.getValue();					
+		var workingYmd = Ext.Date.format(refs.txtWorkYmd.getValue(), MOST.config.Locale.getShortDate());
+		
+		record.set('capaDescr',detailGridSelection.get('capaDescr'));
+		record.set('eqFacNo',detailGridSelection.get('eqFacNo'));
+		record.set('eqNo',detailGridSelection.get('eqNo'));
+		record.set('eqTpCd',detailGridSelection.get('eqTpCd'));
+		record.set("userId", MOST.config.Token.getUserId());
+		record.set("vslCallId", refs.refVslCallId.getValue());
+		record.set("scn", refs.ctlDetailScn.getValue());
+		record.set("workYmd", workingYmd);
+		record.set("shftId", refs.txtShift.getValue());
+		record.set("purpTpCd", refs.txtPurpose.getValue());
+		record.set('pageNumber', 'PN109');
+		record.set('rsDivCd', 'EQ');
+		record.set('eqNo', record.get('eqFacNo'));
+		record.set('roleCd','FD');
+		record.set('intExtDivCd',detailGridSelection.get('ownDivCd'));
+		record.set('ownDivCdNm',detailGridSelection.get('ownDivCdNm'));
+
+		var driver = null;
+		var driverHidden = null;
+		var jpbiDriverYn = null;
+		
+		if (rdSelected === 'JPB'){
+			if (!refs.refCboJPBForklift.getValue()){
+				MessageUtil.mandatoryFieldInValid();
+				return
+			}
+			
+			driver = refs.refCboJPBForklift.getValue();
+			driverHidden = driver.substring(2);
+			jpbiDriverYn = 'O';
+		} else if (rdSelected === 'CTT'){
+			if (!refs.refCboContractorForklift.getValue()){
+				MessageUtil.mandatoryFieldInValid();
+				return
+			}
+			
+			driver = refs.refCboContractorForklift.getValue();
+			driverHidden = refs.refCboContractorForklift.getValue();
+			jpbiDriverYn = 'C';
+		} else {
+			jpbiDriverYn = 'N';
+		}
+
+		record.set('driverHidden', driverHidden);
+		record.set('driver',driver);
+		record.set('jpbiDriverYn',jpbiDriverYn);
+		record.set('workLoc',refs.ctlWorkingAreaForklift.getValue());
+
+		
+		if(record.data.workingStatus == null){
+			record.set('workingStatus', 'C');
+		} else {
+			record.set('workingStatus', record.crudState);
+		}
+
+		if(me.validateAddForklift(record,'Forklift')){
+			store.insert(idx, record);
+		}
+	},
+
+	insertDeployedPortCrane:function(detailGridSelection){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference('refStaffEquipmentDeployGrid');
+		var store = me.getStore('portCraneDeployedList');
+		var record = Ext.create('MOST.model.planning.StaffAndDeployment');
+
+		var eqSelected = (eqSelected)? eqSelected :refs.refRdgEquip.getChecked()[0].getSubmitValue();
+		var opSelected = (opSelected)? opSelected :refs.refRdgOp.getChecked()[0].getSubmitValue();
+		
+		if (opSelected === 'JPB'){
+			for(var i=0; i<store.data.items.length; i++){
+				var rec = store.data.items[i];
+				
+				if(rec.get('driver') === refs.refCboOperator.getValue()){
+					MessageUtil.warning('warning_msg', 'The staff has already been assigned.');
+					return false;
+				}
+			}
+		}
+		
+		grid.filters.clearFilters();
+		grid.filters.disable();
+
+		store.clearFilter();
+				
+	 	var idx = 0;
+	 	
+	 	if(grid.getSelection() && grid.getSelection().length>0) {
+	 		idx = store.indexOfId(grid.getSelection()[0].get('id'));
+	 	}
+		
+		var purposeTpCd = refs.txtPurpose.getValue();					
+		var workingYmd = Ext.Date.format(refs.txtWorkYmd.getValue(), MOST.config.Locale.getShortDate());
+		
+		record.set('capaDescr',	detailGridSelection.get('capaDescr'));
+		record.set('eqFacNm',	detailGridSelection.get('eqFacNm'));
+		record.set('eqFacNo',	detailGridSelection.get('eqFacNo'));
+		record.set('eqNo',		detailGridSelection.get('eqNo'));
+		record.set('eqTpCd',	detailGridSelection.get('eqTpCd'));
+		record.set('eqGrp',		detailGridSelection.get('eqGrp'));
+        record.set('eqTpCdNm',	detailGridSelection.get('eqTpCdNm'));
+		record.set("userId", 	MOST.config.Token.getUserId());
+		record.set("vslCallId", refs.refVslCallId.getValue());
+		record.set("scn", refs.ctlDetailScn.getValue());
+		record.set("workYmd", 	workingYmd);
+		record.set("shftId", 	refs.txtShift.getValue());
+		record.set("purpTpCd", 	refs.txtPurpose.getValue());
+		record.set('pageNumber', 'PN109');
+		record.set('eqNo', 		record.get('eqFacNo'));
+		record.set('rsDivCd', 	'EQ');
+		record.set('roleCd',	'CO');
+		
+		var eqQty = null;
+		
+		if (eqSelected === 'SC'){
+			record.set('eqTpCdNm','SHIP CRANE');
+			if (!refs.refEqpQty.getValue())
+			{
+				eqQty = 1;
+			}
+			else{
+				eqQty = refs.refEqpQty.getValue();
+			}		
+		}
+
+		var driver = null;
+		var driverHidden = null;
+		var jpbiDriverYn = null;
+		
+		if (opSelected === 'JPB'){
+			if (!refs.refCboOperator.getValue()){
+				{
+					MessageUtil.mandatoryFieldInValid();
+					return
+				}
+			}
+			driver = refs.refCboOperator.getValue();
+			driverHidden = driver.substring(2);
+			jpbiDriverYn = 'O';
+		}
+		else if (opSelected === 'CTT'){
+			if (!refs.refCboContractor.getValue()){
+				{
+					MessageUtil.mandatoryFieldInValid();
+					return
+				}
+			}
+			
+			driver = refs.refCboContractor.getValue();
+			driverHidden = refs.refCboContractor.getValue();
+			jpbiDriverYn = 'C';
+		}
+
+		record.set('eqQty',eqQty);
+		record.set('driver',driver);	
+		record.set('driverHidden',driverHidden);	
+		record.set('workLoc',refs.ctlWorkingAreaPort.getValue());
+		record.set('jpbiDriverYn',jpbiDriverYn);
+		
+		if(record.data.workingStatus == null){
+			record.set('workingStatus', 'C');
+		} else {
+			record.set('workingStatus', record.crudState);
+		}
+
+		if(me.validateAddPortCrane(record,'PortCrane')){
+			store.insert(idx, record);
+		}
+	},
+	
+	onEquipmentDeployGridClick:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference('refStaffEquipmentDeployGrid');
+		var record = grid.getSelection() == null ? null : grid.getSelection()[0];
+	
+		if(record == null) return;
+		
+		if(record.get('eqTpCd').substring(0,2) === 'SR'){
+			refs.refRdSc.setValue(true);
+		}else if(record.get('eqTpCdNm') === '-'){
+			refs.refRdOt.setValue(true);
+		}else{
+			refs.refRdEq.setValue(true);
+			refs.refEqTypeCbo.setValue(record.get('eqTpCd'));
+		}
+		
+		if(record.get('jpbiDriverYn')==='O'){
+			refs.refRdOp.setValue(true);
+			refs.refCboOperator.setValue(record.get('driver'));
+			refs.refCboContractor.setValue('');
+		}else if(record.get('jpbiDriverYn') === 'C'){
+			refs.refRdCtt.setValue(true);
+			refs.refCboOperator.setValue('');
+			refs.refCboContractor.setValue(record.get('driver'));
+		}else{
+			refs.refRdNop.setValue(true);
+			refs.refCboOperator.setValue('');
+			refs.refCboContractor.setValue('');
+		}
+		refs.ctlWorkingAreaPort.setValue(record.get('workLoc'));
+		
+		var equipGridStore = refs.refStaffEquipmentPortCraneDetailGrid.getStore();
+		var selectedData = null;
+		
+		for(var i = 0; i <equipGridStore.data.items.length; i++){
+			var epRecord = equipGridStore.data.items[i];
+			if(epRecord.get('eqFacNo') === record.get('eqFacNo')){
+                selectedData = epRecord;
+			}
+		}
+
+		if(selectedData){
+			refs.refStaffEquipmentPortCraneDetailGrid.getSelectionModel().select(selectedData, false, true);
+			if(refs.refStaffEquipmentPortCraneDetailGrid.getView().getRow(selectedData)){
+				refs.refStaffEquipmentPortCraneDetailGrid.getView().getRow(selectedData).scrollIntoView();
+			}
+		}
+	},
+
+	onDeployForkliftGridClick:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference('refStaffForkliftGrid');
+		var record = grid.getSelection() == null ? null : grid.getSelection()[0];
+		
+		if(record == null) return;
+		
+		if(record.get('jpbiDriverYn')==='O'){
+			refs.refRadioForkliftJPB.setValue(true);
+			refs.refCboJPBForklift.setValue(record.get('driver'));
+			refs.refCboContractorForklift.setValue('');
+		}else if(record.get('jpbiDriverYn') === 'N'){
+			refs.refRadioForkliftNoDriver.setValue(true);
+			refs.refCboJPBForklift.setValue('');
+			refs.refCboContractorForklift.setValue('');
+		}else{
+			refs.refRadioForkliftContractor.setValue(true);
+			refs.refCboJPBForklift.setValue('');
+			refs.refCboContractorForklift.setValue(record.get('driver'));
+		}
+		
+		refs.ctlWorkingAreaForklift.setValue(record.get('workLoc'));
+		
+		var equipGridStore = refs.refStaffEquipmentForkliftDetailGrid.getStore();
+		var selectedData = null;
+		
+		for(var i = 0; i <equipGridStore.data.items.length; i++){
+			var epRecord = equipGridStore.data.items[i];
+			if(epRecord.get('eqFacNo') === record.get('eqFacNo')){
+                selectedData = epRecord;
+			}
+		}
+
+		if(selectedData){
+			refs.refStaffEquipmentForkliftDetailGrid.getSelectionModel().select(selectedData, false, true);
+			if(refs.refStaffEquipmentForkliftDetailGrid.getView().getRow(selectedData)){
+				refs.refStaffEquipmentForkliftDetailGrid.getView().getRow(selectedData).scrollIntoView();
+			}
+		}
+	},
+	
+	insertDeployedStaffManPower:function(detailGridSelection, isAddList){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference('refStaffManPowerGrid');
+		var store = me.getStore('vesselOperationDeployedStaffList');
+		var storeJBPPC = me.getStore('empPCCombo');
+		var storeJBPFL = me.getStore('empFLCombo');
+		var record = Ext.create('MOST.model.planning.StaffAndDeployment');
+			
+		grid.filters.clearFilters();
+		grid.filters.disable();
+
+		store.clearFilter();
+				
+	 	var idx = 0;
+	 	
+	 	if(grid.getSelection() && grid.getSelection().length>0) {
+	 		idx = store.indexOfId(grid.getSelection()[0].get('id'));
+	 	}
+		
+		var purposeTpCd = refs.txtPurpose.getValue();					
+		var workingYmd = Ext.Date.format(refs.txtWorkYmd.getValue(), MOST.config.Locale.getShortDate());
+		var fmHhmm = Ext.Date.format(refs.ctlStartTime.getValue(),"Hi");
+		var toHhmm = Ext.Date.format(refs.ctlEndTime.getValue(),"Hi");
+		
+		Object.assign(record,detailGridSelection);
+		record.set("userId", MOST.config.Token.getUserId());
+		record.set("vslCallId", refs.refVslCallId.getValue());
+		record.set("scn", refs.ctlDetailScn.getValue());
+		record.set("workYmd", workingYmd);
+		record.set("shftId", refs.txtShift.getValue());
+		record.set("purpTpCd", refs.txtPurpose.getValue());
+		record.set('workCd', me.getOvertimeValue());
+		record.set('pageNumber', 'PN109');
+		record.set('rsDivCd', 'MP');
+		
+		if(purposeTpCd == 'NP0002'){
+			record.set('stfGrp', "STF");
+		}else{
+			record.set('stfGrp',"GRP");
+		}
+
+		if (refs.changeShiftbtn && refs.changeShiftbtn.checked){
+			record.set('changeShft','Y');
+		}else{
+			record.set('changeShft','N');
+		}
+		
+		if (refs.refCheckWorkingInLunchTime && refs.refCheckWorkingInLunchTime.checked){
+			record.set('lunchTimeWork','Y');
+		}else{
+			record.set('lunchTimeWork','N');
+		}
+
+		record.set('workLoc',refs.ctlWorkingArea.getValue());
+		record.set('frTime', fmHhmm);
+		record.set('endTime', toHhmm);
+		record.set('pageNumber', 'PN109');
+		record.set('rsDivCd', 'MP');
+		record.set('pageNumber', 'PN109');
+		record.set('rsDivCd', 'MP');
+		record.set('shftGrpCd', detailGridSelection.get('groupCd'));
+		record.set('shftGrpNm', detailGridSelection.get('groupNm'));
+		record.set('empId_temp', detailGridSelection.get('empId'));
+		
+		if(record.data.workingStatus == null){
+			record.set('workingStatus', 'C');
+		} else {
+			record.set('workingStatus', record.crudState);
+		}
+		
+		var toggleBtn = refs.toggleStaffType.getValue().toUpperCase();
+		
+		if(toggleBtn === 'STSTAFFS'){
+			record.set('grp', 'St Staffs');
+		}else if(toggleBtn === 'EXSTAFFS'){
+			record.set('grp', 'Ex Staffs');
+		}else if(toggleBtn === 'OTHERSSTAFFS'){
+			record.set('grp', 'Others Staffs');
+		}
+		
+		if(refs.txtPurpose.getValue() === 'MP0001'){
+			record.set('whworkDivCd', refs.rdgHandling.getValue().rdgHandling)
+		}
+		
+		if(me.validateAddManPower(record,'ManPower',isAddList)){
+			var roleCdItem = '';
+			var staffRole = refs.refCboRole.getValue();
+			
+			roleCdItem = record.data.roleCd.split(',');
+			
+			if (staffRole != '' && staffRole != null) {
+				record.data.roleCd = staffRole;
+			}
+			store.insert(idx, record);
+			me.highlightDeployedStaffManPower(store);
+			
+			for (var i = 0; i < roleCdItem.length; i++) {
+			    if (roleCdItem[i].trim() === 'CO') {
+			        var existingRecordJBPPC = storeJBPPC.findBy(function(PCstoreRecord) {
+			            return PCstoreRecord.get('empId') === record.data.empId;
+			        });
+
+			        if (existingRecordJBPPC === -1) {
+			            storeJBPPC.insert(0, {
+			                empNm: record.data.engNm,
+			                empId: record.data.empId
+			            });
+			        }
+			    } else if (roleCdItem[i].trim() === 'FD') {
+			        var existingRecordJBPFL = storeJBPFL.findBy(function(FLstoreRecord) {
+			            return FLstoreRecord.get('empId') === record.data.empId;
+			        });
+
+			        if (existingRecordJBPFL === -1) {
+			            storeJBPFL.insert(0, {
+			                empNm: record.data.engNm,
+			                empId: record.data.empId
+			            });
+			        }
+			    }
+			}
+		}
+	},
+	
+	highlightDeployedStaffManPower: function(storeDeployed){
+		var me = this;
+		var refs =me.getReferences();
+		var gridManPowerDetail = refs.refManPowerDetailGrid;
+		var storeDetail = gridManPowerDetail.getStore();
+		
+		storeDetail.each(function (item,idx) {
+			var row = gridManPowerDetail.getView().getRow(idx);
+			
+			if(storeDeployed.findRecord('empId',item.data.empId) && row){
+				row.style.color = '#FF1493';
+			}else if(row){
+				row.style.color = '#000000';
+			} 
+		}); 
+	},
+	
+	onSelectPurpose: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var purpose = refs.txtPurpose.getValue();
+		
+		if(!purpose){
+			purpose = me.getViewModel().get('theSearchDetail').data.purpTpCd;
+		}
+		
+		if('NP0001' === purpose || 'MP0001' === purpose){
+			refs.rdgRoster.setValue({rdgRoster: 'GRP'});
+			
+			if('MP0001' === purpose)
+			{
+				me.onSetHandlingMode(false);
+				me.onAutoRetrieve();
+				return;
+			}
+		}else{
+			refs.rdgRoster.setValue({rdgRoster: 'STF'});
+		}
+		
+		me.onSetHandlingMode(true);
+		me.onAutoRetrieve();
+	},
+	
+	onAutoRetrieve:function(){
+		var me = this;
+		var refs = me.getReferences();
+		
+		if(refs.refVslCallId.getValue() && refs.txtPurpose.getValue() && refs.txtWorkYmd.getValue() && refs.txtShift.getValue()){
+			me.onRetrieveStaffEquip();
+		}
+	},
+	
+	onSetHandlingMode: function(hidden){
+		var me = this;
+		var refs = me.getReferences();
+		
+		refs.rdgHandling.setHidden(hidden);
+		refs.refColWorkingMode.setHidden(hidden);
+		refs.refColHandlingMode.setHidden(hidden);
+	},
+	
+	onUpdateStaffManPower:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference('refStaffManPowerGrid');
+		var idx = 0;
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+		var fmHhmm = Ext.Date.format(refs.ctlStartTime.getValue(),"Hi");
+		var toHhmm = Ext.Date.format(refs.ctlEndTime.getValue(),"Hi");
+	
+		if(selection == null){
+			return;
+		}
+		
+		if(!me.validateWorkingTime()){
+			return;
+		}
+		
+		if (refs.changeShiftbtn && refs.changeShiftbtn.checked){
+			selection.set('changeShft','Y')
+		}else{
+			selection.set('changeShft','N')
+		} 
+		
+		if (refs.refCheckWorkingInLunchTime && refs.refCheckWorkingInLunchTime.checked){
+			selection.set('lunchTimeWork','Y');
+		}else{
+			selection.set('lunchTimeWork','N');
+		}
+		
+		if(selection.get('frTime') !== fmHhmm){
+			selection.set('frTime',fmHhmm)
+		}
+		
+		if(selection.get('endTime') !== toHhmm){
+			selection.set('endTime',toHhmm)
+		}
+
+		if(selection.get('workLoc') !== refs.ctlWorkingArea.getValue()){
+			selection.set('workLoc',refs.ctlWorkingArea.getValue())
+		}
+		
+		if(selection.get('workingStatus') === WorkingStatus.INSERT) {
+            selection.set('workingStatus', WorkingStatus.INSERT);
+		} else {
+			selection.set('workingStatus', WorkingStatus.UPDATE);
+		}
+		
+		selection.set("userId", MOST.config.Token.getUserId());
+
+		//Role
+		if(selection.get('roleCd') !== refs.refCboRole.getValue()){
+			var validationCodeStore = me.getStore('existedRoleByEmpIdValidationCode');
+			
+			validationCodeStore.load({
+	     		params : {
+					tyCd : 'deployStaffRoleCheck',
+					empId : selection.get('empId'),
+					roleCd : refs.refCboRole.getValue()
+				},
+				
+				callback: function(records, operation, success) {
+					if (success) {
+						if(records[0].get("isValidated") === "Y"){
+							selection.set('roleCd', refs.refCboRole.getValue());
+						} else {
+							MessageUtil.warning("warning_msg", "existedRoleByEmpId_msg"); //PN00029
+						}
+					}
+				}
+	     	});
+		}
+	},
+
+	onUpdateStaffPortCrane:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference('refStaffEquipmentDeployGrid');
+		var idx = 0;
+		var detailGrid = me.lookupReference('refStaffEquipmentPortCraneDetailGrid')
+		var detailGridSelection = (detailGrid.getSelection() === null ? null: detailGrid.getSelection()[0]);
+		
+		if (detailGridSelection == null){
+			MessageUtil.warning('warning_msg', 'selectadddata_msg');
+			return;
+		}
+		
+		var eqSelected = (eqSelected)? eqSelected :refs.refRdgEquip.getChecked()[0].getSubmitValue();
+		var opSelected = (opSelected)? opSelected :refs.refRdgOp.getChecked()[0].getSubmitValue();
+
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+	
+		if(selection == null) return;
+		var eqQty;
+
+		selection.set('capaDescr',	detailGridSelection.get('capaDescr'));
+		selection.set('eqFacNm',	detailGridSelection.get('eqFacNm'));
+		selection.set('eqFacNo',	detailGridSelection.get('eqFacNo'));
+		selection.set('eqNo',		detailGridSelection.get('eqFacNo'));
+		selection.set('eqTpCd',		detailGridSelection.get('eqTpCd'));
+		selection.set('eqGrp',		detailGridSelection.get('eqGrp'));
+		selection.set('eqTpCdNm',	detailGridSelection.get('eqTpCdNm'));
+		
+		if (eqSelected === 'SC'){
+			selection.set('eqTpCdNm','SHIP CRANE');
+			if (!refs.refEqpQty.getValue())
+			{
+				MessageUtil.mandatoryFieldInValid();
+				return
+			}
+			eqQty = refs.refEqpQty.getValue();
+		}else{
+			eqQty = 1;
+		}
+
+		var driver = null;
+		var driverHidden = null;
+		var jpbiDriverYn = null;
+		
+		if (opSelected === 'JPB'){
+			if (!refs.refCboOperator.getValue()){
+				MessageUtil.mandatoryFieldInValid();
+				return
+			}
+			
+			driver = refs.refCboOperator.getValue();
+			driverHidden = driver.substring(2);
+			jpbiDriverYn = 'O';
+		}
+		else if (opSelected === 'CTT'){
+			if (!refs.refCboContractor.getValue()){
+				MessageUtil.mandatoryFieldInValid();
+				return
+			}
+			
+			driver = refs.refCboContractor.getValue();
+			driverHidden = driver;
+			jpbiDriverYn = 'C';
+		}
+		
+		selection.set('eqQty',		  eqQty);
+		selection.set('driver',		  driver);
+		selection.set('driverHidden', driverHidden);
+		selection.set('jpbiDriverYn', jpbiDriverYn);
+		
+		if(selection.get('workLoc') !== refs.ctlWorkingAreaPort.getValue()){
+			selection.set('workLoc',refs.ctlWorkingAreaPort.getValue())
+		}
+		
+		selection.set('userId', MOST.config.Token.getUserId());
+		
+		if(selection.phantom){
+		    selection.set('workingStatus', 'C');	
+		}else{
+		    selection.set('workingStatus', 'U');	
+		}
+	},
+
+	onUpdateStaffForklift:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference('refStaffForkliftGrid');
+		var idx = 0;
+		var rdSelected = (rdSelected)? rdSelected :refs.rdgFl.getChecked()[0].getSubmitValue();
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+	
+		if(selection == null) return;
+
+		var detailGrid = me.lookupReference('refStaffEquipmentForkliftDetailGrid')
+		var detailGridSelection = (detailGrid.getSelection() === null ? null: detailGrid.getSelection()[0]);
+		
+		if (detailGridSelection == null){
+			MessageUtil.warning('warning_msg', 'selectadddata_msg');
+			return;
+		}
+		
+		selection.set('capaDescr',detailGridSelection.get('capaDescr'));
+		selection.set('eqFacNo',detailGridSelection.get('eqFacNo'));
+		selection.set('eqNo',detailGridSelection.get('eqFacNo'));
+		selection.set('eqTpCd',detailGridSelection.get('eqTpCd'));
+		selection.set('roleCd','FD');
+		selection.set('intExtDivCd',detailGridSelection.get('ownDivCd'));
+		selection.set('ownDivCdNm',detailGridSelection.get('ownDivCdNm'));
+		
+		var driver = null;
+		var driverHidden = null;
+		var jpbiDriverYn = null;
+		
+		if (rdSelected === 'JPB'){
+			if (!refs.refCboJPBForklift.getValue()){
+				{
+					MessageUtil.mandatoryFieldInValid();
+					return
+				}
+			}
+			
+			driver = refs.refCboJPBForklift.getValue();
+			driverHidden = driver.substring(2);
+			jpbiDriverYn = 'O';
+		}else if (rdSelected === 'CTT'){
+			if (!refs.refCboContractorForklift.getValue()){
+				{
+					MessageUtil.mandatoryFieldInValid();
+					return
+				}
+			}
+			driver = refs.refCboContractorForklift.getValue();
+			driverHidden = driver;
+			jpbiDriverYn = 'C';
+		}
+		else {
+			jpbiDriverYn = 'N';
+		}
+
+		selection.set('driver',driver);
+		selection.set('driverHidden',driverHidden);
+		selection.set('jpbiDriverYn',jpbiDriverYn);
+		
+		if(selection.get('workLoc') !== refs.ctlWorkingAreaForklift.getValue()){
+			selection.set('workLoc',refs.ctlWorkingAreaForklift.getValue())
+		}
+		
+		selection.set("userId", MOST.config.Token.getUserId());
+		
+		if(selection.phantom){
+		    selection.set('workingStatus', 'C');	
+		}else{
+		    selection.set('workingStatus', 'U');	
+		}
+	},
+	
+	onCancelEdit : function(rowEditing, context) {
+		var me = this;
+		me.gridCancelEdit(rowEditing, context);
+	},
+	
+	onRemoveStaffManPower:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = refs.refStaffManPowerGrid;
+		var selection = grid.getSelection() === null ? null : grid.getSelection();
+		var store = me.getStore('vesselOperationDeployedStaffList');
+		var storeJBPPC = me.getStore('empPCCombo');
+		var storeJBPFL = me.getStore('empFLCombo');
+		
+		if(selection == null){
+			return;
+		};
+		
+		var bValidation = true;
+		
+		if(selection[0].crudState != 'C'){
+			selection[0].get('roleCd').split(',').forEach((item)=>{
+				if(item === 'CO'){
+					var portCraneDeployedList = me.getStore('portCraneDeployedList');
+					var indexCODriver = portCraneDeployedList.find('driver', selection[0].get('empId'));
+					
+					if(indexCODriver > -1 ){
+						MessageUtil.info('info_msg','staffandportcrane_warning_remove_msg');
+						bValidation = false;
+						return;
+					}
+					var indexCODriverDeployed = storeJBPPC.find('empId', selection[0].get('empId'));
+					indexCODriverDeployed > -1 && storeJBPPC.removeAt(indexCODriverDeployed);
+				}
+				else if(item === 'FD'){
+					var forkliftDeployedList = me.getStore('forkliftDeployedList');
+					var indexFDDriver = forkliftDeployedList.find('driver', selection[0].get('empId'));
+					
+					if(indexFDDriver > -1){
+						MessageUtil.info('info_msg','staffandfolklift_warning_remove_msg');
+						bValidation = false;
+						return;
+					}
+					var indexFLDriverDeployed = storeJBPFL.find('empId', selection[0].get('empId'));
+					indexFLDriverDeployed > -1 && storeJBPFL.removeAt(indexFLDriverDeployed);
+				}
+			})
+			
+			if(!bValidation){
+				return;
+			}
+			
+			Ext.each(selection, function (record) {
+				record.set('workingStatus', WorkingStatus.DELETE);
+				store.remove(record);
+				me.highlightDeployedStaffManPower(store);
+			});
+		}else{
+			selection[0].get('roleCd').split(',').forEach((item)=>{
+				if(item === 'CO'){
+					var operatorCOList = me.getStore('operatorCOList');
+					var indexCODriver = operatorCOList.find('empId', selection[0].get('empId'));
+					var indexCODriverDeployed = storeJBPPC.find('empId', selection[0].get('empId'));
+					operatorCOList.removeAt(indexCODriver);
+					indexCODriverDeployed > -1 && storeJBPPC.removeAt(indexCODriverDeployed);
+				}
+				else if(item === 'FD'){
+					var operatorFDList = me.getStore('operatorFDList');
+					var indexFDDriver = operatorFDList.find('empId', selection[0].get('empId'));
+					var indexFLDriverDeployed = storeJBPFL.find('empId', selection[0].get('empId'));
+					operatorFDList.removeAt(indexFDDriver);
+					indexFLDriverDeployed > -1 && storeJBPFL.removeAt(indexFLDriverDeployed);
+				}
+			})
+			store.remove(selection[0]);
+			me.highlightDeployedStaffManPower(store);
+		}
+
+	},
+	
+	onRemoveStaffPortCrane:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = refs.refStaffEquipmentDeployGrid;
+		var selection = grid.getSelection() === null ? null : grid.getSelection();
+		var store = me.getStore('portCraneDeployedList');
+		
+		if(selection == null){
+			return;
+		};
+		
+		refs.refCboOperator.setValue('');
+		refs.refCboContractor.setValue('');
+		
+		Ext.each(selection, function (record) {
+			record.set('workingStatus', WorkingStatus.DELETE);
+			store.remove(record);
+		});
+	},
+	
+	
+	onRemoveStaffForklift:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = refs.refStaffForkliftGrid;
+		var selection = grid.getSelection() === null ? null : grid.getSelection();
+		var store = me.getStore('forkliftDeployedList');
+		
+		if(selection == null){
+			return;
+		};
+		
+		refs.refCboJPBForklift.setValue('');
+		refs.refCboContractorForklift.setValue('');
+		Ext.each(selection, function (record) {
+			record.set('workingStatus', WorkingStatus.DELETE);
+			store.remove(record);
+		});
+	},
+	
+	onStaffPortCraneEdit:function(editor, context){
+		var me = this;
+		var refs = me.getReferences();
+		var refColEquCapa = refs.refColEquCapa;
+		var colEquCapaEditor = refColEquCapa.getEditor();
+		var theMainData = me.getViewModel().get('theMain');
+		var refColOperator = refs.refColOperator;
+		var refColContractor = refs.refColContractor;
+		var refColOperContract = refs.refColOperContract;
+		var colOperContractEditor = refColOperContract.getEditor();
+		var grid = refs.refStaffEquipmentDeployGrid;
+		var selection = grid.getSelectionModel().getSelection()[0];
+
+		workLoc = refs.refColEquWorkingArea.getEditor().getValue();
+		context.record.data.workingStatus = context.record.crudState;
+		context.record.data.userId = MOST.config.Token.getUserId();
+		context.record.data.vslCallId = refs.refVslCallId.getValue();
+		context.record.data.eqNo = refs.refColEquNo.getEditor().getValue();
+		context.record.data.workYmd = refs.txtWorkYmd.getValue();
+		context.record.data.purpTpCd = refs.txtPurpose.getValue();
+		context.record.data.shftId = refs.txtShift.getValue();
+		context.record.data.rsDivCd = 'EQ';
+		context.record.data.roleCd = 'CO';
+		context.record.data.jpbiDriverYn = refs.refColOperContract.getEditor().getValue();
+		
+		if(context.record.data.workLoc != refs.refColEquWorkingArea.getEditor().getValue()){
+			context.record.crudState = 'U';
+			context.record.data.workingStatus = 'U';
+			context.record.crudStateWas = 'U';
+			context.record.dirty = true;
+			
+			var workLoc = {workLoc: refs.refColEquWorkingArea.getEditor().getValue()};
+			if(grid.getSelectionModel().getSelection()[0].modified == null){
+				grid.getSelectionModel().getSelection()[0].modified = workLoc;
+			}else{
+				grid.getSelectionModel().getSelection()[0].modified.workLoc = workLoc.workLoc;
+			}
+		}
+		
+		context.record.data.workLoc = refs.refColEquWorkingArea.getEditor().getValue();
+		
+		selection.set('workLoc', refs.refColEquWorkingArea.getEditor().getValue());
+		grid.getView().refresh();
+	},
+	
+	onStaffForkLiftEdit:function(editor, context){
+		var me = this;
+		var refs = me.getReferences();
+		var refColFLOperContract = refs.refColFLOperContract;
+		var grid = refs.refStaffForkliftGrid;
+		var selection = grid.getSelectionModel().getSelection()[0];
+		var theMainData = me.getViewModel().get('theMain');
+		
+		context.record.data.workingStatus = context.record.crudState;
+		context.record.data.userId = MOST.config.Token.getUserId();
+		context.record.data.vslCallId = refs.refVslCallId.getValue();
+		context.record.data.eqNo = refs.refColForkliftList.getEditor().getValue();
+		context.record.data.workYmd = refs.txtWorkYmd.getValue();
+		context.record.data.purpTpCd = refs.txtPurpose.getValue();
+		context.record.data.shftId = refs.txtShift.getValue();
+		context.record.data.rsDivCd = 'EQ';
+		context.record.data.roleCd = 'FD';
+		context.record.data.eqTpCd = 'FL';
+		
+		if(context.record.crudState != 'C'){
+			if(context.record.data.workLoc != refs.refColFlWorkLoc.getEditor().getValue()){
+				context.record.crudState = 'U';
+				context.record.data.workingStatus = 'U';
+				context.record.crudStateWas = 'U';
+				context.record.dirty = true;
+				
+				var workLoc = {workLoc: refs.refColFlWorkLoc.getEditor().getValue()};
+				if(grid.getSelectionModel().getSelection()[0].modified == null){
+					grid.getSelectionModel().getSelection()[0].modified = workLoc;
+				}else{
+					grid.getSelectionModel().getSelection()[0].modified.workLoc = workLoc.workLoc;
+				}
+				
+				
+			}
+		}
+		
+		context.record.data.workLoc = refs.refColFlWorkLoc.getEditor().getValue();
+		selection.set('workLoc', refs.refColFlWorkLoc.getEditor().getValue());
+		
+		grid.getView().refresh();
+	},
+	
+	onStaffEquipmentListSelect:function(ele, rec, idx){
+		var me = this;
+		var refs = me.getReferences();
+		var refColStaffEquipmentType = refs.refColStaffEquipmentType;
+		var refColStaffEquipmentList = refs.refColStaffEquipmentList;
+		var refColEquNo = refs.refColEquNo;
+		var colEquipmentListEditor = refColStaffEquipmentList.getEditor();
+		var shipCraneEquipmentListStore = me.getStore('shipCraneEquipmentList');
+		var othersEquipmentListStore = me.getStore('othersEquipmentList');
+		
+		if(colEquipmentListEditor.getValue() == 'E'){
+			
+		}else if(colEquipmentListEditor.getValue() == 'SC'){
+			refColStaffEquipmentType.setHidden(false);
+			refColStaffEquipmentType.setEditor({
+				xtype:'textfield',
+		        width:210,
+		        editable:false
+			});
+			
+			refColEquNo.getEditor().setStore(shipCraneEquipmentListStore);
+			
+		}else if(colEquipmentListEditor.getValue() == 'O'){
+			refColEquNo.getEditor().setStore(othersEquipmentListStore);
+			refColStaffEquipmentType.getEditor().setEnable(false);
+		}
+	
+	},
+	
+	onGridAfterRenderer:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var refColStaffEquipmentType = refs.refColStaffEquipmentType;
+		var operatorListStore = me.getStore('operatorList');
+		var standardStaffListStore = me.getStore('vesselOperationDeployedStaffList');
+		var portCraneDeployedListtStore = me.getStore('portCraneDeployedList');
+		var equipmentTypeCodeListStore = me.getStore('equipmentTypeCodeList');
+		var portCraneDeployedListStore = me.getStore('portCraneDeployedList');
+		var refColOperator = refs.refColOperator;
+		
+		portCraneDeployedListtStore.each(function(record){
+			if(record.get('eqTpCd') != 'SCR1' && (record.get('eqGrp') == '' || record.get('eqGrp') == null)){
+				record.data.scd = 'E'
+			}else if (record.get('eqTpCd') == 'SCR1' && (record.get('eqGrp') != '' || record.get('eqGrp') != null)){
+				record.data.scd = 'SC'
+			}else{
+				record.data.scd = 'O'
+			}
+		});
+		
+		if(portCraneDeployedListStore.getData().items.length > 0){
+			var data = portCraneDeployedListStore.getData().items;
+			
+			var operatorListStore = me.getStore('operatorList');
+		}
+	},
+	
+	onforkliftGridAfterRender:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var forkliftDriverListStore = me.getStore('forkliftDriverList');
+		var standardStaffListStore = me.getStore('standardStaffList');
+		
+		forkliftDriverListStore.setData(standardStaffListStore.queryBy(function(rec, id){
+			return rec.get('roleCd').indexOf('FD') > -1;
+		}));
+	},
+	
+	onEqupmentTypeSelect:function(ele, rec, idx){
+		var me = this;
+		var refs = me.getReferences();
+		var filteredEquipListStore = me.getStore('filteredEquipList');
+		var equipmentListStore = me.getStore('equipmentList');
+		var filtereddEquipListStore = me.getStore('filteredEquipList');
+		var equipmentCd = rec.get('scd');
+		var refColEquNo = refs.refColEquNo;
+		
+		filtereddEquipListStore.setData(equipmentListStore.queryBy(function(rec, id){
+			return rec.get('eqTpCd') == equipmentCd;
+		}));
+		
+		filtereddEquipListStore.commitChanges();
+	},
+	
+	onEquNoSelect:function(ele, rec, idx){
+		var me = this;
+		var refs= me.getReferences();
+		var refColEquCapa = refs.refColEquCapa;
+		var colEquCapaEditor = refColEquCapa.getEditor();
+		var grid = refs.refStaffEquipmentDeployGrid;
+		var selection = grid.getSelection() === null ? null : grid.getSelection()[0];
+		
+		colEquCapaEditor.setValue(rec.get('capaDescr'));
+		selection.data.eqTpCd = rec.get('eqTpCd');
+		selection.data.eqFacNo = rec.get('eqFacNo');
+		selection.data.eqFacNm = rec.get('eqFacNm');
+		selection.data.eqGrp = rec.get('eqGrp');
+	},
+	
+	openEmpIdPopup:function(){
+		var me = this;
+		var params = {
+			roleCd: 'CO'
+		}
+		me.openCodePopup('popup-empidpopup', 'ctlEmpId', params);
+	},
+	
+	onCboOperContractSelect:function(ele, rec, idx){
+		var me = this;
+		var refs = me.getReferences();
+		var refColOperContract = refs.refColOperContract;
+		var colOperContractEditor = refColOperContract.getEditor();
+		var refColOperator = refs.refColOperator;
+		var refColContractor = refs.refColContractor;
+		var operatorCOList = me.getStore('operatorCOList');
+		
+		if(colOperContractEditor.getValue() == 'O'){
+			refColOperator.setEditor({
+				xtype:'combo',
+		    	displayField: 'engNm',
+		    	valueField: 'empId',
+		    	queryMode: 'local',
+		    	editable: false,
+		    	allowBlank: false,
+		    	value:'',
+		    	forceSelection:true,
+		    	width:200,
+		    	listeners:{
+		        	select:'onCboCOOperatorSelect'
+		        }
+			});
+			
+			refColOperator.getEditor().setStore(operatorCOList);
+		}else{
+			refColOperator.setEditor({
+				xtype:'combo',
+		    	displayField: 'ptyCd',
+		    	valueField: 'ptyCd',
+		    	queryMode: 'local',
+		    	editable: false,
+		    	allowBlank: false,
+		    	value:'',
+		    	forceSelection:true,
+		    	width:200
+			});
+		}
+	},
+	
+	onCboFLOperContractSelect:function(ele, rec, idx){
+		var me = this;
+		var refs = me.getReferences();
+		var refColFLOperContract = refs.refColFLOperContract;
+		var flOperContractEditor = refColFLOperContract.getEditor();
+		var refColForkliftDriver = refs.refColForkliftDriver;
+		var forkliftDriverListStore = me.getStore('forkliftDriverList');
+		var operatorListStore = me.getStore('operatorList');
+		var operatorFDList = me.getStore('operatorFDList');
+		
+		if(flOperContractEditor.getValue() == 'O'){
+			refColForkliftDriver.setEditor({
+				xtype:'combo',
+		    	displayField: 'engNm',
+		    	valueField: 'empId',
+		    	queryMode: 'local',
+		    	editable: false,
+		    	allowBlank:false,
+		    	value:'',
+		    	forceSelection:true,
+		    	width: 310
+			});
+			
+			refColForkliftDriver.getEditor().setStore(operatorFDList);
+			refColForkliftDriver.width = 310;
+		}else if(flOperContractEditor.getValue() == 'C'){
+			refColForkliftDriver.setEditor({
+				xtype:'combo',
+		    	displayField: 'ptyCd',
+		    	valueField: 'ptyCd',
+		    	queryMode: 'local',
+		    	editable: false,
+		    	allowBlank:false,
+		    	value:'',
+		    	forceSelection:true,
+		    	width:310
+			});
+			
+			refColForkliftDriver.width = 310;
+		}else if(flOperContractEditor.getValue() == 'N'){
+			refColForkliftDriver.getEditor().setValue('');
+			refColForkliftDriver.getEditor().allowBlank = true;
+			refColForkliftDriver.getEditor().setDisabled(true);
+		}
+	},
+	
+	onForkliftListSelect:function(ele, rec, idx){
+		var me = this;
+		var refs = me.getReferences();
+		var refColForkliftList = refs.refColForkliftList;
+		var refColForkliftCapDesc = refs.refColForkliftCapDesc;
+		
+		refColForkliftCapDesc.getEditor().setValue(rec.get('capaDescr'));
+	},
+	
+	onAddStaffAndEquip:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var selection = Ext.create('MOST.model.planning.StaffAndDeployment');
+		
+		selection.data.vslCallId = refs.ctlJpvc.getValue();
+		
+		me.getViewModel().data.theSearchDetail = '';
+		me.viewType = 'create';
+		me.onResetStore();
+		me.getView().detailViewAlias = 'app-staffanddeploymentdetail';
+		me.openDetailPopup(selection, 'Staff and Equipment Deployment Detail');
+	},
+	
+	onDetailDestroy:function(){
+		//me.onResetStore();
+	},
+	
+	onResetStore:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var staffAndEquipmentDetailStore = me.getStore('staffAndEquipmentDetail');
+		var megaSumListStore = me.getStore('megaSumList');
+		var megaSumOperatorListStore = me.getStore('megaSumOperatorList');
+		var megaRemarkListStore = me.getStore('megaRemarkList');
+		var vesselOperationDeployedStaffListStore = me.getStore('vesselOperationDeployedStaffList');
+		var megaSumPortCraneListStore = me.getStore('megaSumPortCraneList');
+		var megaSumShipCraneListStore = me.getStore('megaSumShipCraneList');
+		var portCraneDeployedListtStore = me.getStore('portCraneDeployedList');
+		var megaSumForkliftListStore = me.getStore('megaSumForkliftList');
+		var forkliftDeployedListStore = me.getStore('forkliftDeployedList');
+		var stevedoreCompanyListStore = me.getStore('stevedoreCompanyList');
+		var filteredStaffListStore = me.getStore('filteredStaffList');
+		var megaSumShoreCraneListStore = me.getStore('megaSumShoreCraneList');
+		var megaSumPortAndShipCraneListStore = me.getStore('megaSumPortAndShipCraneList');
+		
+		megaSumShoreCraneListStore.removeAll();
+		megaSumPortAndShipCraneListStore.removeAll();
+		staffAndEquipmentDetailStore.removeAll();
+		megaSumListStore.removeAll();
+		megaSumOperatorListStore.removeAll();
+		megaRemarkListStore.removeAll();
+		vesselOperationDeployedStaffListStore.removeAll();
+		megaSumPortCraneListStore.removeAll();
+		megaSumShipCraneListStore.removeAll();
+		portCraneDeployedListtStore.removeAll();
+		megaSumForkliftListStore.removeAll();
+		forkliftDeployedListStore.removeAll();
+		stevedoreCompanyListStore.removeAll();
+		
+		filteredStaffListStore.clearData();
+	},
+	
+	afterSetCodePopupData:function(xtype, targetControl, returnValue){
+		var me = this;
+		var refs = me.getReferences();
+		
+		if(targetControl === 'refVslCallId'){ // JPVC POPUP
+			if(returnValue){
+				refs.ctlDetailScn.setValue(returnValue.item.get('scn'));
+				me.getViewModel().setData({theSearchDetail:returnValue.item});
+			} else {
+				me.getViewModel().setData({theSearchDetail:null});
+			}
+		}
+		
+		if(targetControl == 'ctlJpvc'){
+			if(returnValue){
+				me.getViewModel().setData({theSearchDetail:returnValue.item});
+				refs.ctlScn.setValue(returnValue.item.get('scn'));
+				refs.dtETAFrom.setValue('');
+				refs.dtETATo.setValue('');
+			} else {
+				me.getViewModel().setData({theSearchDetail:null});
+			}
+		}
+		
+		if(targetControl == 'ctlWorkingArea'){
+			if(returnValue){
+				
+			}
+		}
+		if(targetControl == 'refBtnWorkingAreaFL'){
+			if(returnValue){
+				 var forkliftDeployedListStore = me.getStore('forkliftDeployedList');
+				 var data = Array.from(returnValue.data.items);
+				 forkliftDeployedListStore.setData(data);
+			}
+		}
+
+		if (targetControl === 'ctlScn') {
+			if (returnValue) {
+				refs.ctlScn.setValue(returnValue.code);
+
+				if (!StringUtil.isNullorEmpty(returnValue.item.get('vslCallId'))) {
+					refs.ctlJpvc.setValue(returnValue.item.get('vslCallId'));
+					me.getViewModel().setData({ theSearchDetail: returnValue.item });
+					refs.dtETAFrom.setValue('');
+					refs.dtETATo.setValue('');
+				} else {
+					refs.dtETAFrom.setValue('');
+					refs.dtETATo.setValue('');
+					refs.ctlJpvc.setValue('');
+				}
+			}
+		}
+		if (targetControl === 'ctlDetailScn') {
+			if (returnValue) {
+				refs.ctlScn.setValue(returnValue.code);
+
+				if (!StringUtil.isNullorEmpty(returnValue.item.get('vslCallId'))) {
+					refs.ctlJpvc.setValue(returnValue.item.get('vslCallId'));
+					me.getViewModel().setData({ theSearchDetail: returnValue.item });
+				} else {
+					refs.ctlJpvc.setValue('');
+				}
+			}
+		}
+	},
+	
+	onRetrieveStaffEquip:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var refVslCallId = refs.refVslCallId;
+		var txtWorkYmd = refs.txtWorkYmd;
+		var txtPurpose = refs.txtPurpose;
+		var txtShift = refs.txtShift;
+		
+		if((refVslCallId.getValue() == '' || refVslCallId.getValue() == null)
+				|| (txtWorkYmd.getValue() == '' || txtWorkYmd.getValue() == null)
+				|| (txtPurpose.getValue() == '' || txtPurpose.getValue() == null)
+				|| (txtShift.getValue() == '' || txtShift.getValue() == null)){
+			MessageUtil.info('info_msg','staffandequip_warning_blank_null_msg');
+			return;
+		};
+		
+		refs.refDetailTabPanel.setDisabled(false)
+		me.onLoadDetailInfo();
+
+	},
+	
+	onCboCOOperatorSelect:function(ele, rec, idx){
+		var me = this;
+		var refs = me.getReferences();
+		
+		refs.ctlWorkingArea.refs.ctlField.setValue(rec.get('workLoc'));
+	},
+	
+	onStaffPreviewPDF:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var record = {
+				view:'preview'
+		};
+		
+		me.getView().detailViewAlias = 'popup-staffanddeploymentreportpopup';
+		me.openDetailPopup(record);
+		
+	},
+	
+	onReportLoad:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var view = me.getDetailBizView().items.get(0).recvData.view;
+		
+		if(view == 'preview'){
+			refs.refExportType.setVisible(false);
+			me.visibleDetailToolButton(ViewUtil.TOOL_DOWNLOAD, false);
+			me.visibleDetailToolButton(ViewUtil.TOOL_PREVIEW, true);
+		}else if(view =='export'){
+			me.visibleDetailToolButton(ViewUtil.TOOL_DOWNLOAD, true);
+			me.visibleDetailToolButton(ViewUtil.TOOL_PREVIEW, false);
+			refs.refExportType.setVisible(true);
+		}
+		
+		me.visibleDetailToolButton(ViewUtil.TOOL_SAVE, false);
+		me.visibleDetailToolButton(ViewUtil.TOOL_DELETE, false);
+	},
+	
+	onDetailDownload:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var generatePDF = me.getStore('generatePDF');
+		
+		var params = {
+				workYmd: Ext.Date.format(refs.refDtFm.getValue(), MOST.config.Locale.getShortDate()),
+				userId: MOST.config.Token.getUserId(),
+				rptNo: refs.refRadioReportType.getValue().rb,
+				exportTp: refs.refExportType.getValue().exporTp,
+		};
+		
+		generatePDF.load({
+			params: params,
+			callback: function(records, operation, success) {
+				if (success) {
+					var content = records[0].data.content.replace(/&lt;/gi,'<').replace(/&gt;/gi,'>'); 
+					Ext.exporter.File.saveBinaryAs(content, records[0].data.fileName);
+				}
+			}
+		})
+	},
+	
+	onDetailPreview:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var generatePDF = me.getStore('generatePDF');
+		var params = {
+				workYmd: Ext.Date.format(refs.refDtFm.getValue(), MOST.config.Locale.getShortDate()),
+				userId: MOST.config.Token.getUserId(),
+				rptNo: refs.refRadioReportType.getValue().rb,
+				exportTp: '',
+		};
+		
+		generatePDF.load({
+			params: params,
+			callback: function(records, operation, success) {
+				if (success) {
+					me.openPDFPreview (records, operation, success);
+				}
+			}
+		})
+	},
+	
+	onExport:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var record = {
+				view:'export'
+		};
+		
+		me.getView().detailViewAlias = 'popup-staffanddeploymentreportpopup';
+		me.openDetailPopup(record);
+	},
+	
+	onClearSorters: function(btn) {
+		var me = this;
+		var refs = me.getReferences();
+		var store = me.getStore('vOperationDeployList');
+		
+		//Clear Sorters
+		store.sorters.clear();
+		refs.refVOperationDeployGrid.getView().refresh(); 
+	},
+	
+	exportTo: function(btn) {
+    	var me = this;
+    	var refs = me.getReferences();
+    	
+        var cfg = Ext.merge({
+            title: 'Staff & Deployment',
+            fileName: 'Staff_and_deployment' + '.' + (btn.cfg.ext || btn.cfg.type)
+        }, btn.cfg);
+
+        var grid = refs.refVOperationDeployGrid;
+        grid.saveDocumentAs(cfg);
+	},
+	
+	changePCRadio: function(){
+		var me = this;
+    	var refs = me.getReferences();
+    	var shipCraneStore = me.getStore('shipCraneEquipmentList');
+    	var otherStore = me.getStore('othersEquipmentList');
+    	
+    	shipCraneStore.removeAll();
+    	otherStore.removeAll();
+    	
+    	if(refs.refRdSc.checked == true){
+    		shipCraneStore.load({
+    			params:{
+    				gridType: 'SC'
+    			}
+    		});
+    	}else if(refs.refRdOt.checked == true){
+    		otherStore.load({
+    			params:{
+    				gridType: 'OT'
+    			}
+    		});
+    	}
+	},
+    
+	/**
+	 * GENERAL METHOD END
+	 * =========================================================================================================================
+	 */
+});

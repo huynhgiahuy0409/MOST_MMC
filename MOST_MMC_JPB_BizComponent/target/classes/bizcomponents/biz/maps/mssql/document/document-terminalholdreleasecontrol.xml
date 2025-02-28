@@ -1,0 +1,543 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace = "terminalHoldReleaseControl">
+
+	<resultMap 	id="resultTerminalHoldControl" type="terminalHoldReleaseControlItem">
+   		<result property = "vslCallId"			column = "VSL_CALL_ID"/>
+		<result property = "vslNm" 				column = "VSL_NM"/>
+		<result property = "docNo" 				column = "DOC_NO"/>
+		<result property = "ie" 				column = "IX_CD"/>
+		<result property = "holdCheck" 			column = "HOLD_CHK"/>
+		<result property = "holdReasonCd" 		column = "HOLD_REASON_CD"/>
+		<result property = "holdDt" 			column = "HOLD_DT"/>
+		<result property = "holdBy" 			column = "HOLD_USER"/>
+		<result property = "releaseCheck" 		column = "RELEASE_CHK"/>
+		<result property = "releaseDt" 			column = "RELEASE_DT"/>
+		<result property = "releaseBy" 			column = "RELEASE_BY"/>
+		<result property = "holdReasonDesc" 	column = "HOLD_DESC"/>
+		<result property = "holdRemark" 		column = "HOLD_REMARK"/>
+		<result property = "releaseRemark" 		column = "RELEASE_REMARK"/>
+		<result property = "seq" 				column = "SEQ"/>
+		<result property = "cgNo" 				column = "CG_NO"/>
+		<result property = "sunatYn" 			column = "SUNAT_YN"/>
+		<result property = "vinNo" 				column = "VIN_NO"/>
+		<result property = "opToBeStopped" 		column = "OP_MODE"/>
+		<result property = "opToBeStoppedNm" 	column = "OP_MODE_NM"/>
+ 		<result property = "ableToReleaseYn" 	column = "ABLE_RELEASE_YN"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultTerminalHoldControlHist" type="terminalHoldReleaseControlItem">
+   		<result property = "cudFlag"			column = "CUD_FLAG"/>
+   		<result property = "vslCallId"			column = "VSL_CALL_ID"/>
+		<result property = "docNo" 				column = "DOC_NO"/>
+		<result property = "ie" 				column = "IX_CD"/>
+		<result property = "holdCheck" 			column = "HOLD_CHK"/>
+		<result property = "holdReasonCd" 		column = "HOLD_REASON_CD"/>
+		<result property = "holdDt" 			column = "HOLD_DT"/>
+		<result property = "releaseCheck" 		column = "RELEASE_CHK"/>
+		<result property = "releaseDt" 			column = "RELEASE_DT"/>
+		<result property = "releaseBy" 			column = "RELEASE_BY"/>
+		<result property = "holdReasonDesc" 	column = "HOLD_DESC"/>
+		<result property = "seq" 				column = "SEQ"/>
+		<result property = "cgNo" 				column = "CG_NO"/>
+		<result property = "vinNo" 				column = "VIN_NO"/>
+		<result property = "holdRemark" 		column = "HOLD_REMARK"/>
+		<result property = "releaseRemark" 		column = "RELEASE_REMARK"/>
+		<result property = "opToBeStopped" 		column = "OP_MODE"/>
+		<result property = "opToBeStoppedNm" 	column = "OP_MODE_NM"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultComboList" type="terminalHoldReleaseControlItem">
+   		<result property = "cd"					column = "CD"/>
+   		<result property = "cdNm"				column = "CD_NM"/>
+   		<result property = "yardLoc"			column = "YARD_LOC"/>
+ 	</resultMap>
+	
+	<sql id="inquiryByMasterBL">
+		SELECT /* terminalHoldReleaseControl.inquiryByMasterBL */
+		    VSL.VSL_CALL_ID 								AS VSL_CALL_ID,
+			M.MF_DOC_ID 									AS DOC_NO,
+			'I' 											AS IX_CD,
+			H.SEQ,
+			CASE
+			    WHEN ISNULL(H.HOLD_STATUS, 'N') = 'Y' THEN 'true'
+			    ELSE 'false'
+			END 											AS HOLD_CHK,
+			H.HOLD_REASON_CD,
+			H.HOLD_DESC,
+			H.HOLD_REMARK,
+			H.RELEASE_REMARK,
+			HOLD_USER,
+			FORMAT(H.HOLD_DT,'dd/MM/yyyy HH:mm')  			AS HOLD_DT,
+			CASE
+			    WHEN ISNULL(H.RELEASE_STATUS, 'N') = 'Y' THEN 'true'
+			    ELSE 'false'
+			END 											AS RELEASE_CHK,
+			H.RELEASE_BY,
+			FORMAT(H.RELEASE_DT,'dd/MM/yyyy HH:mm')  		AS RELEASE_DT,
+			P.VSL_NM,
+			M.BL_NO 										AS CG_NO,
+			CASE
+			    WHEN H.HOLD_REASON_CD IN (SELECT
+			                                  S_CD
+			                              FROM
+			                                  TMT_CD_MSTD
+			                              WHERE M_CD 		= 'SUNATHOLD'
+			                              ) THEN 'Y'
+			    ELSE 'N'
+			END 											AS SUNAT_YN,
+			H.VIN_NO,
+			H.OP_MODE,
+			H.OP_MODE_NM
+		FROM
+		    TMT_BL M
+		INNER JOIN TMT_VSL_SCH VSL
+		    ON	M.VSL_CD 									= VSL.VSL_CD
+		    AND M.CALL_SEQ 									= VSL.CALL_SEQ
+			AND M.CALL_YEAR 								= M.CALL_YEAR
+		LEFT OUTER JOIN(
+			SELECT
+			    H.VSL_CALL_ID,
+				H.IX_CD,
+				H.DOC_NO,
+				H.SEQ,
+				H.HOLD_STATUS,
+				H.HOLD_REASON_CD,
+				H.HOLD_DT,
+				H.HOLD_DESC,
+				H.HOLD_REMARK,
+				H.RELEASE_REMARK,
+				H.STAFF_CD 									AS HOLD_USER,
+				H.RELEASE_STATUS,
+				H.RELEASE_BY,
+				H.RELEASE_DT,
+				VSL.VSL_CD,
+				VSL.CALL_SEQ,
+				VSL.CALL_YEAR,
+				H.CG_NO,
+				H.VIN_NO,
+				H.OP_MODE,
+				H.OP_MODE_NM
+				FROM
+				    TMT_TMNL_HOLD H
+				INNER JOIN TMT_VSL_SCH VSL
+					ON H.VSL_CALL_ID 						= VSL.VSL_CALL_ID
+				WHERE
+				    H.IX_CD = 'I'
+						<if test="startDate != null and startDate != ''" >
+							AND H.HOLD_DT <![CDATA[ >= ]]>  CONVERT(DATETIME, #{startDate} + ' 00:00', 103)
+						</if>
+						<if test="endDate != null and endDate != ''" >
+							AND H.HOLD_DT <![CDATA[ <= ]]>  CONVERT(DATETIME, #{endDate} + ' 23:59', 103)
+						</if>
+						<!-- hold by SUNAT -->
+						<if test="searchType == 'SUNAT'" >
+							AND H.HOLD_REASON_CD IN (SELECT
+							                             S_CD
+							                         FROM
+							                             TMT_CD_MSTD
+							                         WHERE
+							                             L_CD 				= 'MT'
+							                           	 AND M_CD 			= 'SUNATHOLD'
+							                         )
+						</if>
+				) H 
+					ON M.VSL_CALL_ID 						= H.VSL_CALL_ID
+					AND M.MF_DOC_ID 						= H.DOC_NO
+					AND M.BL_NO 							= H.CG_NO
+				LEFT OUTER JOIN TMT_VSL_PART P
+					ON H.VSL_CD 							= P.VSL_CD
+		WHERE
+		    (M.MF_DOC_ID IS NOT NULL AND M.MF_DOC_ID <![CDATA[<>]]> '')
+		  	AND M.STAT_CD IN ('AP')
+				<if test="vslCallId != null and vslCallId != ''" >
+					AND VSL.VSL_CALL_ID 					= #{vslCallId}
+				</if>
+				<if test="scn != null and scn != ''" >
+					AND VSL.SHIP_CALL_NO 					= #{scn}
+				</if>
+				<if test="vslManifestNo != null and vslManifestNo != '' and vslCallId == ''" >
+					AND VSL.VSL_CALL_ID 					= #{vslManifestNo}
+				</if>
+				<if test="masterBl != null and masterBl != ''" >
+					AND M.MF_DOC_ID 						= #{masterBl}
+				</if>
+				<if test="blNo != null and blNo != ''" >
+					AND M.BL_NO 							= #{blNo}
+				</if>
+				<if test="status != null and status != ''" >
+					<if test='status == "H"'>
+						AND H.HOLD_STATUS 					= 'Y'
+						AND ISNULL(H.RELEASE_STATUS, 'N') 	= 'N'
+					</if>
+					<if test='status == "R"'>
+						AND H.HOLD_STATUS 					= 'Y'
+						AND H.RELEASE_STATUS 				= 'Y'
+					</if>
+				</if>
+	</sql>
+	
+	<sql id="inquiryByBookingNo">
+		SELECT /* terminalHoldReleaseControl.inquiryByBookingNo */
+		    S.VSL_CALL_ID,
+		    S.MF_DOC_ID 												AS DOC_NO,
+		    'E' 														AS IX_CD,
+		    H.SEQ,
+		    CASE
+		        WHEN ISNULL(H.HOLD_STATUS, 'N') = 'Y' THEN 'true'
+		        ELSE 'false'
+		    END 														AS HOLD_CHK,
+		    H.HOLD_REASON_CD,
+		    H.HOLD_DESC,
+		    H.HOLD_REMARK,
+		    H.RELEASE_REMARK,
+		    HOLD_USER,
+		    FORMAT(H.HOLD_DT,'dd/MM/yyyy HH:mm')						AS HOLD_DT,
+		    CASE
+		        WHEN ISNULL(H.RELEASE_STATUS, 'N') = 'Y' THEN 'true'
+		        ELSE 'false'
+		    END 														AS RELEASE_CHK,
+		    H.RELEASE_BY,
+			FORMAT(H.RELEASE_DT,'dd/MM/yyyyy HH:mm')  					AS RELEASE_DT,
+		    P.VSL_NM,
+		    S.SHIPG_NOTE_NO 											AS CG_NO,
+		    CASE
+		        WHEN H.HOLD_REASON_CD IN (SELECT
+		                                      S_CD
+		                                  FROM
+		                                      TMT_CD_MSTD
+		                                  WHERE
+		                                      M_CD 						= 'SUNATHOLD'
+		                                  ) THEN 'Y' ELSE 'N'
+		    END 														SUNAT_YN,
+		    H.VIN_NO,
+		    H.OP_MODE,
+		    H.OP_MODE_NM
+		FROM
+		    TMT_SHIPG_NOTE S
+		LEFT OUTER JOIN (
+				SELECT
+				    H.VSL_CALL_ID,
+					H.IX_CD,
+					H.DOC_NO,
+					H.SEQ,
+					H.HOLD_STATUS,
+					H.HOLD_REASON_CD,
+					H.HOLD_DT,
+					H.HOLD_DESC,
+					H.HOLD_REMARK,
+					H.RELEASE_REMARK,
+					H.STAFF_CD 											AS HOLD_USER,
+					H.RELEASE_STATUS,
+					H.RELEASE_BY,
+					H.RELEASE_DT,
+					VSL.VSL_CD,
+					VSL.CALL_SEQ,
+					VSL.CALL_YEAR,
+					H.CG_NO,
+					H.VIN_NO,
+					H.OP_MODE,
+					H.OP_MODE_NM
+				FROM
+				    TMT_TMNL_HOLD H
+				INNER JOIN TMT_VSL_SCH VSL
+					ON H.VSL_CALL_ID 									= VSL.VSL_CALL_ID
+				WHERE
+				    H.IX_CD 											= 'E'
+						<if test="startDate != null and startDate != ''" >
+							AND H.HOLD_DT <![CDATA[ >= ]]>  CONVERT(DATETIME, #{startDate} + ' 00:00', 103)
+						</if>
+						<if test="endDate != null and endDate != ''" >
+							AND H.HOLD_DT <![CDATA[ <= ]]>  CONVERT(DATETIME, #{endDate} + ' 23:59', 103)
+						</if>
+						<!-- hold by SUNAT -->
+						<if test="searchType == 'SUNAT'" >
+							AND H.HOLD_REASON_CD IN (SELECT
+							                             S_CD
+							                         FROM
+							                             TMT_CD_MSTD
+							                         WHERE
+							                             L_CD 			= 'MT'
+							                           	 AND M_CD 		= 'SUNATHOLD'
+							                         )
+						</if>
+				) H 
+					ON S.VSL_CALL_ID 									= H.VSL_CALL_ID
+					AND S.MF_DOC_ID 									= H.DOC_NO
+					AND S.SHIPG_NOTE_NO 								= H.CG_NO
+				LEFT OUTER JOIN TMT_VSL_PART P
+					ON H.VSL_CD 										= P.VSL_CD
+					
+		WHERE
+		    (S.MF_DOC_ID IS NOT NULL AND S.MF_DOC_ID <![CDATA[<>]]> '')
+		  	AND S.STAT_CD 												= 'AP'
+				<if test="vslCallId != null and vslCallId != ''" >
+					AND S.VSL_CALL_ID 									= #{vslCallId}
+				</if>
+				<if test="scn != null and scn != ''" >
+					AND S.SHIP_CALL_NO 									= #{scn}
+				</if>
+				<if test="vslManifestNo != null and vslManifestNo != '' and vslCallId == ''" >
+					AND S.VSL_CALL_ID IN (SELECT
+					                          VSL.VSL_CALL_ID
+					                      FROM
+					                          TMT_VSL_SCH VSL
+					                      WHERE
+					                          VSL.VSL_CALL_ID 			= #{vslManifestNo}
+					                      )
+				</if>
+				<if test="bookingNo != null and bookingNo != ''" >
+					AND S.MF_DOC_ID 									= #{bookingNo}
+				</if>
+				<if test="snNo != null and snNo != ''" >
+					AND S.SHIPG_NOTE_NO 								= #{snNo}
+				</if>
+				<if test="status != null and status != ''" >
+					<if test='status == "H"'>
+						AND H.HOLD_STATUS 								= 'Y'
+						AND ISNULL(H.RELEASE_STATUS, 'N') 				= 'N'
+					</if>
+					<if test='status == "R"'>
+						AND H.HOLD_STATUS 								= 'Y'
+						AND H.RELEASE_STATUS 							= 'Y'
+					</if>
+				</if>
+	</sql>
+	
+	<sql id = "getTerminalHoldReleaseControl">
+		/* terminalHoldReleaseControl.getTerminalHoldReleaseControl */
+		<choose>
+			<when test="masterBl != null and masterBl != '' and (bookingNo == null or bookingNo == '') and (snNo == null or snNo == '')">
+				<include refid="inquiryByMasterBL"/>
+			</when>
+			<when test="blNo != null and blNo != '' and (bookingNo == null or bookingNo == '') and (snNo == null or snNo == '')">
+				<include refid="inquiryByMasterBL"/>
+			</when>
+			<when test="bookingNo != null and bookingNo != '' and (masterBl == null or masterBl == '') and (blNo == null or blNo == '')">
+				<include refid="inquiryByBookingNo"/>
+			</when>
+			<when test="snNo != null and snNo != '' and (masterBl == null or masterBl == '')  and (blNo == null or blNo == '')">
+				<include refid="inquiryByBookingNo"/>
+			</when>
+			<otherwise>
+				<include refid="inquiryByMasterBL"/>
+				UNION ALL
+				<include refid="inquiryByBookingNo"/>
+			</otherwise>
+		</choose>
+	</sql>
+	
+	<select id="selectTerminalHoldReleaseList" parameterType="terminalHoldReleaseControlParm" resultMap = "resultTerminalHoldControl"> 
+			SELECT /* terminalHoldReleaseControl.selectTerminalHoldReleaseList */
+			    *
+			FROM (<include refid="getTerminalHoldReleaseControl"/>)		AS selectTerminalHoldReleaseList
+	</select>
+
+	<select id="selectTerminalHoldReleaseListCount" parameterType="terminalHoldReleaseControlParm" resultType="java.lang.String" >
+		SELECT /* terminalHoldReleaseControl.selectTerminalHoldReleaseListCount */
+		    COUNT(*)
+		FROM
+		    (<include refid="getTerminalHoldReleaseControl"/>)		AS selectTerminalHoldReleaseListCount
+	</select>
+	
+<!--	<select id = "selectTerminalHoldReleaseHist"  parameterType = "terminalHoldReleaseControlParm" resultMap = "resultTerminalHoldControlHist">-->
+<!--		SELECT /* terminalHoldReleaseControl.selectTerminalHoldReleaseHist */-->
+<!--		    CUD_FLAG,-->
+<!--			VSL_CALL_ID,-->
+<!--			IX_CD,-->
+<!--			DOC_NO,-->
+<!--			SEQ,-->
+<!--			ISNULL(HOLD_STATUS, 'N') 					AS HOLD_CHK,-->
+<!--			HOLD_REASON_CD,-->
+<!--			HOLD_DESC,-->
+<!--			FORMAT(HOLD_DT,'dd/MM/yyyy HH:mm') 			AS HOLD_DT,-->
+<!--			ISNULL(RELEASE_STATUS, 'N') 				AS RELEASE_CHK,-->
+<!--			FORMAT(RELEASE_DT,'dd/MM/yyyy HH:mm') 		AS RELEASE_DT,-->
+<!--			RELEASE_BY,-->
+<!--			CG_NO,-->
+<!--			VIN_NO,-->
+<!--			HOLD_REMARK,-->
+<!--			RELEASE_REMARK,-->
+<!--			F_CM_001('MT', 'OPESTOPER', OP_MODE ) 		AS OP_MODE,-->
+<!--			OP_MODE_NM -->
+<!--		FROM-->
+<!--		    TMT_TMNL_HOLD_HIST-->
+<!--		WHERE-->
+<!--		    VSL_CALL_ID 								= #{vslCallId}-->
+<!--			AND DOC_NO 									= #{docNo}-->
+<!--			AND CG_NO 									= #{cgNo}-->
+<!--			AND SEQ 									= #{seq}-->
+<!--		ORDER BY-->
+<!--		    UPDATE_TIME DESC-->
+<!--	</select>-->
+	
+<!--	<select id="selectOPStoppedByHoldReason" parameterType="terminalHoldReleaseControlParm" resultType="terminalHoldReleaseControlItem">-->
+<!--		SELECT DISTINCT /* terminalHoldReleaseControl.selectOPStoppedByHoldReason */-->
+<!--			(SELECT-->
+<!--			     LISTAGG(OP_STOP, ',')-->
+<!--						 WITHIN GROUP (ORDER BY OP_STOP)-->
+<!--			 FROM-->
+<!--			     TMT_HD_OPERATION-->
+<!--			 WHERE-->
+<!--			     HOLD_REASON = #{holdReasonCd}-->
+<!--			 ) 									AS OPTOBESTOPPED,-->
+<!--		    (SELECT-->
+<!--		         LISTAGG(F_CM_001('MT', 'TMNLOPETP', OP_STOP), ',')-->
+<!--						 WITHIN GROUP (ORDER BY OP_STOP)-->
+<!--		     FROM-->
+<!--		         TMT_HD_OPERATION-->
+<!--		     WHERE-->
+<!--		         HOLD_REASON = #{holdReasonCd}-->
+<!--		     ) 									AS opToBeStoppedNm-->
+<!--		FROM-->
+<!--		    TMT_HD_OPERATION-->
+<!--		WHERE-->
+<!--		    HOLD_REASON 						= #{holdReasonCd}-->
+<!--	</select> -->
+	
+	<insert id="insertTerminalHoldItem"  parameterType="terminalHoldReleaseControlItem">
+		INSERT /* terminalHoldReleaseControl.insertTerminalHoldItem */
+		INTO TMT_TMNL_HOLD (
+			SHIP_CALL_NO,
+			VSL_CALL_ID,
+			VSL_CD,				
+			CALL_YEAR,			
+			CALL_SEQ,			
+	  		IX_CD,
+	      	DOC_NO,
+	      	SEQ,
+			<if test="vslTp == null or vslTp == ''" >
+				HOLD_STATUS,
+			</if>
+           	HOLD_REASON_CD,
+           	HOLD_DESC,
+          	HOLD_REMARK,
+			<if test="vslTp == null or vslTp == ''" >
+				HOLD_DT,
+			</if>
+           	UPDATE_TIME,
+	      	STAFF_CD,
+	      	CG_NO,
+	      	VIN_NO,
+	      	OP_MODE,
+	      	OP_MODE_NM,
+	      	VERSION
+		) VALUES (
+			#{scn},
+			#{vslCallId},
+		  	(SELECT VSL_CD FROM tmt_vsl_sch where VSL_CALL_ID = #{vslCallId}),		
+		 	(SELECT CALL_YEAR from tmt_vsl_sch where VSL_CALL_ID = #{vslCallId}),				
+		  	(SELECT CALL_SEQ from tmt_vsl_sch where VSL_CALL_ID = #{vslCallId}),	
+	       	#{ie},
+	       	#{docNo},
+			(SELECT
+			     ISNULL(MAX(SEQ), 0) + 1
+			 FROM
+			     TMT_TMNL_HOLD
+			 WHERE
+			     VSL_CALL_ID 				= #{vslCallId}
+			     AND IX_CD 					= #{ie}
+			     AND DOC_NO 				= #{docNo}),
+			 <if test="vslTp == null or vslTp == ''" >
+			'Y',
+			</if>
+			#{holdReasonCd},
+			#{holdReasonDesc},
+			#{holdRemark},
+			<if test="vslTp == null or vslTp == ''" >
+				SYSDATETIME(),
+			</if>
+			SYSDATETIME(),
+      		CASE
+          		WHEN #{holdBy} IS NULL OR #{holdBy} = '' THEN #{userId}
+          		ELSE #{holdBy}
+      		END,
+			#{cgNo},
+			#{vinNo},
+			#{opToBeStopped},
+			#{opToBeStoppedNm},
+			#{newVersion}
+		)
+	</insert>
+	
+	<update id="updateTerminalHoldItem"  parameterType="terminalHoldReleaseControlItem">
+		UPDATE /* terminalHoldReleaseControl.updateTerminalHoldItem */
+		    TMT_TMNL_HOLD
+		SET
+		    RELEASE_STATUS 						= CASE
+		        									WHEN #{releaseCheck} = 'Y' THEN 'Y'
+		        									ELSE 'N'
+		        								  END,
+			RELEASE_DT 							= CASE
+			    									WHEN #{releaseCheck} = 'Y' THEN SYSDATETIME()
+			    									ELSE null
+			    		 						  END,
+			RELEASE_BY 							= CASE
+			    									WHEN #{releaseCheck} = 'Y' THEN #{releaseBy}
+			    									ELSE null
+			    		 						  END,
+			UPDATE_TIME 						= SYSDATETIME(),
+			RELEASE_REMARK 						= #{releaseRemark},
+			STAFF_CD 							= CASE
+			    									WHEN #{releaseBy} IS NULL OR #{releaseBy} = '' THEN #{userId}
+			    									ELSE #{releaseBy}
+			    								  END,
+			<if test="newVersion != null and newVersion != ''">
+				  	VERSION 					= #{newVersion}
+			</if>
+		WHERE
+		    VSL_CALL_ID 						= #{vslCallId}
+			AND IX_CD 							= #{ie}
+			AND DOC_NO 							= #{docNo}
+			AND CG_NO 							= #{cgNo}
+			<choose>
+				<when test="seq != null and seq != ''">
+					AND SEQ 					= #{seq}
+		  		</when>
+				<otherwise>
+					<if test="holdReasonCd != null and holdReasonCd != ''">
+					   	AND HOLD_REASON_CD 		= #{holdReasonCd}
+					</if>
+					<if test="opToBeStopped != null and opToBeStopped != ''">
+					   	AND OP_MODE 			= #{opToBeStopped}
+					</if>
+				</otherwise>
+			</choose>
+				<if test="version != null and version != ''">
+		   			AND VERSION 				= #{version}
+				</if>
+	</update>
+	
+	<delete id="deleteTerminalHoldItem" parameterType="terminalHoldReleaseControlItem">
+		DELETE /* terminalHoldReleaseControl.deleteTerminalHoldItem */
+		FROM
+		    TMT_TMNL_HOLD
+		WHERE
+		    VSL_CALL_ID 						= #{vslCallId}
+			AND IX_CD 							= #{ie}
+			AND DOC_NO 							= #{docNo}
+			AND CG_NO 							= #{cgNo}
+			AND SEQ 							= #{seq}
+	</delete>
+	
+	<!-- check terminal hold -->
+	<select id="checkTerminalHold" parameterType="terminalHoldReleaseControlParm" resultMap = "resultTerminalHoldControl">
+		SELECT /* terminalHoldReleaseControl.checkTerminalHold */
+		    *
+		FROM
+		    TMT_TMNL_HOLD
+		WHERE  
+       		<!-- NORMAL CASE -->
+       		CG_NO 								= #{cgNo}
+		    AND VSL_CALL_ID 					= #{vslCallId}
+         	AND OP_MODE 						= #{opMode}
+           	AND HOLD_STATUS 					= 'Y'
+		  	AND (RELEASE_STATUS IS NULL OR RELEASE_STATUS = '')
+           	<!-- RORO CASE -->
+           	 <if test="vinNo != null and vinNo != ''">
+				AND VIN_NO 						= #{vinNo}
+			</if>
+    </select>
+    
+</mapper>

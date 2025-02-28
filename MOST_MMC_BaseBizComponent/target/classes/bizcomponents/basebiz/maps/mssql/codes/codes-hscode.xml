@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+	
+<mapper namespace="hsCode">
+
+	<resultMap id="hsCodeList" type="hsCodeItem">
+		<result property = "hsCdDiv"				column = "HS_CD_DIV"/>
+		<result property = "hsCode"					column = "HS_CD"/>
+		<result property = "hsNm"					column = "HS_CD_NM"/>
+		<result property = "unit"					column = "UNIT"/>
+		<result property = "chpt"					column = "CHPT"/>
+	</resultMap>
+	
+	<select id="selectHSCodeListCount" parameterType="hsCodeParm" resultType="java.lang.String" >
+    	SELECT /*hsCode.selectHSCodeListCount*/
+			COUNT(*)
+        FROM 
+			(<include refid="getHSCodeList"/>) AS selectHSCodeListCount
+	</select>
+	
+	<sql id="getHSCodeList">
+		SELECT /* hsCode.getHSCodeList */
+			*
+		FROM (
+			SELECT 
+				*, ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num
+			FROM   
+				TMT_HS_AHTN_CD_MST 
+			WHERE  
+				1 = 1
+				<if test="hsCode != null and hsCode != ''">
+					AND HS_CD LIKE '%' + #{hsCode} + '%'
+				</if>
+				<if test="hsNm != null and hsNm != ''">
+					AND HS_CD_NM LIKE '%' + #{hsNm} + '%'
+				</if>
+			) inner_query
+	</sql>
+	
+	<select id="selectHSCodeList" parameterType="hsCodeParm" resultMap="hsCodeList">
+		SELECT /* hsCode.selectHSCodeList */
+			*
+		FROM (
+			SELECT 
+				*, ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num
+			FROM   
+				TMT_HS_AHTN_CD_MST 
+			WHERE
+				1 = 1
+				<if test="hsCode != null and hsCode != ''">
+					AND HS_CD LIKE '%' + #{hsCode} + '%'
+				</if>
+				<if test="hsNm != null and hsNm != ''">
+					AND HS_CD_NM LIKE '%' + #{hsNm} + '%'
+				</if>
+			) inner_query
+	</select>
+	
+	<select id="duplicationHSCodeCheck" resultMap="hsCodeList" parameterType="hsCodeParm">
+		SELECT /*hsCode.duplicationHSCodeCheck*/
+			* 
+		FROM
+			TMT_HS_AHTN_CD_MST
+		WHERE
+			HS_CD_DIV 	= #{hsCdDiv}
+			AND HS_CD 	= #{hsCode}
+			AND TMNL_CD = #{tmnlCd}
+	</select>
+	
+	<insert id="insertItems" parameterType="HSCodeItem">
+		INSERT /* hsCode.insertItems */
+		INTO
+			TMT_HS_AHTN_CD_MST  (
+				HS_CD_DIV,
+				HS_CD,
+				HS_CD_NM,
+				UNIT,
+				CHPT,
+				TMNL_CD,
+				STAFF_CD,
+				UPDATE_TIME
+			) VALUES (
+				#{hsCdDiv},
+				#{hsCode},
+				#{hsNm},
+				#{unit},
+				#{chpt},
+				'',
+				#{staffCd},
+				SYSDATETIME()
+			)
+	</insert>
+	
+	<update id="updateItems" parameterType="HSCodeItem">
+		UPDATE /*hsCode.updateItems*/
+			TMT_HS_AHTN_CD_MST
+		SET
+			HS_CD_NM 		= #{hsNm},
+			UNIT 			= #{unit},
+			CHPT 			= #{chpt},
+			UPDATE_TIME 	= SYSDATETIME()
+		WHERE
+			HS_CD_DIV 		= #{hsCdDiv}
+			AND HS_CD 		= #{hsCode}
+	</update>
+	
+	<delete id="deleteItems" parameterType="HSCodeItem">
+		DELETE /*hsCode.deleteItems*/
+		FROM
+			TMT_HS_AHTN_CD_MST 
+		WHERE
+			HS_CD_DIV 			= #{hsCdDiv}
+			AND HS_CD 			= #{hsCode}
+	</delete>
+	
+	<select id="selectHsCodePopup" parameterType="hsCodeParm" resultMap="hsCodeList">
+		SELECT /*popupService.selectHSCodePopup*/
+			HS_CD, 
+			HS_CD_NM, 
+			UNIT, 
+			CHPT 
+		FROM
+			TMT_HS_AHTN_CD_MST HSCD 
+		WHERE
+			1 = 1
+			<if test="hsCdDiv != null and hsCdDiv != ''">
+				AND HSCD.HS_CD_DIV LIKE '%' + #{hsCdDiv} + '%'  
+			</if>
+			<if test="hsCode != null and hsCode != ''">
+				AND HSCD.HS_CD LIKE '%' + #{hsCode} + '%'  
+			</if>
+			<if test="hsNm != null and hsNm != ''">
+				AND HSCD.HS_CD_NM LIKE '%' + #{hsNm} + '%'  
+			</if>
+			AND LEN(HS_CD) > 9
+	</select>
+</mapper>

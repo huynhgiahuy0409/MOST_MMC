@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="vesselBaplieForGC">
+	
+	<sql id="getVesseBaplieList">
+		SELECT 
+			VSL_CALL_ID VSLCALLID,
+			BTN_NO || BTN_SEQ BLNO,
+			BTN_SEQ BTNSEQ,
+			HATCH_NO HATCHNO,
+			DECK_LOC DECKLOC,
+			HATCH_SEQ HATCHSEQ,
+			CATG_CD CATGCD,
+			MT MT,
+			QTY QTY,
+			RMK RMK,
+			STAFF_CD USERID,
+			UPDATE_TIME UPDTIME
+		FROM TMT_VSL_HATCH_PLAN
+		WHERE 1=1
+		<if test="vslCallId != null and vslCallId != ''">
+			AND VSL_CALL_ID=#{vslCallId}
+		</if>
+	</sql>
+	
+	<select id="searchVesselBaplieItems"  parameterType="vesselBaplieForGCParm" resultType="vesselBaplieForGCItem">
+		<if test="pageNo != 0"> 
+			SELECT /*vesselBaplieForGC.searchVesselBaplieItems*/
+				* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+		<include refid="getVesseBaplieList"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+			AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+    </select>
+    
+  	<select id="searchVesselBaplieItemsCount"  parameterType="vesselBaplieForGCParm" resultType="java.lang.String">
+		SELECT COUNT(*) /*vesselBaplieForGC.searchVesselBaplieItemsCount*/
+			FROM (<include refid="getVesseBaplieList"/>)
+    </select>
+
+</mapper>

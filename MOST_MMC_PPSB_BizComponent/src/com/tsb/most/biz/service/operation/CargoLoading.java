@@ -1,0 +1,2388 @@
+package com.tsb.most.biz.service.operation;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+import com.tsb.most.basebiz.common.constant.CodeConstant;
+import com.tsb.most.basebiz.dao.codes.ICodeMasterDao;
+import com.tsb.most.basebiz.dao.configuration.IWhConfigurationDao;
+import com.tsb.most.basebiz.dataitem.configuration.WhConfigurationItem;
+import com.tsb.most.basebiz.parm.codes.SearchCodeMasterParm;
+import com.tsb.most.basebiz.parm.configuration.SearchWhConfigurationParm;
+import com.tsb.most.biz.dao.operation.ICargoArrvDelvDao;
+import com.tsb.most.biz.dao.operation.ICargoLoadingDao;
+import com.tsb.most.biz.dao.operation.ICargoMasterDao;
+import com.tsb.most.biz.dao.operation.IHangingScaleDao;
+import com.tsb.most.biz.dao.operation.IOperationSettingDao;
+import com.tsb.most.biz.dao.operation.IVesselOprSettingDao;
+import com.tsb.most.biz.dataitem.operation.CargoArrvDelvItem;
+import com.tsb.most.biz.dataitem.operation.CargoLoadingItem;
+import com.tsb.most.biz.dataitem.operation.HangingScaleItem;
+import com.tsb.most.biz.dataitem.operation.OperationSettingItem;
+import com.tsb.most.biz.dataitem.operation.PackageJobItem;
+import com.tsb.most.biz.parm.operation.SearchCargoArrvDelvParm;
+import com.tsb.most.biz.parm.operation.SearchCargoLoadingParm;
+import com.tsb.most.biz.parm.operation.SearchCargoMasterParm;
+import com.tsb.most.biz.parm.operation.SearchHangingScaleParm;
+import com.tsb.most.biz.parm.operation.SearchOperationSettingParm;
+import com.tsb.most.framework.baseservice.MOSTBaseService;
+import com.tsb.most.framework.bizparm.base.UpdateItemsBizParm;
+import com.tsb.most.framework.dataitem.DataItemList;
+import com.tsb.most.framework.exception.BizException;
+
+public class CargoLoading extends MOSTBaseService implements ICargoLoading {
+	private ICodeMasterDao codeMasterDao;
+	private ICargoLoadingDao cargoLoadingDao;
+	private IOperationSettingDao operationSettingDao;
+	private IWhConfigurationDao whConfigurationDao;
+	private ICargoMasterDao cargoMasterDao;
+	private ICargoArrvDelvDao cargoArrvDelvDao;
+	private IVesselOprSettingDao vesselOprSettingDao;
+	private IHangingScaleDao hangingScaleDao;
+	
+	public void setCodeMasterDao(ICodeMasterDao codeMasterDao) {
+		this.codeMasterDao = codeMasterDao;
+	}
+	public void setCargoLoadingDao(ICargoLoadingDao cargoLoadingDao) {
+		this.cargoLoadingDao = cargoLoadingDao;
+	}
+	public void setOperationSettingDao(IOperationSettingDao operationSettingDao) {
+		this.operationSettingDao = operationSettingDao;
+	}
+	public void setWhConfigurationDao(IWhConfigurationDao whConfigurationDao) {
+		this.whConfigurationDao = whConfigurationDao;
+	}
+	public void setCargoMasterDao(ICargoMasterDao cargoMasterDao) {
+		this.cargoMasterDao = cargoMasterDao;
+	}
+	public void setCargoArrvDelvDao(ICargoArrvDelvDao cargoArrvDelvDao) {
+		this.cargoArrvDelvDao = cargoArrvDelvDao;
+	}
+	public void setVesselOprSettingDao(IVesselOprSettingDao vesselOprSettingDao) {
+		this.vesselOprSettingDao = vesselOprSettingDao;
+	}
+	
+	public void setHangingScaleDao(IHangingScaleDao hangingScaleDao) {
+		this.hangingScaleDao = hangingScaleDao;
+	}
+	public DataItemList selectCargoLoadingList(SearchCargoLoadingParm parm) throws BizException {
+		DataItemList itemList = new DataItemList();
+		CargoLoadingItem returnItem = new CargoLoadingItem();
+		OperationSettingItem opReturnItem = new OperationSettingItem();
+		SearchOperationSettingParm opParm = new SearchOperationSettingParm();
+		opParm.setShftDt(parm.getShftDt());
+		opParm.setShftId(parm.getShftId());
+		opParm.setCgTpCd(parm.getCgTpCd());
+		opParm.setVslCallId(parm.getVslCallId());
+
+		if ("Y".equals(parm.getHhtFlag())) {
+			itemList= cargoLoadingDao.selectCargoLoadingList(parm);
+		} else if ("CDMST".equals(parm.getHhtFlag())) {
+			SearchCodeMasterParm partyCode;
+			
+			partyCode = new SearchCodeMasterParm();
+			partyCode.setLcd(CodeConstant.LCD_MOST);
+			partyCode.setMcd(CodeConstant.MCD_MT_TSPTTP); // event type
+			partyCode.setCol2(CodeConstant.LCD_MOST);
+			returnItem.setModeOfOprList(codeMasterDao.selectCodeMasterSmallCodeList(partyCode).getCollection());
+
+			partyCode = new SearchCodeMasterParm();
+			partyCode.setLcd(CodeConstant.LCD_MOST);
+			partyCode.setMcd(CodeConstant.MCD_MT_DELVTP); // event type
+			returnItem.setDeliveryList(codeMasterDao.selectCodeMasterSmallCodeList(partyCode).getCollection());
+
+			partyCode = new SearchCodeMasterParm();
+			partyCode.setLcd(CodeConstant.LCD_MOST);
+			partyCode.setMcd(CodeConstant.MCD_MT_CGTP);
+			returnItem.setCargoTypeList(codeMasterDao.selectCodeMasterSmallCodeList(partyCode).getCollection());
+		} else if ("CGLDLST".equals(parm.getHhtFlag())) {
+			List list = cargoLoadingDao.selectCargoLoadingList(parm).getCollection();
+			returnItem.add(list);
+
+			List hatchNoList = operationSettingDao.selectOpHatchList(opParm).getCollection();
+			returnItem.add(hatchNoList);
+		} else {
+			returnItem.setItems((ArrayList<CargoLoadingItem>)cargoLoadingDao.selectCargoLoadingList(parm).getCollection());
+			returnItem.setHatchNoList(operationSettingDao.selectOpHatchList(opParm).getCollection());
+
+			SearchCodeMasterParm partyCode;
+
+			partyCode = new SearchCodeMasterParm();
+			partyCode.setLcd(CodeConstant.LCD_MOST);
+			partyCode.setMcd(CodeConstant.MCD_MT_TSPTTP); // event type
+			partyCode.setCol2(CodeConstant.LCD_MOST);
+			returnItem.setModeOfOprList(codeMasterDao.selectCodeMasterSmallCodeList(partyCode).getCollection());
+
+			partyCode = new SearchCodeMasterParm();
+			partyCode.setLcd(CodeConstant.LCD_MOST);
+			partyCode.setMcd(CodeConstant.MCD_MT_DELVTP); // event type
+			returnItem.setDeliveryList(codeMasterDao.selectCodeMasterSmallCodeList(partyCode).getCollection());
+
+			// Get Cargo Type code
+			partyCode = new SearchCodeMasterParm();
+			partyCode.setLcd(CodeConstant.LCD_MOST);
+			partyCode.setMcd(CodeConstant.MCD_MT_CGTP);
+			returnItem.setCargoTypeList(codeMasterDao.selectCodeMasterSmallCodeList(partyCode).getCollection());
+		}
+		itemList.add(returnItem);
+		return itemList;
+	}
+	
+	public DataItemList selectCargoLoadingHatchList(SearchOperationSettingParm parm) throws BizException {
+		DataItemList itemList = new DataItemList();
+		OperationSettingItem returnItem = new OperationSettingItem();
+
+		if("DBE".equalsIgnoreCase(parm.getCgTpCd()) || "DBN".equalsIgnoreCase(parm.getCgTpCd()) || "DBK".equalsIgnoreCase(parm.getCgTpCd())) {
+			returnItem.setDbkOpHatchList(operationSettingDao.selectOpHatchList(parm).getCollection());
+		} else if ("BBK".equalsIgnoreCase(parm.getCgTpCd())){
+			returnItem.setBbkOpHatchList(operationSettingDao.selectOpHatchList(parm).getCollection());
+		}
+		
+		itemList.add(returnItem);
+		return itemList;
+	}
+	
+	public DataItemList selectPiplineGrNo(SearchCargoLoadingParm parm) throws BizException {
+		return cargoLoadingDao.selectPiplineGrNo(parm);
+	}
+	
+	public DataItemList selectCargoLoadingOperationSetHatch(SearchOperationSettingParm parm) throws BizException {
+		return operationSettingDao.selectOperationSetHatch(parm);
+	}
+	
+	public DataItemList updateCargoLoadingItems(UpdateItemsBizParm parm) throws BizException {
+		DataItemList returnItem = new DataItemList();
+		CargoLoadingItem masterItem = (CargoLoadingItem) parm.getUpdateItem();
+		
+		if("BV".equals(masterItem.getJobPurpCd())) {
+			//Barge Operation (barge to vessel)
+			updateBargeOperationLoadingItems(parm);
+		} else {
+			DataItemList items = new DataItemList();
+			items.add(masterItem);
+
+			CargoLoadingItem jobItem = new CargoLoadingItem();
+			CargoLoadingItem waJobItem = new CargoLoadingItem();
+
+			String jobGroupNo = null;
+
+			SearchCargoMasterParm mstParm;
+
+			DataItemList insertItems = new DataItemList();
+			DataItemList updateCgMstAmtItems = new DataItemList();
+			DataItemList updateCgLdCancelItems = new DataItemList();
+			DataItemList updateCgLoadedRePackItems = new DataItemList();
+			DataItemList updateCgLoadedDamageItems = new DataItemList();
+			DataItemList updateCgMstStatItems = new DataItemList();
+
+			DataItemList insertBalItems = new DataItemList();
+			DataItemList insertJobItems = new DataItemList();
+			DataItemList insertRhdlItems = new DataItemList();
+			DataItemList updateArrvDelvItems = new DataItemList();
+			DataItemList insertGateInItems = new DataItemList();
+			DataItemList updateGateInItems = new DataItemList();
+			DataItemList updateGateInLorryItems = new DataItemList();
+			DataItemList updateGateInOnlyLorryItems = new DataItemList();
+			DataItemList updateGPArrvDelvItems = new DataItemList();
+			DataItemList updateLoadingSNItems = new DataItemList();
+			DataItemList insertInvLocItems = new DataItemList();
+			DataItemList insertAllocationItems = new DataItemList();
+			/*
+			 * ==============================================START
+			 * =============================================
+			 */
+
+			// insertItems.add(item);
+			// Gr unit ONE TIME. Direct , indirect
+			// (1) InGateCheck -- PortSafty Gate_OT_DT null?? ?? -
+			// (Port SaftyCheck)
+
+			// (2) appronChekcer (A) opDelvTpCd = Direct,
+			// indirect(TMT_JOB 'GW', 'LF')
+
+			CargoLoadingItem item = (CargoLoadingItem) items.get(0);
+			String uuid = UUID.randomUUID().toString();
+			item.setNewVersion(uuid);
+
+			mstParm = new SearchCargoMasterParm();
+			mstParm.setCgNo(item.getCgNo());
+			mstParm.setVslCallId(item.getVslCallId());
+			mstParm.setLorryNo(item.getLorryId());
+			mstParm.setCgInOutCd("I");
+			
+			jobGroupNo = cargoMasterDao.selectJobGroupNo(mstParm);
+			item.setJobGroup(jobGroupNo);
+
+			/* C1 : Direct TMT_CG_MST insert/update */
+			if (item.getOpDelvTpCd().equals(CodeConstant.MT_DELVTP_D)) {
+				/* C1.1 : Update TMT_CG_MST */
+				if (cargoMasterDao.selectIsCargoMst(mstParm)) {
+					item.setStat(CodeConstant.MT_JOBTP_LD);
+					if (item.getFnlOpeYn().equals("Y")) {
+						updateLoadingSNItems.add(item);
+					}
+					updateCgMstStatItems.add(item);
+					if (item.getCgTpCd().equals(CodeConstant.MT_CGTP_BBK) && !(item.getLoadMt() == 0 && item.getLoadQty() == 0)) {
+						updateCgMstAmtItems.add(item);
+					} else if (((item.getCgTpCd().equals("DBK") || item.getCgTpCd().equals(CodeConstant.MT_CGTP_DBN)
+							|| item.getCgTpCd().equals("DBE")) && item.getLoadMt() > 0)) {
+						updateCgMstAmtItems.add(item);
+					}
+				} else {
+					item.setStat(CodeConstant.MT_JOBTP_LD);
+					if (item.getFnlOpeYn().equals("Y")) {
+						updateLoadingSNItems.add(item);
+					}
+					insertItems.add(item);
+				}
+				/* C2 : InDirect TMT_CG_MST update */
+			} else {// TMT_MST, TMT_JOB, TMT_INV_LOC gr in all shipging
+				if (cargoMasterDao.selectIsCargoMst(mstParm)) {
+					item.setStat(CodeConstant.MT_JOBTP_LD);
+					updateCgMstStatItems.add(item);
+				}
+
+			}
+			/* C3 : DIRECT INSERT JOB AND INV_LOC NORMAL */
+			if (item.getOpDelvTpCd().equals(CodeConstant.MT_DELVTP_D)) {
+				SearchCargoLoadingParm loadingParm = new SearchCargoLoadingParm();
+				loadingParm.setCgNo(item.getCgNo());
+				loadingParm.setVslCallId(item.getVslCallId());
+				loadingParm.setLorryNo(item.getLorryNo());
+				loadingParm.setGateTxnNo(item.getGateTxnNo());
+
+				/* C3.1 : DIRECT INSERT JOB AND INV_LOC NORMAL for BBK */
+				if (item.getCgTpCd().equals(CodeConstant.MT_CGTP_BBK) && !(item.getLoadMt() == 0 && item.getLoadQty() == 0)) {
+					/* C3.1.1 Insert Job Item */
+					jobItem = (CargoLoadingItem) item.clone();
+					jobItem.setJobTpCd(CodeConstant.MT_JOBTP_LD);
+					jobItem.setStat(CodeConstant.MT_JOBSTATCD_COM);
+					jobItem.setDmgYn("N");
+					jobItem.setShuYn("N");
+					jobItem.setJobCoCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+					jobItem.setToLocId(item.getLocId());
+					insertJobItems.add(jobItem);
+				} else if (item.getCgTpCd().equals(CodeConstant.MT_CGTP_DBN)
+						&& item.getLoadMt() > 0) {
+					/* C3.2.1 insert Job Item */
+					jobItem = (CargoLoadingItem) item.clone();
+					jobItem.setJobTpCd(CodeConstant.MT_JOBTP_LD);
+					jobItem.setStat(CodeConstant.MT_JOBSTATCD_COM);
+					jobItem.setDmgYn("N");
+					jobItem.setShuYn("N");
+					jobItem.setToLocId(item.getLocId());
+					jobItem.setJobCoCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+					insertJobItems.add(jobItem);
+				} else if (item.getCgTpCd().equals("LQD") && item.getLoadM3() > 0) {
+					/* C3.2.1 insert Job Item */
+					jobItem = (CargoLoadingItem) item.clone();
+					jobItem.setJobTpCd(CodeConstant.MT_JOBTP_LD);
+					jobItem.setStat(CodeConstant.MT_JOBSTATCD_COM);
+					jobItem.setDmgYn("N");
+					jobItem.setShuYn("N");
+					jobItem.setToLocId(item.getLocId());
+					jobItem.setJobCoCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+					insertJobItems.add(jobItem);
+				} else if (item.getCgTpCd().equals("LQE") && item.getLoadM3() > 0) {
+					jobItem = (CargoLoadingItem) item.clone();
+					jobItem.setJobTpCd(CodeConstant.MT_JOBTP_LD);
+					jobItem.setStat(CodeConstant.MT_JOBSTATCD_COM);
+					jobItem.setDmgYn("N");
+					jobItem.setShuYn("N");
+					jobItem.setToLocId(item.getLocId());
+					jobItem.setJobCoCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+					insertJobItems.add(jobItem);
+				} else {
+					jobItem = (CargoLoadingItem) item.clone();
+					jobItem.setJobTpCd(CodeConstant.MT_JOBTP_LD);
+					jobItem.setStat(CodeConstant.MT_JOBSTATCD_COM);
+					jobItem.setDmgYn("N");
+					jobItem.setShuYn("N");
+					jobItem.setToLocId(item.getLocId());
+					jobItem.setJobCoCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+					insertJobItems.add(jobItem);
+				}
+				
+				//TMT_CG_ARRV_DELV
+				jobItem.setCgInOutCd("I");
+				String gateInSeq = cargoLoadingDao.selectGateInTimeSeq(loadingParm);
+				if (gateInSeq != null) {// exists ArrvDelv
+					jobItem.setSeq(gateInSeq);
+					updateGateInItems.add(jobItem);
+				}
+				/* C4 INDIRECT INSERT JOB AND INV_LOC NORMAL */
+			} else {// /////////////////////HANDINGIN -> LOADING CASE
+				// --> LOC (-) AMOUNT INSERT INV_LOC-----------Start
+				// Else indirect
+
+				// Export INDIRECT
+
+				/*
+				 * Indirect Case AMT management 1. WA:LD loadMt de-allocation - job(2) --1 state
+				 * 1.1. inv de-Allocation - item.collection
+				 * 
+				 * 2. AV:LD loadMt - (shuMt + dmgMt) real Loading - job(1) --1 state
+				 * 
+				 * 3. AW:LF shuMt allocation - job(3) --2 state AW:LF dmgMt allocation - job(4)
+				 * --2 state 3.1. inv allocation - item.shutItems, item.shutRhdlMode checkfield
+				 * - item.dmgItems, item.dmgRhdlMode check field
+				 * 
+				 * 4. whDmg case - job(5) WV:LD whDmgMt
+				 * 
+				 * 5. spr - job(6) WV:LD sprMt
+				 */
+				double compMt = 0;
+				double compM3 = 0;
+				int compQty = 0;
+				boolean flagMt = false;
+				boolean flagM3 = false;
+				boolean flagQty = false;
+				boolean flagWV = false;
+
+				if (item.getLoadMt() > 0) {
+					compMt = item.getLoadMt() - (item.getShuMt() + item.getDmgMt());
+					flagMt = true;
+					flagM3 = false;
+					flagQty = false;
+				} else if (item.getLoadM3() > 0) {
+					compM3 = item.getLoadM3() - (item.getShuM3() + item.getDmgM3());
+					flagMt = false;
+					flagM3 = true;
+					flagQty = false;
+				} else if (item.getLoadQty() > 0) {
+					compQty = item.getLoadQty() - (item.getShuQty() + item.getDmgQty());
+					flagMt = false;
+					flagM3 = false;
+					flagQty = true;
+				} else {
+					flagMt = false;
+					flagM3 = false;
+					flagQty = false;
+				}
+
+				if (flagMt) {
+					if (compMt > 0) {
+						flagWV = true;
+					} else {
+						flagWV = false;
+					}
+				} else if (flagM3) {
+					if (compM3 > 0) {
+						flagWV = true;
+					} else {
+						flagWV = false;
+					}
+				} else if (flagQty) {
+					if (compQty > 0) {
+						flagWV = true;
+					} else {
+						flagWV = false;
+					}
+				} else {
+					flagWV = false;
+				}
+				// ///////////////////////////// ----------------- end
+				/* C4.1 Normal Case For BBK */
+				if ((item.getCgTpCd().equals(CodeConstant.MT_CGTP_BBK) && !(item.getLoadMt() == 0 && item.getLoadQty() == 0))) {
+					// Insert Job Items For Normal
+					if (flagWV) {
+						jobItem = (CargoLoadingItem) item.clone();
+						jobItem.setJobPurpCd(CodeConstant.MT_JOBPURP_AV);
+						jobItem.setJobTpCd(CodeConstant.MT_JOBTP_LD);
+						jobItem.setStat(CodeConstant.MT_JOBSTATCD_COM);
+						jobItem.setDmgYn("N");
+						jobItem.setShuYn("N");
+						jobItem.setJobCoCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+						jobItem.setLoadMt(item.getLoadMt());
+						jobItem.setLoadM3(item.getLoadM3());
+						jobItem.setLoadQty(item.getLoadQty());
+						insertJobItems.add(jobItem);
+
+					} else {
+						waJobItem = (CargoLoadingItem) item.clone();
+						waJobItem.setJobPurpCd("WA");
+						waJobItem.setJobTpCd(CodeConstant.MT_JOBTP_LD);
+						waJobItem.setStat(CodeConstant.MT_JOBSTATCD_COM);
+						waJobItem.setDmgYn("N");
+						waJobItem.setShuYn("N");
+						waJobItem.setToLocId(item.getLocId());
+						waJobItem.setJobCoCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+						waJobItem.setLoadMt(item.getLoadMt());
+						waJobItem.setLoadM3(item.getLoadM3());
+						waJobItem.setLoadQty(item.getLoadQty());
+						insertJobItems.add(waJobItem);
+					}
+					/* C4.2 Normal Case for DBK */
+				} else if ((item.getCgTpCd().equals("DBK") || item.getCgTpCd().equals(CodeConstant.MT_CGTP_DBN)
+						|| item.getCgTpCd().equals("DBE")) && item.getLoadMt() > 0) {
+					jobItem = (CargoLoadingItem) item.clone();
+					if (flagWV) {
+						/* C4.2.2 AV Insert Job Item Normal Case */
+						jobItem = (CargoLoadingItem) item.clone();
+						jobItem.setJobPurpCd(CodeConstant.MT_JOBPURP_AV);
+						jobItem.setJobTpCd(CodeConstant.MT_JOBTP_LD);
+						jobItem.setStat(CodeConstant.MT_JOBSTATCD_COM);
+						jobItem.setDmgYn("N");
+						jobItem.setShuYn("N");
+						jobItem.setJobCoCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+						jobItem.setLoadMt(item.getLoadMt());
+						jobItem.setLoadM3(item.getLoadM3());
+						jobItem.setLoadQty(item.getLoadQty());
+						insertJobItems.add(jobItem);
+					} else {
+						waJobItem = (CargoLoadingItem) item.clone();
+						waJobItem.setJobPurpCd("WA");
+						waJobItem.setJobTpCd(CodeConstant.MT_JOBTP_LD);
+						waJobItem.setStat(CodeConstant.MT_JOBSTATCD_COM);
+						waJobItem.setDmgYn("N");
+						waJobItem.setShuYn("N");
+						waJobItem.setToLocId(item.getLocId());
+						waJobItem.setJobCoCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+						waJobItem.setLoadMt(item.getLoadMt());
+						waJobItem.setLoadM3(item.getLoadM3());
+						waJobItem.setLoadQty(item.getLoadQty());
+						insertJobItems.add(waJobItem);
+					}
+				} // TMT_JOB AND INV_LOC insert Nomarl AMT End
+				else if (item.getCgTpCd().equals("LQD")&& item.getLoadM3() > 0) {
+					jobItem = (CargoLoadingItem) item.clone();
+					if (flagWV) {
+						/* C4.2.2 AV Insert Job Item Normal Case */
+						jobItem = (CargoLoadingItem) item.clone();
+						jobItem.setJobPurpCd(CodeConstant.MT_JOBPURP_AV);
+						jobItem.setJobTpCd(CodeConstant.MT_JOBTP_LD);
+						jobItem.setStat(CodeConstant.MT_JOBSTATCD_COM);
+						jobItem.setDmgYn("N");
+						jobItem.setShuYn("N");
+						jobItem.setJobCoCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+						jobItem.setLoadMt(item.getLoadMt());
+						jobItem.setLoadM3(item.getLoadM3());
+						jobItem.setLoadQty(item.getLoadQty());
+						insertJobItems.add(jobItem);
+					} else {
+						waJobItem = (CargoLoadingItem) item.clone();
+						waJobItem.setJobPurpCd("WA");
+						waJobItem.setJobTpCd(CodeConstant.MT_JOBTP_LD);
+						waJobItem.setStat(CodeConstant.MT_JOBSTATCD_COM);
+						waJobItem.setDmgYn("N");
+						waJobItem.setShuYn("N");
+						waJobItem.setToLocId(item.getLocId());
+						waJobItem.setJobCoCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+						waJobItem.setLoadMt(item.getLoadMt());
+						waJobItem.setLoadM3(item.getLoadM3());
+						waJobItem.setLoadQty(item.getLoadQty());
+						insertJobItems.add(waJobItem);
+					}
+				}
+			}
+
+			if (insertItems.size() > 0) {
+				cargoLoadingDao.insertCargoLoadingItems(insertItems);
+			}
+			if (updateCgMstAmtItems.size() > 0) {
+				cargoLoadingDao.updateCgLdAmtItems(updateCgMstAmtItems);
+			}
+			if (updateCgMstStatItems.size() > 0) {
+				cargoLoadingDao.updateCgLdStateItems(updateCgMstStatItems);
+			}
+			if (updateCgLdCancelItems.size() > 0) {
+				cargoLoadingDao.updateCgLdCancelItems(updateCgLdCancelItems);
+			}
+
+			if (updateCgLoadedRePackItems.size() > 0) {
+				cargoLoadingDao.updateCgLoadedRePackItems(updateCgLoadedRePackItems);
+			}
+			if (updateCgLoadedDamageItems.size() > 0) {
+				cargoLoadingDao.updateCgLoadedDamageItems(updateCgLoadedDamageItems);
+			}
+
+			if (insertJobItems.size() > 0) {
+				cargoLoadingDao.insertJobItems(insertJobItems);
+				cargoLoadingDao.updateNextJobNoForWAJob(insertJobItems);
+				cargoLoadingDao.updateCargoMasterStatus(insertJobItems);
+				cargoLoadingDao.updateCargoMasterInfo(insertJobItems);
+				
+				returnItem.add(insertJobItems);
+				
+				//processOperationTime((CargoLoadingItem)insertJobItems.getCollection().get(0));
+			}
+
+			if (insertBalItems.size() > 0) {
+				cargoLoadingDao.insertBalItems(insertBalItems);
+			}
+
+			if (insertRhdlItems.size() > 0) {
+				cargoLoadingDao.insertRhdlItems(insertRhdlItems);
+			}
+
+			if (updateArrvDelvItems.size() > 0) {
+				cargoLoadingDao.updateArrvDelvItems(updateArrvDelvItems);
+			}
+			if (updateGPArrvDelvItems.size() > 0) {
+				for (int i = 0; i < updateGPArrvDelvItems.size(); i++) {
+					CargoLoadingItem arrDelvItem = (CargoLoadingItem) updateGPArrvDelvItems.get(i);
+
+					// Get gate pass numer
+					SearchCargoArrvDelvParm gpParm = new SearchCargoArrvDelvParm();
+					gpParm.setVslCallId(arrDelvItem.getVslCallId());
+					List gpList = cargoArrvDelvDao.selectGatepassNo(gpParm).getCollection();
+					if (gpList != null && gpList.size() > 0) {
+						CargoArrvDelvItem gpItem = (CargoArrvDelvItem) gpList.get(0);
+						arrDelvItem.setGatePassNo(gpItem.getGatePassNo());
+						returnItem.add(gpList);
+					}
+
+					DataItemList tmpArrvDelvItems = new DataItemList();
+					tmpArrvDelvItems.add(arrDelvItem);
+					cargoLoadingDao.updateGPArrvDelvItems(tmpArrvDelvItems);
+				}
+			}
+			if (updateLoadingSNItems.size() > 0) {
+			}
+			if (insertInvLocItems.size() > 0) { // INV_LOC
+				cargoLoadingDao.insertCargoInvLocationItems(insertInvLocItems); // minus Amt
+			}
+
+			if (insertAllocationItems.size() > 0) {
+				cargoLoadingDao.insertAllocationItems(insertAllocationItems); // plus Amt
+			}
+			
+			if (insertGateInItems.size() > 0) { // TMT_ARRV_DELV
+				cargoLoadingDao.insertLDGeneralGateInItems(insertGateInItems);
+			}
+
+			if (updateGateInItems.size() > 0) { // TMT_ARRV_DELV
+				cargoLoadingDao.updateLDGateInTimeItems(updateGateInItems);
+			}
+
+			if (updateGateInLorryItems.size() > 0) { // TMT_ARRV_DELV
+				cargoLoadingDao.updateLDGateInLorryItems(updateGateInLorryItems);
+			}
+
+			if (updateGateInOnlyLorryItems.size() > 0) { // TMT_ARRV_DELV
+				cargoLoadingDao.updateLDGateInOnlyLorryItems(updateGateInOnlyLorryItems);
+			}
+			
+			//Package Items
+			insertPakageJobItems(insertJobItems);
+		}
+		
+		return returnItem;
+	}
+	
+	private void oneAutoLoc(List listConfirmation, CargoLoadingItem item,
+			String flag) {
+
+		ArrayList autoitemList = new ArrayList();
+		String whName = null;
+		String firstName = null;
+		String minName = null;
+		String whGPreName = null;
+		String whDPreName = null;
+		String whSPreName = null;
+		int countG = 0;
+		int countS = 0;
+		int countD = 0;
+		if (listConfirmation.size() < 0) {
+			return;
+		}
+		if (item.getCgTpCd().equals(CodeConstant.MT_CGTP_BBK)) {
+			WhConfigurationItem autowhconfItem;
+
+			// Normal Case
+			if (item.getLoadMt() > 0 && flag.equals(CodeConstant.INVLOC_WH_TP_NORMAL)) {
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+					}
+
+					whGPreName = whName + "(" + minName + "," + ++countG + ")";
+					if (item.getLoadMt() == item.getMt()) {
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getLoadMt());
+						autowhconfItem.setMsrmt(item.getLoadM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getLoadQty()));
+
+					} else {
+						autowhconfItem = new WhConfigurationItem();
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getLoadMt());
+						autowhconfItem.setMsrmt(item.getLoadM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getLoadQty()));
+					}
+					autoitemList.add(autowhconfItem);
+				}// end for
+				item.setLocId(whGPreName);
+
+			} else if (item.getLoadM3() > 0 && flag.equals(CodeConstant.INVLOC_WH_TP_NORMAL)) {
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+					}
+
+					whGPreName = whName + "(" + minName + "," + ++countG + ")";
+					if (item.getLoadM3() == item.getM3()) {
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getLoadMt());
+						autowhconfItem.setMsrmt(item.getLoadM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getLoadQty()));
+
+					} else {
+						autowhconfItem = new WhConfigurationItem();
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getLoadMt());
+						autowhconfItem.setMsrmt(item.getLoadM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getLoadQty()));
+					}
+					autoitemList.add(autowhconfItem);
+
+				}// end for
+				item.setLocId(whGPreName);
+			} else if (item.getLoadQty() > 0 && flag.equals(CodeConstant.INVLOC_WH_TP_NORMAL)) {
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+					}
+
+					whGPreName = whName + "(" + minName + "," + ++countG + ")";
+					if (item.getLoadQty() == item.getQty()) {
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getLoadMt());
+						autowhconfItem.setMsrmt(item.getLoadM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getLoadQty()));
+
+					} else {
+						autowhconfItem = new WhConfigurationItem();
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getLoadMt());
+						autowhconfItem.setMsrmt(item.getLoadM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getLoadQty()));
+					}
+					autoitemList.add(autowhconfItem);
+
+				}// end for
+				item.setLocId(whGPreName);
+			}
+
+			// Spare Case
+			if (item.getSprMt() > 0 && flag.equals("S")) {
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+
+					}
+
+					whSPreName = whName + "(" + minName + "," + ++countS + ")";
+
+					if (item.getSprMt() == item.getMt()) {
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getSprMt());
+						autowhconfItem.setMsrmt(item.getSprM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getSprQty()));
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+
+					} else {
+						autowhconfItem = new WhConfigurationItem();
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getSprMt());
+						autowhconfItem.setMsrmt(item.getSprM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getSprQty()));
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+					}
+					autoitemList.add(autowhconfItem);
+
+				}// end for
+				item.setSprLocId(whSPreName);
+			} else if (item.getSprM3() > 0 && flag.equals("S")) {
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+
+					}
+
+					whSPreName = whName + "(" + minName + "," + ++countS + ")";
+
+					if (item.getSprM3() == item.getM3()) {
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getSprMt());
+						autowhconfItem.setMsrmt(item.getSprM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getSprQty()));
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+
+					} else {
+						autowhconfItem = new WhConfigurationItem();
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getSprMt());
+						autowhconfItem.setMsrmt(item.getSprM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getSprQty()));
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+					}
+					autoitemList.add(autowhconfItem);
+
+				}// end for
+				item.setSprLocId(whSPreName);
+			} else if (item.getSprQty() > 0 && flag.equals("S")) {
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+
+					}
+
+					whSPreName = whName + "(" + minName + "," + ++countS + ")";
+
+					if (item.getSprQty() == item.getQty()) {
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getSprMt());
+						autowhconfItem.setMsrmt(item.getSprM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getSprQty()));
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+
+					} else {
+						autowhconfItem = new WhConfigurationItem();
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getSprMt());
+						autowhconfItem.setMsrmt(item.getSprM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getSprQty()));
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+					}
+					autoitemList.add(autowhconfItem);
+
+				}// end for
+				item.setSprLocId(whSPreName);
+			}
+
+			// Dmg Case
+			if (item.getWhDmgMt() > 0 && flag.equals(CodeConstant.INVLOC_WH_TP_DAMAGE)) {
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+					}
+					whDPreName = whName + "(" + minName + "," + ++countD + ")";
+
+					if (item.getWhDmgMt() == item.getMt()) {
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getWhDmgMt());
+						autowhconfItem.setMsrmt(item.getWhDmgM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getWhDmgQty()));
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_DAMAGE);
+
+					} else {
+						autowhconfItem = new WhConfigurationItem();
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getWhDmgMt());
+						autowhconfItem.setMsrmt(item.getWhDmgM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getWhDmgQty()));
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_DAMAGE);
+					}
+
+					autoitemList.add(autowhconfItem);
+
+				}// end for
+				item.setWhDmgLocId(whDPreName);
+			} else if (item.getWhDmgM3() > 0 && flag.equals(CodeConstant.INVLOC_WH_TP_DAMAGE)) {
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+					}
+					whDPreName = whName + "(" + minName + "," + ++countD + ")";
+
+					if (item.getWhDmgM3() == item.getM3()) {
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getWhDmgMt());
+						autowhconfItem.setMsrmt(item.getWhDmgM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getWhDmgQty()));
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_DAMAGE);
+
+					} else {
+						autowhconfItem = new WhConfigurationItem();
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getWhDmgMt());
+						autowhconfItem.setMsrmt(item.getWhDmgM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getWhDmgQty()));
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_DAMAGE);
+					}
+					autoitemList.add(autowhconfItem);
+
+				}// end for
+				item.setWhDmgLocId(whDPreName);
+			} else if (item.getWhDmgQty() > 0 && flag.equals(CodeConstant.INVLOC_WH_TP_DAMAGE)) {
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+					}
+					whDPreName = whName + "(" + minName + "," + ++countD + ")";
+
+					if (item.getWhDmgQty() == item.getQty()) {
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getWhDmgMt());
+						autowhconfItem.setMsrmt(item.getWhDmgM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getWhDmgQty()));
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_DAMAGE);
+
+					} else {
+						autowhconfItem = new WhConfigurationItem();
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getWhDmgMt());
+						autowhconfItem.setMsrmt(item.getWhDmgM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getWhDmgQty()));
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_DAMAGE);
+					}
+					autoitemList.add(autowhconfItem);
+
+				}// end for
+				item.setWhDmgLocId(whDPreName);
+			}
+
+			if (flag.equals(CodeConstant.INVLOC_WH_TP_NORMAL)) {
+				item.setWhConfigurationItems(autoitemList);
+			} else if (flag.equals("S")) {
+				item.setSprItems(autoitemList);
+			} else if (flag.equals(CodeConstant.INVLOC_WH_TP_DAMAGE)) {
+				item.setWhDmgItems(autoitemList);
+			}
+		} else {// DBK
+			WhConfigurationItem autowhconfItem;
+
+			// Normal Case
+			if (item.getLoadMt() > 0 && flag.equals(CodeConstant.INVLOC_WH_TP_NORMAL)) {
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+					}
+					whGPreName = whName + "(" + minName + "," + ++countG + ")";
+
+					if (item.getLoadMt() == item.getMt()) {
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getLoadMt());
+						autowhconfItem.setMsrmt(item.getLoadM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getLoadQty()));
+
+					} else {
+						autowhconfItem = new WhConfigurationItem();
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getLoadMt());
+						autowhconfItem.setMsrmt(item.getLoadM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getLoadQty()));
+					}
+
+					autoitemList.add(autowhconfItem);
+				}// end for
+				item.setLocId(whGPreName);
+			}
+
+			// Spare Case
+			if (item.getSprMt() > 0 && flag.equals("S")) {
+
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+
+					}
+
+					whSPreName = whName + "(" + minName + "," + ++countS + ")";
+
+					if (item.getSprMt() == item.getMt()) {
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getSprMt());
+						autowhconfItem.setMsrmt(item.getSprM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getSprQty()));
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+
+					} else {
+						autowhconfItem = new WhConfigurationItem();
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getSprMt());
+						autowhconfItem.setMsrmt(item.getSprM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getSprQty()));
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+					}
+
+					autoitemList.add(autowhconfItem);
+
+				}// end for
+				item.setSprLocId(whSPreName);
+			}
+			// Damage Case
+			if (item.getWhDmgMt() > 0 && flag.equals(CodeConstant.INVLOC_WH_TP_DAMAGE)) {
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+					}
+					whDPreName = whName + "(" + minName + "," + ++countD + ")";
+
+					if (item.getWhDmgMt() == item.getMt()) {
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getWhDmgMt());
+						autowhconfItem.setMsrmt(item.getWhDmgM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getWhDmgQty()));
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_DAMAGE);
+
+					} else {
+						autowhconfItem = new WhConfigurationItem();
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+						autowhconfItem.setWgt(item.getWhDmgMt());
+						autowhconfItem.setMsrmt(item.getWhDmgM3());
+						autowhconfItem.setPkgQty(String.valueOf(item
+								.getWhDmgQty()));
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_DAMAGE);
+					}
+
+					autoitemList.add(autowhconfItem);
+
+				}// end for
+				item.setWhDmgLocId(whDPreName);
+			}
+			if (flag.equals(CodeConstant.INVLOC_WH_TP_NORMAL)) {
+				item.setWhConfigurationItems(autoitemList);
+			} else if (flag.equals("S")) {
+				item.setSprItems(autoitemList);
+			} else if (flag.equals(CodeConstant.INVLOC_WH_TP_DAMAGE)) {
+				item.setWhDmgItems(autoitemList);
+			}
+
+		}
+	}
+	
+	private void mutiAutoLoc(List listConfirmation, CargoLoadingItem item,
+			String flag) {
+		ArrayList autoitemList = new ArrayList();
+		String whName = null;
+		String firstName = null;
+		String minName = null;
+		String whGPreName = null;
+		String whDPreName = null;
+		String whSPreName = null;
+		int countG = 0;
+		int countS = 0;
+		int countD = 0;
+
+		if (listConfirmation.size() < 0) {
+			return;
+		}
+
+		if (item.getCgTpCd().equals(CodeConstant.MT_CGTP_BBK)) {
+			WhConfigurationItem autowhconfItem = new WhConfigurationItem();
+			if (item.getLoadMt() > 0 && flag.equals(CodeConstant.INVLOC_WH_TP_NORMAL)) {
+				double sumMT = item.getLoadMt();// Summary AMT
+				double sumM3 = item.getLoadM3();// Summary AMT
+				int sumQty = item.getLoadQty();// Summary AMT
+
+				double locMt = 0;
+				double locM3 = 0;
+				int locQty = 0;
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					if (sumMT <= 0.0) {
+						break;
+					}
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+					}
+
+					if (0 != whconfItem.getWgt()
+							&& whconfItem.getWgt() != whconfItem.getDumpWgt()) {
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+
+						if (sumMT > autowhconfItem.getWgt()) {
+
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+
+							sumMT = ((sumMT * 1000) - (autowhconfItem.getWgt() * 1000)) / 1000d;
+							sumM3 = ((sumM3 * 1000) - (autowhconfItem
+									.getMsrmt() * 1000)) / 1000d;
+							sumQty = sumQty
+									- Integer.parseInt(autowhconfItem
+											.getPkgQty());
+
+							whGPreName = whName + "(" + minName + ","
+									+ ++countG + ")";
+						} else if (sumMT == autowhconfItem.getWgt()) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+							sumMT = 0;
+
+							whGPreName = whName + "(" + minName + ","
+									+ ++countG + ")";
+						} else {
+							locMt = ((autowhconfItem.getWgt() * 1000) - (sumMT * 1000)) / 1000d;
+							locM3 = ((autowhconfItem.getMsrmt() * 1000) - (sumM3 * 1000)) / 1000d;
+							locQty = Integer.parseInt(autowhconfItem
+									.getPkgQty()) - sumQty;
+
+							whconfItem.setDumpWgt(locMt);
+							whconfItem.setDumpMsrmt(locM3);
+							whconfItem.setDumpPkgQty(String.valueOf(locQty));
+
+							autowhconfItem.setWgt(sumMT);
+							autowhconfItem.setMsrmt(sumM3);
+							autowhconfItem.setPkgQty(String.valueOf(sumQty));
+							sumMT = 0;
+
+							whGPreName = whName + "(" + minName + ","
+									+ ++countG + ")";
+						}
+						autoitemList.add(autowhconfItem);
+					}
+				}// end for
+				item.setLocId(whGPreName);
+			} else if (item.getLoadM3() > 0 && flag.equals(CodeConstant.INVLOC_WH_TP_NORMAL)) {
+				double sumMT = item.getLoadMt();// Summary AMT
+				double sumM3 = item.getLoadM3();// Summary AMT
+				int sumQty = item.getLoadQty();// Summary AMT
+
+				double locMt = 0;
+				double locM3 = 0;
+				int locQty = 0;
+
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					if (sumM3 <= 0.0) {
+						break;
+					}
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+					}
+					// }//EMN FOR
+					if (0 != whconfItem.getMsrmt()
+							&& whconfItem.getMsrmt() != whconfItem
+									.getDumpMsrmt()) {
+						// whGPreName = whName + "(" + minName + "," + ++countG
+						// + ")";
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+
+						if (sumM3 > autowhconfItem.getMsrmt()) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+
+							sumMT = ((sumMT * 1000) - (autowhconfItem.getWgt() * 1000)) / 1000d;
+							sumM3 = ((sumM3 * 1000) - (autowhconfItem
+									.getMsrmt() * 1000)) / 1000d;
+							sumQty = sumQty
+									- Integer.parseInt(autowhconfItem
+											.getPkgQty());
+
+							// sumM3 = interSumM3;
+
+							whGPreName = whName + "(" + minName + ","
+									+ ++countG + ")";
+						} else if (sumM3 == autowhconfItem.getMsrmt()) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+							sumM3 = 0;
+
+							whGPreName = whName + "(" + minName + ","
+									+ ++countG + ")";
+						} else {
+							locMt = ((autowhconfItem.getWgt() * 1000) - (sumMT * 1000)) / 1000d;
+							locM3 = ((autowhconfItem.getMsrmt() * 1000) - (sumM3 * 1000)) / 1000d;
+							locQty = Integer.parseInt(autowhconfItem
+									.getPkgQty()) - sumQty;
+
+							whconfItem.setDumpWgt(locMt);
+							whconfItem.setDumpMsrmt(locM3);
+							whconfItem.setDumpPkgQty(String.valueOf(locQty));
+
+							autowhconfItem.setWgt(sumMT);
+							autowhconfItem.setMsrmt(sumM3);
+							autowhconfItem.setPkgQty(String.valueOf(sumQty));
+							sumM3 = 0;
+
+							whGPreName = whName + "(" + minName + ","
+									+ ++countG + ")";
+						}
+						autoitemList.add(autowhconfItem);
+					}
+				}// end for
+				item.setLocId(whGPreName);
+			} else if (item.getLoadQty() > 0 && flag.equals(CodeConstant.INVLOC_WH_TP_NORMAL)) {
+				double sumMT = item.getLoadMt();// Summary AMT
+				double sumM3 = item.getLoadM3();// Summary AMT
+				int sumQty = item.getLoadQty();// Summary AMT
+
+				double locMt = 0;
+				double locM3 = 0;
+				int locQty = 0;
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					if (sumQty <= 0) {
+						break;
+					}
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+					}
+
+					if (!"0".equals(whconfItem.getPkgQty())
+							&& !whconfItem.getPkgQty().equals(
+									whconfItem.getDumpPkgQty())) {
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+
+						if (sumQty > Integer.parseInt(autowhconfItem
+								.getPkgQty())) {
+
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+
+							sumMT = ((sumMT * 1000) - (autowhconfItem.getWgt() * 1000)) / 1000d;
+							sumM3 = ((sumM3 * 1000) - (autowhconfItem
+									.getMsrmt() * 1000)) / 1000d;
+							sumQty = sumQty
+									- Integer.parseInt(autowhconfItem
+											.getPkgQty());
+
+							whGPreName = whName + "(" + minName + ","
+									+ ++countG + ")";
+						} else if (sumQty == Integer.parseInt(autowhconfItem
+								.getPkgQty())) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+							sumQty = 0;
+
+							whGPreName = whName + "(" + minName + ","
+									+ ++countG + ")";
+						} else {
+							locMt = ((autowhconfItem.getWgt() * 1000) - (sumMT * 1000)) / 1000d;
+							locM3 = ((autowhconfItem.getMsrmt() * 1000) - (sumM3 * 1000)) / 1000d;
+							locQty = Integer.parseInt(autowhconfItem
+									.getPkgQty()) - sumQty;
+
+							whconfItem.setDumpWgt(locMt);
+							whconfItem.setDumpMsrmt(locM3);
+							whconfItem.setDumpPkgQty(String.valueOf(locQty));
+
+							autowhconfItem.setWgt(sumMT);
+							autowhconfItem.setMsrmt(sumM3);
+							autowhconfItem.setPkgQty(String.valueOf(sumQty));
+							sumQty = 0;
+
+							whGPreName = whName + "(" + minName + ","
+									+ ++countG + ")";
+						}
+						autoitemList.add(autowhconfItem);
+					}
+				}// end for
+				item.setLocId(whGPreName);
+			}
+			if (item.getSprMt() > 0 && flag.equals("S")) {
+				double sumMT = item.getSprMt();// Summary AMT
+				double sumM3 = item.getSprM3();// Summary AMT
+				int sumQty = item.getSprQty();// Summary AMT
+
+				double locMt = 0;
+				double locM3 = 0;
+				int locQty = 0;
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					if (sumMT <= 0.0) {
+						break;
+					}
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+
+					}
+					if (0 != whconfItem.getWgt()
+							&& whconfItem.getWgt() != whconfItem.getDumpWgt()) {
+						// whSPreName = whName + "(" + minName + "," + ++countS
+						// + ")";
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+
+						if (sumMT > autowhconfItem.getWgt()) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+							// double interSumMt = 0;
+							sumMT = ((sumMT * 1000) - (autowhconfItem.getWgt() * 1000)) / 1000d;
+							sumM3 = ((sumM3 * 1000) - (autowhconfItem
+									.getMsrmt() * 1000)) / 1000d;
+							sumQty = sumQty
+									- Integer.parseInt(autowhconfItem
+											.getPkgQty());
+
+							whSPreName = whName + "(" + minName + ","
+									+ ++countS + ")";
+
+						} else if (sumMT == autowhconfItem.getWgt()) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+							sumMT = 0;
+
+							whSPreName = whName + "(" + minName + ","
+									+ ++countS + ")";
+
+						} else {
+							locMt = ((autowhconfItem.getWgt() * 1000) - (sumMT * 1000)) / 1000d;
+							locM3 = ((autowhconfItem.getMsrmt() * 1000) - (sumM3 * 1000)) / 1000d;
+							locQty = Integer.parseInt(autowhconfItem
+									.getPkgQty()) - sumQty;
+
+							whconfItem.setDumpWgt(locMt);
+							whconfItem.setDumpMsrmt(locM3);
+							whconfItem.setDumpPkgQty(String.valueOf(locQty));
+
+							autowhconfItem.setWgt(sumMT);
+							autowhconfItem.setMsrmt(sumM3);
+							autowhconfItem.setPkgQty(String.valueOf(sumQty));
+							sumMT = 0;
+
+							whSPreName = whName + "(" + minName + ","
+									+ ++countS + ")";
+
+						}
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+						autoitemList.add(autowhconfItem);
+					}
+				}// end for
+				item.setSprLocId(whSPreName);
+
+			} else if (item.getSprM3() > 0 && flag.equals("S")) {
+				double sumMT = item.getSprMt();// Summary AMT
+				double sumM3 = item.getSprM3();// Summary AMT
+				int sumQty = item.getSprQty();// Summary AMT
+
+				double locMt = 0;
+				double locM3 = 0;
+				int locQty = 0;
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					if (sumM3 <= 0.0) {
+						break;
+					}
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+
+					}
+					if (0 != whconfItem.getMsrmt()
+							&& whconfItem.getMsrmt() != whconfItem
+									.getDumpMsrmt()) {
+						// whSPreName = whName + "(" + minName + "," + ++countS
+						// + ")";
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+
+						if (sumM3 > autowhconfItem.getMsrmt()) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+
+							sumMT = ((sumMT * 1000) - (autowhconfItem.getWgt() * 1000)) / 1000d;
+							sumM3 = ((sumM3 * 1000) - (autowhconfItem
+									.getMsrmt() * 1000)) / 1000d;
+							sumQty = sumQty
+									- Integer.parseInt(autowhconfItem
+											.getPkgQty());
+
+							whSPreName = whName + "(" + minName + ","
+									+ ++countS + ")";
+
+						} else if (sumM3 == autowhconfItem.getMsrmt()) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+							sumM3 = 0;
+
+							whSPreName = whName + "(" + minName + ","
+									+ ++countS + ")";
+
+						} else {
+							locMt = ((autowhconfItem.getWgt() * 1000) - (sumMT * 1000)) / 1000d;
+							locM3 = ((autowhconfItem.getMsrmt() * 1000) - (sumM3 * 1000)) / 1000d;
+							locQty = Integer.parseInt(autowhconfItem
+									.getPkgQty()) - sumQty;
+
+							whconfItem.setDumpWgt(locMt);
+							whconfItem.setDumpMsrmt(locM3);
+							whconfItem.setDumpPkgQty(String.valueOf(locQty));
+
+							autowhconfItem.setWgt(sumMT);
+							autowhconfItem.setMsrmt(sumM3);
+							autowhconfItem.setPkgQty(String.valueOf(sumQty));
+							sumM3 = 0;
+
+							whSPreName = whName + "(" + minName + ","
+									+ ++countS + ")";
+
+						}
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+						autoitemList.add(autowhconfItem);
+					}
+				}// end for
+				item.setSprLocId(whSPreName);
+			} else if (item.getSprQty() > 0 && flag.equals("S")) {
+				double sumMT = item.getSprMt();// Summary AMT
+				double sumM3 = item.getSprM3();// Summary AMT
+				int sumQty = item.getSprQty();// Summary AMT
+
+				double locMt = 0;
+				double locM3 = 0;
+				int locQty = 0;
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					if (sumQty <= 0) {
+						break;
+					}
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+
+					}
+					if (!"0".equals(whconfItem.getPkgQty())
+							&& !whconfItem.getPkgQty().equals(
+									whconfItem.getDumpPkgQty())) {
+						// whSPreName = whName + "(" + minName + "," + ++countS
+						// + ")";
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+
+						if (sumQty > autowhconfItem.getMsrmt()) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+
+							sumMT = ((sumMT * 1000) - (autowhconfItem.getWgt() * 1000)) / 1000d;
+							sumM3 = ((sumM3 * 1000) - (autowhconfItem
+									.getMsrmt() * 1000)) / 1000d;
+							sumQty = sumQty
+									- Integer.parseInt(autowhconfItem
+											.getPkgQty());
+
+							whSPreName = whName + "(" + minName + ","
+									+ ++countS + ")";
+
+						} else if (sumQty == Integer.parseInt(autowhconfItem
+								.getPkgQty())) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+							sumQty = 0;
+
+							whSPreName = whName + "(" + minName + ","
+									+ ++countS + ")";
+
+						} else {
+							locMt = ((autowhconfItem.getWgt() * 1000) - (sumMT * 1000)) / 1000d;
+							locM3 = ((autowhconfItem.getMsrmt() * 1000) - (sumM3 * 1000)) / 1000d;
+							locQty = Integer.parseInt(autowhconfItem
+									.getPkgQty()) - sumQty;
+
+							whconfItem.setDumpWgt(locMt);
+							whconfItem.setDumpMsrmt(locM3);
+							whconfItem.setDumpPkgQty(String.valueOf(locQty));
+
+							autowhconfItem.setWgt(sumMT);
+							autowhconfItem.setMsrmt(sumM3);
+							autowhconfItem.setPkgQty(String.valueOf(sumQty));
+							sumQty = 0;
+
+							whSPreName = whName + "(" + minName + ","
+									+ ++countS + ")";
+
+						}
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+						autoitemList.add(autowhconfItem);
+					}
+				}// end for
+				item.setSprLocId(whSPreName);
+			}
+			if (item.getWhDmgMt() > 0 && flag.equals(CodeConstant.INVLOC_WH_TP_DAMAGE)) {
+				double sumMT = item.getWhDmgMt();// Summary AMT
+				double sumM3 = item.getWhDmgM3();// Summary AMT
+				int sumQty = item.getWhDmgQty();// Summary AMT
+
+				double locMt = 0;
+				double locM3 = 0;
+				int locQty = 0;
+				for (int j = 0; j < listConfirmation.size() || sumMT < 0; j++) {
+					if (sumMT <= 0.0) {
+						break;
+					}
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+					}
+					if (0 != whconfItem.getWgt()
+							&& whconfItem.getWgt() != whconfItem.getDumpWgt()) {
+						// whDPreName = whName + "(" + minName + "," + ++countD
+						// + ")";
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+
+						if (sumMT > autowhconfItem.getWgt()) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+
+							sumMT = ((sumMT * 1000) - (autowhconfItem.getWgt() * 1000)) / 1000d;
+							sumM3 = ((sumM3 * 1000) - (autowhconfItem
+									.getMsrmt() * 1000)) / 1000d;
+							sumQty = sumQty
+									- Integer.parseInt(autowhconfItem
+											.getPkgQty());
+
+							whDPreName = whName + "(" + minName + ","
+									+ ++countD + ")";
+						} else if (sumMT == autowhconfItem.getWgt()) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+							sumMT = 0;
+
+							whDPreName = whName + "(" + minName + ","
+									+ ++countD + ")";
+						} else {
+							locMt = ((autowhconfItem.getWgt() * 1000) - (sumMT * 1000)) / 1000d;
+							locM3 = ((autowhconfItem.getMsrmt() * 1000) - (sumM3 * 1000)) / 1000d;
+							locQty = Integer.parseInt(autowhconfItem
+									.getPkgQty()) - sumQty;
+
+							whconfItem.setDumpWgt(locMt);
+							whconfItem.setDumpMsrmt(locM3);
+							whconfItem.setDumpPkgQty(String.valueOf(locQty));
+
+							autowhconfItem.setWgt(sumMT);
+							autowhconfItem.setMsrmt(sumM3);
+							autowhconfItem.setPkgQty(String.valueOf(sumQty));
+							sumMT = 0;
+
+							whDPreName = whName + "(" + minName + ","
+									+ ++countD + ")";
+						}
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_DAMAGE);
+						autoitemList.add(autowhconfItem);
+					}
+				}// end for
+				item.setWhDmgLocId(whDPreName);
+
+			} else if (item.getWhDmgM3() > 0 && flag.equals(CodeConstant.INVLOC_WH_TP_DAMAGE)) {
+				double sumMT = item.getWhDmgMt();// Summary AMT
+				double sumM3 = item.getWhDmgM3();// Summary AMT
+				int sumQty = item.getWhDmgQty();// Summary AMT
+
+				double locMt = 0;
+				double locM3 = 0;
+				int locQty = 0;
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					if (sumM3 <= 0.0) {
+						break;
+					}
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+					}
+					if (0 != whconfItem.getMsrmt()
+							&& whconfItem.getMsrmt() != whconfItem
+									.getDumpMsrmt()) {
+						// whDPreName = whName + "(" + minName + "," + ++countD
+						// + ")";
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+
+						if (sumM3 > autowhconfItem.getWgt()) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+							sumMT = ((sumMT * 1000) - (autowhconfItem.getWgt() * 1000)) / 1000d;
+							sumM3 = ((sumM3 * 1000) - (autowhconfItem
+									.getMsrmt() * 1000)) / 1000d;
+							sumQty = sumQty
+									- Integer.parseInt(autowhconfItem
+											.getPkgQty());
+
+							whDPreName = whName + "(" + minName + ","
+									+ ++countD + ")";
+						} else if (sumM3 == autowhconfItem.getMsrmt()) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+							sumMT = 0;
+
+							whDPreName = whName + "(" + minName + ","
+									+ ++countD + ")";
+						} else {
+							locMt = ((autowhconfItem.getWgt() * 1000) - (sumMT * 1000)) / 1000d;
+							locM3 = ((autowhconfItem.getMsrmt() * 1000) - (sumM3 * 1000)) / 1000d;
+							locQty = Integer.parseInt(autowhconfItem
+									.getPkgQty()) - sumQty;
+
+							whconfItem.setDumpWgt(locMt);
+							whconfItem.setDumpMsrmt(locM3);
+							whconfItem.setDumpPkgQty(String.valueOf(locQty));
+
+							autowhconfItem.setWgt(sumMT);
+							autowhconfItem.setMsrmt(sumM3);
+							autowhconfItem.setPkgQty(String.valueOf(sumQty));
+							sumM3 = 0;
+
+							whDPreName = whName + "(" + minName + ","
+									+ ++countD + ")";
+						}
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_DAMAGE);
+						autoitemList.add(autowhconfItem);
+					}
+				}// end for
+				item.setWhDmgLocId(whDPreName);
+			} else if (item.getWhDmgQty() > 0 && flag.equals(CodeConstant.INVLOC_WH_TP_DAMAGE)) {
+				double sumMT = item.getWhDmgMt();// Summary AMT
+				double sumM3 = item.getWhDmgM3();// Summary AMT
+				int sumQty = item.getWhDmgQty();// Summary AMT
+
+				double locMt = 0;
+				double locM3 = 0;
+				int locQty = 0;
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					if (sumQty <= 0) {
+						break;
+					}
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+					}
+					if (!"0".equals(whconfItem.getPkgQty())
+							&& !whconfItem.getPkgQty().equals(
+									whconfItem.getDumpPkgQty())) {
+						// whDPreName = whName + "(" + minName + "," + ++countD
+						// + ")";
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+
+						if (sumQty > Integer.parseInt(autowhconfItem
+								.getPkgQty())) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+							sumMT = ((sumMT * 1000) - (autowhconfItem.getWgt() * 1000)) / 1000d;
+							sumM3 = ((sumM3 * 1000) - (autowhconfItem
+									.getMsrmt() * 1000)) / 1000d;
+							sumQty = sumQty
+									- Integer.parseInt(autowhconfItem
+											.getPkgQty());
+
+							whDPreName = whName + "(" + minName + ","
+									+ ++countD + ")";
+						} else if (sumQty == Integer.parseInt(autowhconfItem
+								.getPkgQty())) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+							sumQty = 0;
+
+							whDPreName = whName + "(" + minName + ","
+									+ ++countD + ")";
+						} else {
+							locMt = ((autowhconfItem.getWgt() * 1000) - (sumMT * 1000)) / 1000d;
+							locM3 = ((autowhconfItem.getMsrmt() * 1000) - (sumM3 * 1000)) / 1000d;
+							locQty = Integer.parseInt(autowhconfItem
+									.getPkgQty()) - sumQty;
+
+							whconfItem.setDumpWgt(locMt);
+							whconfItem.setDumpMsrmt(locM3);
+							whconfItem.setDumpPkgQty(String.valueOf(locQty));
+
+							autowhconfItem.setWgt(sumMT);
+							autowhconfItem.setMsrmt(sumM3);
+							autowhconfItem.setPkgQty(String.valueOf(sumQty));
+							sumQty = 0;
+
+							whDPreName = whName + "(" + minName + ","
+									+ ++countD + ")";
+						}
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_DAMAGE);
+						autoitemList.add(autowhconfItem);
+					}
+				}// end for
+				item.setWhDmgLocId(whDPreName);
+			}
+			if (flag.equals(CodeConstant.INVLOC_WH_TP_NORMAL)) {
+				item.setWhConfigurationItems(autoitemList);
+			} else if (flag.equals("S")) {
+				item.setSprItems(autoitemList);
+			} else if (flag.equals(CodeConstant.INVLOC_WH_TP_DAMAGE)) {
+				item.setWhDmgItems(autoitemList);
+			}
+		} else {// DBK
+			WhConfigurationItem autowhconfItem = new WhConfigurationItem();
+
+			if (item.getLoadMt() > 0 && flag.equals(CodeConstant.INVLOC_WH_TP_NORMAL)) {
+				double sumMT = item.getLoadMt();// Summary AMT
+				double sumM3 = item.getLoadM3();// Summary AMT
+				int sumQty = item.getQty();// Summary AMT
+
+				double locMt = 0;
+				double locM3 = 0;
+				int locQty = 0;
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					if (sumMT <= 0.0) {
+						break;
+					}
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+					}
+
+					if (0 != whconfItem.getWgt()
+							&& whconfItem.getWgt() != whconfItem.getDumpWgt()) {
+						// whGPreName = whName + "(" + minName + "," + ++countG
+						// + ")";
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+
+						if (sumMT > autowhconfItem.getWgt()) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+							sumMT = ((sumMT * 1000) - (autowhconfItem.getWgt() * 1000)) / 1000d;
+							sumM3 = ((sumM3 * 1000) - (autowhconfItem
+									.getMsrmt() * 1000)) / 1000d;
+							sumQty = sumQty
+									- Integer.parseInt(autowhconfItem
+											.getPkgQty());
+
+							whGPreName = whName + "(" + minName + ","
+									+ ++countG + ")";
+						} else if (sumMT == autowhconfItem.getWgt()) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+							sumMT = 0;
+
+							whGPreName = whName + "(" + minName + ","
+									+ ++countG + ")";
+						} else {
+							locMt = ((autowhconfItem.getWgt() * 1000) - (sumMT * 1000)) / 1000d;
+							locM3 = ((autowhconfItem.getMsrmt() * 1000) - (sumM3 * 1000)) / 1000d;
+							locQty = Integer.parseInt(autowhconfItem
+									.getPkgQty()) - sumQty;
+
+							whconfItem.setDumpWgt(locMt);
+							whconfItem.setDumpMsrmt(locM3);
+							whconfItem.setDumpPkgQty(String.valueOf(locQty));
+
+							autowhconfItem.setWgt(sumMT);
+							autowhconfItem.setMsrmt(sumM3);
+							autowhconfItem.setPkgQty(String.valueOf(sumQty));
+							sumMT = 0;
+
+							whGPreName = whName + "(" + minName + ","
+									+ ++countG + ")";
+						}
+						autoitemList.add(autowhconfItem);
+					}
+				}// end for
+				item.setLocId(whGPreName);
+			}
+			if (item.getSprMt() > 0 && flag.equals("S")) {
+				double sumMT = item.getSprMt();// Summary AMT
+				double sumM3 = item.getSprM3();// Summary AMT
+				int sumQty = item.getSprQty();// Summary AMT
+
+				double locMt = 0;
+				double locM3 = 0;
+				int locQty = 0;
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					if (sumMT <= 0.0) {
+						break;
+					}
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+
+					}
+					if (0 != whconfItem.getWgt()
+							&& whconfItem.getWgt() != whconfItem.getDumpWgt()) {
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+
+						if (sumMT > autowhconfItem.getWgt()) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+							sumMT = ((sumMT * 1000) - (autowhconfItem.getWgt() * 1000)) / 1000d;
+							sumM3 = ((sumM3 * 1000) - (autowhconfItem
+									.getMsrmt() * 1000)) / 1000d;
+							sumQty = sumQty
+									- Integer.parseInt(autowhconfItem
+											.getPkgQty());
+
+							whSPreName = whName + "(" + minName + ","
+									+ ++countS + ")";
+
+						} else if (sumMT == autowhconfItem.getWgt()) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+							sumMT = 0;
+
+							whSPreName = whName + "(" + minName + ","
+									+ ++countS + ")";
+
+						} else {
+							locMt = ((autowhconfItem.getWgt() * 1000) - (sumMT * 1000)) / 1000d;
+							locM3 = ((autowhconfItem.getMsrmt() * 1000) - (sumM3 * 1000)) / 1000d;
+							locQty = Integer.parseInt(autowhconfItem
+									.getPkgQty()) - sumQty;
+
+							whconfItem.setDumpWgt(locMt);
+							whconfItem.setDumpMsrmt(locM3);
+							whconfItem.setDumpPkgQty(String.valueOf(locQty));
+
+							autowhconfItem.setWgt(sumMT);
+							autowhconfItem.setMsrmt(sumM3);
+							autowhconfItem.setPkgQty(String.valueOf(sumQty));
+							sumMT = 0;
+
+							whSPreName = whName + "(" + minName + ","
+									+ ++countS + ")";
+
+						}
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_SHUTOUT);
+						autoitemList.add(autowhconfItem);
+					}
+				}// end for
+				item.setSprLocId(whSPreName);
+
+			}
+			if (item.getWhDmgMt() > 0 && flag.equals(CodeConstant.INVLOC_WH_TP_DAMAGE)) {
+				double sumMT = item.getWhDmgMt();// Summary AMT
+				double sumM3 = item.getWhDmgM3();// Summary AMT
+				int sumQty = item.getWhDmgQty();// Summary AMT
+
+				double locMt = 0;
+				double locM3 = 0;
+				int locQty = 0;
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					if (sumMT <= 0.0) {
+						break;
+					}
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation
+							.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+						whName = firstName.substring(0,
+								firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName
+								.lastIndexOf("-") + 1);
+					}
+					if (0 != whconfItem.getWgt()
+							&& whconfItem.getWgt() != whconfItem.getDumpWgt()) {
+						// whDPreName = whName + "(" + minName + "," + ++countD
+						// + ")";
+						autowhconfItem = (WhConfigurationItem) whconfItem
+								.clone();
+
+						if (sumMT > autowhconfItem.getWgt()) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+							sumMT = ((sumMT * 1000) - (autowhconfItem.getWgt() * 1000)) / 1000d;
+							sumM3 = ((sumM3 * 1000) - (autowhconfItem
+									.getMsrmt() * 1000)) / 1000d;
+							sumQty = sumQty
+									- Integer.parseInt(autowhconfItem
+											.getPkgQty());
+
+							whDPreName = whName + "(" + minName + ","
+									+ ++countD + ")";
+						} else if (sumMT == autowhconfItem.getWgt()) {
+							whconfItem.setDumpWgt(autowhconfItem.getWgt());
+							whconfItem.setDumpMsrmt(autowhconfItem.getMsrmt());
+							whconfItem
+									.setDumpPkgQty(autowhconfItem.getPkgQty());
+							sumMT = 0;
+
+							whDPreName = whName + "(" + minName + ","
+									+ ++countD + ")";
+						} else {
+							locMt = ((autowhconfItem.getWgt() * 1000) - (sumMT * 1000)) / 1000d;
+							locM3 = ((autowhconfItem.getMsrmt() * 1000) - (sumM3 * 1000)) / 1000d;
+							locQty = Integer.parseInt(autowhconfItem
+									.getPkgQty()) - sumQty;
+
+							whconfItem.setDumpWgt(locMt);
+							whconfItem.setDumpMsrmt(locM3);
+							whconfItem.setDumpPkgQty(String.valueOf(locQty));
+
+							autowhconfItem.setWgt(sumMT);
+							autowhconfItem.setMsrmt(sumM3);
+							autowhconfItem.setPkgQty(String.valueOf(sumQty));
+							sumMT = 0;
+
+							whDPreName = whName + "(" + minName + ","
+									+ ++countD + ")";
+						}
+						autowhconfItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_DAMAGE);
+						autoitemList.add(autowhconfItem);
+					}
+				}// end for
+				item.setWhDmgLocId(whDPreName);
+			}
+			if (flag.equals(CodeConstant.INVLOC_WH_TP_NORMAL)) {
+				item.setWhConfigurationItems(autoitemList);
+			} else if (flag.equals(CodeConstant.INVLOC_WH_TP_SHUTOUT)) {
+				item.setSprItems(autoitemList);
+			} else if (flag.equals(CodeConstant.INVLOC_WH_TP_DAMAGE)) {
+				item.setWhDmgItems(autoitemList);
+			}
+		}
+	}
+	
+	private void spareCargoCase(DataItemList insertJobItems, DataItemList insertInvLocItems, DataItemList insertAllocationItems, CargoLoadingItem item) {
+		boolean isBbk;
+		boolean isDbk;
+		isBbk = false;
+		isDbk = false;
+		if (item.getCgTpCd().equals(CodeConstant.MT_CGTP_BBK)
+				&& !(item.getSprMt() == 0 && item.getSprQty() == 0)
+				&& item.getSprLocId() != null && !item.getSprLocId().equals("")) {
+			isBbk = true;
+		}
+		if ((item.getCgTpCd().equals(CodeConstant.MT_CGTP_DBN) || item.getCgTpCd().equals("DBE") || item
+				.getCgTpCd().equals("DBK"))
+				&& item.getSprMt() > 0
+				&& item.getSprLocId() != null && !item.getSprLocId().equals("")) {
+			isDbk = true;
+		}
+		if (isBbk || isDbk) {// Change Condition
+			CargoLoadingItem sprJobItem = (CargoLoadingItem) item.clone();
+			sprJobItem.setJobPurpCd(CodeConstant.MT_JOBPURP_WW);
+			sprJobItem.setJobTpCd(CodeConstant.MT_JOBTP_RC);
+			sprJobItem.setRcCoCd(CodeConstant.MT_RCCOCD_CC);// -inventory GD : + inventory
+			sprJobItem.setStat(CodeConstant.MT_JOBSTATCD_COM);
+			sprJobItem.setDmgYn("N");
+			sprJobItem.setShuYn("N");
+			sprJobItem.setRhdlYn("N");
+			sprJobItem.setToLocId(item.getSprLocId());
+			sprJobItem.setJobCoCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+			sprJobItem.setSpCaCoCd(CodeConstant.MT_SPCACOCD_S);
+			sprJobItem.setLoadMt(item.getSprMt());
+			sprJobItem.setLoadM3(item.getSprM3());
+			sprJobItem.setLoadQty(item.getSprQty());
+			// insertJobItems.add(sprJobItem);
+
+			DataItemList jobItems = new DataItemList();
+			HashMap sprMap = new HashMap();
+			for (int cnt = 0; cnt < sprJobItem.getSprItems().size(); cnt++) {
+				WhConfigurationItem hsitem = (WhConfigurationItem) sprJobItem
+						.getSprItems().get(cnt);
+
+				sprMap.put(hsitem.getCgNo(), hsitem);
+			}
+
+			Set set = sprMap.keySet();
+			Object[] hmKeys = set.toArray();
+			for (int j = 0; j < hmKeys.length; j++) {
+				ArrayList invLocItems = (ArrayList) sprJobItem.getSprItems();
+				CargoLoadingItem newJobItem = (CargoLoadingItem) sprJobItem
+						.clone();
+				newJobItem.setSprItems(new ArrayList());
+				ArrayList list = new ArrayList();
+				double msrmtSum = 0;
+				double wgtSum = 0;
+				int pkgSum = 0;
+				for (int count = 0; count < invLocItems.size(); count++) {
+					WhConfigurationItem whconfItem = (WhConfigurationItem) invLocItems
+							.get(count);
+					if ((hmKeys[j]).equals(whconfItem.getCgNo())) {
+						msrmtSum = +whconfItem.getMsrmt();
+						wgtSum = +whconfItem.getWgt();
+						pkgSum = +Integer.parseInt(whconfItem.getPkgQty());
+						list.add(whconfItem);
+						newJobItem.setLoadMt(wgtSum);
+						newJobItem.setLoadM3(msrmtSum);
+						newJobItem.setLoadQty(pkgSum);
+						newJobItem.setCgNo(whconfItem.getCgNo());
+						newJobItem.setGrNo(whconfItem.getCgNo());
+					}
+				}
+				if (list.size() > 0) {
+					newJobItem.setSprItems(list);
+					jobItems.add(newJobItem);
+				}
+
+			}
+
+			for (int dCount = 0; dCount < jobItems.size(); dCount++) {
+				CargoLoadingItem sprItem = (CargoLoadingItem) jobItems
+						.get(dCount);
+
+				insertJobItems.add(sprItem);
+
+				ArrayList invLocItems = (ArrayList) sprItem.getSprItems();
+				CargoLoadingItem cargoInvLocItem;
+				if (invLocItems.size() > 0) {
+					// WV:LD
+					for (int j = 0; j < invLocItems.size(); j++) {
+						cargoInvLocItem = (CargoLoadingItem) sprItem.clone();
+						WhConfigurationItem whconfItem = (WhConfigurationItem) invLocItems
+								.get(j);
+						if (whconfItem.getWhTpCd().equals(CodeConstant.INVLOC_WH_TP_NORMAL)) {
+							cargoInvLocItem.setLocArea(sprItem.getSprLocId());
+							cargoInvLocItem.setLocId(whconfItem.getLocId());
+							cargoInvLocItem.setLocQty(Integer
+									.parseInt(whconfItem.getPkgQty()));
+							cargoInvLocItem.setLocWgt(whconfItem.getWgt());
+							cargoInvLocItem.setLocMsrmt(whconfItem.getMsrmt());
+							cargoInvLocItem.setWhTpCd(whconfItem.getWhTpCd());
+							cargoInvLocItem.setDmgYn("N");
+							cargoInvLocItem.setShuYn("N");
+							cargoInvLocItem.setRhdlYn("N");
+							insertInvLocItems.add(cargoInvLocItem);
+						}// end if
+
+					}// end for
+				}// END IF
+			}// end DataItems For loop
+		}
+
+		if (isBbk || isDbk) {// Change Condition --> Normal To Dmage --
+			CargoLoadingItem sprJobItem = (CargoLoadingItem) item.clone();
+			sprJobItem.setJobPurpCd(CodeConstant.MT_JOBPURP_WW);
+			sprJobItem.setJobTpCd(CodeConstant.MT_JOBTP_RC);
+			sprJobItem.setRcCoCd(CodeConstant.MT_RCCOCD_GD);// -inventory GD : + inventory
+			sprJobItem.setStat(CodeConstant.MT_JOBSTATCD_COM);
+			sprJobItem.setDmgYn("Y");
+			sprJobItem.setShuYn("N");
+			sprJobItem.setRhdlYn("N");
+			sprJobItem.setToLocId(item.getSprLocId());
+			sprJobItem.setJobCoCd(CodeConstant.INVLOC_WH_TP_DAMAGE);
+			sprJobItem.setSpCaCoCd(CodeConstant.MT_SPCACOCD_S);
+			sprJobItem.setLoadMt(item.getSprMt());
+			sprJobItem.setLoadM3(item.getSprM3());
+			sprJobItem.setLoadQty(item.getSprQty());
+
+			DataItemList jobItems = new DataItemList();
+			HashMap sprMap = new HashMap();
+			for (int cnt = 0; cnt < sprJobItem.getSprItems().size(); cnt++) {
+				WhConfigurationItem hsitem = (WhConfigurationItem) sprJobItem
+						.getSprItems().get(cnt);
+
+				sprMap.put(hsitem.getCgNo(), hsitem);
+			}
+
+			Set set = sprMap.keySet();
+			Object[] hmKeys = set.toArray();
+			for (int j = 0; j < hmKeys.length; j++) {
+				ArrayList invLocItems = (ArrayList) sprJobItem.getSprItems();
+				CargoLoadingItem newJobItem = (CargoLoadingItem) sprJobItem
+						.clone();
+				newJobItem.setSprItems(new ArrayList());
+				ArrayList list = new ArrayList();
+				double msrmtSum = 0;
+				double wgtSum = 0;
+				int pkgSum = 0;
+				for (int count = 0; count < invLocItems.size(); count++) {
+					WhConfigurationItem whconfItem = (WhConfigurationItem) invLocItems
+							.get(count);
+					if ((hmKeys[j]).equals(whconfItem.getCgNo())) {
+						msrmtSum = +whconfItem.getMsrmt();
+						wgtSum = +whconfItem.getWgt();
+						pkgSum = +Integer.parseInt(whconfItem.getPkgQty());
+						list.add(whconfItem);
+						newJobItem.setLoadMt(wgtSum);
+						newJobItem.setLoadM3(msrmtSum);
+						newJobItem.setLoadQty(pkgSum);
+						newJobItem.setCgNo(whconfItem.getCgNo());
+						newJobItem.setGrNo(whconfItem.getCgNo());
+					}
+				}
+				if (list.size() > 0) {
+					newJobItem.setSprItems(list);
+					jobItems.add(newJobItem);
+				}
+			}
+
+			for (int dCount = 0; dCount < jobItems.size(); dCount++) {
+				CargoLoadingItem sprItem = (CargoLoadingItem) jobItems
+						.get(dCount);
+
+				insertJobItems.add(sprItem);
+
+				ArrayList invLocItems = (ArrayList) sprItem.getSprItems();
+				CargoLoadingItem cargoInvLocItem;
+				if (invLocItems.size() > 0) {
+					// WV:LD
+					for (int j = 0; j < invLocItems.size(); j++) {
+						cargoInvLocItem = (CargoLoadingItem) sprItem.clone();
+						WhConfigurationItem whconfItem = (WhConfigurationItem) invLocItems
+								.get(j);
+						if (whconfItem.getWhTpCd().equals(CodeConstant.INVLOC_WH_TP_NORMAL)) {
+							cargoInvLocItem.setLocArea(sprItem.getSprLocId());
+							cargoInvLocItem.setLocId(whconfItem.getLocId());
+							cargoInvLocItem.setLocQty(Integer
+									.parseInt(whconfItem.getPkgQty()));
+							cargoInvLocItem.setLocWgt(whconfItem.getWgt());
+							cargoInvLocItem.setLocMsrmt(whconfItem.getMsrmt());
+							cargoInvLocItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_DAMAGE);
+							cargoInvLocItem.setDmgYn("Y");
+							cargoInvLocItem.setShuYn("N");
+							cargoInvLocItem.setRhdlYn("N");
+							insertAllocationItems.add(cargoInvLocItem);
+						}// end if
+
+					}// end for
+				}// END IF
+			}// end DataItems For loop
+		}
+	}
+	
+	public void updateBargeOperationLoadingItems(UpdateItemsBizParm parm) throws BizException {
+		CargoLoadingItem masterItem = (CargoLoadingItem) parm.getUpdateItem();
+		CargoLoadingItem jobItem = null;
+		
+		String jobGroupNo = null;
+
+		boolean isBbk = false;
+		boolean isDbk = false;
+
+		SearchCargoMasterParm mstParm;
+		SearchWhConfigurationParm whParm;
+		List listConfirmation = null;
+
+		DataItemList insertItems = new DataItemList();
+		DataItemList updateCgMstAmtItems = new DataItemList();
+		DataItemList updateCgLoadedRePackItems = new DataItemList();
+		DataItemList updateCgMstStatItems = new DataItemList();
+		DataItemList insertJobItems = new DataItemList();
+		DataItemList updateJobItems = new DataItemList();
+		DataItemList updateLoadingSNItems = new DataItemList();
+		
+		DataItemList items = new DataItemList();
+		items.add(masterItem);
+		
+		CargoLoadingItem item = (CargoLoadingItem) items.get(0);
+		String uuid = UUID.randomUUID().toString();
+		item.setNewVersion(uuid);
+
+		mstParm = new SearchCargoMasterParm();
+		mstParm.setCgNo(item.getCgNo());
+		mstParm.setVslCallId(item.getVslCallId());
+		mstParm.setLorryNo(item.getLorryId());
+		mstParm.setCgInOutCd("I");
+		
+		jobGroupNo = cargoMasterDao.selectJobGroupNo(mstParm);
+		item.setJobGroup(jobGroupNo);
+		
+		if (item.getOpDelvTpCd().equals(CodeConstant.MT_DELVTP_D)) {
+			/* C1.1 : Update TMT_CG_MST */
+			if (cargoMasterDao.selectIsCargoMst(mstParm)) {
+				item.setStat(CodeConstant.MT_JOBTP_LD);
+				if (item.getFnlOpeYn().equals("Y")) {
+					updateLoadingSNItems.add(item);
+				}
+				updateCgMstStatItems.add(item);
+				if (!(item.getLoadMt() == 0 && item.getLoadQty() == 0)) {
+					updateCgMstAmtItems.add(item);
+				}
+			} else {
+				item.setStat(CodeConstant.MT_JOBTP_LD);
+				if (item.getFnlOpeYn().equals("Y")) {
+					updateLoadingSNItems.add(item);
+				}
+				insertItems.add(item);
+			}
+						
+			if(!(item.getLoadMt() == 0 && item.getLoadQty() == 0)) {
+				/* C3.1.1 Insert Job Item */
+				jobItem = (CargoLoadingItem) item.clone();
+				jobItem.setJobTpCd(CodeConstant.MT_JOBTP_LD);
+				jobItem.setStat(CodeConstant.MT_JOBSTATCD_COM);
+				jobItem.setJobCoCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+				insertJobItems.add(jobItem);
+			}
+		}
+		
+		if (insertItems.size() > 0) {
+			cargoLoadingDao.insertCargoLoadingItems(insertItems);
+		}
+		if (updateCgMstAmtItems.size() > 0) {
+			cargoLoadingDao.updateCgLdAmtItems(updateCgMstAmtItems);
+		}
+		if (updateCgMstStatItems.size() > 0) {
+			cargoLoadingDao.updateCgLdStateItems(updateCgMstStatItems);
+		}
+		if (updateCgLoadedRePackItems.size() > 0) {
+			cargoLoadingDao.updateCgLoadedRePackItems(updateCgLoadedRePackItems);
+		}
+		if (insertJobItems.size() > 0) {
+			cargoLoadingDao.insertJobItems(insertJobItems);
+			cargoLoadingDao.updateNextJobNoForWAJob(insertJobItems);
+			cargoLoadingDao.updateCargoMasterStatus(insertJobItems);
+			cargoLoadingDao.updateCargoMasterInfo(insertJobItems);
+			
+			//Hanging scale
+			updateHangingScaleItems(insertJobItems);
+			
+			//Package Items
+			insertPakageJobItems(insertJobItems);
+		}
+	}
+	
+	private void insertPakageJobItems(DataItemList insertJobItems) throws BizException  {
+		//Package Items
+		DataItemList insertPkgItems = new DataItemList();
+    	CargoLoadingItem item = (CargoLoadingItem)insertJobItems.get(0);
+        ArrayList pkgLists = (ArrayList) item.getPackageItems();
+        if (pkgLists.size() > 0) {
+        	  for (int j = 0; j < pkgLists.size(); j++) {
+                  PackageJobItem pkgItem = (PackageJobItem) pkgLists.get(j);
+                  pkgItem.setJobNo(item.getJobNo());
+                  pkgItem.setJobTpCd(item.getJobTpCd());
+                  pkgItem.setJobPurpCd(item.getJobPurpCd());
+                  pkgItem.setOpeClassCd(item.getCatgCd());
+                  pkgItem.setVslCd(item.getVslCd());
+                  pkgItem.setCallSeq(item.getCallSeq());
+                  pkgItem.setCallYear(item.getCallYear());
+                  pkgItem.setPkgTpCd(item.getPkgTpCd());
+                  pkgItem.setUserId(item.getUserId());
+                  
+                  insertPkgItems.add(pkgItem);
+        	  }
+        	  
+        	  if(insertPkgItems.size() > 0) {
+        		  cargoLoadingDao.insertPackageJobItems(insertPkgItems);
+        	  }
+        }
+	}
+	
+	//HANGING SCALE
+	public DataItemList selectHangingScaleItems(SearchHangingScaleParm parm) throws BizException {
+		return hangingScaleDao.selectHangingScaleItems(parm);
+	}
+	
+	private void updateHangingScaleItems(DataItemList insertJobItems) throws BizException  {
+    	DataItemList updItems = new DataItemList();
+    	CargoLoadingItem item = (CargoLoadingItem)insertJobItems.get(0);
+        ArrayList list = (ArrayList) item.getHangingScaleItems();
+        if (list.size() > 0) {
+        	  for (int j = 0; j < list.size(); j++) {
+                  HangingScaleItem cudItem = (HangingScaleItem) list.get(j);
+                  cudItem.setJobNo(item.getJobNo());
+                  cudItem.setJobTpCd(item.getJobTpCd());
+                  cudItem.setJobPurpCd(item.getJobPurpCd());
+                  cudItem.setUserId(item.getUserId());
+                  
+                  updItems.add(cudItem);
+        	  }
+        	  
+        	  if(updItems.size() > 0) {
+        		  hangingScaleDao.updateHangingScaleItems(updItems);
+        	  }
+        }
+    }
+}

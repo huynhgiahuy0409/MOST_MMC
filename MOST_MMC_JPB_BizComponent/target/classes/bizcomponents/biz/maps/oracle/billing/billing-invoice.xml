@@ -1,0 +1,1281 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="invoice">
+	<sql id="atbAtwAtcAtuForIv">
+		TO_CHAR (
+                CASE
+                   WHEN /* IV cotains one shifting  => get from Shift */
+                        (SELECT COUNT (DISTINCT (REF_NO2))
+                           FROM TMT_B_IV_DATA DT, TMT_B_TRF_CD TR
+                          WHERE TR.TRF_CD = DT.TRF_CD 
+                                AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                AND TR.TRF_TP_CD = 'DC' 
+                                AND DT.IV_NO = TBI.IV_NO) = 1
+                   THEN
+                      (SELECT ATB_DT
+                         FROM TMT_VSL_SHFT SHFT
+                        WHERE     SHFT.VSL_CALL_ID = TBI.VSL_CALL_ID
+                              AND SHFT.SEQ = (SELECT MAX (DISTINCT (REF_NO2))
+                                                FROM TMT_B_IV_DATA DT, TMT_B_TRF_CD TR
+                                                  WHERE TR.TRF_CD = DT.TRF_CD 
+                                                        AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                                        AND TR.TRF_TP_CD = 'DC' 
+                                                        AND DT.IV_NO = TBI.IV_NO
+                                                        AND DT.VSL_CALL_ID = TBI.VSL_CALL_ID))
+                   WHEN /* IV cotains more than one shifting  => get from last Shift */
+                        (SELECT COUNT (DISTINCT (REF_NO2))
+                           FROM TMT_B_IV_DATA DT, TMT_B_TRF_CD TR
+                          WHERE TR.TRF_CD = DT.TRF_CD 
+                                AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                AND TR.TRF_TP_CD = 'DC' 
+                                AND DT.IV_NO = TBI.IV_NO) > 1
+                   THEN
+                      (SELECT ATB_DT
+                         FROM TMT_VSL_SHFT SHFT
+                        WHERE     SHFT.VSL_CALL_ID = TBI.VSL_CALL_ID
+                              AND SHFT.SEQ =
+                                     (SELECT MAX (REF_NO2)
+                                        FROM TMT_B_IV_DATA DT, TMT_B_TRF_CD TR
+                                                  WHERE TR.TRF_CD = DT.TRF_CD 
+                                                        AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                                        AND TR.TRF_TP_CD = 'DC' 
+                                                        AND DT.IV_NO = TBI.IV_NO
+                                                        AND DT.VSL_CALL_ID = TBI.VSL_CALL_ID))
+                   WHEN  /* IV does not  contain shifting*/
+                        (SELECT COUNT (DISTINCT (REF_NO2))
+                           FROM TMT_B_IV_DATA DT, TMT_B_TRF_CD TR
+                          WHERE TR.TRF_CD = DT.TRF_CD 
+                                AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                AND TR.TRF_TP_CD = 'DC' 
+                                AND DT.IV_NO = TBI.IV_NO) = 0
+                   THEN
+                        CASE
+                         WHEN /* IV does not contain Normal Dockage AND VSL has shifting => get from last Shift */
+                              (   SELECT COUNT (DISTINCT (TRF_TP_CD))
+                                    FROM (SELECT TRF_TP_CD
+                                            FROM TMT_B_TRF_CD TR, TMT_B_IV_DATA DT
+                                           WHERE     TR.TRF_CD = DT.TRF_CD
+                                                 AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                                 AND TR.TRF_TP_CD = 'DC'
+                                                 AND DT.IV_NO = TBI.IV_NO)) = 0
+                              AND (SELECT COUNT (SEQ)
+                                     FROM TMT_VSL_SHFT SHFT
+                                    WHERE SHFT.VSL_CALL_ID = TBI.VSL_CALL_ID
+                                          AND SHFT.ATB_DT IS NOT NULL AND SHFT.ATW_DT IS NOT NULL 
+                                          AND SHFT.ATC_DT IS NOT NULL AND SHFT.ATU_DT IS NOT NULL) > 0
+                         THEN
+                            (SELECT ATB_DT
+                               FROM TMT_VSL_SHFT SHFT
+                              WHERE     SHFT.VSL_CALL_ID = TBI.VSL_CALL_ID
+                                    AND SHFT.SEQ =
+                                           (SELECT MAX (SEQ)
+                                              FROM TMT_VSL_SHFT SHFT2
+                                             WHERE SHFT2.VSL_CALL_ID = TBI.VSL_CALL_ID
+                                                    AND SHFT2.ATB_DT IS NOT NULL AND SHFT2.ATW_DT IS NOT NULL 
+                                                    AND SHFT2.ATC_DT IS NOT NULL AND SHFT2.ATU_DT IS NOT NULL))
+                         ELSE
+                            (SELECT MAX (ATB)
+                               FROM TMT_VSL_SCH VSCH
+                              WHERE VSCH.VSL_CALL_ID = TBI.VSL_CALL_ID)                     
+                        END
+                END,
+                <choose>
+                	<when test=" searchType == 'invoice' ">
+                		 'DD-Mon-YYYY HH24:MI', 'NLS_DATE_LANGUAGE=AMERICAN'
+                	</when>
+                	<otherwise>
+                		'DD/MM/YYYY HH24:MI'
+                	</otherwise>
+                </choose>
+                ) AS ATB,
+             TO_CHAR (
+                CASE
+                   WHEN /* IV cotains one shifting  => get from Shift */
+                        (SELECT COUNT (DISTINCT (REF_NO2))
+                           FROM TMT_B_IV_DATA DT, TMT_B_TRF_CD TR
+                          WHERE TR.TRF_CD = DT.TRF_CD 
+                                AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                AND TR.TRF_TP_CD = 'DC' 
+                                AND DT.IV_NO = TBI.IV_NO) = 1
+                   THEN
+                      (SELECT ATW_DT
+                         FROM TMT_VSL_SHFT SHFT
+                        WHERE     SHFT.VSL_CALL_ID = TBI.VSL_CALL_ID
+                              AND SHFT.SEQ = (SELECT MAX (DISTINCT (REF_NO2))
+                                                FROM TMT_B_IV_DATA DT, TMT_B_TRF_CD TR
+                                                  WHERE TR.TRF_CD = DT.TRF_CD 
+                                                        AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                                        AND TR.TRF_TP_CD = 'DC' 
+                                                        AND DT.IV_NO = TBI.IV_NO
+                                                        AND DT.VSL_CALL_ID = TBI.VSL_CALL_ID))
+                   WHEN /* IV cotains more than one shifting  => get from last Shift */
+                        (SELECT COUNT (DISTINCT (REF_NO2))
+                           FROM TMT_B_IV_DATA DT, TMT_B_TRF_CD TR
+                          WHERE TR.TRF_CD = DT.TRF_CD 
+                                AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                AND TR.TRF_TP_CD = 'DC' 
+                                AND DT.IV_NO = TBI.IV_NO) > 1
+                   THEN
+                      (SELECT ATW_DT
+                         FROM TMT_VSL_SHFT SHFT
+                        WHERE     SHFT.VSL_CALL_ID = TBI.VSL_CALL_ID
+                              AND SHFT.SEQ =
+                                     (SELECT MAX (REF_NO2)
+                                        FROM TMT_B_IV_DATA DT, TMT_B_TRF_CD TR
+                                                  WHERE TR.TRF_CD = DT.TRF_CD 
+                                                        AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                                        AND TR.TRF_TP_CD = 'DC' 
+                                                        AND DT.IV_NO = TBI.IV_NO
+                                                        AND DT.VSL_CALL_ID = TBI.VSL_CALL_ID))
+                   WHEN  /* IV does not  contain shifting*/
+                        (SELECT COUNT (DISTINCT (REF_NO2))
+                           FROM TMT_B_IV_DATA DT, TMT_B_TRF_CD TR
+                          WHERE TR.TRF_CD = DT.TRF_CD 
+                                AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                AND TR.TRF_TP_CD = 'DC' 
+                                AND DT.IV_NO = TBI.IV_NO) = 0
+                   THEN
+                        CASE                    
+                         WHEN /* IV does not contain Normal Dockage AND VSL has shifting => get from last Shift */
+                              (   SELECT COUNT (DISTINCT (TRF_TP_CD))
+                                    FROM (SELECT TRF_TP_CD
+                                            FROM TMT_B_TRF_CD TR, TMT_B_IV_DATA DT
+                                           WHERE     TR.TRF_CD = DT.TRF_CD
+                                                 AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                                 AND TR.TRF_TP_CD = 'DC'
+                                                 AND DT.IV_NO = TBI.IV_NO)) = 0
+                              AND (SELECT COUNT (SEQ)
+                                     FROM TMT_VSL_SHFT SHFT
+                                    WHERE SHFT.VSL_CALL_ID = TBI.VSL_CALL_ID
+                                          AND SHFT.ATB_DT IS NOT NULL AND SHFT.ATW_DT IS NOT NULL 
+                                          AND SHFT.ATC_DT IS NOT NULL AND SHFT.ATU_DT IS NOT NULL) > 0
+                         THEN
+                            (SELECT ATW_DT
+                               FROM TMT_VSL_SHFT SHFT
+                              WHERE     SHFT.VSL_CALL_ID = TBI.VSL_CALL_ID
+                                    AND SHFT.SEQ =
+                                           (SELECT MAX (SEQ)
+                                              FROM TMT_VSL_SHFT SHFT2
+                                             WHERE SHFT2.VSL_CALL_ID = TBI.VSL_CALL_ID
+                                                    AND SHFT2.ATB_DT IS NOT NULL AND SHFT2.ATW_DT IS NOT NULL 
+                                                    AND SHFT2.ATC_DT IS NOT NULL AND SHFT2.ATU_DT IS NOT NULL))
+                         ELSE
+                            (SELECT MAX (ATW)
+                               FROM TMT_VSL_SCH VSCH
+                              WHERE VSCH.VSL_CALL_ID = TBI.VSL_CALL_ID)                     
+                        END
+                END,
+                <choose>
+                	<when test=" searchType == 'invoice' ">
+                		 'DD-Mon-YYYY HH24:MI', 'NLS_DATE_LANGUAGE=AMERICAN'
+                	</when>
+                	<otherwise>
+                		'DD/MM/YYYY HH24:MI'
+                	</otherwise>
+                </choose>
+                ) AS ATW,  /*ATC*/
+             TO_CHAR (
+                CASE
+                   WHEN /* IV cotains one shifting  => get from Shift */
+                        (SELECT COUNT (DISTINCT (REF_NO2))
+                           FROM TMT_B_IV_DATA DT, TMT_B_TRF_CD TR
+                          WHERE TR.TRF_CD = DT.TRF_CD 
+                                AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                AND TR.TRF_TP_CD = 'DC' 
+                                AND DT.IV_NO = TBI.IV_NO) = 1
+                   THEN
+                      (SELECT ATC_DT
+                         FROM TMT_VSL_SHFT SHFT
+                        WHERE     SHFT.VSL_CALL_ID = TBI.VSL_CALL_ID
+                              AND SHFT.SEQ = (SELECT MAX (DISTINCT (REF_NO2))
+                                                FROM TMT_B_IV_DATA DT, TMT_B_TRF_CD TR
+                                                  WHERE TR.TRF_CD = DT.TRF_CD 
+                                                        AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                                        AND TR.TRF_TP_CD = 'DC' 
+                                                        AND DT.IV_NO = TBI.IV_NO
+                                                        AND DT.VSL_CALL_ID = TBI.VSL_CALL_ID))
+                   WHEN /* IV cotains more than one shifting  => get from last Shift */
+                        (SELECT COUNT (DISTINCT (REF_NO2))
+                           FROM TMT_B_IV_DATA DT, TMT_B_TRF_CD TR
+                          WHERE TR.TRF_CD = DT.TRF_CD 
+                                AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                AND TR.TRF_TP_CD = 'DC' 
+                                AND DT.IV_NO = TBI.IV_NO) > 1
+                   THEN
+                      (SELECT ATC_DT
+                         FROM TMT_VSL_SHFT SHFT
+                        WHERE     SHFT.VSL_CALL_ID = TBI.VSL_CALL_ID
+                              AND SHFT.SEQ =
+                                     (SELECT MAX (REF_NO2)
+                                        FROM TMT_B_IV_DATA DT, TMT_B_TRF_CD TR
+                                                  WHERE TR.TRF_CD = DT.TRF_CD 
+                                                        AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                                        AND TR.TRF_TP_CD = 'DC' 
+                                                        AND DT.IV_NO = TBI.IV_NO
+                                                        AND DT.VSL_CALL_ID = TBI.VSL_CALL_ID))
+                   WHEN  /* IV does not  contain shifting*/
+                        (SELECT COUNT (DISTINCT (REF_NO2))
+                           FROM TMT_B_IV_DATA DT, TMT_B_TRF_CD TR
+                          WHERE TR.TRF_CD = DT.TRF_CD 
+                                AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                AND TR.TRF_TP_CD = 'DC' 
+                                AND DT.IV_NO = TBI.IV_NO) = 0
+                   THEN
+                        CASE                    
+                         WHEN /* IV does not contain Normal Dockage AND VSL has shifting => get from last Shift */
+                              (   SELECT COUNT (DISTINCT (TRF_TP_CD))
+                                    FROM (SELECT TRF_TP_CD
+                                            FROM TMT_B_TRF_CD TR, TMT_B_IV_DATA DT
+                                           WHERE     TR.TRF_CD = DT.TRF_CD
+                                                 AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                                 AND TR.TRF_TP_CD = 'DC'
+                                                 AND DT.IV_NO = TBI.IV_NO)) = 0
+                              AND (SELECT COUNT (SEQ)
+                                     FROM TMT_VSL_SHFT SHFT
+                                    WHERE SHFT.VSL_CALL_ID = TBI.VSL_CALL_ID
+                                          AND SHFT.ATB_DT IS NOT NULL AND SHFT.ATW_DT IS NOT NULL 
+                                          AND SHFT.ATC_DT IS NOT NULL AND SHFT.ATU_DT IS NOT NULL) > 0
+                         THEN
+                            (SELECT ATC_DT
+                               FROM TMT_VSL_SHFT SHFT
+                              WHERE     SHFT.VSL_CALL_ID = TBI.VSL_CALL_ID
+                                    AND SHFT.SEQ =
+                                           (SELECT MAX (SEQ)
+                                              FROM TMT_VSL_SHFT SHFT2
+                                             WHERE SHFT2.VSL_CALL_ID = TBI.VSL_CALL_ID
+                                                    AND SHFT2.ATB_DT IS NOT NULL AND SHFT2.ATW_DT IS NOT NULL 
+                                                    AND SHFT2.ATC_DT IS NOT NULL AND SHFT2.ATU_DT IS NOT NULL))
+                         ELSE
+                            (SELECT MAX (ATC)
+                               FROM TMT_VSL_SCH VSCH
+                              WHERE VSCH.VSL_CALL_ID = TBI.VSL_CALL_ID)                     
+                        END
+                END,
+                <choose>
+                	<when test=" searchType == 'invoice' ">
+                		 'DD-Mon-YYYY HH24:MI', 'NLS_DATE_LANGUAGE=AMERICAN'
+                	</when>
+                	<otherwise>
+                		'DD/MM/YYYY HH24:MI'
+                	</otherwise>
+                </choose>
+                ) AS ATC, 
+             TO_CHAR( /*ATD*/
+             	(SELECT
+                    MAX(ATD)
+                FROM
+                    TMT_VSL_SCH VSCH
+                WHERE
+                    VSCH.VSL_CALL_ID = TBI.VSL_CALL_ID),
+    		 <choose>
+                	<when test=" searchType == 'invoice' ">
+                		 'DD-Mon-YYYY HH24:MI', 'NLS_DATE_LANGUAGE=AMERICAN'
+                	</when>
+                	<otherwise>
+                		'DD/MM/YYYY HH24:MI'
+                	</otherwise>
+                </choose>
+    		) AS ATD, 
+             TO_CHAR (/*ATU*/
+                CASE
+                   WHEN /* IV cotains one shifting  => get from Shift */
+                        (SELECT COUNT (DISTINCT (REF_NO2))
+                           FROM TMT_B_IV_DATA DT, TMT_B_TRF_CD TR
+                          WHERE TR.TRF_CD = DT.TRF_CD 
+                                AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                AND TR.TRF_TP_CD = 'DC' 
+                                AND DT.IV_NO = TBI.IV_NO) = 1
+                   THEN
+                      (SELECT ATU_DT
+                         FROM TMT_VSL_SHFT SHFT
+                        WHERE     SHFT.VSL_CALL_ID = TBI.VSL_CALL_ID
+                              AND SHFT.SEQ = (SELECT MAX (DISTINCT (REF_NO2))
+                                                FROM TMT_B_IV_DATA DT, TMT_B_TRF_CD TR
+                                                  WHERE TR.TRF_CD = DT.TRF_CD 
+                                                        AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                                        AND TR.TRF_TP_CD = 'DC' 
+                                                        AND DT.IV_NO = TBI.IV_NO
+                                                        AND DT.VSL_CALL_ID = TBI.VSL_CALL_ID))
+                   WHEN /* IV cotains more than one shifting  => get from last Shift */
+                        (SELECT COUNT (DISTINCT (REF_NO2))
+                           FROM TMT_B_IV_DATA DT, TMT_B_TRF_CD TR
+                          WHERE TR.TRF_CD = DT.TRF_CD 
+                                AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                AND TR.TRF_TP_CD = 'DC' 
+                                AND DT.IV_NO = TBI.IV_NO) > 1
+                   THEN
+                      (SELECT ATU_DT
+                         FROM TMT_VSL_SHFT SHFT
+                        WHERE     SHFT.VSL_CALL_ID = TBI.VSL_CALL_ID
+                              AND SHFT.SEQ =
+                                     (SELECT MAX (REF_NO2)
+                                        FROM TMT_B_IV_DATA DT, TMT_B_TRF_CD TR
+                                                  WHERE TR.TRF_CD = DT.TRF_CD 
+                                                        AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                                        AND TR.TRF_TP_CD = 'DC' 
+                                                        AND DT.IV_NO = TBI.IV_NO
+                                                        AND DT.VSL_CALL_ID = TBI.VSL_CALL_ID))
+                   WHEN  /* IV does not  contain shifting*/
+                        (SELECT COUNT (DISTINCT (REF_NO2))
+                           FROM TMT_B_IV_DATA DT, TMT_B_TRF_CD TR
+                          WHERE TR.TRF_CD = DT.TRF_CD 
+                                AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                AND TR.TRF_TP_CD = 'DC' 
+                                AND DT.IV_NO = TBI.IV_NO) = 0
+                   THEN
+                        CASE                    
+                         WHEN /* IV does not contain Normal Dockage AND VSL has shifting => get from last Shift */
+                              (   SELECT COUNT (DISTINCT (TRF_TP_CD))
+                                    FROM (SELECT TRF_TP_CD
+                                            FROM TMT_B_TRF_CD TR, TMT_B_IV_DATA DT
+                                           WHERE     TR.TRF_CD = DT.TRF_CD
+                                                 AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+                                                 AND TR.TRF_TP_CD = 'DC'
+                                                 AND DT.IV_NO = TBI.IV_NO)) = 0
+                              AND (SELECT COUNT (SEQ)
+                                     FROM TMT_VSL_SHFT SHFT
+                                    WHERE SHFT.VSL_CALL_ID = TBI.VSL_CALL_ID
+                                          AND SHFT.ATB_DT IS NOT NULL AND SHFT.ATW_DT IS NOT NULL 
+                                          AND SHFT.ATC_DT IS NOT NULL AND SHFT.ATU_DT IS NOT NULL) > 0
+                         THEN
+                            (SELECT ATU_DT
+                               FROM TMT_VSL_SHFT SHFT
+                              WHERE     SHFT.VSL_CALL_ID = TBI.VSL_CALL_ID
+                                    AND SHFT.SEQ =
+                                           (SELECT MAX (SEQ)
+                                              FROM TMT_VSL_SHFT SHFT2
+                                             WHERE SHFT2.VSL_CALL_ID = TBI.VSL_CALL_ID
+                                                    AND SHFT2.ATB_DT IS NOT NULL AND SHFT2.ATW_DT IS NOT NULL 
+                                                    AND SHFT2.ATC_DT IS NOT NULL AND SHFT2.ATU_DT IS NOT NULL))
+                         ELSE
+                            (SELECT MAX (ATU)
+                               FROM TMT_VSL_SCH VSCH
+                              WHERE VSCH.VSL_CALL_ID = TBI.VSL_CALL_ID)                     
+                        END
+                END,
+                <choose>
+                	<when test=" searchType == 'invoice' ">
+                		 'DD-Mon-YYYY HH24:MI', 'NLS_DATE_LANGUAGE=AMERICAN'
+                	</when>
+                	<otherwise>
+                		'DD/MM/YYYY HH24:MI'
+                	</otherwise>
+                </choose>
+                ) AS ATU
+	</sql>
+	
+	<sql id="sqlInvoiceItemList">
+		SELECT /*invoice.sqlInvoiceItemList*/
+				MBI.IV_NO AS ivNo,
+				MBI.VSL_CALL_ID AS vslCallId,
+				TVP.VSL_NM as vslNm,
+				MBI.PAYER AS payer,
+ 				MBI.ERP_STAT_CD AS erpStatCd,
+				TO_CHAR (TVS.ATB, 'DD/MM/YYYY HH24:MI') AS atb,
+				TO_CHAR (TVS.ATU, 'DD/MM/YYYY HH24:MI') AS atu,
+				TO_CHAR (MBI.UPDATE_TIME, 'DD/MM/YYYY HH24:MI') AS crDate,
+				TO_CHAR (MBI.IV_DT, 'DD/MM/YYYY') AS ivDt,
+				ROUND (MBI.IV_DT - TVS.ATU) AS billDays,
+				MBI.IV_AMT AS ivAmt,
+				F_GET_PARTNER_INFO (MBI.PAYER, 'ACC_NO') AS accNo,
+				TVS.BERTH_LOC AS berthLoc,
+				MBI.STAT_CD AS statCd,
+				F_CM_012('MT', 'IVSTAT', MBI.STAT_CD) AS statusNm,
+				DECODE ( (SELECT COUNT (*)
+                        FROM TMT_FILE_INFO
+                       WHERE PGM_ID = 'BL01401' AND CATG_CD = MBI.IV_NO),
+                    0, 'N',
+                    'Y')
+               		AS ISFILEATT,
+				TO_CHAR (MBI.VW_DT, 'DD/MM/YYYY HH24:MI') AS vwDt,
+				MBI.VW_USER_ID AS vwUserId,
+<!-- 			TO_CHAR (MBI.PR_DT, 'DD/MM/YYYY HH24:MI') AS PRDT, -->
+<!-- 			MBI.PR_USER_ID AS PRUSERID, -->
+				MBI.STAFF_CD AS userId,
+<!-- 				CASE -->
+<!--          			WHEN F_GET_EXCHANGE_RATE (#{crcyCd}, MBI.IV_DT) = 0 THEN 0 -->
+<!--          			ELSE -->
+<!-- 		            (SELECT   SUM(ROUND ( -->
+<!-- 		                             B.APLY_AMT -->
+<!-- 		                             / F_GET_EXCHANGE_RATE (#{crcyCd}, MBI.IV_DT), -->
+<!-- 		                             2 -->
+<!-- 		                          )) -->
+<!-- 		               FROM   TMT_B_IV_DATA B -->
+<!-- 		              WHERE   B.IV_NO = MBI.IV_NO) -->
+<!--     			END AS frgnAmt, -->
+				NVL(MBI.IV_AMT, 0) AS frgnAmt,
+				DECODE ( MBI.PAY_TP_CD,
+                            'M', 'Cash',
+                            'Credit')
+                            AS PAYTPCD
+				,NVL(MBI.IV_AMT, 0) AS revsAmt
+				,NVL( MBI.TAX_AMT,0) AS gstAmount
+				,NVL(MBI.TOTAL_AMT,IV_AMT) as totalAmount
+				,CASE WHEN MBI.PAID_ST='Y' THEN 'true' ELSE 'false' END AS paidSt
+				,CASE WHEN MBI.PAID_ST='Y' THEN 'true' ELSE 'false' END AS paidStOrg
+				,MBI.RMK AS RMK
+		FROM 	TMT_B_IV MBI
+				INNER JOIN TMT_VSL_SCH TVS ON MBI.VSL_CALL_ID = TVS.VSL_CALL_ID
+				INNER JOIN TMT_VSL_PART TVP ON TVS.VSL_CD = TVP.VSL_CD
+		WHERE   1=1
+				<if test="vslCallId != null and vslCallId != ''">
+	   				AND MBI.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="vslCallId == null or vslCallId == ''">
+    				AND MBI.VSL_CALL_ID <![CDATA[<>]]> 'STRG'
+				</if>
+				<if test="atb == 'true'">
+   					<if test="fromDate != null and fromDate != ''"> 
+       					AND TVS.ATB >= TO_DATE(#{fromDate}, 'DD/MM/YYYY')
+				    </if>
+				    <if test="toDate != null and toDate != ''"> 
+       					AND TO_DATE(#{toDate}, 'DD/MM/YYYY') + 1 > TVS.ATB 
+				    </if>
+				</if>
+				<if test="invoiceDate == 'true'">
+   					<if test="fromDate != null and fromDate != ''"> 
+       					AND MBI.IV_DT >= TO_DATE(#{fromDate}, 'DD/MM/YYYY')
+				    </if>
+				    <if test="toDate != null and toDate != ''"> 
+						AND TO_DATE(#{toDate}, 'DD/MM/YYYY') + 1 > MBI.IV_DT
+				    </if>
+				</if>
+				<if test="erpStatCd == 'true'">
+					AND MBI.ERP_STAT_CD IS NULL
+   					<if test="fromDate != null and fromDate != ''"> 
+       					AND MBI.IV_DT >= TO_DATE(#{fromDate}, 'DD/MM/YYYY')
+				    </if>
+				    <if test="toDate != null and toDate != ''"> 
+						AND TO_DATE(#{toDate}, 'DD/MM/YYYY')  + 1 > MBI.IV_DT
+				    </if>
+				</if>
+			    <if test="status != null and status != ''">
+					AND MBI.STAT_CD = #{status}
+			    </if>
+			    <if test="invoiceType != null and invoiceType != ''">
+       				AND (SELECT BILL_TP_CD FROM TMT_B_IV_DATA X WHERE X.IV_NO=MBI.IV_NO AND ROWNUM=1) = #{invoiceType}
+			    </if>
+			    <if test="ivPrfx != null and ivPrfx != ''">
+       				AND MBI.IV_NO LIKE #{ivPrfx} || '%'
+			    </if>
+				<if test="checkRole != null and checkRole != ''">
+				    <if test="checkRole == 'true'">
+				        AND MBI.IV_PRFX = 'LME'
+				    </if>
+				</if>
+			    <if test="payer != null and payer != ''">
+       				AND PAYER = #{payer}
+			    </if>
+			    <if test="invoiceNo != null and invoiceNo != ''">
+       				AND IV_NO LIKE '%'||#{invoiceNo}||'%'
+			    </if>
+				<if test="reportID != null and reportID != ''">
+   					AND (
+   						(MBI.ERP_STAT_CD = 'Y' AND (MBI.IV_PRFX = 'XMS' OR MBI.PAY_TP_CD = 'M'))
+				    	OR 
+				    	(MBI.PAY_TP_CD <![CDATA[<>]]> 'M' OR MBI.PAY_TP_CD IS NULL)
+				    )
+				</if>
+				<if test="atb == 'true'">
+		  			ORDER BY ATB DESC
+		  		</if>
+	</sql>
+
+	<select id="selectInvoiceItemList" parameterType="invoiceParm" resultType="invoiceItem">
+		<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="sqlInvoiceItemList"/>
+		
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	
+	<select id="selectInvoiceItemListCount" parameterType="invoiceParm" resultType="java.lang.String">
+	 	SELECT COUNT(*)
+          FROM (
+          	<include refid="sqlInvoiceItemList"/>
+          )
+	</select>
+	
+	<select id = "selectInvoiceItemStatCd" parameterType="invoiceParm" resultType="invoiceItem">
+		SELECT	COUNT(*) as totalRowCount 
+		FROM 	TMT_B_IV 
+		WHERE 	(ERP_STAT_CD IS NULL OR ERP_STAT_CD = 'N') 
+				AND IV_NO = #{ivNo}
+	</select>
+	
+	<update id = "updateXmsInvoiceStatus" parameterType="invoiceItem">
+		UPDATE TMT_B_IV SET PAID_ST = #{paidSt} WHERE IV_NO = #{ivNo}
+	</update>
+	
+	<update id="updateNullInvoiceNoInInvoiceDataItem" parameterType="invoiceDataItem">
+		UPDATE 	TMT_B_IV_DATA
+		SET		IV_NO = '', 
+				STAT_CD = 'VF',	
+				STAFF_CD = #{userId},
+				UPDATE_TIME = SYSDATE,
+				VERSION = #{newVersion}
+		WHERE	IV_NO = #{ivNo}
+	</update>
+	 
+	<!-- INVOICE DETAIL -->
+	<select id="selectInvoiceNo" parameterType="invoiceParm"  resultType="java.lang.String">
+	 	SELECT (#{ivPrfx} 
+		        || TO_CHAR (SYSDATE, 'YYMM') 
+		        ||TRIM(TO_CHAR(NVL(MAX(TO_NUMBER(SUBSTR(IV_NO, -5, 5))+1), 1),'00000'))) AS ivNo
+		FROM TMT_B_IV
+		WHERE SUBSTR(IV_NO, 1, LENGTH(IV_NO) - 5) = (#{ivPrfx} ||TO_CHAR(SYSDATE, 'YYMM'))
+ 	</select>
+	
+	<select id="selectGatherNo" parameterType="invoiceParm" resultType="java.lang.String">
+		SELECT	#{billTpCd} 
+	       		|| TO_CHAR (SYSDATE, 'YYYYMMDD')
+	       		|| TRIM(TO_CHAR(NVL(MAX(TO_NUMBER(SUBSTR(GATHER_NO, -4, 4))+1), 1),'0000000'))
+	
+	  	FROM 	TMT_B_IV_DATA
+	 	WHERE 	GATHER_NO LIKE CONCAT (#{billTpCd}, TO_CHAR (SYSDATE, 'YYYYMMDD')) || '%'
+	</select>
+	
+	<select id="selectInvoiceDetailItem" parameterType="invoiceParm" resultType="invoiceDataItem">
+		SELECT	/*invoice.selectInvoiceDetailItem*/
+                TBIV.VSL_CALL_ID 								AS VSLCALLID,
+                <include refid="atbAtwAtcAtuForIv"/>,
+                (SELECT VSL_NM FROM TMT_VSL_SCH VSCH WHERE VSCH.VSL_CALL_ID = TBi.VSL_CALL_ID) 						AS VSLNM,
+                (SELECT INB_VOY || '/' || OUTB_VOY FROM TMT_VSL_SCH VSCH WHERE VSCH.VSL_CALL_ID = TBi.VSL_CALL_ID) 	AS VOYAGE,
+                (SELECT ARRV_SA_ID FROM TMT_VSL_SCH VSCH WHERE VSCH.VSL_CALL_ID = TBi.VSL_CALL_ID) 					AS ARRVSAID,
+                (SELECT BERTH_LOC FROM TMT_VSL_SCH VSCH WHERE VSCH.VSL_CALL_ID = TBi.VSL_CALL_ID) 					AS BERTHLOC,
+                TO_CHAR(TBI.IV_DT, 'DD/MM/YYYY') 				AS IVDT, 
+                TO_CHAR(TBI.IV_DUE_DT, 'DD/MM/YYYY HH24:MI') 	AS IVDUEDT, 
+                TBIV.GATHER_NO 									AS GATHERNO, 
+                TBIV.IV_NO 										AS IVNO, 
+                TBIV.TRF_CD 									AS TRFCD, 
+                TBIV.SUB_TRF_CD 								AS SUBTRFCD,
+                TBIV.TRF_DESCR 									AS TRFDESCR,                        
+                (SELECT S_CD_NM FROM TMT_CD_MSTD WHERE L_CD = 'MT' AND M_CD = 'TRFTP' AND S_CD = TBTC.TRF_TP_CD AND ROWNUM = 1) AS TRFTPCD, 
+                PKG_TRF_NM 										AS PKGTRFNM,
+                NVL(TBIV.COST_CENT_CD, '') 						AS COSTCENTCD,
+                TBTC.IV_UNIT1									AS IVUNIT1,
+                TBTC.IV_UNIT2									AS IVUNIT2,
+                TBTC.IV_UNIT3									AS IVUNIT3,
+                TBIV.UNIT1_VAL 									AS UNIT1VAL, 
+                TBIV.UNIT2_VAL 									AS UNIT2VAL, 
+                TBIV.UNIT3_VAL 									AS UNIT3VAL,
+                TBIV.APLY_RATE 									AS APLYRATE, 
+                TBIV.STD_RATE 									AS STDRATE, 
+                TBIV.APLY_AMT 									AS APLYAMT,
+                TBIV.APLY_AMT 									AS STDAMT,
+                <!-- add gstAmountRpt -->
+<!--                 CASE F_GET_EXCHANGE_RATE (#{curr,jdbcType=VARCHAR}, TBI.IV_DT) -->
+<!--                     WHEN 0 -->
+<!--                        THEN 0 -->
+<!--                     ELSE -->
+<!--                        ROUND ((TBIV.TAX_AMT/ F_GET_EXCHANGE_RATE (#{curr, jdbcType=VARCHAR}, TBI.IV_DT)),2) -->
+<!--                 END as gstAmountRpt, -->
+                DECODE(NVL(TBIV.REVS_AMT, '0'), '0', TBIV.APLY_AMT, TBIV.REVS_AMT) AS REVSAMT,
+                TBIV.ADHOC_YN 									AS ADHOCYN,
+                DECODE(TBIV.REVS_UNIT1_VAL, NULL, TBIV.UNIT1_VAL, 0, TBIV.UNIT1_VAL, TBIV.REVS_UNIT1_VAL) AS REVSUNIT1VAL, 
+                DECODE(TBIV.REVS_UNIT2_VAL, NULL, TBIV.UNIT2_VAL, 0, TBIV.UNIT2_VAL, TBIV.REVS_UNIT2_VAL) AS REVSUNIT2VAL, 
+                DECODE(TBIV.REVS_UNIT3_VAL, NULL, TBIV.UNIT3_VAL, 0, TBIV.UNIT3_VAL, TBIV.REVS_UNIT3_VAL) AS REVSUNIT3VAL, 
+                DECODE(NVL(TBIV.REVS_RATE, '0'), '0', TBIV.APLY_RATE, TBIV.REVS_RATE) AS REVSRATE,
+                'FALSE' 										AS ISSELECTED,
+                TBIV.PAYER 										AS PAYER,
+                F_GET_PARTNER_INFO (TBIV.PAYER, 'ENG_SNM') 		AS PAYERNM,
+                F_GET_PARTNER_INFO (TBIV.PAYER, 'ACC_NO') 		AS ACCNO,
+                F_GET_PARTNER_INFO (TBIV.PAYER, 'ADDR') 		AS ADDR,
+                F_GET_PARTNER_INFO (TBIV.PAYER, 'TEL') 			AS TELNO,
+                (SELECT CUST_CD FROM TMT_PTNR WHERE PTNR_CODE = TBIV.PAYER AND ROWNUM = 1
+                UNION
+                SELECT CUST_CD FROM TMT_AGENCY_INFO WHERE AGENCY_CODE = TBIV.PAYER AND ROWNUM = 1) AS CUSTCD,
+                TBIV.IV_PRFX 									AS IVPRFX,
+                TBI.STAT_CD 									AS STATCD,
+                DECODE(TBIV.SCR_ID,
+                	'PRF', 'Proforma',
+                	'OPE', 'Operation',
+                	'SSR', 'SSR/Add Hoc',
+                	'') 										AS SCRID,
+                DECODE (
+                    (   CASE TBIV.SCR_ID
+                            WHEN 'SSR' THEN (SELECT PAY_TP_CD FROM TMT_B_SSR WHERE SSR_NO = TBIV.REF_NO2)
+                            ELSE TBI.PAY_TP_CD
+                        END
+                    )
+                  , 'M', 'Cash', 'Credit') 						AS PAYTPCD,
+                DECODE(TBIV.SCR_ID, 
+                	'STR', TBIV.REF_NO2, 
+                	'SSR/Add hoc', NVL(
+	                		   NVL(DECODE (TBIV.RMK, '-', ' ', TBIV.RMK),TBIV.REF_NO1),
+	                		   (SELECT REF_NO
+                                FROM   TMT_B_SSR
+                                WHERE  VSL_CALL_ID = #{vslCallId}
+                                AND    TBIV.REF_NO2 = SSR_NO
+                                AND    ROWNUM = 1)
+							), 
+					NVL(
+						NVL(DECODE(TBIV.RMK, '-', ' ', TBIV.RMK),TBIV.REF_NO1),
+						TBIV.REF_NO2
+					)
+				) 												AS REFNO,
+				TBIV.REF_NO2									AS REFNO2,
+				NVL(TBIV.TOTAL_AMT,0) 							AS TOTALAMT,
+                NVL(TBIV.TAX_AMT,0) 							AS GSTAMT,
+                NVL(TBIV.TAX_TYPE,'') 							AS GSTTYPE,
+                TRIM(TO_CHAR(NVL(TBIV.TAX_VALUE, 0),'999999990.99')) || '%' AS GSTVALUE,
+				TVP.LOA 										AS LOA,
+				TVP.GRT 										AS GRT,
+				(SELECT TMNL_NM
+				   FROM TMT_TMNL_DEF
+				  WHERE TMNL_CD = 'JPB' 
+				  AND TMNL_TP_CD = 'INTEG' AND ROWNUM = 1)		AS TMNLNM,
+				(SELECT ADDR
+				   FROM TMT_TMNL_DEF
+				  WHERE TMNL_CD = 'JPB' 
+				  AND TMNL_TP_CD = 'INTEG' AND ROWNUM = 1)		AS TMNLADDR,
+				(SELECT TEL_NO
+				   FROM TMT_TMNL_DEF
+				  WHERE TMNL_CD = 'JPB' 
+				  AND TMNL_TP_CD = 'INTEG' AND ROWNUM = 1)		AS TMNLTEL,
+				(SELECT FAX_NO
+				   FROM TMT_TMNL_DEF
+				  WHERE TMNL_CD = 'JPB' 
+				  AND TMNL_TP_CD = 'INTEG' AND ROWNUM = 1)		AS TMNLFAX,
+				(SELECT BL_NO FROM TMT_BL WHERE BL_NO = TBIV.REF_NO1 AND ROWNUM <![CDATA[<=]]> 1) 							AS BLNO,
+				(SELECT SHIPG_NOTE_NO FROM TMT_SHIPG_NOTE WHERE SHIPG_NOTE_NO = TBIV.REF_NO1 AND ROWNUM <![CDATA[<=]]> 1) 	AS SNNO,
+				(SELECT MF_DOC_ID FROM TMT_BL WHERE MF_DOC_ID = TBIV.REF_NO2 AND ROWNUM <![CDATA[<=]]> 1) 					AS MASTERBL,
+				(SELECT MF_DOC_ID FROM TMT_SHIPG_NOTE WHERE MF_DOC_ID = TBIV.REF_NO2 AND ROWNUM <![CDATA[<=]]> 1) 			AS BOOKINGNO,
+				TBTC.TAX_VALUE 									AS GSTRATE<!-- ,
+				TBI.CRCY_CD										AS CRCYCD,
+				TBI.EXCHG_VAL									AS EXRATE -->
+				<!-- ,TBIV.DC_AMT AS dcAmt -->
+		 FROM 	TMT_B_IV_DATA TBIV
+		            INNER JOIN TMT_B_TRF_CD TBTC ON TBIV.TRF_CD = TBTC.TRF_CD AND TBIV.SUB_TRF_CD = TBTC.SUB_TRF_CD
+		            <!-- INNER JOIN TMT_CD_MSTD A ON TBTC.TRF_TP_CD = A.S_CD -->
+		            LEFT OUTER JOIN TMT_B_IV TBI ON TBIV.IV_NO = TBI.IV_NO
+		            LEFT OUTER JOIN TMT_VSL_SCH TVS ON TBIV.VSL_CALL_ID = TVS.VSL_CALL_ID
+		            LEFT OUTER JOIN TMT_VSL_PART TVP ON TVP.VSL_CD = TVS.VSL_CD
+         WHERE 	TBIV.VSL_CALL_ID = #{vslCallId}
+         		AND TBIV.STAT_CD != 'WV'
+         		<!-- AND M_CD = 'TRFTP'
+           		AND L_CD = 'MT' -->
+				<if test="payer != null and payer != '' and payer != 'All'">
+	   				AND TBIV.PAYER = #{payer}
+				</if>
+				<if test="checkRole != null and checkRole != ''">
+					<if test="checkRole == 'true'">
+						 AND TBIV.IV_PRFX = 'LME'
+					</if>
+				</if>
+				<if test="invoiceNo != null and invoiceNo != ''">
+					AND TBIV.IV_NO = #{invoiceNo}
+				</if>
+				<if test="invoiceNo == null or invoiceNo == ''">
+					AND TBIV.IV_NO IS NULL
+					AND TBIV.STAT_CD = 'VF'
+					<if test="ivPrfx != null and ivPrfx != '' and ivPrfx != 'All'">
+						AND TBIV.IV_PRFX = #{ivPrfx}
+					</if>
+				</if>
+				<if test="paymentTp != null and paymentTp != ''">
+	 	 			<!-- <if test='paymentTp eq "M".toString()'>
+	 	 				AND ( TBIV.SCR_ID = 'SSR' OR TBIV.SCR_ID IS NULL AND TBIV.REF_NO2 IN (SELECT SSR_NO FROM TMT_B_SSR WHERE SSR_NO = TBIV.REF_NO2 AND PAY_TP_CD = 'M') OR TBIV.SCR_ID IS NULL AND ADHOC_YN ='Y')
+	 	 			</if> -->
+	 	 			<if test='paymentTp eq "C".toString()'>
+	 	 				AND ( TBIV.SCR_ID != 'SSR' OR TBIV.SCR_ID IS NULL OR (TBIV.SCR_ID IS NULL AND ADHOC_YN ='Y') OR TBIV.REF_NO2 IN (SELECT SSR_NO FROM TMT_B_SSR WHERE SSR_NO = TBIV.REF_NO2 AND PAY_TP_CD = 'C') )
+	 	 			</if>
+	 	 			<if test='paymentTp eq "-".toString()'>
+	 	 				AND ( TBIV.SCR_ID != 'SSR' OR TBIV.SCR_ID IS NULL OR TBIV.REF_NO2 IN (SELECT SSR_NO FROM TMT_B_SSR WHERE SSR_NO = TBIV.REF_NO2) )
+	 	 			</if>
+	 	 		</if>
+        ORDER BY TBIV.PAYER, TBIV.IV_PRFX, TBIV.TRF_DESCR
+	</select>
+	
+	<select id="getInvoicePayerInfos" parameterType="invoiceParm" resultType="invoicePayerItem">
+		SELECT DISTINCT /*invoice.getInvoicePayerInfos*/  
+				 A.PTNRCD,
+                 A.ENGSNM,
+                 A.ACCNO,
+                 A.ADDR
+            FROM (SELECT  
+                   TP.PTNRCD,
+                   TP.ENGSNM,
+                   TP.ACCNO,
+                   TP.ADDR
+                FROM (
+                   SELECT DISTINCT e.PTNR_CODE AS PTNRCD,
+                                 e.ENG_SNM AS ENGSNM,
+                                 e.ACC_NO AS ACCNO,
+                                 e.ADDR AS ADDR,
+                          dense_rank() over (PARTITION BY PTNR_CODE
+                            ORDER BY CASE 
+                               WHEN ACC_NO IS NOT NULL THEN 1
+                               WHEN ACC_NO IS NULL THEN 2
+                              
+                          END ) As priority
+                   FROM TMT_PTNR e
+                   WHERE PTNR_CODE in (SELECT DISTINCT payer AS ptnrCd
+                        from   TMT_B_IV_DATA
+                        WHERE 1=1
+                              <if test="vslCallId != null and vslCallId != ''">
+					             AND VSL_CALL_ID = #{vslCallId}
+					          </if>)
+                ) TP
+                WHERE priority = 1
+                  ) A
+        ORDER BY A.PTNRCD
+	</select>
+	
+	<select id="searchInvoiceDataItemsForExternal" parameterType="invoiceParm" resultType = "invoiceDataItem">
+        SELECT /*invoice.searchInvoiceDataItemsForExternal*/
+            <!-- TBI.CRCY_CD AS CURRENCY,
+            TBI.EXCHG_VAL AS EXRATE, -->
+            TBI.IV_NO AS ivNo,
+            TBID.TRF_CD AS trfCd,
+            TBID.SUB_TRF_CD AS subTrfCd,
+            (SELECT TRF_TP_CD FROM TMT_B_TRF_CD T WHERE T.TRF_CD = TBID.TRF_CD AND T.SUB_TRF_CD = TBID.SUB_TRF_CD) TRFTPCD,
+            (SELECT B.S_CD_NM
+                FROM TMT_B_TRF_CD A, TMT_CD_MSTD B
+                WHERE     A.TRF_CD = TBID.TRF_CD
+                     AND A.SUB_TRF_CD = TBID.SUB_TRF_CD
+                     AND A.TRF_TP_CD = B.S_CD
+                     AND M_CD = 'TRFTP'
+                     AND L_CD = 'MT') AS trfTpCd,
+             TBID.PKG_TRF_NM AS pkgTrfNm,
+             TBID.TRF_DESCR AS trfDescr,
+             NVL (TBID.COST_CENT_CD, '') AS costCentCd,
+             TBID.UNIT1_VAL AS unit1Val,
+             TBID.UNIT2_VAL AS unit2Val,
+             TBID.UNIT3_VAL AS unit3Val,
+             TBID.APLY_RATE AS aplyRate,
+             TBID.STD_RATE AS stdRate,
+             TBID.APLY_AMT AS aplyAmt,
+             TBID.APLY_AMT AS stdAmt,
+             DECODE (NVL (TBID.REVS_AMT, '0'), '0', TBID.APLY_AMT, TBID.REVS_AMT)
+                AS revsAmt,
+<!--              CASE F_GET_EXCHANGE_RATE(#{curr,jdbcType=VARCHAR},TBI.IV_DT)  -->
+<!--                 WHEN 0  -->
+<!--                     THEN 0 -->
+<!--                 ELSE -->
+<!--                      ROUND((DECODE(NVL (TBID.REVS_AMT, '0'),'0',TBID.APLY_AMT,TBID.REVS_AMT)*F_GET_EXCHANGE_RATE (#{curr,jdbcType=VARCHAR}, TBI.IV_DT)),2)  -->
+<!--              END -->
+<!--                         AS reportAmt, -->
+             DECODE (TBID.REVS_UNIT1_VAL,
+                     NULL, TBID.UNIT1_VAL,
+                     TBID.REVS_UNIT1_VAL)
+                AS revsUnit1Val,
+             DECODE (TBID.REVS_UNIT2_VAL,
+                     NULL, TBID.UNIT2_VAL,
+                     TBID.REVS_UNIT2_VAL)
+                AS revsUnit2Val,
+             DECODE (TBID.REVS_UNIT3_VAL,
+                     NULL, TBID.UNIT3_VAL,
+                     TBID.REVS_UNIT3_VAL)
+                AS revsUnit3Val,
+             DECODE (NVL (TBID.REVS_RATE, '0'),
+                     '0', TBID.APLY_RATE,
+                     TBID.REVS_RATE)
+                AS revsRate,
+             DECODE (
+                TBID.SCR_ID,
+                'STR', TBID.REF_NO2,
+                'SSR/Add hoc', NVL (
+                          NVL(DECODE (TBID.RMK, '-', ' ', TBID.RMK),TBID.REF_NO1),
+                          (SELECT REF_NO
+                             FROM TMT_B_SSR
+                            WHERE     VSL_CALL_ID = TBID.VSL_CALL_ID
+                                  AND TBID.REF_NO2 = SSR_NO
+                                  AND ROWNUM = 1)),
+                NVL (NVL(DECODE (TBID.RMK, '-', ' ', TBID.RMK),TBID.REF_NO1), TBID.REF_NO2)
+			 ) AS refNo,
+             TBID.ADHOC_YN AS adhocYn,
+             TBID.PAYER AS ptnrCd,
+             TBID.PAYER AS payer,
+             F_GET_PARTNER_INFO (TBI.PAYER, 'ENG_SNM') AS engSnm,
+             F_GET_PARTNER_INFO (TBI.PAYER, 'ADDR') AS payerAddr,
+             F_GET_PARTNER_INFO (TBI.PAYER, 'TEL') AS telNo,
+             TO_CHAR (TBI.IV_DT, 'DD/MM/YYYY') AS ivDt,
+             TO_CHAR (TBI.IV_DUE_DT, 'DD/MM/YYYY') AS ivDueDt,
+             TVS.ARRV_SA_ID AS arrvSaId,
+             TVS.BERTH_LOC AS berthLoc,
+             TVP.VSL_NM AS vslNm,
+             TVS.VSL_CALL_ID AS vslCallId,
+             TVP.LOA AS loa,
+             TVP.GRT AS grt,
+             TBID.REF_NO2,
+             <include refid="atbAtwAtcAtuForIv"/>,           
+             TVS.INB_VOY || '/' || tvs.OUTB_VOY AS VOYAGE,
+             TBI.IV_PRFX ivPrfx,
+             DECODE ((CASE TBID.SCR_ID
+                      WHEN 'SSR'
+                      THEN
+                         (SELECT PAY_TP_CD
+                            FROM TMT_B_SSR
+                           WHERE SSR_NO = TBID.REF_NO2)
+                      ELSE
+                         'C'
+                   END),
+                 'M', 'Cash',
+                 'Credit')
+                AS PAYTPCD,
+             TBI.STAT_CD statCd,
+             DECODE (TBID.TOTAL_AMT, '', 0, TBID.TOTAL_AMT) totalAmt,
+             NVL (TBID.TAX_AMT, 0) AS gstAmt,
+             TBID.TAX_TYPE AS gstType,
+             TRIM (TO_CHAR (NVL (TAX_VALUE * 100, 0), '999999990.99')) || '%' AS gstValue,
+             
+<!--              NVL (tax_value * 100, 0) AS gstPercent,                   -->
+<!--              CASE F_GET_EXCHANGE_RATE (#{curr,jdbcType=VARCHAR}, TBI.IV_DT) -->
+<!--                 WHEN 0 -->
+<!--                    THEN 0 -->
+<!--                 ELSE -->
+<!--                    NVL(ROUND((TBID.TOTAL_AMT * F_GET_EXCHANGE_RATE (#{curr,jdbcType=VARCHAR}, TBI.IV_DT)),2), -->
+<!--                          ROUND(TBID.APLY_AMT * F_GET_EXCHANGE_RATE (#{curr,jdbcType=VARCHAR}, TBI.IV_DT),2)) -->
+<!--              END -->
+<!--                             AS totalAmountRpt, -->
+<!--             CASE F_GET_EXCHANGE_RATE (#{curr,jdbcType=VARCHAR}, TBI.IV_DT) -->
+<!--                 WHEN 0 -->
+<!--                    THEN 0 -->
+<!--                 ELSE -->
+<!--                    ROUND ((TBID.TAX_AMT * F_GET_EXCHANGE_RATE (#{curr,jdbcType=VARCHAR}, TBI.IV_DT)),2) -->
+<!--             END as gstAmountRpt, -->
+			 F_GET_PARTNER_INFO (TBI.PAYER, 'TEL') AS telNo,
+			 <!-- F_GET_PARTNER_INFO (TBI.PAYER, 'GST_REG_NO') AS gstRefId, -->
+			 <!-- (SELECT GST_REG_NO
+			  FROM TMT_TMNL_DEF
+			  WHERE TMNL_CD = 'AEFJR' AND TMNL_TP_CD = 'OWN' AND ROWNUM = 1)
+			   AS gstRegNo, -->
+			 (SELECT COMP_REG_NO
+			  FROM TMT_TMNL_DEF
+			  WHERE TMNL_CD = 'AEFJR' AND TMNL_TP_CD = 'OWN' AND ROWNUM = 1)
+			   AS comRegNo,
+			 (SELECT TMNL_NM
+			  FROM TMT_TMNL_DEF
+			  WHERE TMNL_CD = 'AEFJR' AND TMNL_TP_CD = 'OWN' AND ROWNUM = 1)
+			   AS tmnlNm,
+			 (SELECT ADDR
+			  FROM TMT_TMNL_DEF
+			  WHERE TMNL_CD = 'AEFJR' AND TMNL_TP_CD = 'OWN' AND ROWNUM = 1)
+			   AS tmnlAddr,
+			 (SELECT TEL_NO
+			  FROM TMT_TMNL_DEF
+			  WHERE TMNL_CD = 'AEFJR' AND TMNL_TP_CD = 'OWN' AND ROWNUM = 1)
+			   AS tmnlTel,
+			 (SELECT FAX_NO
+			  FROM TMT_TMNL_DEF
+			  WHERE TMNL_CD = 'AEFJR' AND TMNL_TP_CD = 'OWN' AND ROWNUM = 1)
+			   AS tmnlFax,
+			  (SELECT CUST_CD
+			  FROM TMT_PTNR PTNR
+			  WHERE PTNR.PTNR_CODE = TBID.PAYER
+			  AND ROWNUM =1
+			  UNION
+			  SELECT CUST_CD
+			  FROM TMT_AGENCY_INFO PTNR
+			  WHERE PTNR.AGENCY_CODE = TBID.PAYER
+			  AND ROWNUM = 1) AS accNo,
+			  F_GET_PARTNER_INFO (TBI.PAYER, 'ADDR') AS accNm,
+			  TBID.TAX_TYPE AS taxCd,
+			  NVL(TBID.TAX_VALUE, 0) AS taxValue,
+			  NVL(TBID.TAX_AMT, 0) AS taxAmt,
+			  (
+				  SELECT TAX_CD
+				  FROM (
+				  	  SELECT TAX_CD 
+				  	  FROM TMT_PTNR 
+				  	  WHERE PTNR_CODE = TBI.PAYER
+				  	  UNION
+				  	  SELECT TAX_CD
+				  	  FROM TMT_AGENCY_INFO
+				  	  WHERE AGENCY_CODE = TBI.PAYER
+				  )
+				  WHERE ROWNUM = 1
+			  ) AS payerTaxCd
+        FROM TMT_B_IV TBI
+             INNER JOIN TMT_B_IV_DATA TBID ON TBI.IV_NO = TBID.IV_NO AND TBI.VSL_CALL_ID = TBID.VSL_CALL_ID
+             INNER JOIN TMT_VSL_SCH TVS ON TBI.VSL_CALL_ID = TVS.VSL_CALL_ID
+             LEFT OUTER JOIN TMT_VSL_PART TVP ON TVP.VSL_CD = TVS.VSL_CD
+        WHERE TBI.IV_NO = #{invoiceNo}
+              AND TBI.VSL_CALL_ID = #{vslCallId}
+        ORDER BY 
+            TBID.PAYER,
+            TBID.GATHER_NO,
+            TBID.IV_PRFX,
+            TBID.TRF_DESCR
+    </select>
+    	
+	<insert id="insertInvoiceDataItem" parameterType="invoiceDataItem"> 
+		INSERT /*invoice.insertInvoiceDataItem*/
+		INTO TMT_B_IV_DATA (
+		 	 TRF_CD,
+		 	 SUB_TRF_CD,
+		 	 PAYER,
+		 	 GATHER_NO,
+			 BILL_TP_CD,
+		 	 IV_PRFX,
+		 	 VSL_CALL_ID,
+		 	 TRF_DESCR,
+		 	 UNIT1_VAL,
+		 	 UNIT2_VAL,
+		 	 UNIT3_VAL,
+		 	 STAT_CD,
+		 	 IV_NO,
+		 	 GATHER_DT,
+		 	 CAL_FM_YMD,
+		 	 CAL_TO_YMD,
+		 	 PKG_TRF_NM,
+		 	 APLY_RATE,
+		 	 APLY_AMT,
+		 	 TOTAL_AMT,
+		 	 STD_RATE,
+		 	 ADHOC_YN,
+		 	 REVS_RATE,
+		 	 REVS_AMT,
+		 	 REVS_UNIT1_VAL,
+		 	 REVS_UNIT2_VAL,
+		 	 REVS_UNIT3_VAL,
+		 	 AREA,
+		 	 UPDATE_TIME,
+		 	 STAFF_CD,
+		 	 VERSION,
+		 	 REF_NO1,
+		 	 REF_NO2,
+		 	 SCR_ID,
+		 	 COST_CENT_CD,
+		 	 PAYER_TP_CD,
+		 	 TAX_TYPE,
+		 	 TAX_VALUE,
+		 	 TAX_AMT
+		) VALUES (
+			 #{trfCd},
+			 #{subTrfCd},
+			 #{payer},
+			 #{gatherNo},
+			 #{billTpCd},
+			 #{ivPrfx},
+			 #{vslCallId},
+			 #{trfDescr},
+			 NVL(#{unit1Val},0),
+		 	 NVL(#{unit2Val},0),
+		 	 NVL(#{unit3Val},0),
+		 	 #{statCd},
+		 	 #{ivNo},
+	     	 TO_DATE(#{gatherDt}, 'DD/MM/YYYY'),
+			 #{calFmYmd},
+			 #{calToYmd},
+			 #{pkgTrfNm},
+			 #{aplyRate},
+			 ROUND(NVL(#{aplyAmt},0),2),
+			 #{totalAmount},
+			 #{stdRate},
+			 #{adhocYn},
+			 #{revsRate},
+			 ROUND(NVL(#{revsAmt},0),2),
+			 #{revsUnit1Val},
+			 #{revsUnit2Val},
+			 #{revsUnit3Val},
+			 #{area},
+			 systimestamp,
+			 #{userId},
+			 #{newVersion},
+			 #{refNo},
+			 #{refNo2},
+			 #{scrId},
+			 #{costCentCd},
+		 	 #{payerTpCd},
+		 	 #{gstTpCd},
+		 	 #{gstValue},
+			 #{gstAmount}
+		)
+	</insert>
+	
+	<insert id="insertInvoiceItem" parameterType="invoiceItem">
+		INSERT /*invoice.insertInvoiceItem*/
+		INTO TMT_B_IV (
+		 	 IV_NO,
+		 	 PAYER,
+		 	 IV_PRFX,
+		 	 STAT_CD,
+		 	 VSL_CALL_ID,
+		 	 IV_AMT,
+		 	 IV_DT,
+		 	 IV_DUE_DT,
+		 	 PAY_TP_CD,
+		 	 UPDATE_TIME,
+		 	 STAFF_CD,
+		 	 VERSION,
+		 	 TOTAL_AMT,
+		 	 PAYER_TP_CD,
+		 	 IV_TP,
+		 	 ERP_STAT_CD,
+		 	 TAX_AMT<!-- ,
+		 	 CRCY_CD,
+		 	 EXCHG_VAL -->
+		) VALUES (
+		    #{ivNo},
+		    #{payer},
+		    #{ivPrfx},
+		    #{statCd},
+		    #{vslCallId},
+		    #{ivAmt},
+			TO_DATE(TO_CHAR(sysdate, 'MM/DD/YYYY'),'MM/DD/YYYY'),
+		    DECODE(#{payTpCd} 
+            	,'M', sysdate + 30
+                ,sysdate + 30),
+		    #{payTpCd},
+		    systimestamp,
+		    #{userId ,jdbcType=VARCHAR},
+		    #{newVersion ,jdbcType=VARCHAR},
+		    #{totalWithAmt},
+		    #{payerTpCd},
+		    #{ivTpCd},
+		    <if test="ivPrfx == 'PRF'">
+		    	null,
+		    </if>
+		    <if test="ivPrfx != 'PRF'">
+		    	'Y',
+		    </if>
+		    #{gstAmount}
+		    <!-- ,
+		    DECODE(#{crcyCd},NULL,'VND','','VND', #{crcyCd}),
+		    <if test="exRate == null"> 
+		    /* test1 */
+		    	1
+		    </if>
+		    <if test="exRate != null">
+		    /* test2 */
+			    #{exRate}
+		    </if> -->
+		)
+	</insert>
+	
+	<insert id="insertInvoiceDataItemDirectInvoice" parameterType="invoiceDataItem"> 
+		INSERT /*invoice.insertInvoiceDataItemDirectInvoice*/
+		INTO TMT_B_IV_DATA (
+			TRF_CD,
+			SUB_TRF_CD,
+		 	PAYER,
+		 	GATHER_NO,
+			BILL_TP_CD,
+		 	IV_PRFX,
+		 	VSL_CALL_ID,
+		 	TRF_DESCR,
+		 	UNIT1_VAL,
+		 	UNIT2_VAL,
+		 	UNIT3_VAL,
+		 	STAT_CD,
+		 	IV_NO,
+		 	GATHER_DT,
+		 	CAL_FM_YMD,
+		 	CAL_TO_YMD,
+		 	PKG_TRF_NM,
+		 	APLY_RATE,
+		 	APLY_AMT,
+		 	STD_RATE,
+		 	ADHOC_YN,
+		 	AREA,
+		 	UPDATE_TIME,
+		 	STAFF_CD,
+		 	VERSION,
+		 	<if test="adhocYn != null">
+		 	 	<if test='adhocYn eq "Y".toString()'>
+			 	 	REF_NO1,
+				</if>
+		 	</if>
+		 	<if test="refNo2 != null and refNo2 != ''">
+		 		REF_NO2,
+			</if>
+		 	SCR_ID,
+		 	COST_CENT_CD,
+		 	TAX_AMT,
+		 	TOTAL_AMT,
+			TAX_TYPE,
+			TAX_VALUE
+		) VALUES (
+			#{trfCd},
+			#{subTrfCd},
+			#{payer},	 
+			#{gatherNo},
+			#{billTpCd},
+			#{ivPrfx}, 	
+			#{vslCallId}, 	 	
+			#{trfDescr}, 	 	 	
+			NVL(#{unit1Val},0),  	 	 
+		 	NVL(#{unit2Val},0),    	 	 
+		 	NVL(#{unit3Val},0),	  	 	 
+		 	#{statCd}, 	 	 	
+		 	#{ivNo}, 	 	 		
+	     	TO_DATE(#{gatherDt}, 'DD/MM/YYYY'),
+			#{calFmYmd},
+			#{calToYmd},
+			#{pkgTrfNm},	 	 	
+			#{aplyRate}, 	 	 
+			ROUND(NVL(#{aplyAmt},0),2), 	 	 
+			#{stdRate},
+			#{adhocYn},
+			#{area},
+			systimestamp,
+			#{userId},
+			#{newVersion},
+			<if test="adhocYn != null">
+		 	 	<if test='adhocYn eq "Y".toString()'>
+			 	 	#{refNo},
+				</if>
+		 	</if>
+			<if test="refNo2 != null and refNo2 != ''">
+		 	 	#{refNo2},
+		 	</if>
+			#{scrId},
+			#{costCentCd},
+ 			#{gstAmt},
+			#{totalAmt},
+			#{gstType},
+			#{gstValueHidden}
+		)
+	</insert>
+
+    <update id = "updateInvoiceDataItem" parameterType="invoiceDataItem">
+		UPDATE /*invoice.updateInvoiceDataItem*/
+		TMT_B_IV_DATA SET
+	 		TRF_CD = #{trfCd ,jdbcType=VARCHAR},
+	 		SUB_TRF_CD = #{subTrfCd ,jdbcType=VARCHAR}, 
+		 	TRF_DESCR = #{trfDescr ,jdbcType=VARCHAR}, 
+	 		STAT_CD = #{statCd ,jdbcType=VARCHAR},  
+	 		IV_NO = #{ivNo ,jdbcType=VARCHAR},  
+	 		COST_CENT_CD = #{costCentCd ,jdbcType=VARCHAR},
+	  		<if test="ivPrfx != null and ivPrfx != ''" >	
+	  			<if test='ivPrfx == "XMS"'>
+					APLY_RATE = #{aplyRate ,jdbcType=NUMERIC},
+					APLY_AMT = ROUND(NVL(#{aplyAmt ,jdbcType=NUMERIC},0),2),
+					UNIT1_VAL = #{unit1Val ,jdbcType=NUMERIC},  
+					UNIT2_VAL = #{unit2Val ,jdbcType=NUMERIC}, 
+					UNIT3_VAL = #{unit3Val ,jdbcType=NUMERIC},	
+					REVS_RATE = #{revsRate ,jdbcType=NUMERIC}, 
+					REVS_AMT = ROUND(NVL(#{revsAmt ,jdbcType=NUMERIC},0),2), 
+					REVS_UNIT1_VAL = #{revsUnit1Val ,jdbcType=NUMERIC},  
+					REVS_UNIT2_VAL = #{revsUnit2Val ,jdbcType=NUMERIC}, 
+					REVS_UNIT3_VAL = #{revsUnit3Val ,jdbcType=NUMERIC},
+				</if>
+				<if test='ivPrfx != "XMS"'>
+		   			<if test="statCd != null and statCd != ''">
+					   <if test='statCd == "IV"'>	
+						 	APLY_RATE = #{revsRate ,jdbcType=NUMERIC},
+					 	 	APLY_AMT = ROUND(NVL(#{revsAmt ,jdbcType=NUMERIC},0),2),
+					 	 	UNIT1_VAL = #{revsUnit1Val ,jdbcType=NUMERIC},  
+							UNIT2_VAL = #{revsUnit2Val ,jdbcType=NUMERIC}, 
+					 	 	UNIT3_VAL = #{revsUnit3Val ,jdbcType=NUMERIC},	 
+						 	REVS_RATE = #{revsRate ,jdbcType=NUMERIC}, 
+						 	REVS_AMT = ROUND(NVL(#{revsAmt ,jdbcType=NUMERIC},0),2), 
+						 	REVS_UNIT1_VAL = #{revsUnit1Val ,jdbcType=NUMERIC},  
+						 	REVS_UNIT2_VAL = #{revsUnit2Val ,jdbcType=NUMERIC}, 
+						 	REVS_UNIT3_VAL = #{revsUnit3Val ,jdbcType=NUMERIC}, 
+						</if>	
+			  			<if test='statCd != "IV"'>	
+							APLY_RATE = #{aplyRate ,jdbcType=NUMERIC},
+							APLY_AMT = ROUND(NVL(#{aplyAmt ,jdbcType=NUMERIC},0),2),
+							UNIT1_VAL = #{unit1Val ,jdbcType=NUMERIC},  
+							UNIT2_VAL = #{unit2Val ,jdbcType=NUMERIC}, 
+							UNIT3_VAL = #{unit3Val ,jdbcType=NUMERIC},	
+							REVS_RATE = #{revsRate ,jdbcType=NUMERIC}, 
+							REVS_AMT = ROUND(NVL(#{revsAmt ,jdbcType=NUMERIC},0),2), 
+							REVS_UNIT1_VAL = #{revsUnit1Val ,jdbcType=NUMERIC},  
+							REVS_UNIT2_VAL = #{revsUnit2Val ,jdbcType=NUMERIC}, 
+							REVS_UNIT3_VAL = #{revsUnit3Val ,jdbcType=NUMERIC},
+			 			</if>	
+		  			</if>
+				</if>
+			</if> 
+			<if test="adhocYn != null and adhocYn != ''">
+				<if test='adhocYn == "Y"'>
+					REF_NO1 = #{refNo ,jdbcType=VARCHAR},
+			 	</if>
+		 	</if>
+		 	<if test='adhocYn != "Y"'>
+		 	 	<if test='scrId == "OPE"'>
+			 	 	REF_NO1 = #{refNo ,jdbcType=VARCHAR},
+			 	</if>
+			 	<if test='scrId == "WHR"'>
+			 		REF_NO1 = #{refNo ,jdbcType=VARCHAR},
+			 	</if>
+			</if>
+	 		UPDATE_TIME = SYSDATE,
+	 		STAFF_CD = #{userId}, 
+	 		VERSION = #{newVersion ,jdbcType=VARCHAR},
+	 		IV_PRFX = #{ivPrfx}
+	 		<if test="payableAmount != null and payableAmount != '' ">
+				,TOTAL_AMT = #{payableAmount ,jdbcType=NUMERIC}
+			</if>
+			<if test="totalAmt != null and totalAmt != '' ">
+				,TOTAL_AMT = #{totalAmt ,jdbcType=NUMERIC}
+			</if>
+			<if test="gstTpCd != null and gstTpCd != '' ">
+				,TAX_TYPE = #{gstTpCd ,jdbcType=NUMERIC}
+			</if>
+			<if test="disSurRate != null and disSurRate != '' ">
+				,DIS_RATE = #{disSurRate ,jdbcType=NUMERIC}
+			</if>
+			<if test="disSurAmount != null and disSurAmount != '' ">
+				,DIS_AMT = #{disSurAmount ,jdbcType=NUMERIC}
+			</if>
+			<if test="wthAmount != null and wthAmount != '' ">
+				,WTH_AMT = #{wthAmount ,jdbcType=NUMERIC}
+			</if>
+			<if test="payer != null and payer != '' ">
+				,PAYER = #{payer ,jdbcType=VARCHAR}
+			</if>
+		 WHERE GATHER_NO = #{gatherNo}
+	</update>
+	
+	<update id = "updateInvoiceErpStatCd" parameterType="invoiceItem">
+		UPDATE /*invoice.updateInvoiceErpStatCd*/
+		TMT_B_IV SET 
+			<if test="ivPrfx == 'PRF'">
+		    	ERP_STAT_CD = null
+		    </if>
+		    <if test="ivPrfx != 'PRF'">
+		    	ERP_STAT_CD = 'Y'
+		    </if>
+			ERP_STAT_CD = 'Y'
+		WHERE IV_NO = #{ivNo}
+	</update>
+	
+	<update id = "updateSsrStatus" parameterType="invoiceItem">
+		UPDATE /*invoice.updateSsrStatus*/
+		TMT_B_SSR SET 
+	    	SSR_STAT_CD = #{statCd},
+	    	IV_NO = #{ivNo}
+		WHERE VSL_CALL_ID = #{vslCallId}
+		AND SSR_NO = #{refNo}
+	</update>
+	
+	<delete id="deleteInvoiceItems" parameterType="invoiceDataItem">
+		UPDATE /* invoiceList.deleteInvoiceItems */ 
+		TMT_B_IV SET 	 
+			STAT_CD = 'IC'
+			,RMK = #{rmk}
+			,IV_CANCEL = 'Y'
+			,UPDATE_TIME = SYSDATE
+       		,STAFF_CD = #{userId}
+       		,VERSION = #{newVersion}
+		WHERE IV_NO = #{ivNo}
+		AND VSL_CALL_ID = #{vslCallId}
+		AND STAT_CD IN ('IV', 'VF', 'PC', 'SM')
+	</delete>
+
+	<delete id="deleteInvoiceDataItems" parameterType="invoiceDataItem">
+		UPDATE /* invoiceList.deleteInvoiceDataItems */ 
+		TMT_B_IV_DATA SET
+			STAT_CD = 'IC'
+			,UPDATE_TIME = SYSDATE
+			,STAFF_CD = #{userId}
+       		,VERSION = #{newVersion}
+		WHERE IV_NO = #{ivNo}
+		AND VSL_CALL_ID = #{vslCallId}
+		AND STAT_CD IN ('IV', 'VF', 'PC', 'SM')
+	</delete>
+</mapper>

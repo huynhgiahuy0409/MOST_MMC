@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="equipmentConfiguration">
+	
+	<!--  ################ Query Statement Define ######################################### -->
+	<select id="selectEquipmentList"   parameterType="equipmentConfigurationParm"  resultType="equipmentConfigurationItem">
+		<if test="pageNo != 0"> 
+            SELECT /*equipmentConfiguration.selectEquipmentList*/
+        	    * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getEquipmentList"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	
+	<select id="selectEquipmentListCount" parameterType="equipmentConfigurationParm" resultType="java.lang.String" >
+        SELECT COUNT(*)
+        	FROM (<include refid="getEquipmentList"/>)
+	</select>
+	
+	<sql id="getEquipmentList">
+		SELECT 
+	   		A.EQ_FAC_NO                    		 AS EQFACNO,
+			NVL(A.EQ_FAC_NM, ' ')          		 AS EQFACNM,
+			A.EQ_TP_CD                    		 AS EQTPCD,
+			A.DIV_CD                       		 AS DIVCD,
+			NVL(A.LOC, ' ')                 	 AS LOC,
+			NVL(A.MDL , ' ')                	 AS MDL,
+			NVL(A.PDUCT_YEAR, ' ')          	 AS PDUCTYEAR,
+			NVL(A.FILE_REF_1, ' ')          	 AS FILEREF1,
+			NVL(A.FILE_REF_2, ' ')          	 AS FILEREF2,
+			NVL(A.AVG_HM, 0)                	 AS AVGHM,
+			NVL(A.RMK , ' ')                	 AS RMK,
+			NVL(A.STAT_CD, ' ')             	 AS STATCD,
+			NVL(A.STOP_RSN_CD, ' ')         	 AS STOPRSNCD,
+			NVL(A.VLD_YN, ' ')              	 AS USEYN,
+			' '									 AS SEARCHTYPE,
+			' '                             	 AS USERID,
+			A.CAPA_CD                       	 AS CAPACD,
+			NVL(A.CAPA_DESCR, ' ')          	 AS CAPADESCR,
+			NVL(A.OWN_DIV_CD, ' ')          	 AS OWNDIVCD,
+			F_CM_001('MT','EQFCSTAT',A.STAT_CD)  AS STATNM,
+			F_CM_001('MT','EQFCTPCD',A.EQ_TP_CD) AS EQTPCDNM,
+			A.MKR_CD 							 AS MKRCD,
+			F_CM_001('MT','MNFR',A.MKR_CD) 		 AS MKRNM,
+			A.VERSION 							 AS VERSION,
+			A.CONTT_NO          				 AS CONTRACTOR
+		FROM TMT_EQ_FAC A
+		WHERE 1=1
+        <if test="eqTpCd != null and eqTpCd != ''">
+        	AND A.EQ_TP_CD = #{eqTpCd}
+		</if>
+		<if test="useYN != null and useYN != ''">
+  			AND A.VLD_YN = #{useYN}
+		</if>
+		<if test="contractor != null and contractor != ''">
+  			AND A.CONTT_NO = #{contractor}
+		</if> 
+		<if test="eqFacNo != null and eqFacNo != ''">
+  			AND A.EQ_FAC_NO = #{eqFacNo}
+		</if>
+		<if test="loc != null and loc != ''">
+  			AND A.LOC = #{loc}
+		</if>
+		<if test="mkrCd != null and mkrCd != ''">
+  			AND A.MKR_CD = #{mkrCd}
+		</if>
+		ORDER BY A.EQ_TP_CD
+	</sql>
+	
+	<insert id = "insertEquipmentListItem"  parameterType = "equipmentConfigurationItem">
+		INSERT /*equipmentConfiguration.insertEquipmentListItem*/
+		INTO TMT_EQ_FAC(
+			EQ_FAC_NO,
+			EQ_FAC_NM,
+			EQ_TP_CD,
+			VLD_YN,
+			LOC,
+			MDL,
+			PDUCT_YEAR,
+			FILE_REF_1,
+			FILE_REF_2,
+			AVG_HM,
+			RMK,
+			STAT_CD,
+			STOP_RSN_CD,
+			DIV_CD,
+			UPDATE_TIME,
+			STAFF_CD,
+			CAPA_CD,
+			CAPA_DESCR,
+			CONTT_NO,
+			MKR_CD,
+			OWN_DIV_CD,
+			VERSION
+		) VALUES (
+			#{eqFacNo},
+			#{eqFacNm},
+			#{eqTpCd},
+			#{useYN},
+			#{loc},
+			#{mdl},
+			#{pductYear},
+			#{fileRef1},
+			#{fileRef2},
+			#{avgHm},
+			#{rmk},
+			#{statCd},
+			#{stopRsnCd},
+			#{divCd},
+			SYSDATE,
+			#{userId},
+			#{capaCd},	
+			#{capaDescr},
+			#{contractor},
+			#{mkrCd},
+			#{ownDivCd},
+			#{newVersion}
+		)
+	</insert>  
+	
+	<update id = "updateEquipmentListItem"  parameterType = "equipmentConfigurationItem">
+		UPDATE /*equipmentConfiguration.updateEquipmentListItem*/
+		TMT_EQ_FAC SET 	
+		   <if test="eqFacNm != null and eqFacNm != ''">
+		   		EQ_FAC_NM = #{eqFacNm},
+		   </if>
+		   <if test="eqTpCd != null and eqTpCd != ''">
+		   		EQ_TP_CD =#{eqTpCd},
+		   </if>
+		   <if test="useYN != null and useYN != ''">
+		   		VLD_YN =#{useYN},
+		   </if>
+		   <if test="loc != null and loc != ''">
+		   		LOC =#{loc},
+		   </if>	
+		   <if test="mdl != null and mdl != ''">
+		   		MDL =#{mdl},
+		   </if>	
+		   <if test="pductYear != null and pductYear != ''">
+		   		PDUCT_YEAR =#{pductYear},
+		   </if>				
+ 		   <if test="fileRef1 != null and fileRef1 != ''">
+		   		FILE_REF_1 =#{fileRef1},
+		   </if>
+		   <if test="fileRef2 != null and fileRef2 != ''">
+		   		FILE_REF_2 =#{fileRef2},
+		   </if>
+		   <if test="avgHm != null and avgHm != ''">
+		   		AVG_HM =#{avgHm},
+		   </if>
+		   <if test="rmk != null and rmk != ''">
+		   		RMK =#{rmk},
+		   </if>
+		   <if test="statCd != null and statCd != ''">
+		   		STAT_CD =#{statCd},
+		   </if>
+		   <if test="stopRsnCd != null and stopRsnCd != ''">
+		   		STOP_RSN_CD = #{stopRsnCd},	
+		   </if>
+		   <if test="userId != null and userId != ''">
+		   		STAFF_CD = #{userId},
+		   </if>
+		   <if test="capaCd != null and capaCd != ''">
+		   		CAPA_CD = #{capaCd},
+		   </if>
+		   <if test="capaDescr != null and capaDescr != ''">
+		   		CAPA_DESCR = #{capaDescr},
+		   </if>
+		   <if test="contractor != null and contractor != ''">
+		   		CONTT_NO = #{contractor},
+		   </if>
+		   <if test="divCd != null and divCd != ''">
+		   		DIV_CD = #{divCd},
+		   </if>
+		   <if test="mkrCd != null and mkrCd != ''">
+		   		MKR_CD = #{mkrCd},
+		   </if>
+		   <if test="ownDivCd != null and ownDivCd != ''">
+		   		OWN_DIV_CD = #{ownDivCd},
+		   </if>
+		   <if test="newVersion != null and newVersion != ''">
+		   		VERSION = #{newVersion},
+		   </if>
+			UPDATE_TIME =SYSDATE
+		WHERE EQ_FAC_NO = #{eqFacNo}
+		<if test="version != null and version != ''">
+   			AND VERSION = #{version}
+		</if>
+	</update>  
+	
+	<delete id = "deleteEquipmentListItem"  parameterType = "equipmentConfigurationItem">
+		DELETE /*equipmentConfiguration.deleteEquipmentListItem*/
+		FROM TMT_EQ_FAC 
+		WHERE EQ_FAC_NO = #{eqFacNo}
+		<if test="version != null and version != ''">
+			AND	VERSION = #{version}
+		</if>
+	</delete>  
+	
+</mapper>

@@ -1,0 +1,263 @@
+Ext.define('MOST.view.codes.DelayCode',{
+	extend : 'Ext.form.Panel',
+	alias : 'widget.app-delaycode',
+	
+	requires: [
+		'MOST.view.codes.DelayCodeModel',
+		'MOST.view.codes.DelayCodeController',
+		'Ext.grid.plugin.RowEditing',
+	    'Ext.grid.plugin.Clipboard',
+		'Ext.grid.filters.Filters',
+		'Ext.grid.selection.SpreadsheetModel'
+	],
+
+	controller: 'delaycode',
+	
+	viewModel: {
+		type: 'delaycode'
+	},
+	
+	listeners:{
+		afterrender: 'onLoad'
+	},
+	
+	/**
+	 * =========================================================================================================================
+	 * CONSTANT START
+	 */
+	MAIN_GRID_REF_NAME: 'refDelayCodeGrid',	// Main Grid Name 
+	MAIN_STORE_NAME: 'delayCodeGridList',	// Main Store Name
+	DELAYCODETYPE_COMBOBOX_STORE: 'delayCodeTypeCombo',
+	/**
+	 * CONSTANT END
+	 * =========================================================================================================================
+	 */
+
+	layout : {type : 'vbox', align : 'stretch'},
+
+	initComponent: function() {
+		var me = this;
+		var rowEditing = Ext.create('Ext.grid.plugin.RowEditing', {
+			clicksToEdit: 2,
+			pluginId :'delayCodeEditor',
+			autoCancel: false,
+			listeners: {
+				cancelEdit: 'onCancelEdit',				
+				validateedit: 'onValidateEdit',				
+				edit: 'onEdit'
+			}
+		});
+		
+		Ext.apply(me, {
+			items: [
+				{
+					xtype: 'tsb-datagrid',
+					reference: me.MAIN_GRID_REF_NAME,
+					flex: 1,
+					plugins: [
+						rowEditing,
+						'gridexporter',
+						'gridfilters',
+						'clipboard'
+					],
+					bind: {
+						store: '{' + me.MAIN_STORE_NAME + '}'
+					},
+					selModel: {
+						rowSelect: true,
+						cellSelect: false
+					},
+					listeners : {
+						celldblclick: 'onDblClick',
+						pagingSearch:'onSearch'
+					},
+					columns: {
+						defaults: {
+		            		style : 'text-align:center',
+		            		align: 'center'
+		            	},
+		            	items: GridUtil.getGridColumns('DelayCode')
+					}
+				}
+			],
+		    
+		    dockedItems: [
+		    	{
+					xtype : 'container',
+					style: { "background-color":"white" },
+					layout: {
+						type: 'hbox',
+					},
+					defaults: {
+						margin: '1 1 1 1'
+					},
+					items:[
+						{
+							xtype: 'tbfill'
+						},{
+							xtype: 'button',
+							reference : 'refBtnRetrieve',
+							text: ViewUtil.getLabel('search'),
+							iconCls: 'x-fa fa-search', 
+							cls: 'search-button', 
+							listeners: {
+								click: 'onSearch'
+							}
+						},{
+							xtype: 'button',
+							itemId: 'btnAdd',
+							reference : 'refBtnCreate',
+							text: ViewUtil.getLabel('add'),
+							iconCls: 'x-fa fa-plus',
+							listeners: {
+								click: 'onAdd'
+							}
+						},{
+							xtype: 'button',
+							itemId: 'btnDelete',
+							reference : 'refBtnDelete',
+							text: ViewUtil.getLabel('remove'),
+							ui: 'delete-button',
+							iconCls: 'x-fa fa-minus',
+							listeners: {
+								click: 'onRemove'
+							}
+						},{
+							xtype: 'button',
+							itemId: 'exportToExcelButton',
+							text: ViewUtil.getLabel('exportToExcel'),
+							iconCls: 'excel-button-image', 
+							cls: 'excel-button', 
+							hidden: true,
+							listeners: {
+								click: {
+									fn: 'onExportExcelPdfWithServer',
+									args:[me.MAIN_GRID_REF_NAME, true]
+								}
+							}
+						},{
+							xtype: 'button',
+							itemId: 'exportToPdfButton',
+							text: ViewUtil.getLabel('exportToPdf'),
+							iconCls: 'x-fa fa-file-pdf-o',
+							cls: 'excel-button',
+							hidden: true,
+							listeners: {
+								click: {
+									fn: 'onExportExcelPdfWithServer',
+									args:[me.MAIN_GRID_REF_NAME, false]
+								}
+							}
+		            	},{
+							xtype: 'button',
+							cls: 'column-setting-button',
+							iconCls: 'x-fa fa-columns',
+							text: ViewUtil.getLabel('column'),
+							listeners: {
+								click: 'onColumnSettingPopup',
+								args: [me.MAIN_GRID_REF_NAME]
+							}
+						
+		            	}
+		            ]
+				},{
+					xtype: 'toolbar',
+					enableOverflow: true,
+					padding : '0 0 0 0',
+					defaults: {
+						labelAlign: 'right',
+					},
+					items: [
+						{
+			            	xtype: 'searchfieldset',
+							title: ViewUtil.getLabel('search'),
+							autoScroll: true,
+							collapsible:true,
+							flex:1,
+							layout: {
+								type: 'vbox',
+								align: 'stretch'
+							},
+							defaults:{
+								margin: '0 0 5 0'
+							},
+			            	items: [
+			            		{
+									xtype:'container',
+									layout:{
+										type:'hbox'
+									},
+									defaults:{
+										labelAlign: 'right',
+										labelWidth: 80,
+										margin: '0 0 0 0'
+									},
+									items:[
+										{
+					       					xtype: 'combo',
+					       					reference: 'ctlDelayType',
+					       					labelWidth: 80,
+					       					width: 240,
+					       					fieldLabel: ViewUtil.getLabel('DCType'),
+					       					queryMode: 'local',
+					       					bind: {
+					        	    			store: '{' + me.DELAYCODETYPE_COMBOBOX_STORE + '}',
+					        	    			value: '{theSearch.dlyTp}'
+					        	    		},
+					       					displayField: 'scdNm',
+					       					valueField: 'scd',
+					       					editable: false
+					       				},{
+					       					xtype: 'textfield',
+					       					reference: 'ctlDelayCode',
+					       					labelWidth: 80,
+					       					width: 200,
+					       					fieldLabel: ViewUtil.getLabel('vesselDelayDelayCode'),
+					       					bind: {
+												value: '{theSearch.dlyCd}'
+											},
+											maxLength: 4,
+											enforceMaxLength: true,
+											fieldStyle: 'text-transform:uppercase',
+											
+					       				},{
+					       					xtype: 'combo',
+					       					reference: 'ctlDCOpDelay',
+					       					fieldLabel: ViewUtil.getLabel('DCOpDelay'),
+					       					labelWidth: 100,
+					       					width: 200,
+					       					queryMode: 'local',
+					       					bind: {
+					       						store: '{delayCodeYesNoCombo}',
+					        	    			value: '{theSearch.opUseYn}'
+					        	    		},
+					       					displayField: 'codeName',
+					       					valueField: 'code',
+					       					editable: false
+					    				},{
+											xtype: 'combo',
+											reference: 'DCNonOpDelay',	
+											fieldLabel: ViewUtil.getLabel('DCNonOpDelay'),
+											labelWidth: 130,
+											width: 230,
+											queryMode: 'local',
+											bind: {
+												store: '{delayCodeYesNoCombo}',
+											 	value: '{theSearch.nonOpUseYn}'
+										 	},
+											displayField: 'codeName',
+											valueField: 'code',
+											editable: false
+									 	}
+					    			]
+								}
+			            	]
+			            }
+					]
+				}
+			]
+		});
+		
+		me.callParent();
+	}
+});

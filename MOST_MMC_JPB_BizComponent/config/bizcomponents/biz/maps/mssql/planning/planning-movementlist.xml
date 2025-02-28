@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="movementList">
+	
+	<select id="selectCargoMovementList"  parameterType="movementListParm" resultType="movementListItem">
+		<if test="pageNo != 0">
+			SELECT /*movementList.selectCargoMovementList*/
+             	*
+			FROM (SELECT
+						inner_query.*,
+						ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num
+					FROM (
+		</if>
+				<include refid="sqlCargoMovement"/>
+		<if test="pageNo != 0"> 
+				) inner_query
+			) inner_query
+			WHERE
+				inner_query.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_query.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<select id="selectCargoMovementListCount" parameterType="movementListParm" resultType="java.lang.String" >
+        SELECT /*movementList.selectCargoMovementListCount*/
+			COUNT(*)
+		FROM (<include refid="sqlCargoMovement"/>) AS sqlCargoMovement
+	</select>
+	
+	<sql id="sqlCargoMovement" >
+		SELECT /*movementList.sqlCargoMovement*/
+			J.CG_NO 							CGNO,
+			J.VSL_CALL_ID           			VSLCALLID,
+			J.SHIP_CALL_NO						SCN,
+			J.JOB_NO                			JOBNO,
+			J.JOB_TP_CD             			JOBTPCD,
+			J.WORK_ST_DT            			STDT,
+			J.WORK_END_DT           			ENDDT,
+			J.SHFT_ID               			SHFTID,
+			J.PKG_QTY               			PKGQTY,
+			J.CG_WGT                			WGT,
+			J.CNTR_QTY              			CNTRQTY,
+			J.FM_LOC_ID             			FMLOCID,
+			J.TO_LOC_ID             			TOLOCID,
+			J.STAT_CD               			STATCD,
+			J.ODR_NO                			ODRNO,
+			J.JOB_PURP_CD           			JOBPURPCD,
+			J.DELV_TP_CD            			DELVTPCD,
+			J.FNL_OPE_YN            			FNLOPEYN,
+			J.FNL_DELV_YN           			FNLDELVYN,
+			J.OPE_CLASS_CD          			OPECLASSCD,
+			(SELECT
+				TCM.S_CD_NM
+			FROM
+				TMT_CD_MSTD TCM
+			WHERE
+				TCM.L_CD 						= 'MT'
+				AND TCM.M_CD 					= 'CATGTP'
+				AND TCM.S_CD 					= J.OPE_CLASS_CD
+			)  									CATGNM,
+			J.DMG_YN                			DMGYN,
+			J.STS_YN                			STSYN,
+			C.SHIPG_AGNT            			SHIPGAGNT,
+			C.FWR_AGNT              			FWRAGNT,
+			C.SHPR                  			SHPR,
+			C.SHPR_NM               			SHPRNM,
+			C.SHPR_ADDR             			SHPRADDR,
+			C.CNSNE                 			CNSNE,
+			C.CNSNE_NM              			CNSNENM,
+			(CASE C.OPE_CLASS_CD
+				WHEN 'I' THEN C.BL_NO
+				WHEN 'E' THEN C.SHIPG_NOTE_NO
+				ELSE ISNULL(C.SHIPG_NOTE_NO,C.BL_NO)
+			END) 								BLSN,
+			(CASE
+					(SELECT
+						COUNT(*)
+					FROM
+						TMT_GR G
+					WHERE
+						G.GR_NO 			= C.CG_NO
+						AND G.VSL_CALL_ID 	= C.VSL_CALL_ID)
+				WHEN 0 THEN C.BL_NO
+				ELSE C.SHIPG_NOTE_NO
+			END)								BLSN1,
+			(CASE C.OPE_CLASS_CD
+				WHEN 'I' THEN C.CNSNE_NM
+				WHEN 'E' THEN C.SHPR_NM
+				ELSE ISNULL(C.SHPR_NM,C.CNSNE_NM)
+			END) 								SHPCNG,
+			(CASE
+					(SELECT
+						COUNT(*)
+					FROM
+						TMT_GR G
+					WHERE
+						G.GR_NO 			= C.CG_NO
+						AND G.VSL_CALL_ID 	= C.VSL_CALL_ID)
+				WHEN 0 THEN C.CNSNE_NM
+				ELSE C.SHPR_NM
+			END) 								SHPCNG1,
+			(CASE C.OPE_CLASS_CD
+				WHEN 'I' THEN L.LOC_ID
+				WHEN 'E' THEN C.CG_NO
+				ELSE ISNULL(C.CG_NO,L.LOC_ID)
+			END)								GRITEM,
+			(CASE
+					(SELECT
+						COUNT(*)
+					FROM
+						TMT_GR G
+					WHERE
+						G.GR_NO 			= C.CG_NO
+						AND G.VSL_CALL_ID 	= C.VSL_CALL_ID)
+				WHEN 0 THEN L.LOC_ID
+				ELSE C.CG_NO
+			END) 								GRITEM1,
+			(SELECT
+				M.CMDT_DESC
+			FROM
+				TMT_CMDT M
+			WHERE
+				M.CMDT_CD = C.CMDT_CD)  		CARGO,
+			FORMAT(ISNULL(J.WORK_END_DT, J.WORK_ST_DT), 'dd/MM/yyyy HH:mm') 		MVDT,
+			(CASE
+		   		WHEN (
+		   			SELECT
+						COUNT(*)
+					FROM
+						TMT_JOB JO
+					WHERE
+						JO.JOB_NO = J.JOB_NO
+						AND JO.JOB_TP_CD IN ('MV')
+						AND	JO.JOB_PURP_CD = 'WW'
+						AND SUBSTRING(JO.FM_LOC_ID, 1, CHARINDEX('(', JO.FM_LOC_ID)-1) = SUBSTRING(JO.TO_LOC_ID, 1, CHARINDEX('(', JO.TO_LOC_ID) -1)) <![CDATA[ <> ]]> 0
+				THEN 'INTRA'
+		   		ELSE 'INTER'
+			END)  								MVTP
+		FROM
+			TMT_JOB J,
+			TMT_CG_MST C,
+			TMT_INV_LOC L
+		WHERE
+			J.CG_NO 							= C.CG_NO
+			AND	J.VSL_CALL_ID 					= C.VSL_CALL_ID
+			AND J.DELV_TP_CD IN ('I', 'B')
+			AND J.VSL_CALL_ID 					= L.VSL_CALL_ID
+			AND	J.CG_NO 						= L.CG_NO
+			AND J.JOB_NO 						= L.JOB_NO
+			AND CHARINDEX(REPLACE(L.LOC_ID,'-',''), REPLACE(J.TO_LOC_ID,'(','')) <![CDATA[ > ]]> 0
+			AND (L.CG_WGT > 0 OR L.PKG_QTY > 0)
+			AND J.JOB_TP_CD IN ('MV')
+			AND	J.JOB_PURP_CD 					= 'WW'
+		<if test="vslCallId != null and vslCallId != ''">
+			AND C.VSL_CALL_ID 					= #{vslCallId}
+		</if>
+		<if test="scn != null and scn != ''">
+			AND C.SHIP_CALL_NO 					= #{scn}
+		</if>
+		<if test="opeClassCd != null and opeClassCd != ''">
+			AND J.OPE_CLASS_CD 					= #{opeClassCd}
+		</if>
+		<if test="shipgAgnt != null and shipgAgnt != ''">
+			AND C.SHIPG_AGNT 					= #{shipgAgnt}
+		</if>
+		<if test="fwrAgnt != null and fwrAgnt != ''">
+			AND C.FWR_AGNT 						= #{fwrAgnt}
+		</if>
+		<if test="jobTpCd != null and jobTpCd != ''">
+			AND J.JOB_TP_CD 					= #{jobTpCd}
+		</if>
+		<if test="stDt != null and stDt != ''">
+			AND <![CDATA[ CONVERT(DATE, FORMAT(ISNULL(J.WORK_END_DT, J.WORK_ST_DT), 'yyyyMMdd'), 103) >= CONVERT(DATE, #{stDt}, 103) ]]>
+		</if>
+		<if test="endDt != null and endDt != ''">
+			AND <![CDATA[ CONVERT(DATE, FORMAT(ISNULL(J.WORK_END_DT, J.WORK_ST_DT),'yyyyMMdd'), 103) <= CONVERT(DATE, #{endDt}, 103) ]]>
+		 </if>
+         <if test="toLocId != null and toLocId != ''">
+         	AND SUBSTRING(J.TO_LOC_ID, 1, CHARINDEX('(', J.TO_LOC_ID) - 1) 			= #{toLocId}
+         </if>
+		<if test="mvTpCd != null and mvTpCd != ''">
+	  	    <if test='mvTpCd == "IA"'>
+				AND SUBSTRING(J.FM_LOC_ID, 1, CHARINDEX('(', J.FM_LOC_ID) - 1) = SUBSTRING(J.TO_LOC_ID, 1, CHARINDEX('(', J.TO_LOC_ID) - 1)
+				AND (J.FM_LOC_ID IS NOT NULL AND J.FM_LOC_ID <![CDATA[<>]]>'')
+			</if>
+			<if test='mvTpCd == "IE"'>
+			<![CDATA[
+				AND SUBSTRING(J.FM_LOC_ID, 1, CHARINDEX('(', J.FM_LOC_ID) - 1) <> SUBSTRING(J.TO_LOC_ID, 1, CHARINDEX('(', J.TO_LOC_ID) - 1)
+				AND J.FM_LOC_ID IS NOT NULL 
+			]]>
+			</if>
+		</if>
+		<include refid="sqlMovementAuth"/>
+	</sql>
+	
+	<sql id="sqlMovementAuth">
+		<if test='userType == "E"'>
+			AND (
+				EXISTS (
+					SELECT
+						'1'
+					FROM
+						TMT_SHIPG_NOTE SN, TMT_PTNR PTNR
+					WHERE
+						SN.VSL_CALL_ID 					= C.VSL_CALL_ID
+						AND SN.SHIPG_NOTE_NO 			= C.SHIPG_NOTE_NO
+						AND SN.FWRD 					= #{ptnrCode}
+						AND PTNR.PTNR_CODE 				= #{ptnrCode}
+						AND PTNR.PTNR_TYPE 				= 'FWD'
+				)
+				OR EXISTS (
+					SELECT
+						'1'
+					FROM
+						TMT_SHIPG_NOTE SN, TMT_PTNR PTNR
+					WHERE
+						SN.VSL_CALL_ID 					= C.VSL_CALL_ID
+						AND SN.SHIPG_NOTE_NO 			= C.SHIPG_NOTE_NO
+						AND SN.SHIPG_AGNCY 				= #{ptnrCode}
+						AND PTNR.PTNR_CODE 				= #{ptnrCode}
+						AND PTNR.PTNR_CODE 				= 'SHA')
+				OR EXISTS (
+					SELECT
+						'1'
+					FROM
+						TMT_BL BL
+					WHERE
+						BL.VSL_CALL_ID 					= C.VSL_CALL_ID
+						AND BL.BL_NO 					= C.CG_NO
+						AND BL.TSPTR 					= #{ptnrCode})
+				OR EXISTS (
+					SELECT
+						'1'
+					FROM
+						TMT_SHIPG_NOTE SN, TMT_GR GR
+					WHERE
+						SN.TSPT_COMP 					= #{ptnrCode}
+						AND SN.VSL_CALL_ID 				= GR.VSL_CALL_ID
+						AND SN.SHIPG_NOTE_NO 			= GR.SHIPG_NOTE_NO
+						AND GR.VSL_CALL_ID 				= C.VSL_CALL_ID
+						AND GR.GR_NO 					= C.CG_NO
+				)
+			)
+		</if>
+	</sql>
+	
+	<select id="selectMVWHComboList"  parameterType="movementListParm" resultType="movementListItem">
+		SELECT /*movementList.selectMVWHComboList*/
+			LOC_ID 						AS LOCID,
+			LOC_NM 						AS LOCNM
+		FROM
+			TMT_LOC_DEF
+		WHERE
+			1=1
+		<if test="locDivCd != null and locDivCd != ''">
+			AND	LOC_DIV_CD 				= #{locDivCd}
+		</if>
+	</select>
+	
+</mapper>

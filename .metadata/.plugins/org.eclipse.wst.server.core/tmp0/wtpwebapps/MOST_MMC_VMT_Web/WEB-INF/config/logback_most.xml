@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration scan="true" scanPeriod="300 seconds"> 
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>[%d]=> %msg%n</pattern>
+		</encoder>
+	</appender>
+	<appender name="MOSTLog" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>c:\\temp\\MOST_LAIP.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+    		  <fileNamePattern>c:\\temp\\MOST_MMC_YT.%i.log</fileNamePattern>
+    		  <minIndex>1</minIndex>
+     		  <maxIndex>20</maxIndex>
+  		</rollingPolicy>
+		<triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+     	 	<maxFileSize>50MB</maxFileSize>
+   		</triggeringPolicy>
+		<encoder>
+			<pattern>[%d] %-5p => %msg%n</pattern>
+		</encoder>
+	</appender>
+	 
+	<!--  <logger name="com.tsb" level="INFO"  additivity="false"> -->
+	<logger name="com.tsb" level="INFO"  additivity="true">
+		<appender-ref ref="MOSTLog" /> 
+  	</logger> 
+
+    <logger name="org.springframework.beans" level="INFO">
+    	<appender-ref ref="STDOUT" />
+        <appender-ref ref="MOSTLog" />
+    </logger>
+
+		
+ <!-- -start mybatis jdbc configuration -->
+<!--   	<logger name="org.mybatis" level="INFO"  additivity="false" >   
+  		<appender-ref ref="MOSTLog" /> 
+ 	</logger>  -->
+ 
+ <!-- log simple executed sql without parama value   -->
+	<logger name="java.sql" level="OFF"  >     
+      <appender-ref ref="STDOUT" />
+    </logger>  
+    
+  <!-- 
+     <logger name="java.sql" additivity="false">
+	    <level value="debug" />
+	    <appender-ref ref="console" />
+	</logger>
+     -->
+	<!-- log executed sql binded parama value  
+	<logger name="jdbc.sqlonly" level="OFF"    >
+ 		<appender-ref ref="STDOUT"/>  
+    </logger>
+    -->
+    <!-- log simple executed sql without parama value  -->
+	<logger name="java.sql" level="OFF"  >
+		<appender-ref ref="STDOUT" />
+    </logger>
+    
+	<!--   <logger name="java.sql" additivity="false"> -->
+	<logger name="java.sql" level="debug">
+	    <appender-ref ref="console" />
+	</logger>
+	
+	<!-- log executed sql binded parama value  -->
+	<logger name="jdbc.sqlonly" level="OFF"    >
+ 		<appender-ref ref="STDOUT"/>  
+    </logger>
+    
+ 	<!-- log executed sql time   -->
+    <logger name="jdbc.sqltiming" level="OFF"  additivity="true">
+  		<appender-ref ref="STDOUT"/>    
+    </logger>
+    <!-- log jdbc trace like connection   -->
+ 	<logger name="jdbc.audit" level="OFF"  additivity="false">
+		<appender-ref ref="STDOUT"/> 
+    </logger>
+    
+    <logger name="jdbc.resultset" level="OFF"   additivity="false">
+        <appender-ref ref="MOSTLog"/>
+    </logger>
+	 <!-- -end mybatis jdbc configuration -->
+
+	<root level="DEBUG">
+		<!-- <appender-ref ref="MOSTLog" /> -->
+		<appender-ref ref="STDOUT" />
+	</root>   
+</configuration>
+ 
+
+ 

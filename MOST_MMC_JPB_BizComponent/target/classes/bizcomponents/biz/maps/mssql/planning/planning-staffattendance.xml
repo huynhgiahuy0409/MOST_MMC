@@ -1,0 +1,713 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="staffattendance">
+	
+	<select id="selectStaffAttendanceVoucher" parameterType="staffAttendanceParm" resultType="staffAttendanceItem">
+		SELECT /* staffattendance.selectStaffAttendanceVoucher */
+			* 
+		FROM (
+			<if test="searchConditionTp != 'LEAVESTAFF'">
+				SELECT   
+					SUBSTRING(A.EMP_ID, 3, 6) 									AS hiddenEmpId,
+					A.EMP_ID 													AS staffNo,
+					B.ENG_NM 													AS staffNm,
+					DBO.F_GET_BULK_GANTRY (A.WORK_YMD,A.EMP_ID) 				AS bulkGantry,
+					DBO.F_B_GET_GRP(A.EMP_ID,WORK_YMD) 							AS groupNm,
+					DBO.F_B_GET_SHFT(A.EMP_ID,WORK_YMD) 						AS roster,
+					ISNULL (B.COST_CENT_CD, 'NON') 								AS costCentCd,
+					(SELECT TOP(1)   
+						DESCR
+					FROM   
+						TMT_B_COSTCENT
+					WHERE   
+						COST_CENT_CD = B.COST_CENT_CD
+					) 															AS descr,
+					(SELECT 
+						ROLE_CD 
+					FROM 
+						TMT_STAFF 
+					WHERE 
+						EMP_ID = A.EMP_ID
+					) 															AS role,
+					A.WORK_YMD 													AS workYmd,
+					FORMAT(
+						CONVERT(DATE, A.WORK_YMD, 112), 
+						'dd/MM/yyyy'
+					) 															AS dspWorkYmd,
+					SUBSTRING(
+						DATENAME(
+							WEEKDAY, 
+							CONVERT(DATE, A.WORK_YMD, 112)
+						), 
+						1, 
+						3
+					) 															AS dayWork,
+					CASE DATENAME (
+							WEEKDAY, 
+							CONVERT(DATE, A.WORK_YMD, 112)
+						)
+						WHEN 'Friday' THEN 'Y'
+						ELSE 'N'
+					END 														AS isFrday,
+					CASE (
+							SELECT   
+								COUNT(HLDAY_YMD)
+							FROM   
+								TMT_HLDAY 
+							WHERE   
+								HLDAY_YMD = A.WORK_YMD
+						)
+						WHEN 1 THEN 'Y'
+						ELSE 'N'
+					END 														AS isPuclicHoliday, 
+					DBO.F_GET_NORMAL_SHIFT_ID(A.EMP_ID, A.WORK_YMD) 			AS normalShiftId, 
+					(SELECT TOP(1)
+						SHFT_IDX 
+					FROM 
+						TMT_SHFT 
+					WHERE 
+						VLD_YN 				= 'Y' 
+						AND (
+							SHFT_METH_CD 	= 'Standard' 
+							OR SHFT_METH_CD = 'Staff'
+						)
+						AND SHFT_ID = DBO.F_GET_NORMAL_SHIFT_ID(A.EMP_ID, A.WORK_YMD)
+					) 															AS normalShiftIdx,
+					(SELECT TOP(1)
+						SHFT_NM 
+					FROM 
+						TMT_SHFT
+					WHERE     
+						VLD_YN = 'Y'
+						AND (
+							SHFT_METH_CD 	= 'Standard' 
+							OR SHFT_METH_CD = 'Staff'
+						)
+						AND SHFT_ID = DBO.F_GET_NORMAL_SHIFT_ID(A.EMP_ID, A.WORK_YMD) 
+					) 															AS normalShift,
+					CASE 
+						WHEN DBO.F_GET_RSN_CD (A.EMP_ID, A.WORK_YMD) ='SP'
+							THEN 'OFF DAY'
+						ELSE DBO.F_CM_CODE_NM (
+							'MT', 
+							'WORKCD',
+							DBO.F_GET_RSN_CD (A.EMP_ID, A.WORK_YMD)
+						)
+					END 														AS dayTp,  
+					'' 															AS leaveTp,
+					CASE DBO.F_GET_RSN_CD(A.EMP_ID, A.WORK_YMD)
+						WHEN 'SP' THEN 'OFF DAY'
+						ELSE DBO.F_CM_CODE_NM(
+							'MT', 
+							'WORKCD',
+							DBO.F_GET_RSN_CD(A.EMP_ID, A.WORK_YMD)
+						)
+					END     													AS dayTpn,  
+					DBO.F_GET_OT_1ST_FM(A.EMP_ID, A.WORK_YMD) 					AS ot1stFrom, 
+					CASE DBO.F_GET_OT_1ST_FM(A.EMP_ID, A.WORK_YMD)
+						WHEN '' THEN ''
+						ELSE DBO.F_GET_OT_1ST_TO(A.EMP_ID, A.WORK_YMD)
+					END 														AS ot1stTo, 
+					CASE
+						WHEN (   
+							(    
+								DBO.F_GET_OT_1ST_FM (A.EMP_ID, A.WORK_YMD) = '0700'
+								AND DBO.F_GET_OT_1ST_TO (A.EMP_ID, A.WORK_YMD) = '1459'
+								OR (
+									DBO.F_GET_OT_1ST_TO (A.EMP_ID, A.WORK_YMD) = '1244'
+									AND SUBSTRING(
+										DATENAME(WEEKDAY, CONVERT(DATE, A.WORK_YMD, 112)),
+										0,
+										3
+									) ='FRI'
+								)
+							)
+							OR (    
+								DBO.F_GET_OT_1ST_FM (A.EMP_ID, A.WORK_YMD) = '0800'
+								AND DBO.F_GET_OT_1ST_TO (A.EMP_ID, A.WORK_YMD) = '1559'
+							)
+						)
+							THEN 8
+						ELSE CONVERT(INT,
+							DBO.F_GET_TIME_DIFF (
+								DBO.F_GET_OT_1ST_FM (A.EMP_ID, A.WORK_YMD ),
+								DBO.F_GET_OT_1ST_TO (A.EMP_ID, A.WORK_YMD)
+							)
+						)
+					END 														AS ot1stHours,     
+					DBO.F_GET_OT_2ND_FM(A.EMP_ID, A.WORK_YMD) 					AS ot2ndFrom, 
+					DBO.F_GET_OT_2ND_TO(A.EMP_ID, A.WORK_YMD) 					AS ot2ndTo, 
+					CASE 
+						WHEN ( 
+							( 
+								DBO.F_GET_OT_2ND_FM(A.EMP_ID, A.WORK_YMD) = '1500' 
+								AND DBO.F_GET_OT_2ND_TO(A.EMP_ID, A.WORK_YMD) = '2259'
+							) 
+							OR ( 
+								DBO.F_GET_OT_2ND_FM(A.EMP_ID, A.WORK_YMD) = '1600' 
+								AND DBO.F_GET_OT_2ND_TO(A.EMP_ID, A.WORK_YMD) = '2359'
+							) 
+						)
+						THEN 8
+						ELSE CONVERT(
+							INT, 
+							DBO.F_GET_TIME_DIFF (
+								DBO.F_GET_OT_2ND_FM (A.EMP_ID, A.WORK_YMD),
+									DBO.F_GET_OT_2ND_TO (A.EMP_ID, A.WORK_YMD)
+									)
+						)
+					END    														AS ot2ndHours,
+					DBO.F_GET_OT_3RD_FM (A.EMP_ID, A.WORK_YMD) 					AS ot3rdFrom,
+					DBO.F_GET_OT_3RD_TO (A.EMP_ID, A.WORK_YMD) 					AS ot3rdTo,
+					CASE 
+						WHEN (
+							( 
+								DBO.F_GET_OT_3RD_FM(A.EMP_ID, A.WORK_YMD) = '2300' 
+								AND DBO.F_GET_OT_3RD_TO(A.EMP_ID, A.WORK_YMD) = '0659'
+							) 
+							OR ( 
+								DBO.F_GET_OT_3RD_FM(A.EMP_ID, A.WORK_YMD) = '2359' 
+								AND DBO.F_GET_OT_3RD_TO(A.EMP_ID, A.WORK_YMD) = '0759'
+							)
+						)
+							THEN 8
+						ELSE CONVERT(
+								INT,
+								DBO.F_GET_TIME_DIFF (
+									DBO.F_GET_OT_3RD_FM (A.EMP_ID, A.WORK_YMD),
+									DBO.F_GET_OT_3RD_TO (A.EMP_ID, A.WORK_YMD)
+								)
+						)
+					END    														AS ot3rdHours,
+					CASE 
+						WHEN (
+							DBO.F_GET_OT_FRI_FM(A.EMP_ID, A.WORK_YMD) IS NULL 
+							OR DBO.F_GET_OT_FRI_TO(A.EMP_ID, A.WORK_YMD) IS NULL
+							OR DBO.F_GET_OT_FRI_TO(A.EMP_ID, A.WORK_YMD) 
+									&lt;= DBO.F_GET_OT_FRI_FM(A.EMP_ID, A.WORK_YMD) 
+						)
+							THEN NULL
+						ELSE
+							DBO.F_GET_OT_FRI_FM(A.EMP_ID, A.WORK_YMD)
+					END 														AS fridayFrom, 
+					CASE
+						WHEN (
+							DBO.F_GET_OT_FRI_FM(A.EMP_ID, A.WORK_YMD) IS NULL 
+							OR DBO.F_GET_OT_FRI_TO(A.EMP_ID, A.WORK_YMD) IS NULL
+							OR DBO.F_GET_OT_FRI_TO(A.EMP_ID, A.WORK_YMD) 
+									&lt;= DBO.F_GET_OT_FRI_FM(A.EMP_ID, A.WORK_YMD)
+						)
+							THEN NULL
+						ELSE
+							DBO.F_GET_OT_FRI_TO(A.EMP_ID, A.WORK_YMD)
+					END 														AS fridayTo,
+					CASE
+						WHEN (
+							DBO.F_GET_OT_FRI_FM(A.EMP_ID, A.WORK_YMD) IS NULL 
+							OR DBO.F_GET_OT_FRI_TO(A.EMP_ID, A.WORK_YMD) IS NULL
+							OR DBO.F_GET_OT_FRI_TO(A.EMP_ID, A.WORK_YMD) 
+									&lt;= DBO.F_GET_OT_FRI_FM(A.EMP_ID, A.WORK_YMD) 
+						)
+							THEN NULL
+						ELSE 4
+					END 														AS fridayHours,  
+					CASE MAX(A.MA)
+						WHEN 1 THEN 'Y'
+						ELSE 'N'
+					END 														AS ma,
+					CASE MAX(A.EA)
+						WHEN 1 THEN 'Y'
+						ELSE 'N'
+					END 														AS ea,
+					CASE MAX(A.INCENTIVE)
+						WHEN 1 THEN 'Y'
+						ELSE 'N'
+					END 														AS incentive,
+					CASE MAX(A.BERTHUNBERTHING)
+						WHEN 1 THEN 'Y'
+						ELSE 'N'
+					END 														AS berthunberthing,
+					(SELECT 
+						STAFF_CD	
+					FROM 
+						TMT_DEPY	
+					WHERE 
+						EMP_ID 			= A.EMP_ID 
+						AND WORK_YMD 	= A.WORK_YMD 	
+						AND UPDATE_TIME = (	
+							SELECT 
+								MAX(UPDATE_TIME) 	
+							FROM 
+								TMT_DEPY 	
+							WHERE 
+								EMP_ID 			= A.EMP_ID 
+								AND WORK_YMD 	= A.WORK_YMD 	
+							GROUP BY 
+								EMP_ID, 
+								WORK_YMD 	
+						) 
+					) 															AS upduserid,
+					CASE 
+						WHEN DBO.F_B_CHANGE_SHFT(A.EMP_ID, A.WORK_YMD) ='Y'
+							THEN 'Y'
+						ELSE 'N'
+					END    														AS changeShft,
+					FORMAT(MAX(A.UPDATE_TIME), 'dd/MM/yyyy HH:mm') 				AS updDate 	
+				FROM (  
+					SELECT   
+						WORK_YMD,
+						WORK_CD,
+						EMP_ID,
+						SHFT_ID,
+						FM_HHMM,
+						TO_HHMM,
+						OT_FM_HHMM,
+						OT_TO_HHMM,
+						FRIDAY_YN,
+						CASE MA
+							WHEN 'Y' THEN 1
+							ELSE 0
+						END 													AS MA,
+						CASE EA
+							WHEN 'Y' THEN 1
+							ELSE 0
+						END 													AS EA,
+						INCENTIVE,
+						CASE BERTHING_ALLOWANCE_YN
+							WHEN 'Y' THEN 1
+							ELSE 0
+						END 													AS berthUnberthing,
+						OT_FACTOR,
+						UPDATE_TIME
+					FROM   
+						TMT_DEPY 												A
+					WHERE   
+						RS_DIV_CD 												= 'MP' 
+						AND USE_YN 												= 'Y'
+						<if test="searchConditionTp != 'STAFF'">
+							<if test="workYmd != null and workYmd != ''">
+								AND WORK_YMD 									= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+							</if>
+						</if>
+						<if test="searchConditionTp == 'STAFF'">
+							AND CONVERT(DATE, WORK_YMD, 112) 
+								BETWEEN CONVERT(DATE, #{fmStaffDt},103) 
+									AND CONVERT(DATE, #{toStaffDt},103)
+						</if>
+						<if test="staffNo != null and staffNo != ''">
+							AND SUBSTRING(A.EMP_ID, 3, 6) = #{staffNo}
+						</if>
+				
+					) 															A
+				LEFT JOIN
+					TMT_STAFF 													B	
+				ON 
+					A.EMP_ID 													= B.EMP_ID
+				WHERE  
+					1 = 1
+				<if test="costCentCd != null and costCentCd != ''">
+					<if test="staffNm != null and staffNm != ''">
+						AND UPPER(B.ENG_NM) 									LIKE UPPER(#{staffNm} + '%')
+					</if>
+				</if>
+				GROUP BY 	
+					A.EMP_ID, 	
+					B.ENG_NM,	
+					B.COST_CENT_CD,	
+					A.WORK_YMD
+					
+			UNION ALL
+			</if>
+      
+			SELECT   
+				SUBSTRING(B.EMP_ID, 3, 6) 										AS hiddenEmpId,
+				B.EMP_ID 														AS staffNo,
+				(SELECT   
+					ENG_NM
+				FROM   
+					TMT_STAFF
+				WHERE   
+					EMP_ID = B.EMP_ID
+				) 																AS staffNm,
+				'' 																AS bulkGantry,
+				DBO.F_B_GET_GRP(B.EMP_ID, B.FM_YMD) 							AS groupNm,
+				DBO.F_B_GET_SHFT(B.EMP_ID, B.FM_YMD) 							AS roster,   
+				C.COST_CENT_CD 													AS costCentCd,
+				(SELECT TOP(1)   
+					DESCR
+				FROM   
+					TMT_B_COSTCENT
+				WHERE   
+					COST_CENT_CD = C.COST_CENT_CD
+				) 																AS descr,
+				(SELECT   
+					ROLE_CD
+				FROM   
+					TMT_STAFF
+				WHERE   
+					EMP_ID = B.EMP_ID
+				) 																AS role,
+				FM_YMD 															AS workYmd, 
+				FORMAT(CONVERT(DATE, B.FM_YMD, 112), 'dd/MM/yyyy')	 			AS dspWorkYmd,
+				SUBSTRING(
+					DATENAME(
+						WEEKDAY, 
+						CONVERT(DATE, B.FM_YMD, 112)
+					), 
+					1, 
+					3
+				) 																AS dayWork,
+				CASE DATENAME (
+						WEEKDAY, 
+						CONVERT(DATE, B.FM_YMD, 112)
+					)
+					WHEN 'Friday' THEN 'Y'
+					ELSE 'N'
+				END 															AS isFriday, 
+				CASE (
+						SELECT   
+							COUNT(HLDAY_YMD)
+						FROM   
+							TMT_HLDAY 
+						WHERE   
+							HLDAY_YMD = B.FM_YMD
+					)
+					WHEN 1 THEN 'Y'
+					ELSE 'N'
+				END 															AS isPublicHoliday, 
+				NULL 															AS normalShiftId, 
+				NULL 															AS normalShiftIdx, 
+				NULL 															AS normalShift,
+				RSN_CD 															AS dayTp,
+				<!-- 
+				LEAVE_TP 														AS leaveTp,
+				-->
+				'' 																AS leaveTp,
+				DBO.F_CM_CODE_NM('MT', 'WORKCD',RSN_CD) 						AS dayTpNm,
+				NULL 															AS ot1stFrom,
+				NULL 															AS ot1stTo,
+				NULL 															AS ot1stHours,
+				NULL 															AS ot2ndFrom,
+				NULL 															AS ot2ndTo,
+				NULL 															AS ot2ndHours,
+				NULL 															AS ot3rdFrom,
+				NULL 															AS ot3rdTo,
+				NULL 															AS ot3rdHours,
+				NULL 															AS fridayFrom,
+				NULL 															AS fridayTo,
+				NULL 															AS fridayHours,
+				NULL 															AS ma,
+				NULL 															AS ea,
+				NULL 															AS incentive,
+				NULL 															AS berthUnberthing,
+				B.STAFF_CD	 													AS updUserId,
+				'' 																AS changeShft, 
+				FORMAT(B.UPDATE_TIME, 'dd/MM/yyyy HH:mm') 						AS updDate
+			FROM   
+				TMT_EMP_NON_AVAIL_LOG 											B
+			LEFT JOIN
+				TMT_STAFF 														C
+			ON 
+				B.EMP_ID 														= C.EMP_ID
+			WHERE   
+				B.FM_YMD 														= B.TO_YMD
+	     	AND NOT EXISTS (
+				SELECT 
+	                1 
+	            FROM 
+					TMT_DEPY 
+	            WHERE 
+					EMP_ID 			= B.EMP_ID 
+					AND WORK_YMD 	= B.FM_YMD
+					AND USE_YN 		= 'Y'
+	        )
+			<if test="searchConditionTp == 'DATE'">
+				<if test="workYmd != null and workYmd != ''">
+					AND B.FM_YMD 												= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+				</if>
+			</if>
+			<if test="searchConditionTp != 'DATE'">
+				AND CONVERT(DATE, B.FM_YMD, 112) 
+					BETWEEN CONVERT(DATE, #{fmStaffDt}, 103) 
+						AND CONVERT(DATE, #{toStaffDt},103)
+			</if>
+			<if test="staffNo != null and staffNo != ''">
+				AND SUBSTRING(B.EMP_ID, 3, 6) 									= #{staffNo}
+			</if>
+			<if test="costCentCd != null and costCentCd != ''">
+				AND C.COST_CENT_CD 												= #{costCentCd}
+			</if>
+			<if test="staffNo != null and staffNo != ''">
+				<if test="staffNm != null and staffNm != ''">
+					AND UPPER(C.ENG_NM) 										LIKE UPPER(#{staffNm}%)
+				</if>
+			</if>
+		)																		TEMP
+		<if test="shiftId != null and shiftId != ''">
+			<if test="shiftId == 'SF0014'">
+				WHERE 
+					NORMALSHIFTID = #{shiftId} 								
+					OR OT1STFROM IS NOT NULL
+			</if>
+			<if test="shiftId == 'SF0012'">
+				WHERE 
+					NORMALSHIFTID = #{shiftId} 
+					OR OT2NDFROM IS NOT NULL
+			</if>
+			<if test="shiftId == 'SF0013'">
+				WHERE 
+					NORMALSHIFTID = #{shiftId} 
+					OR OT3RDFROM IS NOT NULL
+			</if>
+		</if>
+			<if test="searchConditionTp == 'LEAVESTAFF'">
+				<choose>
+					<when test="shiftId != null and shiftId != ''">
+						AND ROLE IN ('BC', 'RM', 'SU')
+					</when>
+					<otherwise>
+						WHERE ROLE IN ('BC', 'RM', 'SU')
+					</otherwise>
+				</choose>
+			</if>
+		ORDER BY 
+			WORKYMD DESC
+  	</select>
+	
+	<update id="updateStaffAttendanceDayType" 					parameterType="staffAttendanceItem" >
+		UPDATE /* staffattendance.updateStaffAttendanceDayType */  
+			TMT_DEPY
+		SET 
+			MA 													= #{ma},
+			EA 													= #{ea},
+			BERTHING_ALLOWANCE_YN 								= #{berthUnberthing},
+			INCENTIVE 											= 	CASE ISNULL(#{incentive}, 'N')
+																		WHEN 'N' THEN 0
+																		ELSE 1
+																	END,
+			UPDATE_TIME 										= SYSDATETIME(),
+			STAFF_CD	 										= #{userId}
+		WHERE 
+			WORK_YMD 											= FORMAT(CONVERT(DATE, #{dspWorkYmd}, 103),'yyyyMMdd')
+			AND EMP_ID  										= #{staffNo}
+			AND RS_DIV_CD 										= 'MP'
+			AND USE_YN											= 'Y' 
+	</update>
+	
+	<select id="selectStaffAttendanceSum" parameterType="staffAttendanceParm" resultType="staffAttendanceItem">
+		SELECT /* staffattendance.selectStaffAttendanceSum */ 
+			A.DESCR 											AS DESCR, 
+			A.COST_CENT_CD 										AS COSTCENTCD,
+			B.GNRT_YN 											AS GNRTYN,
+			B.UPD_YN 											AS UPDYN,
+			FORMAT(B.UPDATE_TIME, 'dd/MM/yyyy') 				AS GNRTDT,
+			B.STAFF_CD 											AS GNRTBY,
+			#{workYmd} 											AS WORKYMD
+		FROM 
+			TMT_B_COSTCENT 										A
+		LEFT JOIN	
+			TMT_DEPY_RSLT 										B
+		ON 
+			A.COST_CENT_CD 										= B.COST_CENT_CD
+		WHERE 
+			A.VLD_YN											= 'Y'
+			AND B.GNRT_YM 										= #{workYmd}
+		
+		UNION ALL
+
+		SELECT 
+			A.DESCR 											AS DESCR, 
+			A.COST_CENT_CD 										AS COSTCENTCD,
+			B.GNRT_YN 											AS GNRTYN,
+			B.UPD_YN 											AS UPDYN,
+			FORMAT(B.UPDATE_TIME, 'dd/MM/yyyy') 				AS GNRTDT,
+			B.STAFF_CD 											AS GNRTBY,
+			#{workYmd} 											AS WORKYMD
+		FROM (
+			SELECT 
+				'Others'  	AS DESCR, 
+				'NON' 		AS COST_CENT_CD 
+		) 														A
+		LEFT JOIN
+			TMT_DEPY_RSLT 										B
+		ON
+			A.COST_CENT_CD 										= B.COST_CENT_CD
+			AND B.GNRT_YM 										= #{workYmd}		
+	</select>
+	
+	<select id="selectStaffAttendanceVoucher4JPVC" parameterType="StaffAttendanceParm" resultType="StaffAttendanceItem">
+		SELECT /* staffattendance.selectStaffAttendanceVoucher4JPVC */
+			A.WORK_CD 											AS workCd,
+			SUBSTRING(A.EMP_ID, 3, 6) 							AS staffno,
+			B.ENG_NM 											AS staffnm,
+			ISNULL(B.COST_CENT_CD, 'NON') 						AS costcentcd,
+			(SELECT TOP(1) 
+				DESCR 
+			FROM 
+				TMT_B_COSTCENT
+			WHERE 
+				COST_CENT_CD 		= B.COST_CENT_CD
+			) 													AS descr,
+			DBO.F_GET_DEPY_ROLE(
+				A.WORK_YMD, 
+				A.EMP_ID, 
+				A.SHFT_ID, 
+				A.VSL_CALL_ID) 									AS role,
+			CASE
+				WHEN CHARINDEX('NonCallId', A.VSL_CALL_ID) = 3 
+					THEN 'NonJPVC'
+				ELSE A.VSL_CALL_ID
+			END 												AS vslCallId,
+			(SELECT 
+				S_CD_LGV
+			FROM 
+				TMT_CD_MSTD
+			WHERE 
+				L_CD 				= 'MT' 
+				AND M_CD 			= 'MGPURP' 
+				AND S_CD 			= A.PURP_TP_CD
+			) 													AS purpType,
+			A.PURP_TP_CD 										AS purpTpCd,
+			DBO.F_CM_CODE_NM('MT', 'MGPURP', A.PURP_TP_CD) 		AS purpTpCdNm,
+			A.WORK_YMD 											AS workYmd,
+			FORMAT(
+				CONVERT(DATE, A.WORK_YMD, 112),
+				'dd/MM/yyyy'
+			)													AS dspWorkYmd, 
+			A.SHFT_ID 											AS shiftId,
+			ISNULL(
+				(SELECT 
+					SHFT_NM 
+				FROM 
+					TMT_SHFT
+				WHERE 
+					SHFT_METH_CD 	= 'Standard' 
+					AND VLD_YN 		= 'Y' 
+					AND SHFT_ID 	= A.SHFT_ID
+				), 
+				''
+			) 													AS shiftNm,
+			DBO.F_GET_RSN_CD(A.EMP_ID, A.WORK_YMD) 				AS dayTp,
+			DBO.F_CM_CODE_NM (
+				'MT', 
+				'WORKCD', 
+				DBO.F_GET_RSN_CD(A.EMP_ID, A.WORK_YMD)
+			) 													AS dayTpNm,
+			A.FM_HHMM 											AS fmHhmm,
+			A.TO_HHMM 											AS toHhmm,												
+			STUFF(A.FM_HHMM, 3, 0, ':')							AS fmTime,
+			STUFF(A.TO_HHMM, 3, 0, ':')							AS toTime,												
+			DBO.F_GET_TIME_DIFF(A.FM_HHMM, A.TO_HHMM) 			AS workHrs,
+			A.OT_FM_HHMM 										AS otFmHhmm,
+			A.OT_TO_HHMM 										AS otToHhmm,
+			STUFF(A.OT_FM_HHMM, 3, 0, ':')						AS otFmTime,
+			STUFF(A.OT_TO_HHMM, 3, 0, ':')						AS otToTime,
+			DBO.F_GET_TIME_DIFF(A.OT_FM_HHMM, A.OT_TO_HHMM)		AS otHrs,
+			ISNULL(A.FRIDAY_YN, '') 							AS isFriday,
+			ISNULL(A.MA, '') 									AS ma,
+			ISNULL(A.EA, '') 									AS ea,
+			CASE A.INCENTIVE
+				WHEN '1' THEN 'Y'
+				ELSE 'N'
+			END 												AS incentive,
+			A.OT_FACTOR 										AS otFactor,
+			(SELECT 
+				MAX(D.STAFF_CD) 
+			FROM 
+				TMT_DEPY										D 
+			WHERE 
+				D.WORK_YMD 			= A.WORK_YMD 
+				AND D.EMP_ID 		= A.EMP_ID 
+				AND D.SHFT_ID 		= A.SHFT_ID 
+				AND D.UPDATE_TIME 	= A.UPDATE_TIME
+			) 													AS updUserId,
+			FORMAT(A.UPDATE_TIME, 'dd/MM/yyyy HH:mm') 			AS updDate,
+			CASE DBO.F_B_CHANGE_SHFT (A.EMP_ID, A.WORK_YMD)
+				WHEN 'Y' THEN 'Y'
+				ELSE 'N'
+			END    												AS changeShft,
+			SUBSTRING(
+				DATENAME(
+					WEEKDAY, 
+					CONVERT(DATE, A.WORK_YMD, 112)
+				), 
+				1, 
+				3
+			) 													AS dayWork
+		FROM 
+			(
+				SELECT 
+					VSL_CALL_ID, 
+					PURP_TP_CD,
+					WORK_YMD, 
+					WORK_CD, 
+					EMP_ID, 
+					SHFT_ID, 
+					FM_HHMM, 
+					TO_HHMM, 
+					OT_FM_HHMM, 
+					OT_TO_HHMM, 
+					FRIDAY_YN, 
+					MA, 
+					EA, 
+					INCENTIVE, 
+					OT_FACTOR, 
+					MAX(UPDATE_TIME) 							AS UPDATE_TIME
+				FROM 
+					TMT_DEPY A 
+				WHERE 
+					RS_DIV_CD 									= 'MP'
+					AND USE_YN 									= 'Y'
+					<if test="searchConditionTp != 'STAFF'">
+						<if test="workYmd != null and workYmd != ''">
+							AND WORK_YMD						= FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+						</if>
+					</if>
+					<if test="searchConditionTp == 'STAFF'">
+						AND CONVERT(DATE, WORK_YMD, 112) 
+							BETWEEN CONVERT(DATE, #{fmStaffDt}, 103) 
+								AND CONVERT(DATE, #{toStaffDt}, 103)
+					</if>
+					<if test="shiftId != null and shiftId != ''">
+						AND SHFT_ID 							= #{shiftId}
+					</if>
+					<if test="staffNo != null and staffNo != ''">
+						AND SUBSTRING(A.EMP_ID, 3, 6) 			= #{staffNo}
+					</if>
+				GROUP BY 
+					VSL_CALL_ID, 
+					PURP_TP_CD, 
+					WORK_YMD, 
+					WORK_CD, 
+					EMP_ID, 
+					SHFT_ID, 
+					FM_HHMM, 
+					TO_HHMM, 
+					OT_FM_HHMM, 
+					OT_TO_HHMM, 
+					FRIDAY_YN, 
+					MA, 
+					EA, 
+					INCENTIVE, 
+					OT_FACTOR
+			) 													A
+		LEFT JOIN
+			TMT_STAFF 											B
+		ON
+			A.EMP_ID 											= B.EMP_ID
+		WHERE 
+			1 = 1
+			<if test="costCentCd != null and costCentCd != ''">
+				AND B.COST_CENT_CD 								= #{costCentCd}
+			</if>
+			<if test="staffNo != null and staffNo != ''">
+				AND UPPER(B.ENG_NM) 							LIKE UPPER(#{staffNm} + '%')
+			</if>
+	</select> 
+	
+	
+</mapper>
+										

@@ -1,0 +1,113 @@
+Ext.define('MOST.view.popup.ShiftGroupMultiPopup', {
+	extend: 'Ext.panel.Panel',
+	alias: 'widget.popup-shiftgroupmultipopup',
+	requires: [
+		'MOST.view.popup.ShiftGroupMultiPopupModel',
+		'MOST.view.popup.ShiftGroupMultiPopupController',
+		'Ext.grid.plugin.Exporter',
+		'Ext.grid.plugin.Clipboard',
+		'Ext.grid.filters.Filters',
+		'Ext.grid.selection.SpreadsheetModel',
+	],
+
+	title: 'Group List',
+	width: 1300,
+	height: 500,
+
+	controller: 'shiftgroupmultipopup',
+
+	viewModel: {
+		type: 'shiftgroupmultipopup',
+	},
+
+	listeners: {
+		afterrender: 'onLoad',
+	},
+
+	layout: { type: 'hbox', align: 'stretch' },
+
+	/**
+	 * =========================================================================================================================
+	 * CONSTANT START
+	 */
+
+	/**
+	 * CONSTANT END
+	 * =========================================================================================================================
+	 */
+
+	initComponent: function () {
+		var me = this;
+
+		Ext.apply(me, {
+			items: [
+				{
+					xtype: 'container',
+					reference: 'refShiftGroupGridContainer',
+					flex: 1,
+					layout: {
+						type: 'hbox',
+						align: 'stretch',
+					},
+					items: [
+						
+					],
+				},
+			],
+			dockedItems: [
+				{
+					xtype: 'toolbar',
+					margin: '0 0 0 0',
+					padding: '0 0 0 0',
+					enableOverflow: true,
+					defaults: {
+						labelAlign: 'right',
+					},
+					items: [
+						{
+							xtype: 'container',
+							flex: 1,
+							layout: {
+								type: 'vbox',
+								align: 'stretch',
+							},
+							items: [
+								{
+									xtype: 'container', 
+									flex: 1,
+									layout: {
+										type: 'hbox',
+										align: 'stretch',
+									},
+									items: [
+										{
+											xtype: 'button',
+											reference: 'btnUpdate',
+											text: ViewUtil.getLabel('update'),
+											width: 80,
+											height: 30,
+											name: 'btnUpdate',
+											margin: '5 5 5 5',
+											listeners: {
+												click: 'onUpdate',
+											},
+										},
+										{
+											xtype: 'label',
+											margin: '15 0 0 0',
+											style: 'color:blue;font-weight:bold;',
+											reference: 'txtDate',
+											height: 30,
+										},
+									],
+								},
+							],
+						},
+					],
+				},
+			],
+		});
+
+		me.callParent();
+	},
+});

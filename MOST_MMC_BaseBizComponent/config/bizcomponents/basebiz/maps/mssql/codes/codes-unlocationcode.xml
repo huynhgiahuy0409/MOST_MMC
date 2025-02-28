@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="unLocationCode">
+	<select id="seletUNLocationCode" parameterType="unLocationCodeParm" resultType="unLocationCodeItem">
+		<if test="pageNo != 0"> 
+            SELECT /*unLocationCode.seletUNLocationCode */
+             	* 
+			FROM 
+				(SELECT 
+					inner_querry.*, ROW_NUMBER() OVER(ORDER BY portCd ASC) row_num 
+				FROM ( 
+		</if>
+				<include refid="geletUNLocationCode"/>
+		<if test="pageNo != 0"> 
+				)inner_querry 
+			)inner_querry 
+			WHERE 
+				inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<select id="seletUNLocationCodeCount" parameterType="unLocationCodeParm" resultType="java.lang.String">
+		SELECT /* unLocationCode.seletUNLocationCodeCount */
+        	COUNT(*)
+        FROM 
+			(<include refid="geletUNLocationCode"/>) AS geletUNLocationCode
+	</select>
+	
+	<sql id="geletUNLocationCode"> 
+		SELECT /* unLocationCode.geletUNLocationCode */
+			CNTRY_CD 					AS cntryCd,
+			PORT_CD 					AS portCd,
+			PORT_NM 					AS portNm,
+			PORT_VAL 					AS portVal,
+			UPDATE_TIME 				AS updatedDate,
+			STAFF_CD 					AS updUserId	
+		FROM 
+			TMT_PORT_MST
+		<where>
+			<if test="cntryCd != null and cntryCd != ''">	
+				AND CNTRY_CD LIKE '%' + #{cntryCd} + '%'
+			</if>
+			<if test="portCd != null and portCd != ''">	
+				AND PORT_CD LIKE '%' + #{portCd} + '%'
+			</if>
+			<if test="portNm != null and portNm != ''">	
+				AND PORT_NM LIKE '%' + #{portNm} + '%'
+			</if>
+		</where>
+		<!--ORDER BY 
+			PORT_CD ASC
+		OFFSET 
+			(CASE WHEN #{pageNo} = '0' THEN 0 ELSE CAST(#{pageNo} AS INT) - 1 END) * CAST(#{sizePerPage} AS INT) ROWS
+		FETCH 
+			NEXT CAST(#{sizePerPage} AS INT) ROWS ONLY -->
+	</sql>
+	
+	<select id="selectUNLocationCodeDtl" parameterType="unLocationCodeParm" resultType="unLocationCodeItem"> 
+		SELECT /*unLocationCode.selectUNLocationCodeDtl*/
+			CNTRY_CD 					AS cntryCd,
+			PORT_CD 					AS portCd,
+			PORT_NM 					AS portNm,
+			UPDATE_TIME 				AS updatedDate,
+			STAFF_CD 					AS updUserId,
+			PORT_VAL 					AS portVal
+		FROM 
+			TMT_PORT_MST
+		<where>
+			<if test="cntryCd != null and cntryCd != ''">	
+				AND CNTRY_CD 				= #{cntryCd}
+			</if>
+			<if test="portCd != null and portCd != ''">	
+				AND PORT_CD 				= #{portCd}
+			</if>
+		</where>
+	</select>
+	
+	<insert id="insertUNLocationCode" parameterType="unLocationCodeItem">
+		INSERT /*unLocationCode.insertUNLocationCode*/
+		INTO TMT_PORT_MST( 
+			CNTRY_CD,
+			PORT_CD,
+			PORT_NM,
+			PORT_VAL,
+			UPDATE_TIME,
+			STAFF_CD
+		)VALUES(
+			#{cntryCd},
+			#{portCd},
+			#{portNm},
+			#{portVal},
+			GETDATE(),
+			#{updUserId}
+		)
+	</insert>
+	
+	<update id="updateUNLocationCode" parameterType="unLocationCodeItem">
+		UPDATE /*unLocationCode.updateUNLocationCode*/
+			TMT_PORT_MST 
+		SET
+			PORT_NM 					= #{portNm},
+			PORT_VAL 					= #{portVal},
+			UPDATE_TIME 				= GETDATE(),
+			STAFF_CD 					= #{updUserId}
+		WHERE 
+			CNTRY_CD 					= #{cntryCd}
+			AND PORT_CD 				= #{portCd}
+	</update>
+	
+	<delete id="deleteUNLocationCode" parameterType="unLocationCodeItem">
+		DELETE /*unLocationCode.deleteUNLocationCode*/
+		FROM 
+			TMT_PORT_MST 
+		WHERE 
+			CNTRY_CD 					= #{cntryCd}
+			AND PORT_CD 				= #{portCd}
+	</delete>
+</mapper>

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="whConfiguration">
+	<select id="selectHOInvLocs"  parameterType="whConfigurationParm" resultType="whConfigurationItem">
+		SELECT	
+			   	LC.VSL_CALL_ID 		as VSLCALLID ,
+		       	LC.LOC_ID      		as LOCID ,
+			   	LC.CG_NO       		as CGNO ,
+			   	LC.WH_TP_CD	  		as WHTPCD,
+			   	SUM(LC.PKG_QTY)    	as PKGQTY,
+			   	SUM(LC.CG_VOL)       	as MSRMT ,
+			   	SUM(LC.CG_WGT)     		as WGT
+		FROM 	TMT_INV_LOC LC, TMT_JOB J
+		WHERE 	LC.JOB_NO = J.JOB_NO 
+				AND LC.VSL_CALL_ID = J.VSL_CALL_ID
+				AND	LC.CG_NO = J.CG_NO
+				AND LC.CG_NO = #{cgNo}
+				AND LC.VSL_CALL_ID = #{vslCallId}
+				AND LC.WH_TP_CD = #{whTpCd}
+				HAVING SUM(LC.CG_WGT) > 0 OR SUM(LC.CG_VOL) > 0 OR SUM(LC.PKG_QTY) > 0
+		GROUP BY LC.VSL_CALL_ID , LC.LOC_ID , LC.CG_NO,LC.WH_TP_CD
+	</select>
+	
+	<select id="selectInvLocs"  parameterType="whConfigurationParm" resultType="whConfigurationItem">
+		SELECT   
+			   LC.VSL_CALL_ID 		as VSLCALLID ,
+		       LC.LOC_ID      		as LOCID ,
+			   LC.CG_NO       		as CGNO ,
+			   LC.WH_TP_CD	  		as WHTPCD,
+			   SUM(LC.PKG_QTY)    	as PKGQTY,
+			   SUM(LC.CG_VOL)       	as MSRMT ,
+			   SUM(LC.CG_WGT)     		as WGT
+		FROM 	TMT_INV_LOC LC, TMT_JOB J
+		WHERE 	LC.JOB_NO = J.JOB_NO 
+				AND LC.VSL_CALL_ID = J.VSL_CALL_ID
+				AND	LC.CG_NO = J.CG_NO
+				AND LC.CG_NO = #{cgNo}
+				AND LC.VSL_CALL_ID = #{vslCallId}
+				AND LC.WH_TP_CD ='G'
+				AND (J.SP_CA_CO_CD IS NULL OR J.SP_CA_CO_CD ='N')
+				HAVING SUM(LC.CG_WGT) <![CDATA[ > ]]> 0 OR SUM(LC.CG_VOL) <![CDATA[ > ]]> 0 OR SUM(LC.PKG_QTY) <![CDATA[ > ]]> 0
+				GROUP BY LC.VSL_CALL_ID , LC.LOC_ID , LC.CG_NO,LC.WH_TP_CD
+	</select>
+	
+	<select id="selectDmgInvLocs"  parameterType="whConfigurationParm" resultType="whConfigurationItem">
+		SELECT  
+			   	LC.VSL_CALL_ID 		as VSLCALLID ,
+		       	LC.LOC_ID      		as LOCID ,
+			  	LC.CG_NO       		as CGNO ,
+			   	LC.WH_TP_CD	  		as WHTPCD,
+			   	SUM(LC.PKG_QTY)    	as PKGQTY,
+			   	SUM(LC.CG_VOL)       	as MSRMT ,
+			   	SUM(LC.CG_WGT)     		as WGT
+		FROM 	TMT_INV_LOC LC, TMT_JOB J
+		WHERE 	LC.JOB_NO = J.JOB_NO 
+				AND LC.VSL_CALL_ID = J.VSL_CALL_ID
+				AND	LC.CG_NO = J.CG_NO
+				AND LC.WH_TP_CD ='D'
+				AND J.DELV_TP_CD  = 'I'
+				AND (J.SP_CA_CO_CD IS NULL OR J.SP_CA_CO_CD ='N')
+				AND LC.CG_NO = #{cgNo}
+				AND LC.VSL_CALL_ID = #{vslCallId}
+				AND	(J.RHDL_MODE IS NULL OR J.RHDL_MODE ='' OR J.RHDL_MODE = 'N')
+		HAVING SUM(LC.CG_WGT) <![CDATA[ > ]]> 0 OR SUM(LC.CG_VOL) <![CDATA[ > ]]> 0 OR SUM(LC.PKG_QTY) <![CDATA[ > ]]> 0
+		GROUP BY LC.VSL_CALL_ID , LC.LOC_ID , LC.CG_NO,LC.WH_TP_CD
+	</select>
+	
+	<select id="selectSprInvLocs"  parameterType="whConfigurationParm" resultType="whConfigurationItem">
+		SELECT  
+			   LC.VSL_CALL_ID 		as VSLCALLID ,
+		       LC.LOC_ID      		as LOCID ,
+			   LC.CG_NO       		as CGNO ,
+			   LC.WH_TP_CD	  		as WHTPCD,
+			   SUM(LC.PKG_QTY)    	as PKGQTY,
+			   SUM(LC.CG_VOL)       	as MSRMT ,
+			   SUM(LC.CG_WGT)     		as WGT
+		FROM 	TMT_INV_LOC LC, TMT_JOB J, TMT_GR G
+		WHERE 	LC.JOB_NO = J.JOB_NO 
+				AND LC.VSL_CALL_ID = J.VSL_CALL_ID
+				AND	LC.CG_NO = J.CG_NO
+				AND J.VSL_CALL_ID = G.VSL_CALL_ID
+				AND J.CG_NO = G.GR_NO
+				AND LC.WH_TP_CD ='G'
+				AND J.SP_CA_CO_CD = 'S'
+				AND G.SHIPG_NOTE_NO = #{shipgNoteNo}
+				AND LC.VSL_CALL_ID = #{vslCallId}
+				AND	(J.RHDL_MODE IS NULL OR J.RHDL_MODE ='' OR J.RHDL_MODE = 'N')
+		HAVING SUM(LC.CG_WGT) <![CDATA[ > ]]> 0 OR SUM(LC.CG_VOL) <![CDATA[ > ]]> 0 OR SUM(LC.PKG_QTY) <![CDATA[ > ]]> 0
+		GROUP BY LC.VSL_CALL_ID , LC.LOC_ID , LC.CG_NO,LC.WH_TP_CD
+	</select>
+</mapper>

@@ -1,0 +1,220 @@
+Ext.define('MOST.model.planning.RoRoYardPlan', {
+	extend : 'MOST.model.foundation.dataitem.DataItem',
+	fields: [
+		{
+			name:'vslCallId',
+			type:'string'
+		},
+		{
+			name:'masterBlNo',
+			type:'string'
+		},
+		{
+			name:'blNo',
+			type:'string'
+		},
+		{
+			name:'catgCd',
+			type:'string'
+		},
+		{
+			name:'catgNm',
+			type:'string'
+		},
+		{
+			name:'cgTpCd',
+			type:'string'
+		},
+		{
+			name:'cgTpNm',
+			type:'string'
+		},
+		{
+			name:'delvTpCd',
+			type:'string'
+		},
+		{
+			name:'delvTpNm',
+			type:'string'
+		},
+		{
+			name:'doNo',
+			type:'string'
+		},
+		{
+			name:'sdoNo',
+			type:'string'
+		},
+		{
+			name:'nosOfUnit',
+			type:'string'
+		},
+		{
+			name:'remainUnit',
+			type:'string'
+		},
+		{
+			name:'brandCd',
+			type:'string'
+		},
+		{
+			name:'brandNm',
+			type:'string'
+		},
+		{
+			name:'modelCd',
+			type:'string'
+		},
+		{
+			name:'modelNm',
+			type:'string'
+		},
+		{
+			name:'unitNo',
+			type:'string'
+		},
+		{
+			name:'yardLoc',
+			type:'string'
+		},
+		{
+			name:'cdNm',
+			type:'string'
+		},
+		{
+			name:'cd',
+			type:'string'
+		},
+		{
+			name:'roroSeq',
+			type: 'string'
+		},
+		{
+			name:'inDate',
+			type:'string'
+		},
+		{
+			name:'outDate',
+			type:'string'
+		},
+		{
+			name:'loginId',
+			type:'string'
+		},
+		{
+			name:'statCd',
+			type:'string'
+		},
+		{
+			name:'jobPurpCd',
+			type:'string'
+		},
+		{
+			name:'ioMode',
+			type:'string'
+		},
+		{
+			name:'ioSeq',
+			type:'string'
+		},
+		{
+			name:'statNm',
+			type:'string'
+		},
+		{
+			name:'plannedQty',
+			type:'string'
+		},
+		{
+			name:'yardId',
+			type:'string'
+		},
+		{
+			name:'plannedBy',
+			type:'string'
+		},
+		{
+			name:'plannedDtm',
+			type:'string'
+		},
+		{
+			name:'shaCd',
+			type:'string'
+		},
+		{
+			name:'shaNm',
+			type:'string'
+		},
+		{
+			name:'fwdCd',
+			type:'string'
+		},
+		{
+			name:'fwdNm',
+			type:'string'
+		},
+		{
+			name:'docNo',
+			type:'string'
+		},
+		{
+			name:'cgNo',
+			type:'string'
+		},
+		{
+			name:'tsptTpCd',
+			type:'string'
+		},
+		{
+			name:'cargoItems',
+			mapping: 'roroYardPlanMap'
+		},
+		{
+			name:'unitItems',
+			mapping: 'roroYardPlanMap'
+		},
+		{
+			name:'plannedItems',
+			mapping: 'roroYardPlanMap'
+		},
+		{
+			name:'blItems',
+			mapping: 'roroYardPlanMap'
+		},
+		{
+			name:'snItems',
+			mapping: 'roroYardPlanMap'
+		},
+		{
+			name:'sdogrNo',
+			mapping: 'string'
+		},
+		{
+			name:'grNo',
+			mapping: 'string'
+		},
+		{
+			name:'snNo',
+			mapping: 'string'
+		},
+		{
+			name:'bookingNo',
+			mapping: 'string'
+		},
+		{
+			name:'blsnNo',
+			mapping: 'string'
+		},
+		{
+			name:'sdogrNo',
+			mapping: 'string'
+		}
+		
+		],
+		
+	    associations: [{
+			type: 'hasMany',
+			name: 'roroYardPlanMap',
+			model: 'MOST.model.planning.RoRoYardPlan'
+		}]
+});

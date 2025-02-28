@@ -1,0 +1,261 @@
+Ext.define('MOST.view.codes.DelayCodeController', {
+	extend: 'MOST.view.foundation.BaseViewController',
+	
+	requires: [
+	],
+		
+	alias: 'controller.delaycode',
+	/**
+	 * =========================================================================================================================
+	 * CONSTANT START
+	 */
+	
+	MAIN_GRID_REF_NAME: 'refDelayCodeGrid',
+	MAIN_STORE_NAME: 'delayCodeGridList',
+	DELAYCODETYPE_COMBOBOX_STORE: 'delayCodeTypeCombo',
+	DELAYCODE_YESNO_COMBOBOX_STORE: 'delayCodeYesNoCombo',
+
+	duplicate_data: false,
+	/**
+	 * CONSTANT END
+	 * =========================================================================================================================
+	 */
+	/**
+	 * =========================================================================================================================
+	 * INITIALIZE START
+	 */
+	
+	// After Renderer Event
+	onLoad: function(){
+		let me = this;
+		let searchParm = Ext.create('MOST.model.codes.SearchDelayCodeParm');
+		let delayCodeTypeCombo = me.getStore(me.DELAYCODETYPE_COMBOBOX_STORE);
+		
+		delayCodeTypeCombo.load();
+		
+		me.setComboBoxWithLocalCache(CacheServiceConstants.YES_NO, me.DELAYCODE_YESNO_COMBOBOX_STORE);
+
+		me.setSearchParm(searchParm);
+		me.getViewModel().setData({theSearch:searchParm});
+		me.updateViewStyle(me.getView());
+	},
+	
+    /**
+	 * INITIALIZE END
+	 * =========================================================================================================================
+	 */
+	
+	/**
+	 * =========================================================================================================================
+	 * EVENT HANDLER START
+	 */
+	// Search Event Handler
+	
+	onSearch: function() {
+		let me = this;
+     	let store = me.getStore(me.MAIN_STORE_NAME);
+    	let params = me.getSearchCondition();
+    	
+		store.load({
+			params: params,
+			callback: function(records, operation, success) {
+				if(records.length == 0){
+					MessageUtil.noMatchData();
+				}
+			}
+		});
+	},
+	
+	// Grid Add
+	onAdd: function() {
+		let me = this;
+		let grid = me.lookupReference(me.MAIN_GRID_REF_NAME);
+		let store = me.getStore(me.MAIN_STORE_NAME);
+		let editor = grid.getPlugin('delayCodeEditor');
+		let record = Ext.create('MOST.model.codes.DelayCode');
+		let idx = store.indexOf(grid.getSelection()[0]) + 1 || 0;
+		let refs = me.getReferences();
+		
+		editor.cancelEdit();
+		grid.filters.clearFilters();
+		grid.filters.disable();
+		store.clearFilter();
+		
+		refs.refdlyCd.getEditor().setEditable(true);
+		refs.refdlyCd.getEditor().setDisabled(false);
+		
+		store.insert(idx, record);
+		grid.getSelectionModel().select(record);
+		
+		editor.startEdit(record);
+	},
+	
+	// Grid Row Double
+	onDblClick: function() {
+		let me = this;
+		let grid = me.lookupReference(me.MAIN_GRID_REF_NAME);
+		let refs = me.getReferences();
+		
+		grid.getPlugin('delayCodeEditor').cancelEdit();
+		refs.refdlyCd.getEditor().setEditable(false);
+		refs.refdlyCd.getEditor().setDisabled(true);
+	},
+	
+	// Row Editing
+	onCancelEdit: function(rowEditing, context) {
+		if (context.record.phantom) {
+			context.store.remove(context.record);
+		}
+	},
+	
+	onValidateEdit:	function(editor, context) {
+		let me = this;
+	
+		if(context.record.phantom == true) {
+			let delayCodeDuplicateStore = Ext.getStore('duplicateCheckStore');
+			delayCodeDuplicateStore.load({
+				params: {
+					dlyCd: context.newValues.dlyCd
+				},
+				callback: function(records, operation, success) {
+					this.resumeEvent('edit');
+					
+					if (records.length == 0 ) {
+						// this.fireEvent('edit', editor, context);
+						context.record.set('flag', true);
+						me.onEdit(editor, context);
+					} else {
+						MessageUtil.warning('warning_msg', 'duplicatedata_msg');
+						// me.fireEvent('cancelEdit', editor, context);
+						context.record.set('flag', false);
+						me.onCancelEdit(editor, context);
+					}
+				},
+				scope: this	
+			});
+
+			me.suspendEvent('edit');
+		}
+	},
+	
+	onEdit: function(editor, context){
+		if(context.record.data.flag == false || context.record.data.flag == undefined) return;
+		
+		if (context.record.phantom) {
+			console.log('***** insert *****');
+			context.record.set('insUserId', MOST.config.Token.getUserId());
+			context.store.sync({
+				success: function() {
+					context.store.	reload({
+						callback: function(records, operation, success) {
+							if(success){
+								let success = MOST.getApplication().bundle.getMsg('success_msg');
+								let msg = MOST.getApplication().bundle.getMsg('savesuccess_msg');
+								
+								Ext.Msg.alert(success, msg);
+							}
+						}
+					});
+				}
+			});
+		} else {
+			console.log('***** update *****');
+			context.record.set('updUserId', MOST.config.Token.getUserId())
+			context.record.set('oldDlyCd', context.originialValue);
+			
+			context.store.sync({
+				success: function(){
+					context.store.reload({
+						callback: function(records, operation, success) {
+							if(success){
+								let success = MOST.getApplication().bundle.getMsg('success_msg');
+								let msg = MOST.getApplication().bundle.getMsg('savesuccess_msg');
+								
+								Ext.Msg.alert(success, msg);
+							}
+						}
+					});
+				}
+			});
+		}
+	},
+	
+	// Grid Row Remove
+	onRemove: function() {
+		var me = this;
+		var grid = me.lookupReference(me.MAIN_GRID_REF_NAME);
+		var store = me.getStore(me.MAIN_STORE_NAME); 
+		
+		me.gridRemoveRow(grid, store, me.removeComplete);
+	},
+	
+	onGridBilkComboRenderer: function(val, cell){
+		var me = this;
+        var refs = me.getReferences();
+		var codeComboStore = null;
+		var displayFieldName = 'scdDesc';
+		var codeFieldName = 'scd';
+		
+		if(cell.column.dataIndex == 'bulkTp'){ 	
+			codeComboStore = me.getViewModel().getStore(me.DELAYCODEBULKTYPE_COMBOBOX_STORE);
+		}
+
+		if(codeComboStore != null){
+			var indx = -1;
+			
+			if(cell.column.dataIndex == 'bulkTp'){
+				indx = codeComboStore.find(codeFieldName, val);
+			} else {
+				indx = codeComboStore.find(codeFieldName, val);
+			}				
+
+			if (indx != -1){
+				return codeComboStore.getAt(indx).get(displayFieldName); 
+			}
+		}
+		
+		return '';
+	},
+	
+	onChange: function(field, newValue){
+		field.setValue(newValue.toUpperCase());
+	},
+	
+	 /**
+	 * =========================================================================================================================
+	 * EVENT HANDLER END
+	 */
+	
+	/**
+	 * GENERAL METHOD START
+	 * =========================================================================================================================
+	 */
+	// Search Condition
+	getSearchCondition : function(){
+		var me = this;
+		var store = me.getStore(me.MAIN_STORE_NAME);
+		var grid = me.lookupReference(me.MAIN_GRID_REF_NAME);
+		var pageNo = store.currentPage;
+		var sizePerPage = CommonConstants.PAGE_SIZE;
+		var searchParm = me.getViewModel().get('theSearch');
+		var params = me.createParam(searchParm);
+		
+		params['dlyTp'] = StringUtil.toUpperCase(searchParm.data.dlyTp);
+		params['dlyCd'] = StringUtil.toUpperCase(searchParm.data.dlyCd);
+		params['opUseYn'] = StringUtil.toUpperCase(searchParm.data.opUseYn);
+		params['nonOpUseYn'] = StringUtil.toUpperCase(searchParm.data.nonOpUseYn);
+		params['pageNo'] = pageNo;
+		params['sizePerPage'] = sizePerPage;
+		params['sort'] = grid.getSortString();
+		
+		return params;
+	},
+	
+	removeComplete : function(me){
+		MessageUtil.saveSuccess(); // Success Message
+	}
+	/**
+	 * GENERAL METHOD END
+	 * =========================================================================================================================
+	 */
+});

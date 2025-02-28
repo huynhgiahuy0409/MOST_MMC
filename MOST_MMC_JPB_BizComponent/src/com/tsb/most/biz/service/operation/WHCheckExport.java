@@ -1,0 +1,964 @@
+package com.tsb.most.biz.service.operation;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.StringTokenizer;
+import java.util.UUID;
+
+import com.tsb.most.basebiz.common.constant.CodeConstant;
+import com.tsb.most.basebiz.dao.configuration.IWhConfigurationDao;
+import com.tsb.most.basebiz.dataitem.configuration.WhConfigurationItem;
+import com.tsb.most.basebiz.parm.configuration.SearchWhConfigurationParm;
+import com.tsb.most.biz.dao.operation.ICargoArrvDelvDao;
+import com.tsb.most.biz.dao.operation.ICargoMasterDao;
+import com.tsb.most.biz.dao.operation.IWHCheckExportDao;
+import com.tsb.most.biz.dataitem.operation.WHCheckExportItem;
+import com.tsb.most.biz.dataitem.operation.PackageJobItem;
+import com.tsb.most.biz.dataitem.operation.WHCheckExportItem;
+import com.tsb.most.biz.dataitem.planning.RoRoYardPlanItem;
+import com.tsb.most.biz.parm.operation.SearchCargoMasterParm;
+import com.tsb.most.biz.parm.operation.SearchCargoMovementParm;
+import com.tsb.most.biz.parm.operation.SearchWHCheckExportParm;
+import com.tsb.most.framework.bizparm.base.UpdateItemsBizParm;
+import com.tsb.most.framework.dataitem.DataItemList;
+import com.tsb.most.framework.exception.BizException;
+
+public class WHCheckExport implements IWHCheckExport {
+	private IWHCheckExportDao whCheckExportDao;
+	private ICargoMasterDao cargoMasterDao;
+	private ICargoArrvDelvDao cargoArrvDelvDao;
+	private IWhConfigurationDao whConfigurationDao;
+	private static String ALL = "*";
+
+	public void setWhCheckExportDao(IWHCheckExportDao whCheckExportDao) {
+		this.whCheckExportDao = whCheckExportDao;
+	}
+
+	public void setCargoMasterDao(ICargoMasterDao cargoMasterDao) {
+		this.cargoMasterDao = cargoMasterDao;
+	}
+
+	public void setCargoArrvDelvDao(ICargoArrvDelvDao cargoArrvDelvDao) {
+		this.cargoArrvDelvDao = cargoArrvDelvDao;
+	}
+
+	public void setWhConfigurationDao(IWhConfigurationDao whConfigurationDao) {
+		this.whConfigurationDao = whConfigurationDao;
+	}
+	////////////////////////////////////////////////////////////////////////
+	
+	@Override
+	public DataItemList selectCargoWarehouseCheckExportItems(SearchWHCheckExportParm parm) throws BizException {
+		return whCheckExportDao.selectCargoWarehouseCheckExportItems(parm);
+	}
+	
+	@Override
+	public DataItemList checkAmoutLocation(SearchWHCheckExportParm parm) throws BizException {
+		return whCheckExportDao.checkAmoutLocation(parm);
+	}
+
+	@Override
+	public DataItemList updateCargoWarehouseCheckExportItems(UpdateItemsBizParm parm) throws BizException {
+		DataItemList response = new DataItemList();
+		
+		WHCheckExportItem returnItem = new WHCheckExportItem();
+		WHCheckExportItem masterItem = (WHCheckExportItem) parm.getUpdateItem();
+
+		DataItemList items = new DataItemList();
+		items.add(masterItem);
+
+		WHCheckExportItem waJobItem = null;
+		String jobGroupNo = null;
+
+		boolean isBbk = false;
+		boolean isDbk = false;
+
+		SearchCargoMasterParm mstParm;
+		SearchWhConfigurationParm whParm;
+		List listConfirmation = null;
+
+		DataItemList insertItems = new DataItemList();// 1
+		DataItemList updateCgMstAmtItems = new DataItemList();// AMT
+		DataItemList updateCgMstStatItems = new DataItemList();// ?????
+
+		DataItemList insertJobItems = new DataItemList();
+
+		DataItemList updateLoadingSNItems = new DataItemList();// Sn
+		DataItemList insertInvLocItems = new DataItemList();// INV_LOC
+
+		// -
+		// allocation
+
+		/*
+		 * ==============================================START
+		 * =============================================
+		 */
+
+		// insertItems.add(item);
+		// Gr unit ONE TIME. Direct , indirect
+		// (1) InGateCheck -- PortSafty Gate_OT_DT null?? ?? -
+		// (Port SaftyCheck)
+
+		// (2) appronChekcer (A) opDelvTpCd = Direct,
+		// indirect(TMT_JOB 'GW', 'LF')
+
+		WHCheckExportItem item = (WHCheckExportItem) items.get(0);
+		String uuid = UUID.randomUUID().toString();
+		item.setNewVersion(uuid);
+
+		mstParm = new SearchCargoMasterParm();
+		mstParm.setCgNo(item.getCgNo());
+		mstParm.setVslCallId(item.getVslCallId());
+		mstParm.setLorryNo(item.getLorryNo());
+		mstParm.setCgInOutCd("I");
+		// ///////////////////////////////////////////////////////////////////////////////////////////////////////
+		
+		//ADP: autoDeAllocation:
+		if (item.getAutoLocFlag() != null && item.getAutoLocFlag().equals("true")) {
+
+			whParm = new SearchWhConfigurationParm();
+			whParm.setCgNo(item.getCgNo());
+			whParm.setVslCallId(item.getVslCallId());
+			whParm.setShipgNoteNo(item.getShipgNoteNo());
+
+			// ////normal case inv_loc
+			listConfirmation = whConfigurationDao.selectInvLocs(whParm).getCollection();
+
+			if (item.getLocCount() != 0 && listConfirmation.size() > 0 && "true".equals(item.getAutoNorLocFlag())) {
+				if (item.getLocCount() == 1) {// One Cell
+					oneAutoLoc(listConfirmation, item, "G");
+				}
+			}
+		}
+
+		jobGroupNo = cargoMasterDao.selectJobGroupNo(mstParm);
+		item.setJobGroup(jobGroupNo);
+
+		if (item.getLoadCnclMode() != null || item.getLoadCnclMode() != "") {
+			// item.setLoadCnclMode()
+			if (item.getDmgQty() > 0) {
+				item.setDmgYn("Y");
+			} else {
+				item.setDmgYn("N");
+			}
+		}
+
+		/* C1 : Direct TMT_CG_MST insert/update */
+		if (item.getOpDelvTpCd().equals("D")) {
+			/* C1.1 : Update TMT_CG_MST */
+			if (cargoMasterDao.selectIsCargoMst(mstParm)) {
+				item.setStat("LD");
+				if (item.getFnlOpeYn().equals("Y")) {
+					updateLoadingSNItems.add(item);// endItem
+				}
+				updateCgMstStatItems.add(item);// stat, job, date
+				if (item.getCgTpCd().equals("BBK") && !(item.getLoadMt() == 0 && item.getLoadQty() == 0)) {
+					updateCgMstAmtItems.add(item);// TMT_CG_MST
+				} else if (((item.getCgTpCd().equals("DBK") || item.getCgTpCd().equals("DBN")
+						|| item.getCgTpCd().equals("DBE")) && item.getLoadMt() > 0)) {
+					updateCgMstAmtItems.add(item);// TMT_CG_MST
+				}
+			} else { /* C1.2 : Insert TMT_CG_MST */
+				item.setStat("LD");// statCd
+				if (item.getFnlOpeYn().equals("Y")) {
+					updateLoadingSNItems.add(item);// Only endItem
+				}
+				insertItems.add(item);
+			}
+			/* C2 : InDirect TMT_CG_MST update */
+		} else {// TMT_MST, TMT_JOB, TMT_INV_LOC gr in all shipging
+			if (cargoMasterDao.selectIsCargoMst(mstParm)) {// exist is
+				// update
+				item.setStat("LD");
+				updateCgMstStatItems.add(item);// stat, job,
+				// Loadingdate
+			}
+
+		}
+
+		/* C4.1 Normal Case For BBK */
+		if ((item.getCgTpCd().equals("BBK") && !(item.getLoadMt() == 0 && item.getLoadQty() == 0))) {
+
+			// Insert Job Items For Normal
+			waJobItem = (WHCheckExportItem) item.clone();
+			waJobItem.setJobPurpCd("WA");
+			waJobItem.setJobTpCd("LD");
+			waJobItem.setStat("COM");
+			waJobItem.setDmgYn("N");
+			waJobItem.setShuYn("N");
+			waJobItem.setToLocId(item.getLocId());
+			waJobItem.setJobCoCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+			waJobItem.setLoadMt(item.getLoadMt());
+			waJobItem.setLoadM3(item.getLoadM3());
+			waJobItem.setLoadQty(item.getLoadQty());
+			insertJobItems.add(waJobItem);
+
+			// CASE of WA:LD inventory location - de-Allocation
+			// -------Start WA/LD
+			ArrayList<WhConfigurationItem> invLocItems = (ArrayList<WhConfigurationItem>) waJobItem.getWhConfigurationItems();
+			WHCheckExportItem cargoInvLocItem;
+			if (invLocItems.size() > 0) {
+				for (int j = 0; j < invLocItems.size(); j++) {
+					cargoInvLocItem = (WHCheckExportItem) waJobItem.clone();
+					WhConfigurationItem whconfItem = (WhConfigurationItem) invLocItems.get(j);
+					if (whconfItem.getWhTpCd() == null || whconfItem.getWhTpCd() == ""
+							|| whconfItem.getWhTpCd().equals(CodeConstant.INVLOC_WH_TP_NORMAL) && !whconfItem.getWhTpCd().equals(CodeConstant.INVLOC_WH_TP_SHUTOUT)
+									&& !whconfItem.getWhTpCd().equals("D")) {
+						cargoInvLocItem.setCgNo(whconfItem.getCgNo());
+						cargoInvLocItem.setLocArea(waJobItem.getLocId());
+						cargoInvLocItem.setLocId(whconfItem.getLocId());
+						cargoInvLocItem.setLocQty(Integer.parseInt(whconfItem.getPkgQty()));
+						cargoInvLocItem.setLocWgt(whconfItem.getWgt());
+						cargoInvLocItem.setLocMsrmt(whconfItem.getMsrmt());
+						cargoInvLocItem.setWhTpCd(whconfItem.getWhTpCd());
+						cargoInvLocItem.setWhLocTpCd(whconfItem.getLocTpCd());   //LOC_TP_CD in TMT_LOC_DEF and WH_LOC_TP in TMT_INV_LOC
+						if (cargoInvLocItem.getWhTpCd() == null || cargoInvLocItem.getWhTpCd().equals("")) {
+							cargoInvLocItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+						}
+						cargoInvLocItem.setDmgYn("N");
+						cargoInvLocItem.setShuYn("N");
+						cargoInvLocItem.setRhdlYn("N");
+						insertInvLocItems.add(cargoInvLocItem);
+					}
+				}
+			}
+
+		} else if ((item.getCgTpCd().equals("DBK") || item.getCgTpCd().equals("DBN")/* C4.2 Normal Case for DBK */
+				|| item.getCgTpCd().equals("DBE")) && item.getLoadMt() > 0) {
+
+			/* C4.2 Normal Case for DBK */
+			/* C4.2.1 WA Insert Job Item (Normal Case) */
+			waJobItem = (WHCheckExportItem) item.clone();
+			waJobItem.setJobPurpCd("WA");
+			waJobItem.setJobTpCd("LD");
+			waJobItem.setStat("COM");
+			waJobItem.setDmgYn("N");
+			waJobItem.setShuYn("N");
+			waJobItem.setToLocId(item.getLocId());
+			waJobItem.setJobCoCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+			waJobItem.setLoadMt(item.getLoadMt());
+			waJobItem.setLoadM3(item.getLoadM3());
+			waJobItem.setLoadQty(item.getLoadQty());
+			insertJobItems.add(waJobItem);
+
+			// CASE of WA:LD inventory location - de-Allocation
+			// -------Start WA/LD
+			/* C4.2.3 Insert invLocItems Normal Case */
+			// 202010 commented: ArrayList invLocItems = (ArrayList)
+			// waJobItem.getCollection();
+			ArrayList<WhConfigurationItem> invLocItems = (ArrayList<WhConfigurationItem>) waJobItem
+					.getWhConfigurationItems();
+			WHCheckExportItem cargoInvLocItem;
+			if (invLocItems.size() > 0) {
+				for (int j = 0; j < invLocItems.size(); j++) {
+					cargoInvLocItem = (WHCheckExportItem) waJobItem.clone();
+					WhConfigurationItem whconfItem = (WhConfigurationItem) invLocItems.get(j);
+					if (whconfItem.getWhTpCd() == null || whconfItem.getWhTpCd() == ""
+							|| whconfItem.getWhTpCd().equals(CodeConstant.INVLOC_WH_TP_NORMAL) && !whconfItem.getWhTpCd().equals(CodeConstant.INVLOC_WH_TP_SHUTOUT)
+									&& !whconfItem.getWhTpCd().equals("D")) {
+						cargoInvLocItem.setLocArea(waJobItem.getLocId());
+						cargoInvLocItem.setLocId(whconfItem.getLocId());
+						cargoInvLocItem.setLocQty(Integer.parseInt(whconfItem.getPkgQty()));
+						cargoInvLocItem.setLocWgt(whconfItem.getWgt());
+						cargoInvLocItem.setLocMsrmt(whconfItem.getMsrmt());
+						cargoInvLocItem.setWhTpCd(whconfItem.getWhTpCd());
+						cargoInvLocItem.setWhLocTpCd(whconfItem.getLocTpCd());   //LOC_TP_CD in TMT_LOC_DEF and WH_LOC_TP in TMT_INV_LOC
+						if (cargoInvLocItem.getWhTpCd() == null || cargoInvLocItem.getWhTpCd().equals("")) {
+							cargoInvLocItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+						}
+						cargoInvLocItem.setDmgYn("N");
+						cargoInvLocItem.setShuYn("N");
+						cargoInvLocItem.setRhdlYn("N");
+						insertInvLocItems.add(cargoInvLocItem);
+					}
+				}
+			}
+			// //////////////////////////////////////////////////-------End
+			// WA/LD Normal
+		} //Liquid
+		 else if (item.getCgTpCd().equals("LQD") && item.getLoadM3() > 0) {
+
+				/* C4.2 Normal Case for LQD */
+				/* C4.2.1 WA Insert Job Item (Normal Case) */
+				waJobItem = (WHCheckExportItem) item.clone();
+				waJobItem.setJobPurpCd("WA");
+				waJobItem.setJobTpCd("LD");
+				waJobItem.setStat("COM");
+				waJobItem.setDmgYn("N");
+				waJobItem.setShuYn("N");
+				waJobItem.setToLocId(item.getLocId());
+				waJobItem.setJobCoCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+				waJobItem.setLoadMt(item.getLoadMt());
+				waJobItem.setLoadM3(item.getLoadM3());
+				waJobItem.setLoadQty(item.getLoadQty());
+				insertJobItems.add(waJobItem);
+
+				// CASE of WA:LD inventory location - de-Allocation
+				// -------Start WA/LD
+				/* C4.2.3 Insert invLocItems Normal Case */
+				// 202010 commented: ArrayList invLocItems = (ArrayList)
+				// waJobItem.getCollection();
+				ArrayList<WhConfigurationItem> invLocItems = (ArrayList<WhConfigurationItem>) waJobItem
+						.getWhConfigurationItems();
+				WHCheckExportItem cargoInvLocItem;
+				if (invLocItems.size() > 0) {
+					for (int j = 0; j < invLocItems.size(); j++) {
+						cargoInvLocItem = (WHCheckExportItem) waJobItem.clone();
+						WhConfigurationItem whconfItem = (WhConfigurationItem) invLocItems.get(j);
+						if (whconfItem.getWhTpCd() == null || whconfItem.getWhTpCd() == ""
+								|| whconfItem.getWhTpCd().equals(CodeConstant.INVLOC_WH_TP_NORMAL) && !whconfItem.getWhTpCd().equals(CodeConstant.INVLOC_WH_TP_SHUTOUT)
+										&& !whconfItem.getWhTpCd().equals("D")) {
+							cargoInvLocItem.setLocArea(waJobItem.getLocId());
+							cargoInvLocItem.setLocId(whconfItem.getLocId());
+							cargoInvLocItem.setLocQty(Integer.parseInt(whconfItem.getPkgQty()));
+							cargoInvLocItem.setLocWgt(whconfItem.getWgt());
+							cargoInvLocItem.setLocMsrmt(whconfItem.getMsrmt());
+							cargoInvLocItem.setWhTpCd(whconfItem.getWhTpCd());
+							cargoInvLocItem.setWhLocTpCd(whconfItem.getLocTpCd());   //LOC_TP_CD in TMT_LOC_DEF and WH_LOC_TP in TMT_INV_LOC
+							if (cargoInvLocItem.getWhTpCd() == null || cargoInvLocItem.getWhTpCd().equals("")) {
+								cargoInvLocItem.setWhTpCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+							}
+							cargoInvLocItem.setDmgYn("N");
+							cargoInvLocItem.setShuYn("N");
+							cargoInvLocItem.setRhdlYn("N");
+							insertInvLocItems.add(cargoInvLocItem);
+						}
+					}
+				}
+				// //////////////////////////////////////////////////-------End
+				// WA/LD Normal
+			} 
+		/*
+		 * 4. whDmg case - job(5) WV:LD whDmgMt - inv location De-allocation
+		 */
+		/* C4.3 Insert Job Damage Item, Warehouse Damage Item */
+		isBbk = false;
+		isDbk = false;
+		if (item.getCgTpCd().equals("BBK") && !(item.getWhDmgMt() == 0 && item.getWhDmgQty() == 0)
+				&& item.getWhDmgLocId() != null && !item.getWhDmgLocId().equals("")) {
+			isBbk = true;
+		}
+		if ((item.getCgTpCd().equals("DBN") || item.getCgTpCd().equals("DBE") || item.getCgTpCd().equals("DBK"))
+				&& item.getWhDmgMt() > 0 && item.getWhDmgLocId() != null && !item.getWhDmgLocId().equals("")) {
+			isDbk = true;
+		}
+	
+
+		if (item.getDmgRhdlMode() == null) {
+			item.setDmgRhdlMode("");
+		}
+
+		if (updateCgMstStatItems.size() > 0) {
+			// date
+			whCheckExportDao.updateCgWarehouseCheckStateItems(updateCgMstStatItems);
+		}
+
+		if (insertJobItems.size() > 0) {//!!!!!!!!!!!! 
+			whCheckExportDao.insertJobItems(insertJobItems);
+			whCheckExportDao.updateCargoMasterStatus(insertJobItems); // call PRC_CG_MST_UPDATE_STAT
+			whCheckExportDao.updateCargoMasterInfo(insertJobItems); // call PRC_CG_MST_UPDEL_AMT
+			
+			//Package Items
+			insertPakageJobItems(insertJobItems);
+		}
+		
+		if (insertInvLocItems.size() > 0) { // INV_LOC
+			whCheckExportDao.insertCargoInvLocationItems(insertInvLocItems); // minus Amt *
+		}
+				
+		if (item.getShutItems() != null && item.getShutItems().size() > 0) {
+			doShutOutCargo (item);
+		}
+		
+		response.add(insertJobItems);
+		return response;
+	}
+	
+	
+	/*Private Method*/
+	private void oneAutoLoc(List listConfirmation, WHCheckExportItem item, String flag) {
+
+		ArrayList autoitemList = new ArrayList();
+		String whName = null;
+		String firstName = null;
+		String minName = null;
+		String whGPreName = null;
+		String whDPreName = null;
+		String whSPreName = null;
+		int countG = 0;
+		int countS = 0;
+		int countD = 0;
+		if (listConfirmation.size() < 0) {
+			return;
+		}
+		if (item.getCgTpCd().equals("BBK")) {
+			WhConfigurationItem autowhconfItem;
+
+			// Normal Case
+			if (item.getLoadMt() > 0 && flag.equals("G")) {
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+						whName = firstName.substring(0, firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName.lastIndexOf("-") + 1);
+					}
+
+					whGPreName = whName + "(" + minName + "," + ++countG + ")";
+					if (item.getLoadMt() == item.getMt()) {
+						autowhconfItem = (WhConfigurationItem) whconfItem.clone();
+						autowhconfItem.setWgt(item.getLoadMt());
+						autowhconfItem.setMsrmt(item.getLoadM3());
+						autowhconfItem.setPkgQty(String.valueOf(item.getLoadQty()));
+
+					} else {
+						autowhconfItem = new WhConfigurationItem();
+						autowhconfItem = (WhConfigurationItem) whconfItem.clone();
+						autowhconfItem.setWgt(item.getLoadMt());
+						autowhconfItem.setMsrmt(item.getLoadM3());
+						autowhconfItem.setPkgQty(String.valueOf(item.getLoadQty()));
+					}
+					autoitemList.add(autowhconfItem);
+				} // end for
+				item.setLocId(whGPreName);
+
+			} else if (item.getLoadM3() > 0 && flag.equals("G")) {
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+						whName = firstName.substring(0, firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName.lastIndexOf("-") + 1);
+					}
+
+					whGPreName = whName + "(" + minName + "," + ++countG + ")";
+					if (item.getLoadM3() == item.getM3()) {
+						autowhconfItem = (WhConfigurationItem) whconfItem.clone();
+						autowhconfItem.setWgt(item.getLoadMt());
+						autowhconfItem.setMsrmt(item.getLoadM3());
+						autowhconfItem.setPkgQty(String.valueOf(item.getLoadQty()));
+
+					} else {
+						autowhconfItem = new WhConfigurationItem();
+						autowhconfItem = (WhConfigurationItem) whconfItem.clone();
+						autowhconfItem.setWgt(item.getLoadMt());
+						autowhconfItem.setMsrmt(item.getLoadM3());
+						autowhconfItem.setPkgQty(String.valueOf(item.getLoadQty()));
+					}
+					autoitemList.add(autowhconfItem);
+
+				} // end for
+				item.setLocId(whGPreName);
+			} else if (item.getLoadQty() > 0 && flag.equals("G")) {
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+						whName = firstName.substring(0, firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName.lastIndexOf("-") + 1);
+					}
+
+					whGPreName = whName + "(" + minName + "," + ++countG + ")";
+					if (item.getLoadQty() == item.getQty()) {
+						autowhconfItem = (WhConfigurationItem) whconfItem.clone();
+						autowhconfItem.setWgt(item.getLoadMt());
+						autowhconfItem.setMsrmt(item.getLoadM3());
+						autowhconfItem.setPkgQty(String.valueOf(item.getLoadQty()));
+
+					} else {
+						autowhconfItem = new WhConfigurationItem();
+						autowhconfItem = (WhConfigurationItem) whconfItem.clone();
+						autowhconfItem.setWgt(item.getLoadMt());
+						autowhconfItem.setMsrmt(item.getLoadM3());
+						autowhconfItem.setPkgQty(String.valueOf(item.getLoadQty()));
+					}
+					autoitemList.add(autowhconfItem);
+
+				} // end for
+				item.setLocId(whGPreName);
+			}
+		} else {// DBK
+			WhConfigurationItem autowhconfItem;
+
+			// Normal Case
+			if (item.getLoadMt() > 0 && flag.equals("G")) {
+				for (int j = 0; j < listConfirmation.size(); j++) {
+					WhConfigurationItem whconfItem = (WhConfigurationItem) listConfirmation.get(j);
+					if (j == 0) {
+						firstName = whconfItem.getLocId();// inv_loc.loc_id
+						whName = firstName.substring(0, firstName.lastIndexOf("-"));
+						minName = firstName.substring(firstName.lastIndexOf("-") + 1);
+					}
+					whGPreName = whName + "(" + minName + "," + ++countG + ")";
+
+					if (item.getLoadMt() == item.getMt()) {
+						autowhconfItem = (WhConfigurationItem) whconfItem.clone();
+						autowhconfItem.setWgt(item.getLoadMt());
+						autowhconfItem.setMsrmt(item.getLoadM3());
+						autowhconfItem.setPkgQty(String.valueOf(item.getLoadQty()));
+
+					} else {
+						autowhconfItem = new WhConfigurationItem();
+						autowhconfItem = (WhConfigurationItem) whconfItem.clone();
+						autowhconfItem.setWgt(item.getLoadMt());
+						autowhconfItem.setMsrmt(item.getLoadM3());
+						autowhconfItem.setPkgQty(String.valueOf(item.getLoadQty()));
+					}
+
+					autoitemList.add(autowhconfItem);
+				} // end for
+				item.setLocId(whGPreName);
+			}
+
+			if (flag.equals("G")) {
+				item.setWhConfigurationItems(autoitemList);
+			}
+		}
+	}
+	
+	private void insertPakageJobItems(DataItemList insertJobItems) throws BizException  {
+		//Package Items
+		DataItemList insertPkgItems = new DataItemList();
+    	WHCheckExportItem item = (WHCheckExportItem)insertJobItems.get(0);
+    	ArrayList pkgLists = new ArrayList();
+    	if(item != null) {
+    		pkgLists = (ArrayList) item.getPackageItems();
+    	}
+        if (pkgLists.size() > 0) {
+        	  for (int j = 0; j < pkgLists.size(); j++) {
+                  PackageJobItem pkgItem = (PackageJobItem) pkgLists.get(j);
+                  pkgItem.setJobNo(item.getJobNo());
+                  pkgItem.setJobTpCd(item.getJobTpCd());
+                  pkgItem.setJobPurpCd(item.getJobPurpCd());
+                  pkgItem.setOpeClassCd(item.getCatgCd());
+                  pkgItem.setVslCd(item.getVslCd());
+                  pkgItem.setCallSeq(item.getCallSeq());
+                  pkgItem.setCallYear(item.getCallYear());
+                  pkgItem.setPkgTpCd(item.getPkgTpCd());
+                  pkgItem.setUserId(item.getUserId());
+                  
+                  insertPkgItems.add(pkgItem);
+        	  }
+        	  
+        	  if(insertPkgItems.size() > 0) {
+        		  whCheckExportDao.insertPackageJobItems(insertPkgItems);
+        	  }
+        }
+	}
+
+	@Override
+	public DataItemList selectWHExportForROROItems(SearchWHCheckExportParm parm) throws BizException {
+		return whCheckExportDao.selectWHExportForROROItems(parm);
+	}
+
+	@Override
+	public DataItemList updateCheckExporForROROtItems(UpdateItemsBizParm parm) throws BizException {
+		DataItemList response = new DataItemList();
+		
+		WHCheckExportItem returnItem = new WHCheckExportItem();
+		WHCheckExportItem masterItem = (WHCheckExportItem) parm.getUpdateItem();
+
+		DataItemList items = new DataItemList();
+		items.add(masterItem);
+
+		WHCheckExportItem waJobItem = null;
+		String jobGroupNo = null;
+		SearchCargoMasterParm mstParm;
+		SearchWhConfigurationParm whParm;
+		List listConfirmation = null;
+
+		DataItemList insertItems = new DataItemList();// 1
+		DataItemList updateCgMstAmtItems = new DataItemList();// AMT
+		DataItemList updateCgMstStatItems = new DataItemList();
+
+		DataItemList insertJobItems = new DataItemList();
+		// insertItems.add(item);
+		// Gr unit ONE TIME. Direct , indirect
+		// (1) InGateCheck -- PortSafty Gate_OT_DT null?? ?? -
+		// (Port SaftyCheck)
+
+		// (2) appronChekcer (A) opDelvTpCd = Direct,
+		// indirect(TMT_JOB 'GW', 'LF')
+
+		WHCheckExportItem item = (WHCheckExportItem) items.get(0);
+		String uuid = UUID.randomUUID().toString();
+		item.setNewVersion(uuid);
+
+		mstParm = new SearchCargoMasterParm();
+		mstParm.setCgNo(item.getShipgNoteNo());
+		mstParm.setVslCallId(item.getVslCallId());
+		mstParm.setCgInOutCd("I");
+		
+		
+		jobGroupNo = cargoMasterDao.selectJobGroupNo(mstParm);
+		item.setJobGroup(jobGroupNo);
+		item.setStat("OL");
+		
+		ArrayList<WhConfigurationItem> whConfigurationItems = masterItem.getWhConfigurationItems();
+		for (int i = 0; i < whConfigurationItems.size(); i++) {
+			WhConfigurationItem whConfigurationItem = whConfigurationItems.get(i);
+			SearchWHCheckExportParm searchUnitNoParm = new SearchWHCheckExportParm();
+			searchUnitNoParm.setVslCallId(item.getVslCallId());
+			searchUnitNoParm.setGrNo(whConfigurationItems.get(i).getCgNo());
+			String unitNoStr = item.getUnitNo();
+			ArrayList<RoRoYardPlanItem> ROROItems = (ArrayList<RoRoYardPlanItem>) whCheckExportDao.selectUnitNoOfGR(searchUnitNoParm).getCollection();
+			StringBuilder unitNo = new StringBuilder();
+			for (RoRoYardPlanItem unit : ROROItems) {
+				if (unitNoStr.contains(unit.getUnitNo())) {
+					if (unitNo.length() > 0) {
+						unitNo.append(",");
+					}
+					unitNo.append(unit.getUnitNo());
+				}
+			}			
+			if (!(whConfigurationItem.getWgt() == 0 && Integer.parseInt(whConfigurationItem.getPkgQty()) == 0)) {
+				item.setCgNo(whConfigurationItem.getCgNo());
+				
+				// Insert Job Items For Normal
+				waJobItem = (WHCheckExportItem) item.clone();
+				waJobItem.setUnitNo(unitNo.toString());
+				waJobItem.setJobPurpCd("WA");
+				waJobItem.setJobTpCd("LD");
+				waJobItem.setStat("COM");
+				waJobItem.setDmgYn("N");
+				waJobItem.setShuYn("N");
+				waJobItem.setToLocId(transformLocation(whConfigurationItem.getLocId()));
+				waJobItem.setJobCoCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+				waJobItem.setLoadMt(whConfigurationItem.getWgt());
+				waJobItem.setLoadM3(whConfigurationItem.getMsrmt());
+				waJobItem.setLoadQty(Integer.parseInt(whConfigurationItem.getPkgQty()));
+				if (item.getDriverId() != null  && !item.getDriverId().equals("")) {// set mode of operation
+					waJobItem.setTsptTpCd("OH");
+	            }
+				insertJobItems.add(waJobItem);
+			} 
+		}
+		
+		/*
+		if (!(item.getLoadMt() == 0 && item.getLoadQty() == 0)) {
+			item.setCgNo(item.getGrNo());
+			// Insert Job Items For Normal
+			waJobItem = (WHCheckExportItem) item.clone();
+			waJobItem.setJobPurpCd("WA");
+			waJobItem.setJobTpCd("LD");
+			waJobItem.setStat("COM");
+			waJobItem.setDmgYn("N");
+			waJobItem.setShuYn("N");
+			waJobItem.setToLocId(item.getLocId());
+			waJobItem.setJobCoCd("G");
+			waJobItem.setLoadMt(item.getLoadMt());
+			waJobItem.setLoadM3(item.getLoadM3());
+			waJobItem.setLoadQty(item.getLoadQty());
+			waJobItem.setCgNo(item.getShipgNoteNo());
+			if (item.getDriverId() != null  && !item.getDriverId().equals("")) {// set mode of operation
+				waJobItem.setTsptTpCd("OH");
+            }
+			insertJobItems.add(waJobItem);
+		} 
+		*/
+		if(item.getUnitNo() != null && !item.getUnitNo().equals("")) {
+			item.setUnitNo(makeInValue(item.getUnitNo()));
+        }
+		/* C1 : Direct TMT_RORO_MST insert/update */
+		if (item.getOpDelvTpCd().equals("D")) {
+			if (whCheckExportDao.selectIsROROMst(mstParm)) {
+				updateCgMstStatItems.add(item);// stat, job, date
+				if (!(item.getLoadMt() == 0 &&  item.getLoadMt() > 0)) {
+					updateCgMstAmtItems.add(item);
+				}
+			} else {
+				insertItems.add(item);
+			}
+		} else {// TMT_MST, TMT_JOB
+			if (whCheckExportDao.selectIsROROMst(mstParm)) {
+				updateCgMstStatItems.add(item);// stat, job,
+			}
+
+		}
+		
+		if (updateCgMstStatItems.size() > 0) {
+			UpdateItemsBizParm updBizParm = new UpdateItemsBizParm();
+	        updBizParm.addUpdateItem(updateCgMstStatItems);
+			// date
+			whCheckExportDao.updateCgWarehouseCheckofRORO(updBizParm);
+		}
+
+		if (insertJobItems.size() > 0) {
+			whCheckExportDao.insertJobItems(insertJobItems);
+		}
+		
+		//Package Items
+		insertPakageJobItems(insertJobItems);
+				
+		response.add(insertJobItems);
+		return response;
+	}
+
+	private String makeInValue(String value) {
+		if(value == null ||  value.length() == 0){
+			return value;
+		}
+		else if(value.equals(ALL)){
+			return null;
+		}
+		StringTokenizer st = new StringTokenizer(value,",");
+		StringBuffer sql = new StringBuffer();
+		sql.append("(");
+		while (st.hasMoreElements()) {
+			sql.append("'");
+			sql.append(st.nextElement().toString().trim());
+			sql.append("'");
+			if(st.hasMoreElements()){
+				sql.append(",");
+			}
+		}
+		sql.append(")");
+	  
+		return sql.toString();
+	}
+	
+	private String transformLocation(String location) {
+        int index = location.indexOf('-'); 
+        if (index != -1) {
+            String whId = location.substring(0, index); 
+            String locId = location.substring(index + 1, location.length());
+            return whId + "(" + locId + ",1)";
+        }
+        return location;
+    }
+	
+	
+	/**
+	 * MOST_MMC_JPB
+	 * Gap ID: OPR-025 Shut out Cargo process
+	 * */
+	private void doShutOutCargo(WHCheckExportItem item) throws BizException {
+
+		DataItemList insertJobItems = new DataItemList();
+		DataItemList insertInvLocItems = new DataItemList();// INV_LOC
+		DataItemList insertMinusInvLocItems = new DataItemList();// INV_LOC
+		WHCheckExportItem jobItem = null;
+		boolean isBBK = item.getCgTpCd().equals(CodeConstant.MT_CGTP_BBK);
+		boolean isDBK = item.getCgTpCd().equals(CodeConstant.MT_CGTP_DBN) || item.getCgTpCd().equals("DBE");
+
+		SearchWHCheckExportParm whParm = new SearchWHCheckExportParm();
+
+		whParm.setVslCd(item.getVslCd());
+		whParm.setCallYear(item.getCallYear());
+		whParm.setCallSeq(item.getCallSeq());
+		whParm.setVslCallId(item.getVslCallId());
+		whParm.setScn(item.getScn());
+		whParm.setCgNo(item.getCgNo());
+		whParm.setShipgNoteNo(item.getShipgNoteNo());
+		whParm.setWhTpCd(CodeConstant.INVLOC_WH_TP_NORMAL);
+
+		DataItemList invResult = whCheckExportDao.selectInvLocList(whParm);
+		List<WHCheckExportItem> invLocList = null;
+
+		if (invResult.getCollection() == null || invResult.getCollection().size() == 0) {
+			throw new BizException("rhdl_cg_no_orgInvLoc");
+
+		} else {
+			invLocList = (ArrayList<WHCheckExportItem>) invResult.getCollection();
+		}
+
+		ArrayList<WhConfigurationItem> shuListLocs = (ArrayList<WhConfigurationItem>) item.getShutItems();
+
+		for (int j = 0; j < shuListLocs.size(); j++) {
+			WhConfigurationItem shuWhItem = (WhConfigurationItem) shuListLocs.get(j);
+			shuWhItem.setUserId(item.getUserId());
+			int shuPkgQty = Integer.parseInt(shuWhItem.getPkgQty());
+			double shuWgt = shuWhItem.getWgt();
+			double shuMsrmt = shuWhItem.getMsrmt();
+
+			for (int i = 0; i < invLocList.size(); i++) {
+				WHCheckExportItem invItem = (WHCheckExportItem) invLocList.get(i);
+				invItem.setUserId(shuWhItem.getUserId());
+				invItem.setJobGroup(item.getJobGroup());
+				invItem.setJobCoCd(CodeConstant.INVLOC_WH_TP_SHUTOUT);
+				invItem.setLocArea(item.getShuLocId());
+
+				boolean flag = false;
+				int invLocQty = invItem.getLocQty();
+				double invLocWgt = invItem.getLocWgt();
+				double invLocMsrmt = invItem.getLocMsrmt();
+
+				WHCheckExportItem cargoInvLocItem = (WHCheckExportItem) invItem.clone();
+
+				if (isBBK) {
+					if (shuPkgQty <= invLocQty) {
+						cargoInvLocItem.setLocQty(shuPkgQty);
+						double tmpWgt = Math.min(shuWgt, invLocWgt);
+						double tmpMsrmt = Math.min(shuMsrmt, invLocMsrmt);
+
+						cargoInvLocItem.setLocWgt(tmpWgt);
+						cargoInvLocItem.setLocMsrmt(tmpMsrmt);
+
+						// Deduce amount in INVList
+						invLocQty -= shuPkgQty;
+						
+						if (shuWgt <= invLocWgt) {
+							invLocWgt -= shuWgt;
+						} else {
+							invLocWgt = 0;
+						}
+
+						if (shuMsrmt <= invLocMsrmt) {
+							invLocMsrmt -= invLocMsrmt;
+						} else {
+							invLocMsrmt = 0;
+						}
+						invItem.setPkgQty(invLocQty);
+						invItem.setLocWgt(invLocWgt);
+						invItem.setLocMsrmt(invLocMsrmt);
+
+						flag = true;
+
+					} else if (invLocQty > 0) {
+						cargoInvLocItem.setLocQty(invItem.getLocQty());
+						cargoInvLocItem.setLocWgt(invItem.getLocWgt());
+						cargoInvLocItem.setLocMsrmt(invItem.getLocMsrmt());
+
+						shuPkgQty -= invLocQty;
+						shuWgt -= invLocWgt;
+						shuMsrmt -= invLocMsrmt;
+					}
+
+				} else if (isDBK) {
+					if (shuWgt <= invItem.getLocWgt() || shuMsrmt <= invItem.getLocMsrmt()) {
+						int tmpPkgQty = Math.min(shuPkgQty, invLocQty);
+						double tmpWgt = Math.min(shuWgt, invLocWgt);
+						double tmpMsrmt = Math.min(shuMsrmt, invLocMsrmt);
+						
+						cargoInvLocItem.setLocQty(tmpPkgQty);
+						cargoInvLocItem.setLocWgt(tmpWgt);
+						cargoInvLocItem.setLocMsrmt(tmpMsrmt);
+
+						// Deduce amount
+						invLocWgt -= shuWgt;
+						if (invLocWgt < 0) invLocWgt = 0;
+						
+						invLocMsrmt -= shuMsrmt;
+						if (invLocMsrmt < 0) invLocMsrmt = 0;
+						
+						invLocQty -= shuPkgQty;
+						if (invLocQty < 0) invLocQty = 0;
+
+						invItem.setPkgQty(invLocQty);
+						invItem.setLocWgt(invLocWgt);
+						invItem.setLocMsrmt(invLocMsrmt);
+
+						flag = true;
+
+					} else {
+						cargoInvLocItem.setLocQty(invItem.getLocQty());
+						cargoInvLocItem.setLocWgt(invItem.getLocWgt());
+						cargoInvLocItem.setLocMsrmt(invItem.getLocMsrmt());
+
+						shuPkgQty -= invLocQty;
+						if(shuPkgQty < 0) shuPkgQty = 0;
+						
+						shuWgt -= invLocWgt;
+						if(shuWgt < 0) shuWgt = 0;
+						
+						shuMsrmt -= invLocMsrmt;
+						if(shuMsrmt < 0) shuMsrmt = 0;
+					}
+				}
+
+				createInvLocItems(insertInvLocItems, insertMinusInvLocItems, shuWhItem, cargoInvLocItem);
+
+				if (flag) {
+					break;
+				}
+			}
+		}
+
+		// Create JobList:
+		List<WHCheckExportItem> jobList = null;
+		if (insertInvLocItems.size() > 0) {
+			List<WHCheckExportItem> tList = insertInvLocItems.getCollection();
+			Map<String, WHCheckExportItem> jobMap = new HashMap<>();
+
+			for (WHCheckExportItem it : tList) {
+				String cgNo = it.getCgNo();
+				if (jobMap.containsKey(cgNo)) {
+					WHCheckExportItem job = jobMap.get(cgNo);
+
+					job.setShuQty(job.getShuQty() + it.getLocQty());
+					job.setShuMt(job.getShuMt() + it.getLocWgt());
+					job.setShuM3(job.getShuM3() + it.getLocMsrmt());
+
+				} else {
+					WHCheckExportItem job = (WHCheckExportItem) item.clone();
+
+					job.setJobGroup(item.getJobGroup());
+					job.setJobPurpCd("WW");
+					job.setJobTpCd("RC");
+					job.setStat("COM");
+					job.setDmgYn("N");
+					job.setShuYn("Y");
+					job.setJobCoCd(CodeConstant.INVLOC_WH_TP_SHUTOUT);
+
+					job.setToLocId(it.getShuLocId());
+					job.setShuM3(it.getLocMsrmt());
+					job.setShuMt(it.getLocWgt());
+					job.setShuQty(it.getLocQty());
+
+					jobMap.put(cgNo, job);
+				}
+			}
+			// Convert the map values back to a list if needed
+			jobList = new ArrayList<>(jobMap.values());
+			insertJobItems.setCollection(jobList);
+		}
+
+		if (insertJobItems.size() > 0) {
+			whCheckExportDao.insertShutOutJobItems(insertJobItems);
+		}
+
+		if (insertMinusInvLocItems.size() > 0) {
+			whCheckExportDao.insertShutOutInvLocationItems(insertMinusInvLocItems);
+		}
+
+		if (insertInvLocItems.size() > 0) {
+			whCheckExportDao.insertShutOutInvLocationItems(insertInvLocItems);
+		}
+	}
+	
+	private void createInvLocItems(DataItemList insertInvLocItems, DataItemList insertMinusInvLocItems,
+			WhConfigurationItem shuWhItem, WHCheckExportItem invLocItem) {
+		WHCheckExportItem addLocItem;
+		WHCheckExportItem minusItem;
+
+		addLocItem = (WHCheckExportItem) invLocItem.clone();
+		minusItem = (WHCheckExportItem) invLocItem.clone();
+
+		addLocItem.setLocId(shuWhItem.getLocId());// to location
+		addLocItem.setWhTpCd(shuWhItem.getWhTpCd());
+		addLocItem.setWhLocTp(shuWhItem.getLocTpCd());
+
+		addLocItem.setLocQty(invLocItem.getLocQty());
+		addLocItem.setLocWgt(invLocItem.getLocWgt());
+		addLocItem.setLocMsrmt(invLocItem.getLocMsrmt());
+		addLocItem.setSpCaCoCd(invLocItem.getSpCaCoCd());
+		addLocItem.setCgNo(invLocItem.getCgNo());
+		addLocItem.setShipgNoteNo(invLocItem.getRefNo());
+		insertInvLocItems.add(addLocItem);
+
+		minusItem.setWhLocTp(invLocItem.getWhLocTp());
+		minusItem.setLocId(invLocItem.getLocId());// Location = current
+		minusItem.setLocQty(-invLocItem.getLocQty());
+		minusItem.setLocWgt(-invLocItem.getLocWgt());
+		minusItem.setLocMsrmt(-invLocItem.getLocMsrmt());
+		minusItem.setWhTpCd(invLocItem.getWhTpCd());
+		minusItem.setSpCaCoCd(invLocItem.getSpCaCoCd());
+		minusItem.setCgNo(invLocItem.getCgNo());
+		minusItem.setShipgNoteNo(invLocItem.getRefNo());
+		insertMinusInvLocItems.add(minusItem);
+	}
+
+}

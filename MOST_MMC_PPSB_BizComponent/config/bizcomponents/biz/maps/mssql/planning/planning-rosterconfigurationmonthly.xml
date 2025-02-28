@@ -1,0 +1,878 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="rosterConfigurationMonthly">
+    <resultMap id="MonthlyRosterSetupMap" type="rosterConfigurationMonthlyItem">
+    	<result property="id"        		column="ID"/>
+    	<result property="title"        	column="TITLE"/>
+		<result property="calendarId"    	column="CALENDAR_ID"/>
+		<result property="startDate"    	column="START_DATE"/>
+		<result property="endDate"  		column="END_DATE"/>
+		<result property="shftId"        	column="SHFT_ID"/>
+		<result property="shftDivCd"        column="SHFT_DIV_CD"/>
+		<result property="idx"        		column="IDX"/>
+    </resultMap>
+    
+	<select id="selectMonthlyRosterSetup" parameterType="rosterConfigurationMonthlyParm" resultMap="MonthlyRosterSetupMap">
+		SELECT /*rosterConfigurationMonthly.selectMonthlyRosterSetup*/
+			'100001'                    									AS ID,
+			SHFT_NM                     									AS TITLE,
+			2																AS CALENDAR_ID,
+			CONVERT(DATETIME, G.RSTR_YMD+ ' ' +  CONVERT(VARCHAR, CONCAT(LEFT(S.FM_HHMM, 2), ':', RIGHT(S.FM_HHMM, 2))),21)					AS START_DATE,
+			CONVERT(DATETIME, G.RSTR_YMD+ ' ' + CONVERT(VARCHAR, CONCAT(LEFT(S.TO_HHMM, 2), ':', RIGHT(S.TO_HHMM, 2))),21)					AS END_DATE
+		FROM 
+			TMT_SHFT S, 
+			(SELECT 
+				RSTR_YMD, 
+				SHFT_ID, 
+				STRING_AGG(SHFT_GRP_NM,',') WITHIN GROUP(ORDER BY SHFT_GRP_NM) GROUP_NM 
+			FROM 
+				(SELECT  
+					RSTR_YMD, 
+					SHFT_ID, 
+					SHFT_GRP_NM
+				FROM 
+					TMT_RSTR_SET 
+				WHERE 
+					RSTR_YMD = '20190102' 
+					AND (SHFT_GRP_NM IS NOT NULL AND SHFT_GRP_NM <![CDATA[<>]]>'')
+				GROUP BY 
+					RSTR_YMD, SHFT_ID, SHFT_GRP_NM
+            	) AS tmp
+            GROUP BY 
+				RSTR_YMD, 
+				SHFT_ID
+        	) G
+		WHERE 
+			S.SHFT_ID = G.SHFT_ID
+	</select>
+	
+	<select id="selectShiftVesselOperation" parameterType="rosterConfigurationMonthlyParm" resultMap="MonthlyRosterSetupMap">
+		SELECT /*rosterConfigurationMonthly.selectShiftVesselOperation*/
+			ROWNUM 															AS ID, 
+			SHFT_ID  														AS SHFT_ID, 
+			SHFT_NM  														AS TITLE 
+		FROM (
+			SELECT 
+				ROW_NUMBER() OVER ( ORDER BY SHFT_NM) AS ROWNUM,
+				SHFT_ID, 
+				SHFT_NM  
+        	FROM    
+				TMT_SHFT S
+        	WHERE   
+				S.SHFT_DIV_CD 	= #{shftDivCd} 
+				AND S.VLD_YN 	= 'Y'
+        ) AS sub_query
+	</select>
+	
+	<select id="selectRosterMonthlyData"  parameterType="rosterConfigurationMonthlyParm" resultMap="MonthlyRosterSetupMap">
+		SELECT /*rosterConfigurationMonthly.selectRosterMonthlyData*/
+			A.SHFT_ID																								AS CALENDAR_ID,
+			CONVERT(VARCHAR, CONVERT(DATE, A.RSTR_YMD, 112), 23) + 'T00:00:00.000Z' 								AS START_DATE,
+			CONVERT(VARCHAR, DATEADD(DAY, 1, CONVERT(DATE, A.RSTR_YMD, 112)), 23) + 'T00:00:00.000Z' 				AS END_DATE,
+			DBO.F_GET_RSTR_GRP_NM(#{shftDivCd}, A.SHFT_ID, CONVERT(VARCHAR, A.RSTR_YMD,105), 1) 					AS TITLE,
+			A.RSTR_YMD 
+				+ A.SHFT_ID 
+				+ DBO.F_GET_RSTR_GRP_CD(#{shftDivCd}, A.SHFT_ID, CONVERT(VARCHAR,A.RSTR_YMD,105), 1) 				AS ID,
+	    	MAX(B.SHFT_IDX) 																						AS IDX,
+	    	MAX(B.SHFT_DIV_CD) 																						AS SHFT_DIV_CD
+        FROM 
+			TMT_RSTR_SET 					A, 
+			TMT_SHFT 						B
+        WHERE 			
+			CONVERT(DATE, A.RSTR_YMD, 112) 
+				BETWEEN CONVERT(DATE, SUBSTRING(#{startDate}, 1, 10)) 
+            		AND CONVERT(DATE, SUBSTRING(#{endDate}, 1, 10))
+	       	<if test="shftDivCd != null and shftDivCd != ''">
+				AND B.SHFT_DIV_CD 			= #{shftDivCd}
+			</if>
+	       	AND B.VLD_YN 					= 'Y'
+	       	AND A.SHFT_ID 					= B.SHFT_ID
+        GROUP BY 
+			A.SHFT_ID, 
+			A.RSTR_YMD
+			
+        UNION ALL 
+        
+        SELECT  
+        	'DOSHFT'																							AS CALENDAR_ID,
+			FORMAT(CONVERT(DATE, A.FM_YMD, 112), 'yyyy-MM-dd') + 'T00:00:00.000Z'								AS START_DATE,
+			FORMAT(DATEADD(DAY, 1,CONVERT(DATE, A.TO_YMD, 112)), 'yyyy-MM-dd') + 'T00:00:00.000Z'  				AS END_DATE,
+			DBO.F_GET_DOFF_GRP_NM(#{shftDivCd}, 'DO', CONVERT(VARCHAR, A.FM_YMD, 105), 1) 						AS TITLE,
+			A.FM_YMD + 'DOSHFT' + DBO.F_GET_DOFF_GRP_CD(#{shftDivCd}, 'DO', CONVERT(VARCHAR,A.FM_YMD,105),1) 	AS ID,
+			99 																									AS IDX,
+			MAX(S.SHFT_DIV_CD) 																					AS SHFT_DIV_CD
+        FROM 
+			TMT_EMP_NON_AVAIL_LOG 			A
+      	INNER JOIN 
+			TMT_GROUP 						G 
+		ON 
+			A.SHFT_GRP_CD 					= G.SHFT_GRP_CD
+        INNER JOIN 
+			TMT_SHFT 						S 
+		ON 
+			G.SHFT_DIV_CD 					= S.SHFT_DIV_CD
+        WHERE 
+			CONVERT(DATE, A.FM_YMD, 112) 
+				BETWEEN CONVERT(DATE, SUBSTRING(#{startDate}, 1, 10)) 
+					AND CONVERT(DATE, SUBSTRING(#{endDate}, 1, 10))
+			AND (A.SHFT_GRP_CD IS NOT NULL AND A.SHFT_GRP_CD <![CDATA[<>]]>'')
+	  		<if test="shftDivCd != null and shftDivCd != ''">
+				AND S.SHFT_DIV_CD 			= #{shftDivCd}
+			</if>
+        GROUP BY 
+			A.FM_YMD, 
+			A.TO_YMD
+        ORDER BY 
+			START_DATE, 
+			IDX ASC
+	</select>
+	
+	<select id="selectRosterSetup"  parameterType="rosterConfigurationMonthlyParm" resultType="rosterConfigurationMonthlyItem">
+		SELECT /*rosterConfigurationMonthly.selectRosterSetup*/
+			SHFT_NM 													AS SHFTNM,
+			SHFT_ID 													AS SHFTID, 
+			DBO.F_GET_RSTR_GRP_NM(SHFT_DIV_CD, SHFT_ID, #{rstrYmd}, 1)	AS GPNM1,
+			DBO.F_GET_RSTR_GRP_CD(SHFT_DIV_CD, SHFT_ID, #{rstrYmd}, 1) 	AS GPCD1,
+			DBO.F_GET_RSTR_GRP_NM(SHFT_DIV_CD, SHFT_ID, #{rstrYmd}, 2) 	AS GPNM2,
+			DBO.F_GET_RSTR_GRP_CD(SHFT_DIV_CD, SHFT_ID, #{rstrYmd}, 2) 	AS GPCD2,
+			DBO.F_GET_RSTR_GRP_NM(SHFT_DIV_CD, SHFT_ID, #{rstrYmd}, 3) 	AS GPNM3,
+			DBO.F_GET_RSTR_GRP_CD(SHFT_DIV_CD, SHFT_ID, #{rstrYmd}, 3) 	AS GPCD3,
+			DBO.F_GET_RSTR_GRP_NM(SHFT_DIV_CD, SHFT_ID, #{rstrYmd}, 4) 	AS GPNM4,
+			DBO.F_GET_RSTR_GRP_CD(SHFT_DIV_CD, SHFT_ID, #{rstrYmd}, 4) 	AS GPCD4,
+			DBO.F_GET_RSTR_GRP_NM(SHFT_DIV_CD, SHFT_ID, #{rstrYmd}, 5) 	AS GPNM5,
+			DBO.F_GET_RSTR_GRP_CD(SHFT_DIV_CD, SHFT_ID, #{rstrYmd}, 5) 	AS GPCD5,
+			DBO.F_GET_RSTR_GRP_NM(SHFT_DIV_CD, SHFT_ID, #{rstrYmd}, 6) 	AS GPNM6,
+			DBO.F_GET_RSTR_GRP_CD(SHFT_DIV_CD, SHFT_ID, #{rstrYmd}, 6) 	AS GPCD6,
+			DBO.F_GET_RSTR_GRP_NM(SHFT_DIV_CD, SHFT_ID, #{rstrYmd}, 7) 	AS GPNM7,
+			DBO.F_GET_RSTR_GRP_CD(SHFT_DIV_CD, SHFT_ID, #{rstrYmd}, 7) 	AS GPCD7,
+			#{rstrYmd} 													AS STARTDATE,
+			DATENAME(WEEKDAY, CONVERT(DATE, #{rstrYmd}, 105)) 			AS dayWork,
+			CASE
+				WHEN 
+					TRIM(
+						DATENAME(
+							WEEKDAY, 
+							CONVERT(DATE, #{rstrYmd}, 105)
+						)
+					) = 'FRIDAY' 
+						THEN 'Y'
+				ELSE 'N'
+			END 														AS isFriday,
+			' '															AS DELIUPDATECD
+		FROM 
+			TMT_SHFT
+		WHERE 
+			SHFT_DIV_CD = #{cmDivCd}
+			AND VLD_YN = 'Y'
+		ORDER BY 
+			SHFT_IDX ASC, 
+			SHFTNM
+	</select>
+	
+	<select id="selectRosterSetupReport"  parameterType="rosterConfigurationMonthlyParm" resultType="rosterConfigurationMonthlyItem">
+		WITH RosterData AS (
+			SELECT  
+				B.SHFT_ID,
+				B.RSTR_YMD,
+				D.ROLE_CD,                
+				CASE 
+					WHEN B.RSTR_YMD = CONVERT(VARCHAR, DATEADD(DAY, 0, CONVERT(DATE, #{rstrYmd}, 103)), 112)
+						THEN SUBSTRING(B.EMP_ID, 3, 4) 
+					ELSE NULL 
+				END AS DAY1,
+				CASE 
+					WHEN B.RSTR_YMD = CONVERT(VARCHAR, DATEADD(DAY, 1, CONVERT(DATE, #{rstrYmd}, 103)), 112)
+						THEN SUBSTRING(B.EMP_ID, 3, 4) 
+					ELSE NULL 
+				END AS DAY2,
+				CASE 
+							WHEN B.RSTR_YMD = CONVERT(VARCHAR, DATEADD(DAY, 2, CONVERT(DATE, #{rstrYmd}, 103)), 112)
+								THEN SUBSTRING(B.EMP_ID, 3, 4) 
+							ELSE NULL 
+						END 																AS DAY3,
+						CASE 
+							WHEN B.RSTR_YMD = CONVERT(VARCHAR, DATEADD(DAY, 3, CONVERT(DATE, #{rstrYmd}, 103)), 112)
+								THEN SUBSTRING(B.EMP_ID, 3, 4) 
+							ELSE NULL 
+						END 																AS DAY4,
+						CASE 
+							WHEN B.RSTR_YMD = CONVERT(VARCHAR, DATEADD(DAY, 4, CONVERT(DATE, #{rstrYmd}, 103)), 112)
+								THEN SUBSTRING(B.EMP_ID, 3, 4) 
+							ELSE NULL 
+						END 																AS DAY5,
+						CASE 
+							WHEN B.RSTR_YMD = CONVERT(VARCHAR, DATEADD(DAY, 5, CONVERT(DATE, #{rstrYmd}, 103)), 112)
+								THEN SUBSTRING(B.EMP_ID, 3, 4) 
+							ELSE NULL 
+						END 																AS DAY6,
+						CASE 
+							WHEN B.RSTR_YMD = CONVERT(VARCHAR, DATEADD(DAY, 6, CONVERT(DATE, #{rstrYmd}, 103)), 112)
+								THEN SUBSTRING(B.EMP_ID, 3, 4) 
+							ELSE NULL 
+						END 																AS DAY7,
+				ROW_NUMBER() OVER (PARTITION BY  B.RSTR_YMD, B.SHFT_ID ,D.ROLE_CD ORDER BY B.EMP_ID) AS cnt
+			FROM (
+				SELECT  
+					X.RSTR_YMD 	AS RSTR_YMD,
+					X.SHFT_ID 	AS SHFT_ID,
+					Y.EMP_ID 	AS EMP_ID
+				FROM 
+					TMT_RSTR_SET X
+				INNER JOIN 
+					TMT_SHFT_GRP_EMP Y 
+				ON 
+					X.SHFT_GRP_CD = Y.SHFT_GRP_CD
+				WHERE 
+					CONVERT(DATE, X.RSTR_YMD, 112) BETWEEN CONVERT(DATE, #{rstrYmd}, 103) AND DATEADD(DAY, 6, CONVERT(DATE, #{rstrYmd}, 103))
+				GROUP BY 
+					X.RSTR_YMD, X.SHFT_ID, Y.EMP_ID
+			) B
+			INNER JOIN 
+				TMT_STAFF D 
+			ON
+			 	B.EMP_ID = D.EMP_ID 
+		)
+		SELECT  /*rosterConfigurationMonthly.selectRosterSetupReport*/
+			C.ROLE_CD 	AS ROLE,
+			F.SHFT_IDX 	AS SHFTINDEX,
+			F.SHFT_NM 	AS SHFTNM,
+			C.SHFT_ID 	AS SHFTID,
+			STUFF((
+			SELECT ',' + ISNULL(C.DAY1, '')
+			FROM RosterData C
+			FOR XML PATH('')), 1, 1, '') AS GPCD1,
+		STUFF((
+			SELECT ',' + ISNULL(C.DAY2, '')
+			FROM RosterData C
+			FOR XML PATH('')), 1, 1, '') AS GPCD2,
+		STUFF((
+			SELECT ',' + ISNULL(C.DAY3, '')
+			FROM RosterData C
+			FOR XML PATH('')), 1, 1, '') AS GPCD3,
+		STUFF((
+			SELECT ',' + ISNULL(C.DAY4, '')
+			FROM RosterData C
+			FOR XML PATH('')), 1, 1, '') AS GPCD4,
+		STUFF((
+			SELECT ',' + ISNULL(C.DAY5, '')
+			FROM RosterData C
+			FOR XML PATH('')), 1, 1, '') AS GPCD5,
+		STUFF((
+			SELECT ',' + ISNULL(C.DAY6, '')
+			FROM RosterData C
+			FOR XML PATH('')), 1, 1, '') AS GPCD6,
+		STUFF((
+			SELECT ',' + ISNULL(C.DAY7, '')
+			FROM RosterData C
+			FOR XML PATH('')), 1, 1, '') AS GPCD7
+		FROM 
+			RosterData C
+		INNER JOIN 
+			TMT_SHFT F 
+		ON 
+			F.SHFT_ID = C.SHFT_ID 
+		WHERE 
+			F.SHFT_DIV_CD LIKE 'VO%' 
+			AND cnt = 1
+		ORDER BY 
+			C.SHFT_ID, C.ROLE_CD, F.SHFT_IDX, F.SHFT_NM
+
+			
+			
+		UNION ALL
+		
+		WITH Coff AS (
+			SELECT  
+				BOff.FM_YMD,
+				CASE 
+					WHEN BOff.FM_YMD = CONVERT(VARCHAR, DATEADD(DAY, 0, CONVERT(DATE, #{rstrYmd}, 103)), 112)
+						THEN SUBSTRING(BOff.EMP_ID, 3, 4) 
+					ELSE NULL 
+				END 																	AS DAY1,
+				CASE 
+					WHEN BOff.FM_YMD = CONVERT(VARCHAR, DATEADD(DAY, 1, CONVERT(DATE, #{rstrYmd}, 103)), 112)
+						THEN SUBSTRING(BOff.EMP_ID, 3, 4) 
+					ELSE NULL 
+				END 																	AS DAY2,
+				CASE 
+					WHEN BOff.FM_YMD = CONVERT(VARCHAR, DATEADD(DAY, 2, CONVERT(DATE, #{rstrYmd}, 103)), 112)
+						THEN SUBSTRING(BOff.EMP_ID, 3, 4) 
+					ELSE NULL 
+				END 																	AS DAY3,
+				CASE 
+					WHEN BOff.FM_YMD = CONVERT(VARCHAR, DATEADD(DAY, 3, CONVERT(DATE, #{rstrYmd}, 103)), 112)
+						THEN SUBSTRING(BOff.EMP_ID, 3, 4) 
+					ELSE NULL 
+				END 																	AS DAY4,
+				CASE 
+					WHEN BOff.FM_YMD = CONVERT(VARCHAR, DATEADD(DAY, 4, CONVERT(DATE, #{rstrYmd}, 103)), 112)
+						THEN SUBSTRING(BOff.EMP_ID, 3, 4) 
+					ELSE NULL 
+				END 																	AS DAY5,
+				CASE 
+					WHEN BOff.FM_YMD = CONVERT(VARCHAR, DATEADD(DAY, 5, CONVERT(DATE, #{rstrYmd}, 103)), 112)
+						THEN SUBSTRING(BOff.EMP_ID, 3, 4) 
+					ELSE NULL 
+				END 																	AS DAY6,
+				CASE 
+					WHEN BOff.FM_YMD = CONVERT(VARCHAR, DATEADD(DAY, 6, CONVERT(DATE, #{rstrYmd}, 103)), 112)
+						THEN SUBSTRING(BOff.EMP_ID, 3, 4) 
+					ELSE NULL 
+				END 																	AS DAY7,
+				ROW_NUMBER() OVER (PARTITION BY BOff.FM_YMD ORDER BY BOff.EMP_ID) 		AS CNT
+			FROM 
+				TMT_EMP_NON_AVAIL_LOG BOff , TMT_STAFF DOff
+			WHERE 
+				BOff.EMP_ID = DOff.EMP_ID 
+				AND (DOff.GRD_CD IS NOT NULL AND DOff.GRD_CD <![CDATA[<>]]>'')
+				AND
+				
+				CONVERT(DATE, BOff.FM_YMD, 112) 
+				
+				BETWEEN CONVERT(DATE, #{rstrYmd}, 103) 
+					AND DATEADD(DAY, 6, CONVERT(DATE, #{rstrYmd}, 103))
+		)
+		
+		
+		 SELECT /* Roster Setup Report  PN107*/
+			'' 																									AS ROLE,
+			9999 																								AS SHFTINDEX,
+			'Day-Off' 																							AS SHFTNM,
+			'Day-Off' 																							AS SHFTID,
+		 ISNULL(LTRIM(SUBSTRING(MAX(CONCAT(',', COff.DAY1)), 2, LEN(MAX(CONCAT(',', COff.DAY1))) - 1)), ' ') 	AS GPCD1,
+			ISNULL(LTRIM(SUBSTRING(MAX(CONCAT(',', COff.DAY2)), 2, LEN(MAX(CONCAT(',', COff.DAY2))) - 1)), ' ') AS GPCD2,
+			ISNULL(LTRIM(SUBSTRING(MAX(CONCAT(',', COff.DAY3)), 2, LEN(MAX(CONCAT(',', COff.DAY3))) - 1)), ' ') AS GPCD3,
+			ISNULL(LTRIM(SUBSTRING(MAX(CONCAT(',', COff.DAY4)), 2, LEN(MAX(CONCAT(',', COff.DAY4))) - 1)), ' ') AS GPCD4,
+			ISNULL(LTRIM(SUBSTRING(MAX(CONCAT(',', COff.DAY5)), 2, LEN(MAX(CONCAT(',', COff.DAY5))) - 1)), ' ') AS GPCD5,
+			ISNULL(LTRIM(SUBSTRING(MAX(CONCAT(',', COff.DAY6)), 2, LEN(MAX(CONCAT(',', COff.DAY6))) - 1)), ' ') AS GPCD6,
+			ISNULL(LTRIM(SUBSTRING(MAX(CONCAT(',', COff.DAY7)), 2, LEN(MAX(CONCAT(',', COff.DAY7))) - 1)), ' ') AS GPCD7
+			
+		FROM 
+			Coff
+		WHERE 
+			CNT = 1		
+	</select>
+	
+	<select id="selectDayoffSetup"  parameterType="rosterConfigurationMonthlyParm" resultType="rosterConfigurationMonthlyItem">
+		SELECT /*rosterConfigurationMonthly.selectDayoffSetup*/
+	       'D.off'  																		SHFTNM,
+	       'DOSHFT' 																		SHFTID, 
+	       #{rsnCd}  																		RSNCD,
+	       DBO.F_GET_DOFF_GRP_NM(#{cmDivCd}, #{rsnCd}, #{doffYmd}, 1) 						GPNM1,
+	       DBO.F_GET_DOFF_GRP_CD(#{cmDivCd}, #{rsnCd}, #{doffYmd}, 1) 						GPCD1,
+	       DBO.F_GET_DOFF_GRP_NM(#{cmDivCd}, #{rsnCd}, #{doffYmd}, 2) 						GPNM2,
+	       DBO.F_GET_DOFF_GRP_CD(#{cmDivCd}, #{rsnCd}, #{doffYmd}, 2) 						GPCD2,
+	       DBO.F_GET_DOFF_GRP_NM(#{cmDivCd}, #{rsnCd}, #{doffYmd}, 3) 						GPNM3,
+	       DBO.F_GET_DOFF_GRP_CD(#{cmDivCd}, #{rsnCd}, #{doffYmd}, 3) 						GPCD3,
+	       DBO.F_GET_DOFF_GRP_NM(#{cmDivCd}, #{rsnCd}, #{doffYmd}, 4) 						GPNM4,
+	       DBO.F_GET_DOFF_GRP_CD(#{cmDivCd}, #{rsnCd}, #{doffYmd}, 4) 						GPCD4,
+	       DBO.F_GET_DOFF_GRP_NM(#{cmDivCd}, #{rsnCd}, #{doffYmd}, 5) 						GPNM5,
+	       DBO.F_GET_DOFF_GRP_CD(#{cmDivCd}, #{rsnCd}, #{doffYmd}, 5) 						GPCD5,
+	       DBO.F_GET_DOFF_GRP_NM(#{cmDivCd}, #{rsnCd}, #{doffYmd}, 6) 						GPNM6,
+	       DBO.F_GET_DOFF_GRP_CD(#{cmDivCd}, #{rsnCd}, #{doffYmd}, 6) 						GPCD6,
+	       DBO.F_GET_DOFF_GRP_NM(#{cmDivCd}, #{rsnCd}, #{doffYmd}, 7) 						GPNM7,
+	       DBO.F_GET_DOFF_GRP_CD(#{cmDivCd}, #{rsnCd}, #{doffYmd}, 7) 						GPCD7,
+	       #{doffYmd} 																		STARTDATE,
+	       ' ' 																				ELIUPDATECD
+	</select>
+	
+	<select id="selectRosterSetupWHList" parameterType="rosterConfigurationMonthlyParm" resultType="rosterConfigurationOthersItem">
+	 	<if test="pageNo != 0"> 
+            SELECT /*rosterConfigurationMonthly.selectRosterSetupWHList*/
+	            * 
+			FROM 
+				(SELECT 
+					inner_querry.*, ROW_NUMBER() OVER(ORDER BY(SELECT NULL)) row_num 
+				FROM ( 
+		</if>
+				<include refid="getRosterSetupWHList"/>
+		<if test="pageNo != 0"> 
+				)inner_querry 
+			)inner_querry 
+			WHERE 
+				inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<select id="selectRosterSetupWHListCount" parameterType="rosterConfigurationMonthlyParm" resultType="java.lang.String" >
+		SELECT /*rosterConfigurationMonthly.selectRosterSetupWHListCount*/
+			COUNT(*) /*rosterConfigurationMonthly.selectRosterSetupWHListCount*/
+		FROM 
+			(<include refid="getRosterSetupWHList"/>) AS selectRosterSetupWHListCount
+	</select>
+	
+	<sql id="getRosterSetupWHList">
+		SELECT /*rosterConfigurationMonthly.getRosterSetupWHList*/
+			A.ENG_NM   											AS ENGNM,
+			A.EMP_ID   											AS EMPID,
+			DBO.F_CM_CODE_NM('CM', 'EMPSTAT', 
+				CASE
+					WHEN USE_YN ='Y' then ISNULL((SELECT TOP(1) 
+													'UA' 
+												FROM 
+													TMT_EMP_NON_AVAIL_LOG
+												WHERE 
+													FM_YMD = CONVERT(VARCHAR, SYSDATETIME(), 112)
+													AND EMP_ID = A.EMP_ID),'AV')
+					ELSE 'UA'
+				END 						
+			) 													AS STATCDNM,
+			DBO.F_CM_CODE_NM('CM', 'WORKLOCCD',  A.WORK_LOC_CD) AS WORKLOCCDNM,
+			#{rstrYmd}  										AS STARTDATE,
+			' ' 												DELIUPDATECD,
+			' ' 												DELIDELETECD,
+			' ' 												CDDATE1,
+			' ' 												CDDATE2,
+			' ' 												CDDATE3,
+			' ' 												CDDATE4,
+			' ' 												CDDATE5,
+			' ' 												CDDATE6,
+			' ' 												CDDATE7,
+			' ' 												CDDATE8,
+			' ' 												CDDATE9,
+			' ' 												CDDATE10,
+			' ' 												CDDATE11,
+			' ' 												CDDATE12,
+			' ' 												CDDATE13,
+			' ' 												CDDATE14,
+			' ' 												CDDATE15,
+			' ' 												CDDATE16,
+			' ' 												CDDATE17,
+			' ' 												CDDATE18,
+			' ' 												CDDATE19,
+			' ' 												CDDATE20,
+			' ' 												CDDATE21,
+			' ' 												CDDATE22,
+			' ' 												CDDATE23,
+			' ' 												CDDATE24,
+			' ' 												CDDATE25,
+			' ' 												CDDATE26,
+			' ' 												CDDATE27,
+			' ' 												CDDATE28,
+			' ' 												CDDATE29,
+			' ' 												CDDATE30,
+			' ' 												CDDATE31,
+			' ' 												CDDATE32,
+			' ' 												CDDATE33,
+			' ' 												CDDATE34,
+			' ' 												CDDATE35,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 0, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE1,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 1, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE2,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 2, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE3,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 3, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE4,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 4, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE5,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 5, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE6,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 6, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE7,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 7, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE8,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 8, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE9,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 9, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE10,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 10, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE11,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 11, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE12,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 12, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE13,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 13, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE14,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 14, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE15,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 15, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE16,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 16, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE17,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 17, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE18,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 18, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE19,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 19, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE20,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 20, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE21,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 21, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE22,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 22, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE23,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 23, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE24,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 24, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE25,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 25, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE26,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 26, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE27,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 27, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE28,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 28, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE29,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 29, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE30,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 30, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE31,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 31, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE32,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 32, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE33,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 33, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE34,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 34, CONVERT(DATE, #{rstrYmd}, 103)), 112), '')	AS CDNMDATE35,
+			' ' 																								CDTPDATE1,
+			' ' 																								CDTPDATE2,
+			' ' 																								CDTPDATE3,
+			' ' 																								CDTPDATE4,
+			' ' 																								CDTPDATE5,
+			' ' 																								CDTPDATE6,
+			' ' 																								CDTPDATE7,
+			' ' 																								CDTPDATE8,
+			' ' 																								CDTPDATE9,
+			' ' 																								CDTPDATE10,
+			' ' 																								CDTPDATE11,
+			' ' 																								CDTPDATE12,
+			' ' 																								CDTPDATE13,
+			' ' 																								CDTPDATE14,
+			' ' 																								CDTPDATE15,
+			' ' 																								CDTPDATE16,
+			' ' 																								CDTPDATE17,
+			' ' 																								CDTPDATE18,
+			' ' 																								CDTPDATE19,
+			' ' 																								CDTPDATE20,
+			' ' 																								CDTPDATE21,
+			' ' 																								CDTPDATE22,
+			' ' 																								CDTPDATE23,
+			' ' 																								CDTPDATE24,
+			' ' 																								CDTPDATE25,
+			' ' 																								CDTPDATE26,
+			' ' 																								CDTPDATE27,
+			' ' 																								CDTPDATE28,
+			' ' 																								CDTPDATE29,
+			' ' 																								CDTPDATE30,
+			' ' 																								CDTPDATE31,
+			' ' 																								CDTPDATE32,
+			' ' 																								CDTPDATE33,
+			' ' 																								CDTPDATE34,
+			' ' 																								CDTPDATE35,			
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 0, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR1,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 1, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR2,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 2, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR3,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 3, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR4,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 4, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR5,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 5, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR6,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 6, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR7,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 7, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR8,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 8, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR9,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 9, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR10,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 10, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR11,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 11, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR12,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 12, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR13,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 13, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR14,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 14, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR15,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 15, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR16,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 16, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR17,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 17, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR18,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 18, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR19,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 19, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR20,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 20, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR21,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 21, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR22,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 22, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR23,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 23, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR24,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 24, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR25,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 25, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR26,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 26, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR27,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 27, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR28,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 28, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR29,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 29, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR30,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 30, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR31,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 31, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR32,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 32, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR33,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 33, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR34,
+			DBO.F_GET_RSTR_SET_WH(A.EMP_ID, CONVERT(VARCHAR, DATEADD(DAY, 34, CONVERT(DATE, #{rstrYmd}, 103)), 112), 'color') 	AS CDCOLOR35
+			
+		FROM 
+			TMT_STAFF A
+		LEFT JOIN 
+			TMT_SHFT_GRP_EMP B
+		ON
+			A.EMP_ID 		= B.EMP_ID
+		WHERE 
+			A.USE_YN = 'Y'
+		<if test="roleCd != null and roleCd != ''">
+			AND	A.ROLE_CD 		= #{roleCd}
+		</if>
+		<if test="costCentCd != null and costCentCd != ''">
+			AND A.COST_CENT_CD 	= #{costCentCd}
+		</if>
+		<if test="workLocCd != null and workLocCd != ''">
+			AND A.WORK_LOC_CD 	= #{workLocCd}
+		</if>
+		<if test="unitDiv != null and unitDiv != ''">
+			AND A.UNIT_DIV 		= #{unitDiv}
+		</if>
+			AND (B.EMP_ID IS NULL OR B.EMP_ID ='')
+		ORDER BY 
+			A.ENG_NM
+	</sql>
+	
+	<select id="selectRosterSetupShift"  parameterType="rosterConfigurationMonthlyParm" resultType="rosterConfigurationMonthlyItem">
+		SELECT /*rosterConfigurationMonthly.selectRosterSetupShift*/
+			SHFT_NM SHFTNM,
+			SHFT_ID SHFTID
+		FROM 
+			TMT_SHFT
+		WHERE 
+			SHFT_DIV_CD 		= #{cmDivCd}
+			AND VLD_YN 			= 'Y'
+		ORDER BY 
+			SHFTNM ASC
+	</select>
+
+	<select id="selectIsDifferentRosterType"  parameterType="rosterConfigurationMonthlyItem" resultType="rosterConfigurationMonthlyItem">
+		SELECT /*rosterConfigurationMonthly.selectIsDifferentRosterType*/
+			CASE
+				WHEN (R1.SHFT_ID IS NULL OR R1.SHFT_ID ='') AND (R1.RSTR_SHFT_ID IS NOT NULL AND R1.RSTR_SHFT_ID <![CDATA[<>]]>'') THEN 1
+				WHEN (R1.DO_CD IS NULL OR R1.DO_CD ='') AND (R1.DO_RSN_CD IS NOT NULL AND R1.DO_RSN_CD <![CDATA[<>]]>'') THEN 1
+				ELSE 0
+			END cnt
+		FROM (
+			SELECT 
+				A.EMP_ID,
+				A.YMD,
+				A.RSTR_TP_CD,
+				RSTR.RSTR_YMD,
+				RSTR.SHFT_ID 	AS RSTR_SHFT_ID,
+				DO.FM_YMD,
+				DO.RSN_CD    	AS DO_RSN_CD,
+				SHFT.SHFT_ID 	AS SHFT_ID,
+				DOCD.S_CD    	AS DO_CD
+			FROM (
+				SELECT 
+					CONVERT(VARCHAR, DATEADD(DAY, ${seq} - 1, CONVERT(DATE, #{rstrYmd},103)),112) AS YMD,
+					#{empId}     AS EMP_ID
+					<if test="rsnCd != null and rsnCd != ''">
+						,#{rsnCd}       AS RSTR_TP_CD
+					</if>
+					<if test="shftId != null and shftId != '' and shftId != 'DOSHFT'">
+						,#{shftId}       AS RSTR_TP_CD
+					</if>
+			) A
+			LEFT JOIN 
+				TMT_RSTR_SET RSTR 
+			ON 
+				A.EMP_ID 	= RSTR.EMP_ID
+				AND A.YMD 	= RSTR.RSTR_YMD
+			LEFT JOIN 
+				TMT_EMP_NON_AVAIL_LOG DO 
+			ON 
+				A.EMP_ID 	= DO.EMP_ID
+				AND A.YMD 	= DO.FM_YMD
+			LEFT JOIN 
+				TMT_SHFT SHFT 
+			ON 
+				A.RSTR_TP_CD = SHFT.SHFT_ID
+			LEFT JOIN 
+				TMT_CD_MSTD DOCD 
+			ON 
+				A.RSTR_TP_CD 	= DOCD.S_CD
+				AND DOCD.L_CD 	= 'MT'
+				AND DOCD.M_CD 	= 'STATRSN'
+		) R1
+	</select>
+	
+	<!-- group -->
+	<insert id="insertRosterSetupItems4HRMS"  parameterType="rosterConfigurationMonthlyItem">
+		<if test="shftId != 'DOSHFT'">
+		  	EXECUTE TMT_DOFF_SET_I_PROC_4_HRMS #{shftGrpCd}, #{rsnCd}, #{rstrYmd}, #{seq}, #{userId} 
+		</if>
+		<if test="shftId == 'DOSHFT'">
+			EXECUTE TMT_RSTR_SET_I_PROC_4_HRMS #{shftGrpCd}, #{shftId}, #{rstrYmd}, #{seq}, #{userId}
+		</if>
+	</insert>	
+	
+	<insert id="insertRosterSetupItems"  parameterType="rosterConfigurationMonthlyItem">
+		/*rosterConfigurationMonthly.insertRosterSetupItems*/
+		<if test="shftId == 'DOSHFT'">
+			EXECUTE TMT_DOFF_SET_I_PROC #{shftGrpCd}, #{rsnCd}, #{rstrYmd}, #{seq}, #{userId}
+		</if>
+		<if test="shftId != 'DOSHFT'">
+			EXECUTE TMT_RSTR_SET_I_PROC #{shftGrpCd}, #{shftId}, #{rstrYmd}, #{seq}, #{userId}
+		</if>
+	</insert>
+	
+	<!-- empId -->
+	<insert id="insertRosterSetupWHItems"  parameterType="rosterConfigurationMonthlyItem">
+		<if test="shftId == 'DOSHFT'">
+			/*rosterConfigurationMonthly.insertRosterSetupWHItems.DOSHFT*/
+			EXECUTE PRC_DOFF_SET_WH_I #{empId}, #{rsnCd}, #{rstrYmd}, #{seq}, #{userId}
+		</if>
+		<if test="shftId != 'DOSHFT'">
+			/*rosterConfigurationMonthly.insertRosterSetupWHItems.!DOSHFT*/
+			EXECUTE PRC_RSTR_SET_WH_I #{empId}, #{shftId}, #{rstrYmd}, #{seq}, #{userId}
+		</if>
+	</insert>
+	
+   <insert id="insertRosterSetupWHItems4HRMS"  parameterType="rosterConfigurationMonthlyItem">
+   /*rosterConfigurationMonthly.insertRosterSetupWHItems4HRMS*/
+		<if test="shftId == 'DOSHFT'">
+		  	EXECUTE TMT_DOFF_SET_WH_I_PROC_4_HRMS #{empId}, #{rsnCd}, #{rstrYmd}, #{seq}, #{userId}
+		</if>
+		<if test="shftId != 'DOSHFT'">
+		 	EXECUTE TMT_RSTR_SET_WH_I_PROC_4_HRMS #{empId}, #{shftId}, #{rstrYmd}, #{seq}, #{userId}
+		</if>
+	</insert>
+	
+	<update id="updateRosterSetupItems"  parameterType="rosterConfigurationMonthlyItem">
+		UPDATE	/*rosterConfigurationMonthly.updateRosterSetupItems*/
+			TMT_RSTR_SET 
+		SET 	
+			SHFT_ID 	= #{shftId},
+	        EMP_ID 		= #{empId},
+	        SEQ 		= #{seq},
+	        RSTR_YMD 	= #{rstrYmd}
+		WHERE 
+			RSTR_YMD 	= #{rstrYmd}
+	</update>
+
+	<delete id="deleteRosterSetupItems4HRMS"  parameterType="rosterConfigurationMonthlyItem">
+	/*rosterConfigurationMonthly.deleteRosterSetupItems4HRMS*/
+		<if test="shftId == 'DOSHFT'">
+			EXECUTE HRMS_UP_DEL_DAY_OFF #{rstrYmd}, #{userId}
+		</if>
+		<if test="shftId != 'DOSHFT'">
+			EXECUTE TMT_RSTR_SET_I_PROC_4_HRMS_DEL #{rstrYmd}, #{userId}
+		</if>
+	</delete> 
+	
+	<delete id="deleteRosterSetupItems"  parameterType="rosterConfigurationMonthlyItem">
+		<if test="shftId == 'DOSHFT'">
+			DELETE /*rosterConfigurationMonthly.deleteRosterSetupItems*/
+			FROM 
+				TMT_EMP_NON_AVAIL_LOG
+			WHERE 
+				(SHFT_GRP_CD IS NOT NULL AND SHFT_GRP_CD <![CDATA[<>]]>'')
+				AND RSN_CD = #{rsnCd}
+				AND FM_YMD = CONVERT(VARCHAR, DATEADD(DAY, #{seq} - 1, CONVERT(DATE, #{rstrYmd},103)),112)
+		</if>
+		<if test="shftId != 'DOSHFT'">
+			DELETE /*rosterConfigurationMonthly.deleteRosterSetupItems*/
+			FROM 
+				TMT_RSTR_SET
+			WHERE 
+				(SHFT_GRP_CD IS NOT NULL AND SHFT_GRP_CD <![CDATA[<>]]>'')
+				AND SHFT_ID 	= #{shftId}
+				AND RSTR_YMD 	= CONVERT(VARCHAR, DATEADD(DAY, #{seq} - 1, CONVERT(DATE, #{rstrYmd},103)),112)
+		</if>
+	</delete>   
+	
+	<!--  Start MPTS-Upgrade -->
+	<delete id="deleteRosterSetupSHFTItem"  parameterType="rosterConfigurationMonthlyItem">
+		DELETE /*rosterConfigurationMonthly.deleteRosterSetupSHFTItem*/
+		FROM 
+			TMT_RSTR_SET
+		WHERE 
+			(SHFT_GRP_CD IS NOT NULL AND SHFT_GRP_CD <![CDATA[<>]]>'')
+			AND RSTR_YMD = #{rstrYmd}
+  		<if test="shftDivCd != null and shftDivCd != ''">
+			AND SHFT_ID IN (SELECT 
+								SHFT_ID 
+							FROM 
+								TMT_SHFT 
+							WHERE 
+								SHFT_DIV_CD = #{shftDivCd})
+		</if>
+	</delete>   
+	
+	<delete id="deleteRosterSetupDOSHFTItem"  parameterType="rosterConfigurationMonthlyItem">
+		DELETE /*rosterConfigurationMonthly.deleteRosterSetupDOSHFTItem*/
+		FROM 
+			TMT_EMP_NON_AVAIL_LOG
+		WHERE 
+			(SHFT_GRP_CD IS NOT NULL AND SHFT_GRP_CD <![CDATA[<>]]>'')
+			AND RSN_CD = #{rsnCd}
+			AND FM_YMD = #{rstrYmd}
+		<if test="shftDivCd != null and shftDivCd != ''">
+			AND SHFT_GRP_CD IN (SELECT 
+									SHFT_GRP_CD 
+								FROM 
+									TMT_GROUP 
+								WHERE 
+									SHFT_DIV_CD = #{shftDivCd})
+		</if>
+	</delete>   
+	
+	<insert id="insertRosterSetupMonthlyItems4HRMS"  parameterType="rosterConfigurationMonthlyItem">
+	/*rosterConfigurationMonthly.insertRosterSetupMonthlyItems4HRMS*/
+		<if test="shftId == 'DOSHFT'">
+		  	EXECUTE TMT_DOFF_SET_UP_I_PROC_4_HRMS #{shftGrpCd}, #{rsnCd}, #{rstrYmd}, #{userId}
+		</if>
+		<if test="shftId != 'DOSHFT'">
+			EXECUTE TMT_RSTR_SET_I_PROC_4_HRMS #{shftGrpCd}, #{shftId}, #{rstrYmd}, #{userId}
+		</if>
+	</insert>	
+	
+	<insert id="insertRosterSetupMonthlyItems"  parameterType="rosterConfigurationMonthlyItem">
+		<if test="shftId == 'DOSHFT'">
+			/*rosterConfigurationMonthly.insertRosterSetupMonthlyItems.DOSHFT*/
+			EXECUTE PRC_DOFF_SET_UP #{shftGrpCd}, #{rsnCd}, #{rstrYmd}, #{userId}
+		</if>
+		
+		<if test="shftId != 'DOSHFT'">
+			/*rosterConfigurationMonthly.insertRosterSetupMonthlyItems.!DOSHFT*/
+			EXECUTE PRC_RSTR_SET_UP #{shftGrpCd}, #{shftId}, #{rstrYmd}, #{userId}, NULL
+		</if>
+	</insert>
+	<!-- End MPTS Upgrade -->
+	<delete id="deleteRosterSetupWHItems"  parameterType="rosterConfigurationMonthlyItem">
+		DELETE /*rosterConfigurationMonthly.deleteRosterSetupWHItems*/
+		FROM 
+			TMT_RSTR_SET /* RosterSetupMap  deleteRosterSetupWHItems  PN116*/
+		WHERE 
+			(SHFT_GRP_CD IS NULL OR SHFT_GRP_CD ='')
+			AND EMP_ID   = #{empId}
+			AND RSTR_YMD = CONVERT(VARCHAR, DATEADD(DAY, #{seq} - 1, CONVERT(DATE, #{rstrYmd},103)),112)
+	</delete>
+    
+	<delete id="deleteDayoffSetupWHItems"  parameterType="rosterConfigurationMonthlyItem">
+		DELETE /*rosterConfigurationMonthly.deleteDayoffSetupWHItems*/
+		FROM 
+			TMT_EMP_NON_AVAIL_LOG /* RosterSetupMap  deleteDayoffSetupWHItems  PN116*/
+		WHERE 
+			(SHFT_GRP_CD IS NULL OR SHFT_GRP_CD ='')
+			AND EMP_ID  = #{empId}
+			AND FM_YMD 	= CONVERT(VARCHAR, DATEADD(DAY, #{seq} - 1, CONVERT(DATE, #{rstrYmd},103)),112)
+	</delete>
+	
+	<delete id="deleteDayoffSetupWHItems4HRMS"  parameterType="rosterConfigurationMonthlyItem">
+	/*rosterConfigurationMonthly.deleteDayoffSetupWHItems4HRMS*/
+		EXECUTE DEL_DAY_OFF_HRMS #{empId}, #{rsnCd}, #{rstrYmd}, #{seq}, #{userId}
+	</delete>
+	
+	<delete id="deleteRosterSetupWHItems4HRMS"  parameterType="rosterConfigurationMonthlyItem">
+	/*rosterConfigurationMonthly.deleteRosterSetupWHItems4HRMS*/
+		EXECUTE DEL_RSTR_HRMS #{empId}, #{shftId}, #{rstrYmd}, #{seq}, #{userId}
+	</delete>
+	
+	<select id="selectShiftDef"  parameterType="rosterConfigurationMonthlyParm" resultType="rosterConfigurationMonthlyItem">
+		SELECT /*rosterConfigurationMonthly.selectShiftDef*/
+			SHFT_ID             SHFTID,
+			SHFT_DIV_CD         SHFTDIVCD,
+			SHFT_IDX            SHFTIDX,
+			SHFT_METH_CD        SHFTMETHCD,
+			SHFT_NM             SHFTNM,
+			APLY_FM_YMD         APLYFMYMD,
+			APLY_TO_YMD         APLYTOYMD,
+			FM_HHMM             FMHHMM,
+			TO_HHMM             TOHHMM,
+			VLD_YN              USEYN,
+			ISNULL(RMK, ' ')    RMK,
+			VERSION             VERSION
+		FROM 
+			TMT_SHFT
+		WHERE 
+			VLD_YN = #{useYn}
+		<if test="divCd != null and divCd != ''">
+  			AND SHFT_DIV_CD 	= #{divCd}
+		</if>
+		<if test="shftMethCd != null and shftMethCd != ''">
+			AND SHFT_METH_CD 	= #{shftMethCd}
+		</if>
+		ORDER BY 
+			SHFT_IDX, SHFTNM
+	</select>
+	
+	<select id="selectGroupDef"  parameterType="rosterConfigurationMonthlyParm" resultType="rosterConfigurationMonthlyItem">
+		SELECT /*rosterConfigurationMonthly.selectGroupDef*/
+			SHFT_GRP_CD         GROUPCD,
+			SHFT_DIV_CD         SHFTDIVCD,
+			SHFT_GRP_NM         GROUPNM,
+			VLD_YN              USEYN,
+			ISNULL(RMK, ' ')    RMK,
+			VERSION             VERSION
+		FROM 
+			TMT_GROUP
+		WHERE 
+			VLD_YN = #{useYn}
+		<if test="divCd != null and divCd != ''">
+			AND SHFT_DIV_CD = #{divCd}
+		</if>
+		ORDER BY 
+			SHFT_GRP_CD, SHFT_DIV_CD
+	</select>
+</mapper>

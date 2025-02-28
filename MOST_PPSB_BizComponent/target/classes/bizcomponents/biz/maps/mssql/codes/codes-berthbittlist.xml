@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="BerthBittList">
+
+	<resultMap 	id="berthBittList" type="berthBittListItem">
+	    <result property = "berthCd"	column = "BERTH_CD"/>
+	    <result property = "bittCd"		column = "BITT_CD"/>
+	    <result property = "xpos"		column = "X"/>
+	    <result property = "ypos"		column = "Y"/>
+	    <result property = "updUserId"	column = "STAFF_CD"/>
+	    <result property = "updDtm"		column = "UPDATE_TIME"/>
+	</resultMap>
+	
+	<select id="selectBerthBittList" resultMap="berthBittList" parameterType="berthBittListParm">
+	 	<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getBerthBittList"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	
+	<select id="selectBerthBittListCount" parameterType="berthBittListParm" resultType="java.lang.String" >
+        SELECT COUNT(*)
+          FROM (<include refid="getBerthBittList"/>)
+	</select>
+	
+	<sql id="getBerthBittList" >
+	    SELECT BERTH_CD
+	    	, BITT_CD
+	    	, X 
+	    	, Y 
+	    	, STAFF_CD 
+			, FORMAT(UPDATE_TIME, 'yyyy-MM-dd-HH:mm:ss') AS UPDATE_TIME
+	    FROM TMT_BITT_LOC 
+    </sql>
+    
+    <select id="selectBerthLocList" resultType="berthBittListItem" parameterType="berthBittListParm">
+	 	SELECT A.BERTH_CD AS berthCd
+	    	, A.BERTH_NM AS berthNm
+	    FROM TMT_BERTH_LOC A
+	    ORDER BY A.BERTH_NM
+	</select>
+	
+	<select id="selectDuplicateBerthBitt" resultType="berthBittListItem" parameterType="berthBittListParm">
+		SELECT SUM(TO_NUMBER(CNT)) AS cnt FROM
+		(
+			SELECT '0' AS CNT FROM DUAL
+        
+        	UNION ALL
+        
+			SELECT '1' AS CNT
+		    FROM TMT_BITT_LOC A
+		 	WHERE A.BERTH_CD = #{berthCd}
+			AND( (A.X <![CDATA[<=]]> TO_NUMBER(#{xpos})  AND TO_NUMBER(#{xpos}) <![CDATA[<=]]> A.Y )
+			OR (A.X <![CDATA[<=]]> TO_NUMBER(#{ypos})  AND TO_NUMBER(#{ypos}) <![CDATA[<=]]> A.Y  ) )
+			AND ROWNUM =1
+		 
+		 	UNION ALL
+		 
+			SELECT '2' AS CNT
+        	FROM TMT_BITT_LOC A
+			WHERE A.BERTH_CD = #{berthCd} AND A.BITT_CD = #{bittCd}
+			AND ROWNUM =1
+		 )
+
+	</select>
+    
+	<insert id="insertBerthBittList" parameterType="berthBittListItem">
+	    INSERT INTO TMT_BITT_LOC(BITT_CD, BERTH_CD, X, Y, STAFF_CD, UPDATE_TIME)
+	    VALUES(#{bittCd}, #{berthCd}, #{xpos}, #{ypos}, #{userId}, GETDATE())
+	</insert>
+	
+	<update id="updateBerthBittList" parameterType="berthBittListItem">
+	    UPDATE TMT_BITT_LOC SET X = #{xpos}, Y = #{ypos}, STAFF_CD = #{userId}, UPDATE_TIME = GETDATE()
+	    WHERE BITT_CD = #{bittCd} AND  BERTH_CD = #{berthCd}
+	</update>
+	
+	<delete id="deleteBerthBittList" parameterType="berthBittListItem">
+	    DELETE TMT_BITT_LOC
+		  WHERE BITT_CD = #{bittCd} AND  BERTH_CD = #{berthCd}
+	</delete>
+	
+</mapper>

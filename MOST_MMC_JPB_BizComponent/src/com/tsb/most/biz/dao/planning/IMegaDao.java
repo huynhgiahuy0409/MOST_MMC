@@ -1,0 +1,58 @@
+package com.tsb.most.biz.dao.planning;
+
+import com.tsb.most.biz.dataitem.planning.MegaItem;
+import com.tsb.most.biz.parm.planning.SearchMegaParm;
+import com.tsb.most.framework.bizparm.base.DeleteItemsBizParm;
+import com.tsb.most.framework.bizparm.base.InsertItemsBizParm;
+import com.tsb.most.framework.bizparm.base.UpdateItemsBizParm;
+import com.tsb.most.framework.dataitem.DataItem;
+import com.tsb.most.framework.dataitem.DataItemList;
+import com.tsb.most.framework.exception.DaoException;
+import com.tsb.most.framework.tx.TxTraceInfo;
+
+public interface IMegaDao {
+    public DataItemList selectMegaList(SearchMegaParm parm) throws DaoException;
+    public DataItemList selectMegaDetailList(SearchMegaParm parm) throws DaoException;
+    public DataItemList selectShippingNoteList(SearchMegaParm parm) throws DaoException;
+    public DataItemList selectDeliveryOrderList(SearchMegaParm parm) throws DaoException;
+    public DataItemList selectPenaltyCode(SearchMegaParm parm) throws DaoException;
+    public DataItemList selectMaxMegaNoList(SearchMegaParm parm) throws DaoException;
+    public DataItemList selectMaxSeqNoList(SearchMegaParm parm) throws DaoException;
+    public DataItemList selectMegaEquipmentList(SearchMegaParm parm) throws DaoException;
+    public DataItemList selectInternalMegaList(SearchMegaParm parm) throws DaoException;
+    public DataItemList selectMegaCgDtlList(SearchMegaParm parm) throws DaoException;
+    public DataItemList selectValidationCode(SearchMegaParm parm) throws DaoException;
+    public DataItemList selectConfirmationSlipDryBreakBulk(SearchMegaParm parm) throws DaoException;
+    public DataItemList insertMegaItems(InsertItemsBizParm parm) throws DaoException;
+    public DataItemList insertMegaDetailItems(InsertItemsBizParm parm) throws DaoException;
+    public void insertMegaEquipmentItem(TxTraceInfo traceInfo, MegaItem item) throws DaoException;
+    public void insertMegaOperItems(TxTraceInfo traceInfo, MegaItem item) throws DaoException;
+    public DataItemList insertMegaCgDtlItems(InsertItemsBizParm parm) throws DaoException;
+    public DataItemList updateMegaItems(UpdateItemsBizParm parm) throws DaoException;
+    public DataItemList updateMegaDetailItems(UpdateItemsBizParm parm) throws DaoException;
+    public void updateMegaEquipmentItem(TxTraceInfo traceInfo, MegaItem item) throws DaoException;
+    public void updateMegaOperItems(TxTraceInfo traceInfo, MegaItem item) throws DaoException;
+    public void updateMegaInternalEquipmentItems(UpdateItemsBizParm parm) throws DaoException;
+    public DataItemList updateMegaHistoryMasterItems(UpdateItemsBizParm parm) throws DaoException;
+    public void updateMegaInternalMasterItems(UpdateItemsBizParm parm) throws DaoException;
+    public DataItemList updateCargoTonItems(UpdateItemsBizParm parm) throws DaoException;
+    public void deleteMegaItems(DeleteItemsBizParm parm) throws DaoException;
+    public void deleteMegaEquipmentItem(TxTraceInfo traceInfo, DataItem item) throws DaoException;
+    public void deleteMegaOperItems(TxTraceInfo traceInfo, MegaItem item) throws DaoException;
+    public DataItemList selectOldPenaltyCd(SearchMegaParm parm) throws DaoException;
+    
+	public DataItemList insertMegaManpowerItems(InsertItemsBizParm parm) throws DaoException;
+
+	public DataItemList updateMegaManpowerItems(UpdateItemsBizParm parm) throws DaoException;
+
+	public void deleteMegaManpowerItems(DeleteItemsBizParm parm) throws DaoException;
+
+	public DataItemList insertMegaManpowerOprInfoItems(InsertItemsBizParm parm) throws DaoException;
+
+	public DataItemList updateMegaManpowerOprInfoItems(UpdateItemsBizParm parm) throws DaoException;
+
+	public void deleteMegaManpowerOprInfoItems(DeleteItemsBizParm parm) throws DaoException;
+	
+	public DataItemList selectMegaManpowerList(SearchMegaParm parm) throws DaoException;
+	
+}

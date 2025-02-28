@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="bizConfiguration">
+	<resultMap id="bizConfigurationMap" 			type="bizConfigurationItem">
+		<result property="code"						column="CD"/>
+		<result property="description"				column="DESCRIPTION"/>
+		<result property="value"					column="VALUE"/>
+		<result property="category"					column="CATEGORY"/>
+		<result property="useYn"					column="USE_YN"/>
+		<result property="staffCd"					column="STAFF_CD"/>
+		<result property="updTime"					column="UPDATE_TIME"/>
+	</resultMap>
+	
+	<select id="selectBizConfigurationItems" parameterType="bizConfigurationParm"  resultMap="bizConfigurationMap">
+	 	<if test="pageNo != 0"> 
+        	SELECT /*bizConfiguration.selectBizConfigurationItems*/
+            	* 
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) AS ROW_NUM,
+					innerTable.*
+				FROM ( 
+		</if>
+				<include refid="getBizConfigurationItems"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable 
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT)) 		* CAST(#{sizePerPage} AS INT)
+		
+		</if>
+	</select>
+	
+	<select id="selectBizConfigurationItemsCount" parameterType="bizConfigurationParm" resultType="java.lang.String">
+		SELECT /*bizConfiguration.selectBizConfigurationItemsCount*/
+			COUNT(*)
+	    FROM 
+			(<include refid="getBizConfigurationItems"/>) 	AS TEMPTABLE
+	</select>
+
+	<sql id="getBizConfigurationItems">
+		SELECT 	/*bizConfiguration.getBizConfigurationItems*/
+	   			CD,
+				VALUE,
+				CATEGORY,
+				DESCRIPTION,
+				ISNULL(USE_YN, 'N') AS USE_YN,
+				STAFF_CD,
+				FORMAT(UPDATE_TIME, 'dd/MM/yyyy HH:mm') AS UPDATE_TIME
+		FROM  	TMT_MOST_BIZ_CONFIGURATION
+		<where>
+			<if test="code != null and code != ''">
+				AND CD = #{code}
+			</if>
+			<if test="description != null and description != ''">
+				AND DESCRIPTION LIKE '%' + #{description} + '%'
+			</if>
+		</where>							
+	</sql>
+	
+	<select id="selectDuplicateCheck" parameterType="bizConfigurationParm" resultMap="bizConfigurationMap">
+		SELECT /*bizConfiguration.selectDuplicateCheck*/
+				*
+	    FROM  	TMT_MOST_BIZ_CONFIGURATION
+	    WHERE	CD = #{code}
+	</select>
+
+	<insert id = "insertBizConfigurationItems"  parameterType = "bizConfigurationItem">
+		INSERT /*bizConfiguration.insertBizConfigurationItems*/
+		INTO TMT_MOST_BIZ_CONFIGURATION (
+			CD,
+			VALUE,
+			CATEGORY,
+			DESCRIPTION,
+			USE_YN,
+			UPDATE_TIME,
+			STAFF_CD
+		) VALUES (
+			#{code},
+			#{value},
+			#{category},
+			#{description},
+			#{useYn},
+			SYSDATETIME(),
+			#{userId}
+		)
+	</insert>
+
+	<update id = "updateBizConfigurationItems"  parameterType = "bizConfigurationItem">
+		UPDATE 	/*bizConfiguration.updateBizConfigurationItems*/
+				TMT_MOST_BIZ_CONFIGURATION 
+		SET  
+				VALUE = #{code},
+		   		CATEGORY = #{category},
+		   		DESCRIPTION = #{description},
+		   		USE_YN = #{useYn},
+		   		UPDATE_TIME = SYSDATETIME(),
+		   		STAFF_CD = #{userId}
+		WHERE 	CD = #{code} 
+	</update>  
+
+</mapper>

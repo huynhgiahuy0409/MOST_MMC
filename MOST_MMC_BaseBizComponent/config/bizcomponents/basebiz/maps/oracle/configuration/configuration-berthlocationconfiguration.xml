@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Thu Jun 18 08:43:10 ICT 2015-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="berthLocationConfiguration">
+
+	<resultMap id="getBerthWharfCdList" type="berthLocationConfigurationItem">
+		<result property="berthCd" column="BERTH_CD"/>
+		<result property="berthNm" column="BERTH_NM"/>
+		<result property="berthTp" column="BERTH_TP"/>
+		<result property="berthTpNm" column="BERTH_TP_NM"/>	
+		<result property="locCd" column="LOC_CD"/>	
+		<result property="locNm" column="LOC_NM"/>
+		<result property="pstSta" column="PST_STA"/>
+		<result property="pstEnd" column="PST_END"/>
+		<result property="grpCd" column="GRP_CD"/>
+		<result property="area" column="AREA"/>
+		<result property="areaAddr" column="AREA_ADDR"/>
+		<result property="tmnl" column="TMNL"/>
+		<result property="length" column="LENGTH"/>
+	</resultMap>
+	 
+	<sql id="getBerthWharfList">
+		SELECT
+			 BERTH_CD	AS BERTH_CD
+			,BERTH_NM	AS BERTH_NM
+			,BERTH_TP	AS BERTH_TP
+			,LOC_CD		AS LOC_CD
+			,PST_STA	AS PST_STA
+			,PST_END	AS PST_END
+			,LENGTH		AS LENGTH
+			,GRP_CD
+			,AREA
+			,AREA_ADDR
+			,TMNL								
+		FROM TMT_BERTH_LOC
+		<where>
+			<if test="berthCd != null and berthCd != ''">
+				AND UPPER(BERTH_CD) LIKE '%' || UPPER(#{berthCd}) || '%'
+			</if>
+			<if test="berthNm != null and berthNm != ''">
+				AND UPPER(BERTH_NM) LIKE '%' ||  UPPER(#{berthNm}) || '%'	
+			</if>
+			<if test="locCd != null and locCd != ''">
+				AND UPPER(LOC_CD) = #{locCd}
+			</if>
+		</where>
+    	ORDER BY BERTH_CD 
+ 	</sql>
+	
+	<select id="selectBerthWharfList"  parameterType="berthLocationConfigurationParm" resultMap="getBerthWharfCdList">
+		<if test="pageNo != 0"> 
+             SELECT  /*berthLocationConfiguration.selectBerthWharfList*/
+             	* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getBerthWharfList"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	 
+ 	<select id="selectBerthWharfListCount" parameterType="berthLocationConfigurationParm" resultType="java.lang.String" >
+        SELECT COUNT(*) /*berthLocationConfiguration.selectBerthWharfListCount*/
+          FROM (<include refid="getBerthWharfList"/>)
+	</select>
+	 
+	<insert id="insertItems" parameterType="berthLocationConfigurationItem">
+		INSERT /*berthLocationConfiguration.insertItems*/
+		INTO TMT_BERTH_LOC (
+			 BERTH_CD				
+			,BERTH_NM				
+			,BERTH_TP					
+			,LOC_CD					
+			,PST_STA				
+			,PST_END				
+			,LENGTH
+			,GRP_CD
+			,STAFF_CD				
+			,UPDATE_TIME						
+			,TMNL
+		) VALUES (
+			 #{berthCd}	
+			,#{berthNm}	
+			,#{berthTp}		
+			,#{locCd}		
+			,#{pstSta, jdbcType=NUMERIC}
+			,#{pstEnd, jdbcType=NUMERIC}		
+			,#{length, jdbcType=NUMERIC}		
+			,#{grpCd, jdbcType=VARCHAR}
+			,#{insUserId}	
+			,SYSDATE    
+			,#{tmnl, jdbcType=VARCHAR} 
+		)
+	</insert>
+
+	<update id="updateItems" parameterType="berthLocationConfigurationItem">
+		UPDATE /*berthLocationConfiguration.updateItems*/
+		TMT_BERTH_LOC SET 
+			 BERTH_NM = #{berthNm}	
+			,BERTH_TP = #{berthTp}	
+			,LOC_CD = #{locCd}	
+			,PST_STA = #{pstSta}	
+			,PST_END = #{pstEnd}	
+			,LENGTH = #{length}
+			,TMNL = #{tmnl}
+			,STAFF_CD = #{updUserId}   
+			,UPDATE_TIME = SYSDATE
+		WHERE BERTH_CD = #{berthCd}
+	</update>
+
+	<delete id="deleteItems" parameterType="berthLocationConfigurationItem">
+		DELETE /*berthLocationConfiguration.deleteItems*/
+		FROM TMT_BERTH_LOC
+		WHERE BERTH_CD = #{berthCd}
+	</delete>
+	 
+</mapper>

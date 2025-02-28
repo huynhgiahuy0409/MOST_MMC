@@ -1,0 +1,1482 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+<mapper namespace="cargoJob">
+	<resultMap type="cargoJobItem" id="CargoJobItemMap">
+		<result property="jobNo"                    column="JOBNO"/>
+		<result property="jobTpCd"                  column="JOBTPCD"/>
+		<result property="cgNo"                     column="CGNO"/>
+		<result property="vslCallId"                column="VSLCALLID"/>
+		<result property="workStDt"                 column="WORKSTDT"/>
+		<result property="workEndDt"                column="WORKENDDT"/>
+		<result property="shftId"                   column="SHFTID"/>
+		<result property="shftNm"                   column="SHFTNM"/>
+		<result property="shftDt"                   column="SHFTDT"/>
+		<result property="pkgTpCd"                  column="PKGTPCD"/>
+		<result property="pkgQty"                   column="PKGQTY"/>
+		<result property="wgt"                      column="WGT"/>
+		<result property="cgGrossWgt"               column="CGGROSSWGT"/>
+		<result property="bagWgt"                   column="BAGWGT"/>
+		<result property="msrmt"                    column="MSRMT"/>
+		<result property="cntrQty"                  column="CNTRQTY"/>
+		<result property="eqNo"                     column="EQNO"/>
+		<result property="fmLocId"                  column="FMLOCID"/>
+		<result property="toLocId"                  column="TOLOCID"/>
+		<result property="locId"                    column="LOCID"/>
+		<result property="statCd"                   column="STATCD"/>
+		<result property="odrNo"                    column="ODRNO"/>
+		<result property="jobPurpCd"                column="JOBPURPCD"/>
+		<result property="delvTpCd"                 column="DELVTPCD"/>
+		<result property="fnlOpeYn"                 column="FNLOPEYN"/>
+		<result property="fnlDelvYn"                column="FNLDELVYN"/>
+		<result property="hatchNo"                  column="HATCHNO"/>
+		<result property="hatchDrt"                 column="HATCHDRT"/>
+		<result property="gangNo"                   column="GANGNO"/>
+		<result property="opeClassCd"               column="OPECLASSCD"/>
+		<result property="dmgYn"                    column="DMGYN"/>
+		<result property="stsYn"                    column="STSYN"/>
+		<result property="shuYn"                    column="SHUYN"/>
+		<result property="shftLvlCd"                column="SHFTLVLCD"/>
+		<result property="toHatchNo"                column="TOHATCHNO"/>
+		<result property="rhdlMode"                 column="RHDLMODE"/>
+		<result property="rhdlModeNm"               column="RHDLMODENM"/>
+		<result property="jobRoot"                  column="JOBROOT"/>
+		<result property="jobGroup"                 column="JOBGROUP"/>
+		<result property="jobTpNm"                  column="JOBTPNM"/>
+		<result property="opeClassNm"               column="OPECLASSNM"/>
+		<result property="jobPurpNm"                column="JOBPURPNM"/>
+		<result property="delvTpNm"                 column="DELVTPNM"/>
+		<result property="tsptTpNm"                 column="TSPTTPNM"/>
+		<result property="gatePassNo"               column="GATEPASSNO"/>
+		<result property="jobRootYn"                column="JOBROOTYN"/>
+		<result property="shipgNoteNo"              column="SHIPGNOTENO"/>
+		<result property="jobCoCd"                  column="JOBCOCD"/>
+		<result property="jobCoNm"                  column="JOBCONM"/>
+		<result property="spCaCoCd"                 column="SPCACOCD"/>
+		<result property="spCaCoNm"                 column="SPCACONM"/>
+		<result property="rhdlNo"                   column="RHDLNO"/>
+		<result property="repkgTypeCd"              column="REPKGTYPECD"/>
+		<result property="pkgNo"                    column="PKGNO"/>
+		<result property="shortYn"                  column="SHORTYN"/>
+		<result property="rcCoCd"                   column="RCCOCD"/>
+		<result property="rcCoNm"                   column="RCCONM"/>
+		<result property="cudYn"                    column="CUDYN"/>
+		<result property="tsptTpCd"                 column="TSPTTPCD"/>
+		<result property="version"                  column="VERSION"/>
+		<result property="rcCount"                  column="RCCOUNT"/>
+		<result property="rhdlCount"                column="RHDLCOUNT"/>
+		<result property="nxRefNo"                  column="NXREFNO"/>
+		<result property="nxVslCallId"              column="NXVSLCALLID"/>
+		<result property="nxCgNo"                   column="NXCGNO"/>
+		<result property="rhdlGroupNo"              column="RHDLGROUPNO"/>
+		<result property="lorryId"              	column="LORRYNO"/>
+		<result property="chassisNo"              	column="CHASSISNO"/>
+		<result property="gateTxnNo"              	column="GATETXNNO"/>
+		<result property="eachWgt"              	column="EACHWGT"/>
+		<result property="eachVol"              	column="EACHVOL"/>
+		<result property="cmdtCd"              		column="CMDTCD"/>
+		<result property="cmdtNm"              		column="CMDTNM"/>
+		<result property="mfDocId"              	column="MFDOCID"/>
+		<result property="grSdo"              		column="GRSDO"/>
+		<result property="bargeNo"              	column="BARGENO"/>
+		<result property="blSnDelvTpCd"             column="BLSNDELVTPCD"/>
+		<result property="grSdoDelvTpCd"            column="GRDODELVTPCD"/>
+		<result property="updateBy"            		column="UPDATEBY"/>
+		<result property="unitNos"            		column="CHAS_NO"/>
+		<result property="driverId"            		column="DRIVERID"/>
+		<result property="cgTpCd"            		column="CGTPCD"/>
+	</resultMap>
+
+	<select id="selectCargoJobWhLocCombo" parameterType="cargoJobParm" resultType="cargoJobItem">
+		SELECT	SUBSTR(J.TO_LOC_ID, 0, INSTR(J.TO_LOC_ID, '(')-1) AS LOCID 
+		FROM 	TMT_JOB J 
+		WHERE 	J.TO_LOC_ID IS NOT NULL
+		   		AND J.JOB_PURP_CD IN ('VW','GW','AW','WG','WV')
+				<if test="vslCallId != null and vslCallId != ''">
+   					AND
+					J.VSL_CALL_ID = #{vslCallId} 
+				</if>	 	
+		 GROUP BY SUBSTR(J.TO_LOC_ID, 0, INSTR(J.TO_LOC_ID, '(')-1)
+	</select>
+	
+	<select id="selectCargoJobSnCombo" parameterType="cargoJobParm" resultType="cargoJobItem">
+		SELECT 	SHIPG_NOTE_NO AS SHIPGNOTENO
+		FROM 	TMT_SHIPG_NOTE
+		WHERE 	1=1
+				<if test="vslCallId != null and vslCallId != ''">
+   					AND
+					VSL_CALL_ID = #{vslCallId} 
+				</if>
+				<if test="ptnrCd != null and ptnrCd != ''">
+   					AND
+			 		FWRD = #{ptnrCd}
+			 	</if>
+		GROUP BY SHIPG_NOTE_NO
+		ORDER BY SHIPG_NOTE_NO
+	</select>
+	
+	<select id="selectCargoJobBLCombo" parameterType="cargoJobParm" resultType="cargoJobItem">
+		SELECT	B.BL_NO AS BLNO
+		FROM 	TMT_VSL_SCH A, TMT_BL B
+		WHERE 	A.VSL_CALL_ID = #{vslCallId} 
+		   		AND A.VSL_CD = B.VSL_CD
+		   		AND A.CALL_YEAR = B.CALL_YEAR
+		   		<if test="ptnrCd != null and ptnrCd != ''">
+     				AND
+		 	  		B.FWRD = #{ptnrCd}
+		  	 	</if>
+		   		AND A.CALL_SEQ = B.CALL_SEQ
+		   		AND B.CATG_CD IN ('I','T')
+		 ORDER BY BLNO
+	</select>
+	
+	<!-- **********JOB MONITORING ********************************************** -->
+	<sql id="sqlCargoJobImport">
+		SELECT 
+		        J.VSL_CALL_ID AS VSLCALLID,
+		        J.CG_NO AS CGNO,
+		        B.BL_NO AS BLSN,
+				J.JOB_NO AS JOBNO,
+		        J.JOB_GROUP AS JOBGROUP,
+		        J.JOB_TP_CD AS JOBTPCD,
+				F_CM_001('MT', 'JOBTP', J.JOB_TP_CD) AS JOBTPNM,
+		        J.JOB_PURP_CD AS JOBPURPCD,
+		        F_CM_001('MT', 'JOBPURP', J.JOB_PURP_CD) AS JOBPURPNM,
+		        J.JOB_CO_CD AS JOBCOCD,
+				F_CM_001('MT', 'CGCOCD', J.JOB_CO_CD) AS JOBCONM,
+				J.SP_CA_CO_CD AS SPCACOCD,
+				F_CM_001('MT', 'SPCACOCD', J.SP_CA_CO_CD) AS SPCACONM,
+				J.WORK_ST_DT AS WORKSTDT,
+				J.WORK_END_DT AS WORKENDDT,
+				J.SHFT_DT AS SHFTDT,
+				J.FNL_OPE_YN AS FNLOPEYN,
+				J.FNL_DELV_YN AS FNLDELVYN,
+				NVL(J.PKG_QTY,0) AS PKGQTY,
+				NVL(J.CG_WGT,0) AS WGT,
+				NVL(J.CG_VOL,0) AS MSRMT,
+		        DECODE(J.JOB_PURP_CD,
+		        	'AW', NVL(J.CG_WGT,0),
+		        	NVL(J.CG_GROSS_WGT,0)) AS CGGROSSWGT,
+		        NVL(J.BAG_WGT,0) AS BAGWGT,
+				J.FM_LOC_ID AS FMLOCID,
+				J.TO_LOC_ID AS TOLOCID,
+				NVL(J.TO_LOC_ID,'') AS LOCID,
+				J.STAT_CD AS STATCD,
+				J.ODR_NO AS ODRNO,
+		        J.REPKG_TYPE_CD AS REPKGTYPECD,
+				J.PKG_TP_CD AS PKGTPCD,
+				J.DELV_TP_CD AS DELVTPCD,
+		        F_CM_001('MT', 'DELVTP', J.DELV_TP_CD) AS DELVTPNM,
+				J.OPE_CLASS_CD AS OPECLASSCD,
+		        F_CM_001('MT', 'CATGTP', J.OPE_CLASS_CD) AS OPECLASSNM,
+				J.TSPT_TP_CD AS TSPTTPCD,
+		        F_CM_001('MT', 'TSPTTP', J.TSPT_TP_CD) AS TSPTTPNM,
+				J.HATCH_NO AS HATCHNO,
+				J.HATCH_DRT AS HATCHDRT,
+				J.GANG_NO AS GANGNO,
+		        J.EQ_NO AS EQNO,
+				J.LORRY_NO AS LORRYNO,
+				
+				CASE WHEN J.JOB_PURP_CD IN ('VA', 'AW', 'WW')
+						THEN (	SELECT 	CHASSIS_NO 
+								FROM 	TMT_ASSIGN_TRANSPORT A 
+								WHERE 	A.VSL_CALL_ID = J.VSL_CALL_ID 
+										AND A.BL_NO = J.CG_NO 
+										AND A.LORRY_NO = J.LORRY_NO	
+										AND A.TRUCK_MODE = 'I'
+										AND ROWNUM = 1)
+
+					ELSE (	SELECT 	CHASSIS_NO 
+							FROM 	TMT_ASSIGN_TRANSPORT A 
+							WHERE 	A.VSL_CALL_ID = J.VSL_CALL_ID 
+									AND A.BL_NO = J.CG_NO 
+									AND A.SDO_NO = J.SDO_NO 
+									AND A.LORRY_NO = J.LORRY_NO
+									AND ROWNUM = 1) 
+				END 
+					AS CHASSISNO,
+				
+				J.GATE_TXN_NO AS GATETXNNO,
+		        (SELECT MAX(GATE_PASS_NO) FROM TMT_CG_ARRV_DELV WHERE VSL_CALL_ID = J.VSL_CALL_ID AND CG_NO = J.CG_NO AND GATE_TXN_NO = J.GATE_TXN_NO) AS GATEPASSNO,
+				DECODE(NVL(J.DMG_YN,''),'Y','true','false') AS DMGYN,
+				DECODE(NVL(J.STS_YN,''),'Y','true','false') AS STSYN,
+				DECODE(NVL(J.SHU_YN,''),'Y','true','false') AS SHUYN,
+				DECODE(NVL(J.RHDL_MODE,'N'),'N','',J.RHDL_MODE) AS RHDLMODE,
+				F_CM_001('MT', 'RHDLMODE', DECODE(NVL(J.RHDL_MODE,'N'),'N','',J.RHDL_MODE)) AS RHDLMODENM,
+				J.RHDL_NO AS RHDLNO,
+				J.RC_CO_CD AS RCCOCD,
+				F_CM_001('MT', 'RCCOCD', J.RC_CO_CD) AS RCCONM,
+				NVL(B.EACH_WGT, 0) AS EACHWGT,
+        		NVL(B.EACH_VOL, 0) AS EACHVOL,
+        		(SELECT LISTAGG (PKG_NO, ', ') WITHIN GROUP (ORDER BY PKG_NO)
+		            FROM (SELECT DISTINCT PKG_NO
+		                    FROM TMT_PKG_JOB
+		                   WHERE VSL_CALL_ID = J.VSL_CALL_ID AND REF_NO = B.BL_NO AND JOB_NO = J.JOB_NO))
+		            AS PKGNO,
+		        B.CMDT_CD AS CMDTCD,
+         		(SELECT CMDT_DESC FROM TMT_CMDT WHERE CMDT_CD = B.CMDT_CD AND ROWNUM=1) AS CMDTNM,
+         		B.MF_DOC_ID AS MFDOCID,
+         		J.SDO_NO AS GRSDO,
+         		J.BARGE_NO AS BARGENO,
+         		B.DELV_TP_CD AS BLSNDELVTPCD,
+         		J.DELV_TP_CD AS GRSDODELVTPCD,
+         		J.STAFF_CD AS UPDATEBY,
+         		CASE WHEN J.JOB_TP_CD = 'MV' THEN 'N' ELSE 'Y' END CANUPDATE   
+		        
+		FROM  	TMT_JOB J
+		      	LEFT OUTER JOIN TMT_BL B ON J.VSL_CALL_ID = B.VSL_CALL_ID AND J.CG_NO = B.BL_NO
+		WHERE 	J.VSL_CALL_ID = #{vslCallId}
+		      	<if test="cgNo != null and cgNo != ''">
+					AND B.BL_NO = #{cgNo}
+				</if>
+				<if test="jobGroup != null and jobGroup != ''">
+					AND J.JOB_GROUP = #{jobGroup}
+				</if>
+				<if test="jobTpCd != null and jobTpCd != ''">
+					AND J.JOB_TP_CD = #{jobTpCd}
+					<if test="jobTpCd == 'RC'">
+ 						AND NVL(J.RC_CO_CD, ' ') &lt;&gt; 'CC'
+					</if>
+				</if>
+		
+		ORDER BY J.JOB_NO
+	</sql>
+	
+	<sql id="sqlCargoJobExport">
+		SELECT 
+		        J.VSL_CALL_ID AS VSLCALLID,
+		        G.SHIPG_NOTE_NO AS SHIPGNOTENO,
+		        J.CG_NO AS CGNO,
+		        G.SHIPG_NOTE_NO AS BLSN,
+				J.JOB_NO AS JOBNO,
+		        J.JOB_GROUP AS JOBGROUP,
+		        J.JOB_TP_CD AS JOBTPCD,
+				F_CM_001('MT', 'JOBTP', J.JOB_TP_CD) AS JOBTPNM,
+		        J.JOB_PURP_CD AS JOBPURPCD,
+		        F_CM_001('MT', 'JOBPURP', J.JOB_PURP_CD) AS JOBPURPNM,
+		        J.JOB_CO_CD AS JOBCOCD,
+				F_CM_001('MT', 'CGCOCD', J.JOB_CO_CD) AS JOBCONM,
+				J.SP_CA_CO_CD AS SPCACOCD,
+				F_CM_001('MT', 'SPCACOCD', J.SP_CA_CO_CD) AS SPCACONM,
+				J.WORK_ST_DT AS WORKSTDT,
+				J.WORK_END_DT AS WORKENDDT,
+				J.SHFT_DT AS SHFTDT,
+				J.FNL_OPE_YN AS FNLOPEYN,
+				J.FNL_DELV_YN AS FNLDELVYN,
+				NVL(J.PKG_QTY,0) AS PKGQTY,
+				NVL(J.CG_WGT,0) AS WGT,
+				NVL(J.CG_VOL,0) AS MSRMT,
+		        NVL(J.CG_GROSS_WGT,0) AS CGGROSSWGT,
+		        NVL(J.BAG_WGT,0) AS BAGWGT,
+				J.FM_LOC_ID AS FMLOCID,
+				J.TO_LOC_ID AS TOLOCID,
+				NVL(J.TO_LOC_ID,'') AS LOCID,
+				J.STAT_CD AS STATCD,
+				J.ODR_NO AS ODRNO,
+		        J.REPKG_TYPE_CD AS REPKGTYPECD,
+				J.PKG_TP_CD AS PKGTPCD,
+				J.DELV_TP_CD AS DELVTPCD,
+		        F_CM_001('MT', 'DELVTP', J.DELV_TP_CD) AS DELVTPNM,
+				J.OPE_CLASS_CD AS OPECLASSCD,
+		        F_CM_001('MT', 'CATGTP', J.OPE_CLASS_CD) AS OPECLASSNM,
+				J.TSPT_TP_CD AS TSPTTPCD,
+		        F_CM_001('MT', 'TSPTTP', J.TSPT_TP_CD) AS TSPTTPNM,
+				J.HATCH_NO AS HATCHNO,
+				J.HATCH_DRT AS HATCHDRT,
+				J.GANG_NO AS GANGNO,
+		        J.EQ_NO AS EQNO,
+				J.LORRY_NO AS LORRYNO,
+				
+				CASE WHEN J.JOB_PURP_CD IN ('WA', 'AV', 'WW')
+						THEN (	SELECT CHASSIS_NO 
+								FROM TMT_ASSIGN_TRANSPORT A 
+								WHERE A.VSL_CALL_ID = J.VSL_CALL_ID 
+								AND A.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO 
+								AND A.LORRY_NO = J.LORRY_NO	
+								AND A.TRUCK_MODE = 'I'
+								AND ROWNUM = 1)
+
+					ELSE (	SELECT CHASSIS_NO 
+							FROM TMT_ASSIGN_TRANSPORT A 
+							WHERE A.VSL_CALL_ID = J.VSL_CALL_ID 
+							AND A.GR_NO = J.CG_NO 
+							AND A.LORRY_NO = J.LORRY_NO
+							AND ROWNUM = 1) 
+				END 
+					AS CHASSISNO,
+				J.GATE_TXN_NO AS GATETXNNO,
+		        (SELECT MAX(GATE_PASS_NO) FROM TMT_CG_ARRV_DELV WHERE VSL_CALL_ID = J.VSL_CALL_ID AND CG_NO = J.CG_NO AND GATE_TXN_NO = J.GATE_TXN_NO) AS GATEPASSNO,
+				DECODE(NVL(J.DMG_YN,''),'Y','true','false') AS DMGYN,
+				DECODE(NVL(J.STS_YN,''),'Y','true','false') AS STSYN,
+				DECODE(NVL(J.SHU_YN,''),'Y','true','false') AS SHUYN,
+				DECODE(NVL(J.RHDL_MODE,'N'),'N','',J.RHDL_MODE) AS RHDLMODE,
+				F_CM_001('MT', 'RHDLMODE', DECODE(NVL(J.RHDL_MODE,'N'),'N','',J.RHDL_MODE)) AS RHDLMODENM,
+				J.RHDL_NO AS RHDLNO,
+				J.RC_CO_CD AS RCCOCD,
+				F_CM_001('MT', 'RCCOCD', J.RC_CO_CD) AS RCCONM,
+				NVL(S.EACH_WGT, 0) AS EACHWGT,
+        		NVL(S.EACH_VOL, 0) AS EACHVOL,
+        		(SELECT LISTAGG (PKG_NO, ', ') WITHIN GROUP (ORDER BY PKG_NO)
+		            FROM (SELECT DISTINCT PKG_NO
+		                    FROM TMT_PKG_JOB
+		                   WHERE VSL_CALL_ID = J.VSL_CALL_ID AND REF_NO = S.SHIPG_NOTE_NO AND JOB_NO = J.JOB_NO))
+		            AS PKGNO,
+		        S.CMDT_CD AS CMDTCD,
+         		(SELECT CMDT_DESC FROM TMT_CMDT WHERE CMDT_CD = S.CMDT_CD AND ROWNUM=1) AS CMDTNM,
+         		'' AS MFDOCID,
+         		J.CG_NO AS GRSDO,
+         		J.BARGE_NO AS BARGENO,
+         		S.DELV_TP_CD AS BLSNDELVTPCD,
+         		J.DELV_TP_CD AS GRSDODELVTPCD,
+         		J.STAFF_CD AS UPDATEBY,
+         		CASE WHEN J.JOB_TP_CD = 'MV' OR J.RHDL_MODE IS NOT NULL THEN 'N' ELSE 'Y' END CANUPDATE
+		        
+		FROM  	TMT_JOB J
+		      	LEFT OUTER JOIN TMT_GR G ON J.VSL_CALL_ID = G.VSL_CALL_ID AND J.CG_NO = G.GR_NO
+				LEFT OUTER JOIN TMT_SHIPG_NOTE S ON G.VSL_CALL_ID = S.VSL_CALL_ID AND G.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO
+		
+		WHERE 	J.VSL_CALL_ID = #{vslCallId}
+		      	<if test="shipgNoteNo != null and shipgNoteNo != ''">
+					AND G.SHIPG_NOTE_NO = #{shipgNoteNo}
+				</if>
+		      	<if test="jobGroup != null and jobGroup != ''">
+					AND J.JOB_GROUP = #{jobGroup}
+				</if>
+				<if test="jobTpCd != null and jobTpCd != ''">
+					AND J.JOB_TP_CD = #{jobTpCd}
+					<if test="jobTpCd == 'RC'">
+ 						AND NVL(J.RC_CO_CD, ' ') &lt;&gt; 'CC'
+					</if>
+				</if>
+		
+		ORDER BY J.JOB_NO, J.CG_NO
+	</sql>
+	
+	<sql id="sqlCargoJob">
+		SELECT 
+				J.JOB_NO AS JOBNO,
+				J.GATE_TXN_NO AS gateTxnNo,
+				J.JOB_TP_CD AS JOBTPCD,
+				J.CG_NO AS CGNO,
+				J.VSL_CALL_ID AS VSLCALLID,
+				J.WORK_ST_DT AS WORKSTDT,
+				J.WORK_END_DT AS WORKENDDT,
+				J.SHFT_DT AS SHFTDT,
+				J.PKG_TP_CD AS PKGTPCD,
+				NVL(J.PKG_QTY,0) AS PKGQTY,
+				NVL(J.CG_WGT,0) AS WGT,
+				NVL(J.CG_VOL,0) AS MSRMT,
+				NVL(J.CNTR_QTY,0) AS CNTRQTY,
+				J.EQ_NO AS EQNO,
+				J.FM_LOC_ID AS FMLOCID,
+				J.TO_LOC_ID AS TOLOCID,
+				NVL(J.TO_LOC_ID,' ') AS LOCID,
+				J.STAT_CD AS STATCD,
+				J.ODR_NO AS ODRNO,
+				J.JOB_PURP_CD AS JOBPURPCD,
+				J.DELV_TP_CD AS DELVTPCD,
+				J.FNL_OPE_YN AS FNLOPEYN,
+				J.FNL_DELV_YN AS FNLDELVYN,
+				J.HATCH_NO AS HATCHNO,
+				J.HATCH_DRT AS HATCHDRT,
+				J.GANG_NO AS GANGNO,
+				J.OPE_CLASS_CD AS OPECLASSCD,
+				J.TSPT_TP_CD AS TSPTTPCD,
+				J.LORRY_NO AS LORRYNO,
+				F_CM_012('MT', 'TSPTTP', J.TSPT_TP_CD) AS TSPTTPNM,
+				DECODE(NVL(J.DMG_YN,''),'Y','true','false') AS DMGYN,
+				DECODE(NVL(J.STS_YN,''),'Y','true','false') AS STSYN,
+				DECODE(NVL(J.SHU_YN,''),'Y','true','false') AS SHUYN,
+				D.GATE_PASS_NO AS GATEPASSNO,
+				J.SHFT_LVL_CD AS SHFTLVLCD,
+				J.TO_HATCH_NO AS TOHATCHNO,
+				DECODE(NVL(J.RHDL_MODE,'N'),'N','',J.RHDL_MODE) AS RHDLMODE,
+				F_CM_012('MT', 'RHDLMODE', DECODE(NVL(J.RHDL_MODE,'N'),'N','',J.RHDL_MODE)) AS RHDLMODENM,
+				J.JOB_ROOT AS JOBROOT,
+				J.JOB_GROUP AS JOBGROUP,
+				F_CM_012('MT', 'DELVTP', J.DELV_TP_CD) AS DELVTPNM,
+				F_CM_012('MT', 'CATGTP', J.OPE_CLASS_CD) AS OPECLASSNM,
+				F_CM_012('MT', 'JOBPURP', J.JOB_PURP_CD) AS JOBPURPNM,
+				F_CM_012('MT', 'JOBTP', J.JOB_TP_CD) AS JOBTPNM,
+				DECODE(J.OPE_CLASS_CD,'E',
+					(SELECT M.SHIPG_NOTE_NO FROM TMT_CG_MST M 
+					  WHERE M.CG_NO = J.CG_NO 
+					    AND M.VSL_CALL_ID = J.VSL_CALL_ID),NULL) AS SHIPGNOTENO,
+				'N' AS JOBROOTYN,
+				J.JOB_CO_CD AS JOBCOCD,
+				F_CM_012('MT', 'CGCOCD', J.JOB_CO_CD) AS JOBCONM,
+				J.SP_CA_CO_CD AS SPCACOCD,
+				F_CM_012('MT', 'SPCACOCD', J.SP_CA_CO_CD) AS SPCACONM,
+				J.RHDL_NO AS RHDLNO,
+				J.REPKG_TYPE_CD AS REPKGTYPECD,
+				J.PKG_NO AS PKGNO,
+				DECODE(NVL(J.FNL_OPE_YN, 'N'),'N',NULL,'Y') AS SHORTYN,
+				J.RC_CO_CD AS RCCOCD,
+				F_CM_012('MT', 'RCCOCD', J.RC_CO_CD) AS RCCONM,
+				<if test="rhdlNo != null and rhdlNo != ''">
+					(SELECT DECODE(COUNT(J2.RC_CO_CD),0,'N','Y') FROM TMT_JOB J2 
+					  WHERE J2.VSL_CALL_ID = J.VSL_CALL_ID
+					    AND J2.CG_NO = J.CG_NO
+					    AND J2.RHDL_NO IN (${rhdlNo})
+					    AND J2.JOB_CO_CD =J.JOB_CO_CD) AS CUDYN,
+				</if>
+				<if test="rhdlNo == null or rhdlNo == ''">
+					GR.SHIPG_NOTE_NO AS SHIPGNOTENO,
+					NVL(C.CUDYN, 'N') AS CUDYN,
+				</if>
+				J.VERSION,
+				CASE WHEN
+					(SELECT TO_NUMBER(NVL(MAX(R.JOB_GROUP),0)) JOB_GROUP FROM TMT_JOB R
+					  WHERE R.JOB_TP_CD = 'RC'
+						AND R.CG_NO = J.CG_NO
+						<if test="rhdlNo != null and rhdlNo != ''">
+							AND
+							J.RHDL_NO IN (${rhdlNo})	AND J.RHDL_NO IS NOT NULL
+						</if>
+						AND R.VSL_CALL_ID = J.VSL_CALL_ID
+					  GROUP BY R.VSL_CALL_ID, R.CG_NO) &lt;
+					(SELECT TO_NUMBER(NVL(GA.JOB_GROUP,0)) FROM TMT_JOB GA
+					  WHERE GA.JOB_TP_CD &lt;&gt; 'RC'
+						AND GA.JOB_NO = J.JOB_NO
+						<if test="rhdlNo != null and rhdlNo != ''">
+							AND
+							J.RHDL_NO IN (${rhdlNo})	AND J.RHDL_NO IS NOT NULL
+						</if>
+						AND GA.CG_NO = J.CG_NO
+						AND GA.VSL_CALL_ID = J.VSL_CALL_ID)
+					THEN 1
+					ELSE 0
+				END AS RCCOUNT,
+				<if test="rhdlNo != null">
+					<if test="rhdlNo != null and rhdlNo != ''">
+					(SELECT COUNT(*) AS RHDLCOUNT FROM TMT_RHDL_CG R
+					  WHERE R.VSL_CALL_ID = J.VSL_CALL_ID
+					    AND R.CG_NO = J.CG_NO 
+					    AND J.RHDL_NO IN (${rhdlNo})) AS RHDLCOUNT,
+					(SELECT R.NX_REF_NO FROM TMT_RHDL_CG R
+					  WHERE R.RHDL_NO IN (${rhdlNo})
+					    AND ROWNUM = 1
+					  GROUP BY R.NX_REF_NO) AS NXREFNO,
+					(SELECT R.NX_VSL_CALL_ID FROM TMT_RHDL_CG R
+					  WHERE R.RHDL_NO IN (${rhdlNo})
+					    AND ROWNUM = 1
+					  GROUP BY R.NX_VSL_CALL_ID) AS NXVSLCALLID,
+					(SELECT R.NX_CG_NO FROM TMT_RHDL_CG R
+					  WHERE R.RHDL_NO IN (${rhdlNo})
+					    AND ROWNUM = 1
+					  GROUP BY R.NX_CG_NO) AS NXCGNO,
+					</if>
+					<if test="rhdlNo == null or rhdlNo == ''">
+					(SELECT COUNT(*) AS RHDLCOUNT FROM TMT_RHDL_CG R
+					  WHERE R.VSL_CALL_ID = J.VSL_CALL_ID 
+						AND R.CG_NO = J.CG_NO) AS RHDLCOUNT,
+						'' AS NXREFNO,
+						'' AS NXVSLCALLID,
+						'' AS NXCGNO,
+					</if>
+				</if>
+				<if test="rhdlNo == null">
+						(SELECT COUNT(*) AS RHDLCOUNT FROM TMT_RHDL_CG R
+						  WHERE R.VSL_CALL_ID = J.VSL_CALL_ID 
+							AND R.CG_NO = J.CG_NO) AS RHDLCOUNT,
+						'' AS NXREFNO,
+						'' AS NXVSLCALLID,
+						'' AS NXCGNO,
+				</if>
+				J.RHDL_GROUP_NO AS RHDLGROUPNO,
+				<if test="pageType != null and pageType != ''">
+					<if test="pageType == 'CJ'">
+					CASE 
+						WHEN J.JOB_ROOT IS NULL 
+						THEN ROW_NUMBER () OVER (PARTITION BY J.JOB_ROOT ORDER BY TO_NUMBER (JOB_GROUP), J.JOB_NO DESC) 
+					END
+					AS RN,
+					</if>
+				</if>
+				 CASE
+					WHEN J.OPE_CLASS_CD = 'E'
+						THEN (SELECT CMDT_CD FROM TMT_GR G WHERE G.GR_NO = J.CG_NO AND G.VSL_CALL_ID = J.VSL_CALL_ID AND ROWNUM = 1)
+					WHEN J.OPE_CLASS_CD = 'I'
+						THEN (SELECT CMDT_CD FROM TMT_BL B WHERE B.BL_NO = J.CG_NO AND B.VSL_CALL_ID = J.VSL_CALL_ID AND ROWNUM = 1) 
+					ELSE
+						''
+				 END
+					AS CMDTCD
+		<if test="rhdlNo != null and rhdlNo != ''">
+		   FROM (SELECT * FROM TMT_JOB JO WHERE JO.RHDL_NO IN (${rhdlNo})) J 
+		   		, (SELECT 	MAX(GATE_PASS_NO) AS GATE_PASS_NO, T.JOB_NO
+		   			FROM	TMT_CG_ARRV_DELV T, TMT_JOB JO WHERE JO.JOB_NO = T.JOB_NO  AND JO.RHDL_NO IN (${rhdlNo})
+		   			GROUP BY  T.JOB_NO) D
+		   WHERE 	1 = 1
+		 			AND J.JOB_NO = D.JOB_NO(+)
+		</if>
+		<if test="rhdlNo == null or rhdlNo == ''">
+		   FROM (SELECT * FROM TMT_JOB JO 
+		   		 WHERE 1 = 1 
+			   		<if test="vslCallId != null and vslCallId != ''">
+						AND
+						JO.VSL_CALL_ID = #{vslCallId}
+					</if>
+					<if test="jobGroup != null and jobGroup != ''">
+						AND
+						JO.JOB_GROUP = #{jobGroup}
+					</if>
+		   		) J 
+		   		, (SELECT 	JOB_CO_CD AS JOB_CO_CD
+		   					, DECODE(COUNT(J2.RC_CO_CD), 0, 'N', 'Y') AS CUDYN
+		   			FROM 	TMT_JOB J2
+		   			WHERE 	J2.JOB_CO_CD IS NOT NULL
+			   		<if test="vslCallId != null and vslCallId != ''">
+						AND
+						J2.VSL_CALL_ID = #{vslCallId}
+					</if>
+					<if test="cgNo != null and cgNo != ''">
+						AND
+						J2.CG_NO = #{cgNo}
+					</if>
+					GROUP BY J2.JOB_CO_CD
+					) C
+				, (SELECT 	MAX(GATE_PASS_NO) AS GATE_PASS_NO, T.JOB_NO
+		   			FROM	TMT_CG_ARRV_DELV T, TMT_JOB JO WHERE JO.JOB_NO = T.JOB_NO 
+		   			<if test="vslCallId != null and vslCallId != ''">
+						AND
+						T.VSL_CALL_ID = #{vslCallId}
+					</if>
+					<if test="cgNo != null and cgNo != ''">
+						AND
+						T.CG_NO = #{cgNo}
+					</if>
+		   			GROUP BY  T.JOB_NO) D
+		   		, TMT_GR GR
+		 	WHERE 	1 = 1
+		 			AND J.JOB_NO = D.JOB_NO(+)
+		 			AND J.JOB_CO_CD = C.JOB_CO_CD(+)
+		 			AND J.VSL_CALL_ID = GR.VSL_CALL_ID (+)
+		 			AND J.CG_NO = GR.GR_NO (+)
+		   		
+		</if>
+				
+	</sql>
+	
+	<select id="selectCargoJob" parameterType="cargoJobParm" resultMap="CargoJobItemMap">
+		<choose>
+			<when test="shipgNoteNo != null and shipgNoteNo != ''">
+				<include refid="sqlCargoJobExport"/>
+			</when>
+			<otherwise>
+				<include refid="sqlCargoJobImport"/>
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="selectCargoJobForRORO" parameterType="cargoJobParm" resultMap="CargoJobItemMap">
+		<choose>
+			<when test="shipgNoteNo != null and shipgNoteNo != ''">
+				<include refid="sqlCargoJobExportForRORO"/>
+			</when>
+			<otherwise>
+				<include refid="sqlCargoJobImportForRORO"/>
+			</otherwise>
+		</choose>
+	</select>
+	
+	<sql id="sqlCargoJobExportForRORO">
+		SELECT 
+		        J.VSL_CALL_ID AS VSLCALLID,
+		        G.SHIPG_NOTE_NO AS SHIPGNOTENO,
+		        J.CG_NO AS CGNO,
+                S.CG_TP_CD CGTPCD,
+		        G.SHIPG_NOTE_NO AS BLSN,
+				J.JOB_NO AS JOBNO,
+		        J.JOB_GROUP AS JOBGROUP,
+		        J.JOB_TP_CD AS JOBTPCD,
+				F_CM_001('MT', 'JOBTP', J.JOB_TP_CD) AS JOBTPNM,
+		        J.JOB_PURP_CD AS JOBPURPCD,
+		        F_CM_001('MT', 'JOBPURP', J.JOB_PURP_CD) AS JOBPURPNM,
+		        J.JOB_CO_CD AS JOBCOCD,
+				F_CM_001('MT', 'CGCOCD', J.JOB_CO_CD) AS JOBCONM,
+				J.SP_CA_CO_CD AS SPCACOCD,
+				F_CM_001('MT', 'SPCACOCD', J.SP_CA_CO_CD) AS SPCACONM,
+				J.WORK_ST_DT AS WORKSTDT,
+				J.WORK_END_DT AS WORKENDDT,
+				J.SHFT_DT AS SHFTDT,
+				J.FNL_OPE_YN AS FNLOPEYN,
+				J.FNL_DELV_YN AS FNLDELVYN,
+				NVL(J.PKG_QTY,0) AS PKGQTY,
+				NVL(J.CG_WGT,0) AS WGT,
+				NVL(J.CG_VOL,0) AS MSRMT,
+		        NVL(J.CG_GROSS_WGT,0) AS CGGROSSWGT,
+		        NVL(J.BAG_WGT,0) AS BAGWGT,
+				J.FM_LOC_ID AS FMLOCID,
+				J.TO_LOC_ID AS TOLOCID,
+				NVL(J.TO_LOC_ID,'') AS LOCID,
+				J.STAT_CD AS STATCD,
+				J.ODR_NO AS ODRNO,
+		        NVL (J.REPKG_TYPE_CD,S.PKG_TP_CD) AS REPKGTYPECD,
+				S.PKG_TP_CD AS PKGTPCD,
+				S.DELV_TP_CD AS DELVTPCD,
+		        F_CM_001('MT', 'DELVTP', S.DELV_TP_CD) AS DELVTPNM,
+				J.OPE_CLASS_CD AS OPECLASSCD,
+		        F_CM_001('MT', 'CATGTP', J.OPE_CLASS_CD) AS OPECLASSNM,
+				G.TSPT_TP_CD AS TSPTTPCD,
+		        F_CM_001('MT', 'TSPTTP', G.TSPT_TP_CD) AS TSPTTPNM,
+				J.HATCH_NO AS HATCHNO,
+				J.HATCH_DRT AS HATCHDRT,
+				J.GANG_NO AS GANGNO,
+		        J.EQ_NO AS EQNO,
+				J.LORRY_NO AS LORRYNO,
+				J.DRIVER_ID AS DRIVERID,
+				CASE WHEN J.JOB_PURP_CD IN ('WA', 'AV', 'WW')
+						THEN (	SELECT CHASSIS_NO 
+								FROM TMT_ASSIGN_TRANSPORT A 
+								WHERE A.VSL_CALL_ID = J.VSL_CALL_ID 
+								AND A.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO 
+								AND A.LORRY_NO = J.LORRY_NO	
+								AND A.TRUCK_MODE = 'I'
+								AND ROWNUM = 1)
+
+					ELSE (	SELECT CHASSIS_NO 
+							FROM TMT_ASSIGN_TRANSPORT A 
+							WHERE A.VSL_CALL_ID = J.VSL_CALL_ID 
+							AND A.GR_NO = J.CG_NO 
+							AND A.LORRY_NO = J.LORRY_NO
+							AND ROWNUM = 1) 
+				END 
+					AS CHASSISNO,
+				J.GATE_TXN_NO AS GATETXNNO,
+		        (SELECT MAX(GATE_PASS_NO) FROM TMT_CG_ARRV_DELV WHERE VSL_CALL_ID = J.VSL_CALL_ID AND CG_NO = J.CG_NO AND GATE_TXN_NO = J.GATE_TXN_NO) AS GATEPASSNO,
+				DECODE(NVL(J.DMG_YN,''),'Y','true','false') AS DMGYN,
+				DECODE(NVL(J.STS_YN,''),'Y','true','false') AS STSYN,
+				DECODE(NVL(J.SHU_YN,''),'Y','true','false') AS SHUYN,
+				DECODE(NVL(J.RHDL_MODE,'N'),'N','',J.RHDL_MODE) AS RHDLMODE,
+				F_CM_001('MT', 'RHDLMODE', DECODE(NVL(J.RHDL_MODE,'N'),'N','',J.RHDL_MODE)) AS RHDLMODENM,
+				J.RHDL_NO AS RHDLNO,
+				J.RC_CO_CD AS RCCOCD,
+				F_CM_001('MT', 'RCCOCD', J.RC_CO_CD) AS RCCONM,
+				NVL(S.EACH_WGT, 0) AS EACHWGT,
+        		NVL(S.EACH_VOL, 0) AS EACHVOL,
+        		(SELECT LISTAGG (PKG_NO, ', ') WITHIN GROUP (ORDER BY PKG_NO)
+		            FROM (SELECT DISTINCT PKG_NO
+		                    FROM TMT_PKG_JOB
+		                   WHERE VSL_CALL_ID = J.VSL_CALL_ID AND REF_NO = S.SHIPG_NOTE_NO AND JOB_NO = J.JOB_NO))
+		            AS PKGNO,
+		        S.CMDT_CD AS CMDTCD,
+         		(SELECT CMDT_DESC FROM TMT_CMDT WHERE CMDT_CD = S.CMDT_CD AND ROWNUM=1) AS CMDTNM,
+         		'' AS MFDOCID,
+         		J.CG_NO AS GRSDO,
+         		J.BARGE_NO AS BARGENO,
+         		S.DELV_TP_CD AS BLSNDELVTPCD,
+         		J.DELV_TP_CD AS GRSDODELVTPCD,
+         		J.CHAS_NO,
+         		J.STAFF_CD AS UPDATEBY
+		        
+		FROM  	TMT_JOB J		
+				LEFT OUTER JOIN TMT_GR G ON J.VSL_CALL_ID = G.VSL_CALL_ID AND J.CG_NO = G.GR_NO
+				LEFT OUTER JOIN TMT_SHIPG_NOTE S ON G.VSL_CALL_ID = S.VSL_CALL_ID AND G.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO
+		WHERE 	J.VSL_CALL_ID = #{vslCallId}
+		      	<if test="shipgNoteNo != null and shipgNoteNo != ''">
+					AND S.SHIPG_NOTE_NO = #{shipgNoteNo}
+				</if>
+		      	<if test="jobGroup != null and jobGroup != ''">
+					AND J.JOB_GROUP = #{jobGroup}
+				</if>
+				<if test="jobTpCd != null and jobTpCd != ''">
+					AND J.JOB_TP_CD = #{jobTpCd}
+					<if test="jobTpCd == 'RC'">
+ 						AND NVL(J.RC_CO_CD, ' ') &lt;&gt; 'CC'
+					</if>
+				</if>
+				<if test="jobPurpCd != null and jobPurpCd != ''">
+					AND J.JOB_PURP_CD = #{jobPurpCd}
+				</if>
+		ORDER BY J.JOB_NO, J.CG_NO
+	</sql>
+	
+	<sql id="sqlCargoJobImportForRORO">
+		SELECT 
+		        J.VSL_CALL_ID AS VSLCALLID,
+		        J.CG_NO AS CGNO,
+                B.CG_TP_CD CGTPCD,
+		        B.BL_NO AS BLSN,
+				J.JOB_NO AS JOBNO,
+		        J.JOB_GROUP AS JOBGROUP,
+		        J.JOB_TP_CD AS JOBTPCD,
+				F_CM_001('MT', 'JOBTP', J.JOB_TP_CD) AS JOBTPNM,
+		        J.JOB_PURP_CD AS JOBPURPCD,
+		        F_CM_001('MT', 'JOBPURP', J.JOB_PURP_CD) AS JOBPURPNM,
+		        J.JOB_CO_CD AS JOBCOCD,
+				F_CM_001('MT', 'CGCOCD', J.JOB_CO_CD) AS JOBCONM,
+				J.SP_CA_CO_CD AS SPCACOCD,
+				F_CM_001('MT', 'SPCACOCD', J.SP_CA_CO_CD) AS SPCACONM,
+				J.WORK_ST_DT AS WORKSTDT,
+				J.WORK_END_DT AS WORKENDDT,
+				J.SHFT_DT AS SHFTDT,
+				J.FNL_OPE_YN AS FNLOPEYN,
+				J.FNL_DELV_YN AS FNLDELVYN,
+				NVL(J.PKG_QTY,0) AS PKGQTY,
+				NVL(J.CG_WGT,0) AS WGT,
+				NVL(J.CG_VOL,0) AS MSRMT,
+		        DECODE(J.JOB_PURP_CD,
+		        	'AW', NVL(J.CG_WGT,0),
+		        	NVL(J.CG_GROSS_WGT,0)) AS CGGROSSWGT,
+		        NVL(J.BAG_WGT,0) AS BAGWGT,
+				J.FM_LOC_ID AS FMLOCID,
+				J.TO_LOC_ID AS TOLOCID,
+				NVL(J.TO_LOC_ID,'') AS LOCID,
+				J.STAT_CD AS STATCD,
+				J.ODR_NO AS ODRNO,
+		        J.REPKG_TYPE_CD AS REPKGTYPECD,
+				B.PKG_TP_CD AS PKGTPCD,
+				B.DELV_TP_CD AS DELVTPCD,
+		        F_CM_001('MT', 'DELVTP', B.DELV_TP_CD) AS DELVTPNM,
+				J.OPE_CLASS_CD AS OPECLASSCD,
+		        F_CM_001('MT', 'CATGTP', J.OPE_CLASS_CD) AS OPECLASSNM,
+				J.TSPT_TP_CD AS TSPTTPCD,
+		        F_CM_001('MT', 'TSPTTP', J.TSPT_TP_CD) AS TSPTTPNM,
+				J.HATCH_NO AS HATCHNO,
+				J.HATCH_DRT AS HATCHDRT,
+				J.GANG_NO AS GANGNO,
+		        J.EQ_NO AS EQNO,
+				J.LORRY_NO AS LORRYNO,
+				J.DRIVER_ID AS DRIVERID,
+				CASE WHEN J.JOB_PURP_CD IN ('VA', 'AW', 'WW')
+						THEN (	SELECT 	CHASSIS_NO 
+								FROM 	TMT_ASSIGN_TRANSPORT A 
+								WHERE 	A.VSL_CALL_ID = J.VSL_CALL_ID 
+										AND A.BL_NO = J.CG_NO 
+										AND A.LORRY_NO = J.LORRY_NO	
+										AND A.TRUCK_MODE = 'I'
+										AND ROWNUM = 1)
+					ELSE (	SELECT 	CHASSIS_NO 
+							FROM 	TMT_ASSIGN_TRANSPORT A 
+							WHERE 	A.VSL_CALL_ID = J.VSL_CALL_ID 
+									AND A.BL_NO = J.CG_NO 
+									AND A.SDO_NO = J.SDO_NO 
+									AND A.LORRY_NO = J.LORRY_NO
+									AND ROWNUM = 1) 
+				END 
+					AS CHASSISNO,
+				J.GATE_TXN_NO AS GATETXNNO,
+		        (SELECT MAX(GATE_PASS_NO) FROM TMT_CG_ARRV_DELV WHERE VSL_CALL_ID = J.VSL_CALL_ID AND CG_NO = J.CG_NO AND GATE_TXN_NO = J.GATE_TXN_NO) AS GATEPASSNO,
+				DECODE(NVL(J.DMG_YN,''),'Y','true','false') AS DMGYN,
+				DECODE(NVL(J.STS_YN,''),'Y','true','false') AS STSYN,
+				DECODE(NVL(J.SHU_YN,''),'Y','true','false') AS SHUYN,
+				DECODE(NVL(J.RHDL_MODE,'N'),'N','',J.RHDL_MODE) AS RHDLMODE,
+				F_CM_001('MT', 'RHDLMODE', DECODE(NVL(J.RHDL_MODE,'N'),'N','',J.RHDL_MODE)) AS RHDLMODENM,
+				J.RHDL_NO AS RHDLNO,
+				J.RC_CO_CD AS RCCOCD,
+				F_CM_001('MT', 'RCCOCD', J.RC_CO_CD) AS RCCONM,
+				NVL(B.EACH_WGT, 0) AS EACHWGT,
+        		NVL(B.EACH_VOL, 0) AS EACHVOL,
+        		(SELECT LISTAGG (PKG_NO, ', ') WITHIN GROUP (ORDER BY PKG_NO)
+		            FROM (SELECT DISTINCT PKG_NO
+		                    FROM TMT_PKG_JOB
+		                   WHERE VSL_CALL_ID = J.VSL_CALL_ID AND REF_NO = B.BL_NO AND JOB_NO = J.JOB_NO))
+		            AS PKGNO,
+		        B.CMDT_CD AS CMDTCD,
+         		(SELECT CMDT_DESC FROM TMT_CMDT WHERE CMDT_CD = B.CMDT_CD AND ROWNUM=1) AS CMDTNM,
+         		B.MF_DOC_ID AS MFDOCID,
+         		J.SDO_NO AS GRSDO,
+         		J.BARGE_NO AS BARGENO,
+         		B.DELV_TP_CD AS BLSNDELVTPCD,
+         		J.DELV_TP_CD AS GRSDODELVTPCD,
+         		J.CHAS_NO as unitNos,
+         		J.STAFF_CD AS UPDATEBY   
+		FROM  	TMT_JOB J
+		      	LEFT OUTER JOIN TMT_BL B ON J.VSL_CALL_ID = B.VSL_CALL_ID AND J.CG_NO = B.BL_NO
+		WHERE 	J.VSL_CALL_ID = #{vslCallId}
+		      	<if test="cgNo != null and cgNo != ''">
+					AND B.BL_NO = #{cgNo}
+				</if>
+				<if test="jobGroup != null and jobGroup != ''">
+					AND J.JOB_GROUP = #{jobGroup}
+				</if>
+				<if test="jobPurpCd != null and jobPurpCd != ''">
+						AND JOB_PURP_CD = #{jobPurpCd}
+				</if>
+				<if test="jobTpCd != null and jobTpCd != ''">
+					AND J.JOB_TP_CD IN ${jobTpCd}
+					<if test="jobTpCd == 'RC'">
+ 						AND NVL(J.RC_CO_CD, ' ') &lt;&gt; 'CC'
+					</if>
+					<if test="jobTpCd == 'DS'">
+ 						AND JOB_PURP_CD IN('VA','VG')
+					</if>
+				</if>
+		
+		ORDER BY J.JOB_NO
+	</sql>
+	
+	<select id="selectCargoJob_bk" parameterType="cargoJobParm" resultMap="CargoJobItemMap">
+		<if test="pageType != null and pageType != ''">
+		<if test="pageType == 'CJ'">
+			SELECT * FROM
+			(
+		</if>
+		</if>
+		<include refid="sqlCargoJob"/>
+			<if test="rhdlNo != null and rhdlNo != ''">
+				AND
+				J.RHDL_NO IN (${rhdlNo})	AND J.RHDL_NO IS NOT NULL
+				<if test="jobGroup != null and jobGroup != ''">
+					AND
+					J.JOB_GROUP = #{jobGroup}
+				</if>
+			</if>
+			<if test="rhdlNo == null or rhdlNo == ''">
+				<if test="vslCallId != null and vslCallId != ''">
+					AND
+					J.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="jobNo != null and jobNo != ''">
+					AND
+					J.JOB_NO = #{jobNo}
+				</if>
+				<if test="docTp != null and docTp != '' and docTp eq 'SN'.toString()">
+					<if test="cgNo != null and cgNo != ''">
+						AND
+						J.CG_NO IN (SELECT GR_NO FROM TMT_GR G1 WHERE G1.SHIPG_NOTE_NO = #{cgNo})
+					</if>
+				</if>
+				<if test="docTp != null and docTp != '' and docTp eq 'GR'.toString()">
+					<if test="cgNo != null and cgNo != ''">
+						AND
+						J.CG_NO = #{cgNo}
+					</if>
+				</if>
+				<if test="docTp = null or docTp == ''">
+					<if test="cgNo != null and cgNo != ''">
+						AND
+						J.CG_NO = #{cgNo}
+					</if>
+				</if>
+				
+				<if test="jobGroup != null and jobGroup != ''">
+					AND
+					J.JOB_GROUP = #{jobGroup}
+				</if>
+				<if test="searchType == 'HI'">
+					AND
+					J.JOB_PURP_CD  = 'GW' AND J.JOB_TP_CD = 'LF'
+				</if>
+				<!-- <if test="rhdlNo == null or rhdlNo == ''">
+					AND
+					J.RHDL_NO IS NULL
+				</if> -->
+				<if test="jobTpCd != null and jobTpCd != ''">
+					AND
+					J.JOB_TP_CD = #{jobTpCd}
+					<if test="jobTpCd == 'RC'">
+ 					AND
+						NVL(J.RC_CO_CD, ' ') &lt;&gt; 'CC'
+					</if>
+				</if>
+				
+				<if test="shftDt != null and shftDt != ''">
+					AND
+					j.SHFT_DT = TO_DATE(#{shftDt}, 'DD/MM/YYYY')
+				</if>	
+				
+				<if test="shftId != null and shftId != ''">
+					AND
+					J.SHFT_ID = #{shftId}
+				</if>
+				
+			</if>
+		START WITH J.JOB_ROOT is null
+		CONNECT BY PRIOR J.JOB_NO = J.JOB_ROOT
+		<if test="pageType != null and pageType != ''">
+        <if test="pageType == 'CJ'">
+        	)
+        	<if test="fromRow != null and fromRow != ''">
+       		<if test="toRow != null and toRow != ''">
+        		WHERE RN BETWEEN #{fromRow} AND #{toRow}
+        		ORDER BY RN
+       		</if>
+       		</if>
+        </if>
+        </if>
+	</select>
+	
+	<select id="selectCargoJobDelete" parameterType="cargoJobParm" resultMap="CargoJobItemMap">
+		<include refid="sqlCargoJob"/>
+			<if test="rhdlNo != null and rhdlNo != ''">
+   				AND
+				J.RHDL_NO IN (${rhdlNo})	AND J.RHDL_NO IS NOT NULL 
+				<if test="jobGroup != null and jobGroup != ''">
+    				AND
+					J.JOB_GROUP = #{jobGroup}
+				</if>
+			</if>
+			<if test="rhdlNo == null or rhdlNo == ''">
+				<if test="vslCallId != null and vslCallId != ''">
+    				AND
+					J.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="jobGroup != null and jobGroup != ''">
+    				AND
+					J.JOB_GROUP = #{jobGroup}
+				</if>
+				<if test="searchType == 'HI'">
+    				AND
+					J.JOB_PURP_CD  = 'GW' AND J.JOB_TP_CD = 'LF'
+				</if>
+				<if test="rhdlNo == null or rhdlNo == ''">
+    				AND
+					J.RHDL_NO IS NULL
+				</if>
+			</if>
+		  START WITH J.JOB_ROOT is null
+		  CONNECT BY PRIOR J.JOB_NO = J.JOB_ROOT
+		  ORDER BY TO_NUMBER(JOB_GROUP), J.JOB_NO
+	</select>
+	
+	<select id="selectCargoJobNoRhdle" parameterType="cargoJobParm" resultMap="CargoJobItemMap">
+		<include refid="sqlCargoJob"/>
+		 AND J.OPE_CLASS_CD &lt;&gt; 'R'
+		 <if test="rhdlNo != null and rhdlNo != ''">
+			AND J.RHDL_NO = #{rhdlNo}
+		 </if>
+		AND J.JOB_GROUP = #{jobGroup}
+	</select>
+	
+	<update id="updateRhdlJobAmt" parameterType="cargoJobItem">
+		UPDATE	TMT_RHDL_CG A
+		   SET 	A.PKG_QTY = NVL(#{pkgQty},0),
+				A.CG_WGT = NVL(#{wgt},0),
+				A.CG_VOL = NVL(#{msrmt},0),
+				A.UPDATE_TIME = SYSDATE,
+				A.STAFF_CD = #{userId},
+				A.VERSION =#{newVersion}
+		 WHERE 	A.JOB_NO = #{jobNo}
+	</update>
+	
+	<update id="updateCgBalJobAmt" parameterType="cargoJobItem">
+		UPDATE 	TMT_CG_BAL C
+		   SET 	C.PKG_QTY = NVL(#{pkgQty},0),
+				C.CG_VOL = NVL(#{msrmt},0),
+				C.CG_WGT = NVL(#{wgt},0),
+				C.UPDATE_TIME = SYSDATE,
+				C.STAFF_CD = #{userId},
+				C.VERSION =#{newVersion}
+		 WHERE 	C.VSL_CALL_ID = #{vslCallId}  
+		   		AND C.CG_NO = #{cgNo} 
+		   		AND C.JOB_NO = #{jobNo}
+	</update>
+	
+	<update id="updateJobAmt"  parameterType="cargoJobItem">
+		UPDATE 	/*updateJobAmt*/ TMT_JOB J
+		   SET 	J.PKG_QTY = NVL(#{pkgQty},0)
+				,J.CG_VOL = NVL(#{msrmt},0)
+				,J.CG_WGT = NVL(#{wgt},0)
+		 		,J.WORK_ST_DT = #{workStDt}
+				,J.WORK_END_DT = #{workEndDt}
+				,J.SHFT_ID = DECODE(#{workEndDt},NULL,F_GET_SHIFT_CD(#{workStDt}),F_GET_SHIFT_CD(#{workEndDt}))
+				,J.SHFT_DT = DECODE(#{workEndDt},NULL,F_GET_SHFT_DATE(#{workStDt}),F_GET_SHFT_DATE(#{workEndDt}))
+				,J.TSPT_TP_CD=#{tsptTpCd}
+				,J.FNL_OPE_YN = DECODE(#{fnlOpeYn},'true','Y','Y','Y','N')
+
+				<choose>
+					<when test="jobTpCd == 'DS'">
+						,J.FNL_DELV_YN = #{fnlDelvYn}
+					</when>
+					<otherwise>
+						,J.FNL_DELV_YN = 
+							DECODE(#{fnlOpeYn},null,null,'N',null,'false',null,
+								(SELECT COUNT(*) AS count FROM TMT_GR G
+								  WHERE G.VSL_CALL_ID = #{vslCallId}
+								    AND G.GR_NO = #{cgNo}),0,
+							DECODE((SELECT 
+								DECODE(
+									(SELECT COUNT(*) FROM TMT_JOB JO 
+									  WHERE JO.VSL_CALL_ID = J.VSL_CALL_ID AND JO.CG_NO = J.CG_NO
+									    AND ((JO.JOB_PURP_CD = 'VG' AND JO.FNL_OPE_YN = 'Y' ) 
+									OR (JO.JOB_PURP_CD = 'VA' AND JO.FNL_OPE_YN = 'Y'))), 0,'N','Y') AS FNLYN
+								  FROM TMT_JOB J
+								 WHERE J.CG_NO = #{cgNo}
+								   AND J.VSL_CALL_ID = #{vslCallId}
+								 GROUP BY J.CG_NO, J.VSL_CALL_ID),'Y','Y','N'))
+					</otherwise>
+				</choose> 
+				
+				,J.HATCH_NO = #{hatchNo}
+				,J.UPDATE_TIME = SYSDATE
+				,J.STAFF_CD = #{userId}
+				,J.VERSION =#{newVersion}
+		 		,J.CG_GROSS_WGT = NVL(#{cgGrossWgt},0)
+		 		,J.BAG_WGT = NVL(#{bagWgt},0)
+		 WHERE 	J.VSL_CALL_ID = #{vslCallId} 
+		   		AND J.CG_NO=#{cgNo} 
+		   		AND J.JOB_NO = #{jobNo}
+		 		<if test="rhdlNo != null and rhdlNo != ''">
+  					AND J.RHDL_NO = #{rhdlNo} 
+				</if>
+	</update>
+	
+	<update id="updateJobGroup" parameterType="cargoJobItem">
+		UPDATE	TMT_JOB J
+		   SET 
+				J.WORK_ST_DT = #{workStDt},
+				J.WORK_END_DT = #{workEndDt},
+				J.TSPT_TP_CD = #{tsptTpCd},
+				J.REPKG_TYPE_CD = #{repkgTypeCd},
+				J.FNL_OPE_YN = DECODE(#{fnlOpeYn},'true','Y','Y','Y','N'),
+				J.SHFT_ID = DECODE(#{workEndDt},NULL,F_GET_SHIFT_CD(#{workStDt}),F_GET_SHIFT_CD(#{workEndDt})),
+				J.SHFT_DT = DECODE(#{workEndDt},NULL,F_GET_SHFT_DATE(#{workStDt}),F_GET_SHFT_DATE(#{workEndDt})),
+				J.PKG_TP_CD = #{pkgTpCd},
+				<if test="rhdlNo == null or rhdlNo == ''">
+					<choose>
+						<when test="jobTpCd == 'DS'">
+							J.FNL_DELV_YN = #{fnlDelvYn},
+						</when>
+						<otherwise>
+							J.FNL_DELV_YN = 
+								DECODE(#{fnlOpeYn},null,null,'N',null,'false',null,
+									(SELECT COUNT(*) AS count FROM TMT_GR G
+									  WHERE G.VSL_CALL_ID = #{vslCallId}
+									    AND G.GR_NO = #{cgNo}),0,
+										DECODE((SELECT 
+											DECODE(
+												(SELECT COUNT(*) FROM TMT_JOB JO 
+												  WHERE JO.VSL_CALL_ID = J.VSL_CALL_ID AND JO.CG_NO = J.CG_NO
+												    AND ((JO.JOB_PURP_CD = 'VG' AND JO.FNL_OPE_YN = 'Y' ) 
+													OR (JO.JOB_PURP_CD = 'VA' AND JO.FNL_OPE_YN = 'Y'))), 0,'N','Y') AS FNLYN
+												   FROM TMT_JOB J
+												  WHERE J.CG_NO = #{cgNo}
+												    AND J.VSL_CALL_ID = #{vslCallId}
+												  GROUP BY J.CG_NO, J.VSL_CALL_ID),'Y','Y','N')),
+						</otherwise>
+					</choose>
+				</if>
+				<if test="rhdlNo != null and rhdlNo != ''"> 
+					<if test='rhdlMode.equals("R")'>
+						<choose>
+							<when test="jobTpCd == 'DS'">
+								J.FNL_DELV_YN = #{fnlDelvYn},
+							</when>
+							<otherwise>
+								J.FNL_DELV_YN = 
+									DECODE(#{fnlOpeYn},null,null,'N',null,'false',null,
+										(SELECT COUNT(*) AS count FROM TMT_GR G
+										  WHERE G.VSL_CALL_ID = (SELECT J.VSL_CALL_ID FROM TMT_JOB J 
+													  WHERE J.RHDL_NO = #{rhdlNo} 
+													    AND J.JOB_NO &lt;&gt; #{jobNo} 
+													    AND J.JOB_GROUP = #{jobGroup} 
+													    AND ROWNUM = 1)
+										    AND G.GR_NO = (SELECT J.CG_NO FROM TMT_JOB J 
+												    WHERE J.RHDL_NO = #{rhdlNo} 
+												      AND J.JOB_NO &lt;&gt; #{jobNo} 
+												      AND J.JOB_GROUP = #{jobGroup} 
+												      AND ROWNUM =1)
+										),0,
+									DECODE((SELECT 
+										DECODE(
+											(SELECT COUNT(*) FROM TMT_JOB JO 
+											  WHERE JO.VSL_CALL_ID = J.VSL_CALL_ID 
+											    AND JO.CG_NO = J.CG_NO
+											    AND ((JO.JOB_PURP_CD = 'VG' 
+											    AND JO.FNL_OPE_YN = 'Y')
+													OR (JO.JOB_PURP_CD = 'VA' AND JO.FNL_OPE_YN = 'Y'))), 0,'N','Y') AS FNLYN
+											   FROM TMT_JOB J
+											  WHERE J.RHDL_NO = #{rhdlNo}
+											    AND J.JOB_NO &lt;&gt; #{jobNo} 
+											    AND J.JOB_GROUP = #{jobGroup}
+											  GROUP BY J.CG_NO, J.VSL_CALL_ID),'Y','Y','N')),
+							</otherwise>
+						</choose>
+					</if>
+				</if>
+				J.HATCH_NO = #{hatchNo},
+				J.UPDATE_TIME = SYSDATE,
+				J.STAFF_CD = #{userId},
+				J.VERSION = #{newVersion},
+				J.SP_CA_CO_CD = 
+					DECODE(J.SP_CA_CO_CD,'T',
+						DECODE(#{fnlOpeYn},'true',J.SP_CA_CO_CD,'Y',J.SP_CA_CO_CD,NULL),J.SP_CA_CO_CD)
+		 
+		 WHERE  J.JOB_GROUP = #{jobGroup}
+		   		AND J.JOB_NO &lt;&gt; #{jobNo}
+				<if test="rhdlNo != null and rhdlNo != ''">
+		  			AND
+					<if test='rhdlMode.equals("R")'>
+						J.RHDL_NO = #{rhdlNo}
+					</if>
+					<if test='rhdlMode.equals("C")'>
+						J.RHDL_NO IN (SELECT C.RHDL_NO FROM TMT_RHDL_CG C
+									   WHERE C.RHDL_MODE = 'C'
+										 AND C.NX_VSL_CALL_ID = #{nxVslCallId} 
+										 AND C.NX_CG_NO = #{nxCgNo} 
+										 AND C.RHDL_GROUP_NO = #{rhdlGroupNo}
+									   GROUP BY C.RHDL_NO) 
+					</if> 
+				</if>
+				<if test="rhdlNo == null or rhdlNo == ''">
+					AND J.VSL_CALL_ID = #{vslCallId}
+					AND J.CG_NO = #{cgNo}
+				</if>
+	</update>
+	
+	<update id="updateArrvDelvJobAmt" parameterType="cargoJobItem">
+		UPDATE	TMT_CG_ARRV_DELV C
+		   SET 	C.PKG_QTY = NVL(#{pkgQty},0),
+				C.CG_VOL = NVL(#{msrmt},0),
+				C.CG_WGT = NVL(#{wgt},0),
+				C.UPDATE_TIME = SYSDATE,
+				C.STAFF_CD = #{userId},
+				C.VERSION =#{newVersion}
+		 WHERE 	C.VSL_CALL_ID = #{vslCallId}  
+		   		AND C.CG_NO = #{cgNo} 
+		   		AND C.JOB_NO = #{jobNo}
+	</update>
+	
+	<update id="updateInvLocJobAmt" parameterType="cargoJobItem">
+		<if test="jobPurpCd != 'WG'.toString() and jobPurpCd != 'WA'.toString() and jobPurpCd != 'WW'.toString()">
+			UPDATE 	TMT_INV_LOC C
+			   SET 	C.PKG_QTY = NVL(#{pkgQty},0),
+					C.CG_VOL = NVL(#{msrmt},0),
+					C.CG_WGT = NVL(#{wgt},0),
+					C.UPDATE_TIME = SYSDATE,
+					C.STAFF_CD = #{userId},
+					C.VERSION =#{newVersion}
+			 WHERE 	C.VSL_CALL_ID = #{vslCallId}  
+					AND C.CG_NO = #{cgNo} 
+					AND C.JOB_NO = #{jobNo}
+		</if>
+		
+		<if test='jobPurpCd.equals("WG")'>
+			UPDATE 	TMT_INV_LOC C
+			   SET 	C.PKG_QTY = 0 - NVL(#{pkgQty},0),
+					C.CG_VOL = 0 - NVL(#{msrmt},0),
+					C.CG_WGT = 0 - NVL(#{wgt},0),
+					C.UPDATE_TIME = SYSDATE,
+					C.STAFF_CD = #{userId},
+					C.VERSION =#{newVersion}
+			 WHERE 	C.VSL_CALL_ID = #{vslCallId}  
+					AND C.CG_NO = #{cgNo} 
+					AND C.JOB_NO = #{jobNo}
+		</if>
+		
+		<if test='jobPurpCd.equals("WW")'>
+			UPDATE 	TMT_INV_LOC C
+			   SET 	C.PKG_QTY = CASE
+                                  WHEN C.PKG_QTY <![CDATA[ < ]]> 0 THEN NVL(#{pkgQty},0) * (-1)
+                                  WHEN C.PKG_QTY = 0 THEN 0
+                                  ELSE NVL(#{pkgQty},0)
+                               END,
+					C.CG_VOL = CASE
+                                  WHEN C.CG_VOL <![CDATA[ < ]]> 0 THEN NVL(#{msrmt},0) * (-1)
+                                  WHEN C.CG_VOL = 0 THEN 0
+                                  ELSE NVL(#{msrmt},0)
+                               END,
+					C.CG_WGT = CASE
+                                  WHEN C.CG_WGT <![CDATA[ < ]]> 0 THEN NVL(#{wgt},0) * (-1)
+                                  WHEN C.CG_WGT = 0 THEN 0
+                                  ELSE NVL(#{wgt},0)
+                               END,
+					C.UPDATE_TIME = SYSDATE,
+					C.STAFF_CD = #{userId},
+					C.VERSION =#{newVersion}
+			 WHERE 	C.VSL_CALL_ID = #{vslCallId}  
+					AND C.CG_NO = #{cgNo} 
+					AND C.JOB_NO = #{jobNo}
+		</if>
+		
+		<if test='jobPurpCd.equals("WA")'>
+			DECLARE
+					 temp_cg_wgt         NUMBER := NVL(#{wgt},0);
+					 temp_msrmt          NUMBER := NVL(#{msrmt},0);
+			         temp_pkg_qty        NUMBER := NVL(#{pkgQty},0);
+			         temp_cg_wgt_diff    NUMBER := 0;
+			         temp_msrmt_diff     NUMBER := 0;
+			         temp_pkg_qty_diff   NUMBER := 0;
+                     temp_loc_count   	 NUMBER := 0;
+                     
+                     CURSOR c2
+                     IS
+                        SELECT JOB_NO, VSL_CALL_ID, SEQ
+                          FROM TMT_INV_LOC
+                         WHERE     VSL_CALL_ID = #{vslCallId}
+                               AND JOB_NO = #{jobNo};
+                  BEGIN
+                     FOR LOC_ITEM IN c2
+                     LOOP
+                        temp_loc_count := temp_loc_count + 1;
+
+                        UPDATE TMT_INV_LOC
+                           SET CG_WGT =
+                                  CASE
+                                     WHEN (SELECT COUNT (*)
+                                             FROM (  SELECT DISTINCT
+                                                            VSL_CALL_ID,
+                                                            CG_NO,
+                                                            JOB_NO,
+                                                            SEQ
+                                                       FROM TMT_INV_LOC
+                                                      WHERE     VSL_CALL_ID = #{vslCallId}
+                                                            AND JOB_NO = #{jobNo}
+                                                   ORDER BY CG_NO ASC)) = 1
+                                     THEN
+                                        NVL(#{wgt},0) * (-1)
+                                     ELSE
+                                        CASE
+                                           WHEN     temp_cg_wgt <![CDATA[ > ]]>
+                                                       CG_WGT * (-1)
+                                                AND temp_loc_count <![CDATA[ < ]]>
+                                                       (SELECT COUNT (*)
+                                                          FROM (SELECT JOB_NO,
+                                                                       VSL_CALL_ID,
+                                                                       SEQ
+                                                                  FROM TMT_INV_LOC
+                                                                 WHERE     VSL_CALL_ID = #{vslCallId}
+                                                                       AND JOB_NO = #{jobNo}))
+                                           THEN
+                                              CG_WGT
+                                           ELSE
+                                              CASE
+                                                 WHEN temp_cg_wgt <![CDATA[ <= ]]> 0 THEN 0
+                                                 ELSE temp_cg_wgt * (-1)
+                                              END
+                                        END
+                                  END,
+                               CG_VOL =
+                                  CASE
+                                     WHEN (SELECT COUNT (*)
+                                             FROM (  SELECT DISTINCT
+                                                            VSL_CALL_ID,
+                                                            CG_NO,
+                                                            JOB_NO,
+                                                            SEQ
+                                                       FROM TMT_INV_LOC
+                                                      WHERE     VSL_CALL_ID = #{vslCallId}
+                                                            AND JOB_NO = #{jobNo}
+                                                   ORDER BY CG_NO ASC)) = 1
+                                     THEN
+                                        NVL(#{msrmt},0) * (-1)
+                                     ELSE
+                                        CASE
+                                           WHEN     temp_msrmt <![CDATA[ > ]]>
+                                                       CG_VOL * (-1)
+                                                AND temp_loc_count <![CDATA[ < ]]>
+                                                       (SELECT COUNT (*)
+                                                          FROM (SELECT JOB_NO,
+                                                                       VSL_CALL_ID,
+                                                                       SEQ
+                                                                  FROM TMT_INV_LOC
+                                                                 WHERE     VSL_CALL_ID = #{vslCallId}
+                                                                       AND JOB_NO = #{jobNo}))
+                                           THEN
+                                              CG_VOL
+                                           ELSE
+                                              CASE
+                                                 WHEN temp_msrmt <![CDATA[ <= ]]> 0 THEN 0
+                                                 ELSE temp_msrmt * (-1)
+                                              END
+                                        END
+                                  END,
+                               PKG_QTY =
+                                  CASE
+                                     WHEN (SELECT COUNT (*)
+                                             FROM (  SELECT DISTINCT
+                                                            VSL_CALL_ID,
+                                                            CG_NO,
+                                                            JOB_NO,
+                                                            SEQ
+                                                       FROM TMT_INV_LOC
+                                                      WHERE     VSL_CALL_ID = #{vslCallId}
+                                                            AND JOB_NO = #{jobNo}
+                                                   ORDER BY CG_NO ASC)) = 1
+                                     THEN
+                                        NVL(#{pkgQty},0) * (-1)
+                                     ELSE
+                                        CASE
+                                           WHEN     temp_pkg_qty <![CDATA[ > ]]>
+                                                       PKG_QTY * (-1)
+                                                AND temp_loc_count <![CDATA[ < ]]>
+                                                       (SELECT COUNT (*)
+                                                          FROM (SELECT JOB_NO,
+                                                                       VSL_CALL_ID,
+                                                                       SEQ
+                                                                  FROM TMT_INV_LOC
+                                                                 WHERE     VSL_CALL_ID = #{vslCallId}
+                                                                       AND JOB_NO = #{jobNo}))
+                                           THEN
+                                              PKG_QTY
+                                           ELSE
+                                              CASE
+                                                 WHEN temp_pkg_qty <![CDATA[ <= ]]> 0
+                                                 THEN
+                                                    0
+                                                 ELSE
+                                                    temp_pkg_qty * (-1)
+                                              END
+                                        END
+                                  END,
+                               UPDATE_TIME = SYSDATE,
+                               STAFF_CD = #{userId},
+                               VERSION = #{newVersion}
+                         WHERE     VSL_CALL_ID = #{vslCallId}
+                               AND JOB_NO = #{jobNo}
+                               AND SEQ = LOC_ITEM.SEQ;
+
+                        SELECT CG_WGT * (-1)
+                          INTO temp_cg_wgt_diff
+                          FROM TMT_INV_LOC
+                         WHERE     VSL_CALL_ID = #{vslCallId}
+                               AND JOB_NO = #{jobNo}
+                               AND SEQ = LOC_ITEM.SEQ
+                               AND ROWNUM = 1;
+
+                        temp_cg_wgt := temp_cg_wgt - NVL (temp_cg_wgt_diff, 0);
+                        
+                        SELECT CG_VOL * (-1)
+                          INTO temp_msrmt_diff
+                          FROM TMT_INV_LOC
+                         WHERE     VSL_CALL_ID = #{vslCallId}
+                               AND JOB_NO = #{jobNo}
+                               AND SEQ = LOC_ITEM.SEQ
+                               AND ROWNUM = 1;
+
+                        temp_msrmt := temp_msrmt - NVL (temp_msrmt_diff, 0);
+
+                        SELECT PKG_QTY * (-1)
+                          INTO temp_pkg_qty_diff
+                          FROM TMT_INV_LOC
+                         WHERE     VSL_CALL_ID = #{vslCallId}
+                               AND JOB_NO = #{jobNo}
+                               AND SEQ = LOC_ITEM.SEQ
+                               AND ROWNUM = 1;
+
+                        temp_pkg_qty := temp_pkg_qty - NVL (temp_pkg_qty_diff, 0);
+                     END LOOP;
+                  END;
+		</if>
+	</update>
+	
+	<update id="updateCgMstItems" parameterType="cargoJobItem">
+		<![CDATA[ CALL PRC_CG_MST_UPDATE_AMT(#{vslCallId}, #{cgNo}, #{jobNo}, #{opeClassCd}, #{userId}, #{newVersion}) ]]>
+	</update>
+	
+	<update  id="updateCgMstStatus" parameterType="cargoJobItem">
+		<![CDATA[ CALL PRC_CG_MST_UPDATE_STAT(#{vslCallId}, #{cgNo}, #{jobNo}, #{opeClassCd}, #{userId}, #{newVersion}) ]]>
+	</update>
+	
+	<delete id="deleteCargoJobItems"  parameterType="cargoJobItem">
+		<![CDATA[ CALL PRC_DEL_JOB_MONITORING(#{vslCallId}, #{cgNo}, #{jobNo}) ]]>  
+	</delete>
+	
+	<delete id="deleteROROItems"  parameterType="cargoJobItem">
+		DELETE /*cargoJob.deleteROROItems*/
+		FROM TMT_RORO_MST
+		WHERE	VSL_CALL_ID = #{vslCallId} 
+		AND 	CG_NO = #{cgNo}
+		AND CHAS_NO IN ${unitNos}
+		AND SDO_NO IS NULL
+	</delete>
+	
+	<!-- <delete id="deleteRoRoItems" parameterType="cargoJobItem">
+		DELETE /*cargoJob.deleteRoRoItems*/
+		FROM TMT_RORO_MST
+		WHERE	VSL_CALL_ID = #{vslCallId} 
+		AND 	CG_NO = #{cgNo}
+		AND CHAS_NO IN ${unitNos}
+		AND SDO_NO IS NULL
+	</delete> -->
+	
+	<update id="updateFinalDisItems"  parameterType="cargoJobItem">
+		UPDATE	TMT_CG_MST C 
+		   SET 	DIS_END_DT = NULL,
+				SHORT_YN = 'N',
+				UPDATE_TIME = SYSDATE,
+				STAFF_CD = #{userId},
+				VERSION =#{newVersion}
+		 WHERE 	CG_NO=#{cgNo} 
+		 		AND VSL_CALL_ID = #{vslCallId}
+	</update>
+	
+	<update id="updateGateInItems"  parameterType="cargoArrvDelvItem">
+	 	UPDATE	/*updateGateInItems*/
+	 			TMT_CG_ARRV_DELV 
+		SET 	GATE_IN_DT = TO_DATE(#{gateInDt}, 'DD/MM/YYYY HH24:MI')
+		        ,UPDATE_TIME = SYSDATE
+		        ,STAFF_CD = #{userId}
+		        ,VERSION =#{newVersion}
+		 WHERE	VSL_CALL_ID=#{vslCallId} 
+ 			 	AND CG_NO=#{cgNo} 
+ 			 	AND GATE_OUT_DT IS NULL
+ 			 	AND GATE_PASS_NO IS NULL
+ 	</update>
+ 	
+ 	<update id="updateGateOutItems"  parameterType="cargoArrvDelvItem">
+		UPDATE 	/*updateGateOutItems*/
+			 	TMT_CG_ARRV_DELV 
+		SET
+			 	GATE_OUT_DT = TO_DATE(#{gateOutDt}, 'DD/MM/YYYY HH24:MI')
+				,UPDATE_TIME = SYSDATE
+				,STAFF_CD = #{userId}
+				,VERSION =#{newVersion}
+		 WHERE	VSL_CALL_ID = TRIM(#{vslCallId}) 
+				AND CG_NO = #{cgNo}
+				<if test="gatePassNo != null and gatePassNo != ''"> 
+					AND GATE_PASS_NO = TRIM(#{gatePassNo})
+				</if>
+	</update>
+	
+	<update id="updateROROMstItems"  parameterType="cargoJobItem">
+		UPDATE TMT_RORO_MST C
+           SET C.STAT_CD = NVL((SELECT   DECODE(A.STAT,1,'LD',2,'OL',3,'DV',4,'ST', 11,NVL(C.STAT_CD,'RS')) AS STAT
+                              FROM(
+                                   SELECT 
+                                       MIN(CASE
+                                            WHEN J.JOB_PURP_CD = 'AV' THEN 1 
+                                            WHEN J.JOB_PURP_CD = 'GV' THEN 1 
+                                            WHEN J.JOB_PURP_CD = 'WV' THEN 1 
+                                            WHEN J.JOB_PURP_CD = 'GW' THEN 4 
+                                            WHEN J.JOB_PURP_CD = 'AW' THEN 4
+                                            WHEN J.JOB_PURP_CD = 'AG' THEN 3 
+                                            WHEN J.JOB_PURP_CD = 'WG' THEN 3            
+                                            ELSE  11
+                                           END)  AS STAT,
+                                        J.CG_NO AS CGNO, 
+                                        J.VSL_CALL_ID   AS VSLCALLID       
+                                    FROM TMT_JOB J
+                                    GROUP BY J.CG_NO, J.VSL_CALL_ID) A
+                            WHERE A.STAT IS NOT NULL        
+                            AND A.CGNO = #{cgNo}
+                            AND A.VSLCALLID = #{vslCallId}
+                            <if test="sdoNo != null and sdoNo != ''"> 
+								AND SDO_NO = #{sdoNo}
+							</if>
+                            ), 'RS')
+               ,C.UPDATE_TIME = SYSDATE
+               ,C.STAFF_CD = #{userId}
+            WHERE C.CG_NO=  #{cgNo} AND C.VSL_CALL_ID = #{vslCallId}
+ 				<if test="sdoNo != null and sdoNo != ''"> 
+					AND C.SDO_NO = #{sdoNo}
+				</if>
+	</update>
+	
+	<delete id="deleteConsolDeconsolVAJobForImport"  parameterType="cargoJobItem">
+		DELETE /*cargoJob.deleteConsolDeconsolVAJobForImport*/
+		FROM TMT_JOB
+		WHERE	VSL_CALL_ID = #{vslCallId} 
+		AND 	CG_NO = #{cgNo}
+		AND NEXT_JOB_NO = #{jobNo}
+	</delete>
+	
+	<delete id="deleteConsolDeconsolWAJobForExport"  parameterType="cargoJobItem">
+		DELETE /*cargoJob.deleteConsolDeconsolWAJobForExport*/
+		FROM TMT_JOB
+		WHERE	VSL_CALL_ID = #{vslCallId} 
+		AND NEXT_JOB_NO = #{jobNo}
+	</delete>
+	
+	<delete id="deleteConsolDeconsolWAJobForExportInv"  parameterType="cargoJobItem">
+		DELETE /*cargoJob.deleteConsolDeconsolWAJobForExportInv*/
+		FROM TMT_INV_LOC
+		WHERE	VSL_CALL_ID = #{vslCallId} 
+		AND JOB_NO = (SELECT JOB_NO FROM TMT_JOB WHERE VSL_CALL_ID = #{vslCallId} AND NEXT_JOB_NO = #{jobNo} AND ROWNUM = 1)
+	</delete>
+	
+</mapper>

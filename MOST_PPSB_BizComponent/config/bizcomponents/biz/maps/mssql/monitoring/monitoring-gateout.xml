@@ -1,0 +1,413 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="gateOut">
+	<sql id="sqlBL">
+		SELECT /* gateOut.sqlBL */
+			E.VSL_CALL_ID 							AS VSLCALLID,
+			E.GATE_PASS_NO 							AS GATEPASSNO,
+			B.BL_NO 								AS BLNO,
+			D.DO_NO 								AS DELVODRNO,
+			S.SDO_NO 								AS SDONO,
+			'' 										AS GRNO,
+			E.LORRY_NO 								AS LORRYNO,
+			DBO.F_CM_CODE_NM ('MT',
+							'GATECD',
+							E.GATE_CD_OUT) 			AS GATENM,
+			DBO.F_CM_CODE_NM ('MT',
+							'DELVTP',
+							C.DELV_TP_CD) 			AS DELVTPCD,
+			C.TSPT_TP_CD 							AS TSPTTPCD,
+			C.CMDT_CD 								AS DESCR,
+			ABS(W.FIRST_WGT - W.SECOND_WGT) 		AS SCALEAMT,
+			B.PKG_QTY 								AS PKGQTY,
+			B.CG_VOL 								AS VOL,
+			FORMAT (C.DIS_END_DT,
+				'dd/MM/yyyy HH:mm:ss') 				AS DISENDDT,
+			FORMAT (
+				ISNULL(C.HDL_OUT_END_DT, C.HDL_OUT_ST_DT),
+				'dd/MM/yyyy HH:mm:ss') 				AS HDLOUTENDDT,
+			FORMAT (E.GATE_IN_DT,
+				'dd/MM/yyyy HH:mm:ss')  			AS FIRSTGATEINDT,
+			FORMAT (E.GATE_OUT_DT,
+				'dd/MM/yyyy HH:mm:ss')   			AS LASTGATEOUTDT,
+			ISNULL(C.FWR_AGNT, ISNULL(B.FWRD, ' ')) AS FWRAGNT,
+			E.LOC_ID 								AS WHLOCNM,
+			B.CG_TP_CD 								AS CGTPCD,
+			C.STAT_CD 								AS STATCD,
+			E.STAFF_CD 								AS GATEOUTBY,
+			B.CATG_CD 								AS CATGCD,
+			B.PKG_TP_CD 							AS PKGTPCD,
+			E.GATE_TXN_NO 							AS gateTxnNo,
+			B.CG_WGT 								AS actlWgt,
+			B.WGT_CHK 								AS weightCheckYn,
+			B.MF_DOC_ID 							AS MFDOCID
+		FROM
+			TMT_CG_ARRV_DELV E
+				INNER JOIN TMT_BL B
+					ON E.VSL_CALL_ID 				= B.VSL_CALL_ID
+					AND E.CG_NO 					= B.BL_NO
+				INNER JOIN TMT_DO D
+					ON B.VSL_CALL_ID 				= D.VSL_CALL_ID
+					AND B.BL_NO 					= D.BL_NO
+				INNER JOIN TMT_DO_DTL S
+					ON D.VSL_CALL_ID 				= S.VSL_CALL_ID
+					AND D.DO_NO 					= S.DO_NO
+					AND E.SDO_NO 					= S.SDO_NO
+				LEFT OUTER JOIN TMT_WEIGHTBRIDGE W /*NONEXISTED TABLE*/
+					ON E.VSL_CALL_ID 				= W.VSL_CALL_ID
+					AND E.LORRY_NO	 				= W.LORRY_NO
+					AND E.GATE_TXN_NO 				= W.GATE_TICKET_NO
+				LEFT OUTER JOIN TMT_CG_MST C
+					ON E.VSL_CALL_ID 				= C.VSL_CALL_ID
+					AND E.CG_NO 					= C.CG_NO
+		WHERE
+			(E.GATE_OUT_DT IS NOT NULL AND E.GATE_OUT_DT <![CDATA[<>]]> '')
+		<if test="fwrAgnt != null and fwrAgnt != ''">
+			AND B.FWRD 								= #{fwrAgnt}
+		</if>
+		<if test="doNo != null and doNo != ''">
+			AND D.DO_NO 							= #{doNo}
+		</if>
+		<if test="blNo != null and blNo != ''">
+			AND B.BL_NO 							= #{blNo}
+		</if>
+		<if test="mfDocId != null and mfDocId != ''">
+			AND B.MF_DOC_ID 						= #{mfDocId}
+		</if>
+		<if test="vslCallId != null and vslCallId != ''">
+			AND E.VSL_CALL_ID 						= #{vslCallId}
+		</if>
+		<if test="dischgStDt != null and dischgStDt != ''">
+			AND E.GATE_OUT_DT <![CDATA[>=]]> CONVERT(DATETIME, #{dischgStDt} + '00:00:00', 103)
+		</if>
+		<if test="dischgEndDt != null and dischgEndDt != ''">
+			AND E.GATE_OUT_DT <![CDATA[<=]]>  CONVERT(DATETIME, #{dischgEndDt} + '23:59:59',103)
+		</if>
+		<if test="gatePassNo != null and gatePassNo != ''">
+			AND E.GATE_PASS_NO 						= #{gatePassNo}
+		</if>
+		<if test="lorryNo != null and lorryNo != ''">
+			AND E.LORRY_NO 							= #{lorryNo}
+		</if>
+	</sql>
+
+	<sql id="sqlSN">
+		SELECT /* gateOut.sqlSN */
+			E.VSL_CALL_ID 							AS VSLCALLID,
+			E.GATE_PASS_NO 							AS GATEPASSNO,
+			G.SHIPG_NOTE_NO 						AS BLNO,
+			'' 										AS DELVODRNO,
+			'' 										AS SDONO,
+			G.GR_NO 								AS GRNO,
+			E.LORRY_NO 								AS LORRYNO,
+			DBO.F_CM_CODE_NM ('MT',
+							'GATECD',
+							E.GATE_CD_OUT) 			AS GATENM,
+			DBO.F_CM_CODE_NM ('MT',
+							'DELVTP',
+							C.DELV_TP_CD) 			AS DELVTPCD,
+			C.TSPT_TP_CD 							AS TSPTTPCD,
+			C.CMDT_CD 								AS DESCR,
+			ABS(W.FIRST_WGT - W.SECOND_WGT) 		AS SCALEAMT,
+			G.PKG_QTY 								AS PKGQTY,
+			G.CG_VOL 								AS VOL,
+			FORMAT (C.DIS_END_DT
+				, 'dd/MM/yyyy HH:mm:ss') 			AS DISENDDT,
+			FORMAT (
+				ISNULL(C.HDL_OUT_END_DT, C.HDL_OUT_ST_DT)
+			, 'dd/MM/yyyy HH:mm:ss') 				AS HDLOUTENDDT,
+			FORMAT (E.GATE_IN_DT
+				, 'dd/MM/yyyy HH:mm:ss')  			AS FIRSTGATEINDT,
+			FORMAT (E.GATE_OUT_DT
+				, 'dd/MM/yyyy HH:mm:ss')   			AS LASTGATEOUTDT,
+			ISNULL(C.FWR_AGNT, ISNULL(S.FWRD, ' ')) AS FWRAGNT,
+			E.LOC_ID 								AS WHLOCNM,
+			S.CG_TP_CD 								AS CGTPCD,
+			C.STAT_CD 								AS STATCD,
+			E.STAFF_CD 								AS GATEOUTBY,
+			S.CATG_CD 								AS CATGCD,
+			S.PKG_TP_CD 							AS PKGTPCD,
+			E.GATE_TXN_NO 							AS gateTxnNo,
+			G.CG_WGT 								AS actlWgt,
+			G.WGT_CHK 								AS weightCheckYn,
+			'' 										AS MFDOCID
+		FROM
+			TMT_CG_ARRV_DELV E
+				INNER JOIN TMT_GR G
+					ON E.VSL_CALL_ID 				= G.VSL_CALL_ID
+					AND E.CG_NO 					= G.GR_NO
+				INNER JOIN TMT_SHIPG_NOTE S
+					ON E.VSL_CALL_ID 				= S.VSL_CALL_ID
+					AND G.SHIPG_NOTE_NO 			= S.SHIPG_NOTE_NO
+				LEFT OUTER JOIN TMT_WEIGHTBRIDGE W /*NONEXISTED TABLE*/
+					ON E.VSL_CALL_ID 				= W.VSL_CALL_ID
+					AND E.LORRY_NO 					= W.LORRY_NO
+					AND E.GATE_TXN_NO 				= W.GATE_TICKET_NO
+				LEFT OUTER JOIN TMT_CG_MST C
+					ON E.VSL_CALL_ID 				= C.VSL_CALL_ID
+					AND E.CG_NO 					= C.CG_NO
+		WHERE
+			(E.GATE_OUT_DT IS NOT NULL AND E.GATE_OUT_DT <![CDATA[<>]]> '')
+		<if test="fwrAgnt != null and fwrAgnt != ''">
+			AND S.FWRD 								= #{fwrAgnt}
+		</if>
+		<if test="blNo != null and blNo != ''">
+			AND S.SHIPG_NOTE_NO 					= #{blNo}
+		</if>
+		<if test="mfDocId != null and mfDocId != ''">
+			AND S.MF_DOC_ID 						= #{mfDocId}
+		</if>
+		<if test="vslCallId != null and vslCallId != ''">
+			AND E.VSL_CALL_ID 						= #{vslCallId}
+		</if>
+		<if test="dischgStDt != null and dischgStDt != ''">
+			AND E.GATE_OUT_DT <![CDATA[>=]]> CONVERT(DATETIME, #{dischgStDt} + '00:00:00', 103)
+		</if>
+		<if test="dischgEndDt != null and dischgEndDt != ''">
+			AND E.GATE_OUT_DT <![CDATA[<=]]> CONVERT(DATETIME, #{dischgEndDt} + '23:59:59', 103)
+		</if>
+		<if test="gatePassNo != null and gatePassNo != ''">
+			AND E.GATE_PASS_NO 						= #{gatePassNo}
+		</if>
+		<if test="lorryNo != null and lorryNo != ''">
+			AND E.LORRY_NO 							= #{lorryNo}
+		</if>
+	</sql>
+
+	<sql id="getListOfGateOut">
+		<include refid="sqlBL"/>
+		UNION
+		<include refid="sqlSN"/>
+	</sql>
+
+	<select id="selectListOfGateOut"  parameterType="gateOutParm" resultType="gateOutItem">
+		<if test="pageNo != 0">
+			SELECT /* gateOut.selectListOfGateOut */
+				*
+			FROM
+				(SELECT
+					inner_query.*, ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num
+				FROM (
+		</if>
+		<include refid="getListOfGateOut"/>
+		<if test="pageNo != 0">
+					) inner_query
+				) inner_query
+			WHERE
+				inner_query.row_num <![CDATA[>]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT) - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_query.row_num <![CDATA[<=]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT)) * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+
+	<select id="selectListOfGateOutCount" parameterType="gateOutParm" resultType="java.lang.String">
+		SELECT /* gateOut.selectListOfGateOutCount */
+			COUNT(*)
+		FROM
+			(<include refid="getListOfGateOut"/>) 			AS getListOfGateOut
+	</select>
+
+	<select id="selectCargoInterchangeReceiptReport" parameterType="cargoInterchangeReceiptParm" resultType="cargoInterchangeReceiptItem">
+		WITH
+			JOB AS (
+				SELECT /* gateOut.selectCargoInterchangeReceiptReport */
+					VSL_CALL_ID,
+					CG_NO,
+					CG_WGT,
+					PKG_QTY,
+					CG_VOL,
+					GATE_TXN_NO,
+					WB_TRANSACTION_NO
+				FROM
+					TMT_JOB
+				WHERE
+					VSL_CALL_ID 				=  #{vslCallId}
+					AND GATE_TXN_NO 			= #{gateTxnNo}
+					AND JOB_PURP_CD NOT IN ('IO', 'OI')
+				)
+
+		SELECT TOP(1) /* gateOut.selectCargoInterchangeReceiptReport */
+			A.VSL_CALL_ID   					AS vslCallId,
+			V.INB_VOY       					AS voyageNo,
+			P.VSL_NM        					AS vslNm,
+			(SELECT
+				FORMAT(MIN(WORK_ST_DT), 'dd/MM/yyyy HH:mm')
+			FROM
+				TMT_JOB
+			WHERE
+				VSL_CALL_ID 					= A.VSL_CALL_ID
+				AND GATE_TXN_NO 				= A.GATE_TXN_NO
+				AND JOB_PURP_CD NOT IN ('IO', 'OI')
+			)  									AS atw,
+			A.GR_NO         					AS grNo,
+			A.SDO_NO        					AS sdoNo,
+			(CASE
+				WHEN (A.GR_NO IS NULL OR A.GR_NO = '')
+					THEN DBO.F_GET_PARTNER_INFO (B.CNSNE, 'ENG_SNM')
+				WHEN (A.GR_NO IS NOT NULL AND A.GR_NO <![CDATA[<>]]> '')
+				    	AND (S.BONDED_WH_YN = 'N' OR (S.BONDED_WH_YN IS NULL OR S.BONDED_WH_YN = ''))
+				    THEN DBO.F_GET_PARTNER_INFO (S.SHPR, 'ENG_SNM')
+				ELSE DBO.F_GET_PARTNER_INFO (S.CNSNE , 'ENG_SNM')
+			END) 								AS customerNm,
+			(CASE
+				WHEN (A.GR_NO IS NULL OR A.GR_NO = '') THEN B.MF_DOC_ID
+				ELSE S.MF_DOC_ID
+			END) 								AS mfDocId,
+			(CASE
+				WHEN (A.GR_NO IS NULL OR A.GR_NO = '') THEN B.POL
+				ELSE S.POL
+			END) 								AS POL,
+			(CASE
+				WHEN (A.GR_NO IS NULL OR A.GR_NO = '') THEN B.POD
+				ELSE S.POD
+			END) 								AS POD,
+			(CASE
+			    WHEN (A.GR_NO IS NULL OR A.GR_NO = '')
+			    	THEN (
+			    		SELECT TOP(1)
+							CMDT_DESC
+						FROM
+							TMT_CMDT
+						WHERE
+							CMDT_CD 			= B.CMDT_CD
+						)
+				ELSE (
+					SELECT TOP(1)
+						CMDT_DESC
+					FROM
+						TMT_CMDT
+					WHERE
+						CMDT_CD 				= S.CMDT_CD
+					)
+			END) 								AS CMDTNM,
+			(CASE
+				WHEN (A.GR_NO IS NULL OR A.GR_NO = '')
+					THEN DBO.F_CM_CODE_NM('MT',
+										'PKGTP',
+										ISNULL(D.PKG_TP_CD, B.PKG_TP_CD))
+				ELSE DBO.F_CM_CODE_NM('MT',
+										'PKGTP',
+										ISNULL(G.PKG_TP_CD, S.PKG_TP_CD))
+			END) 								AS PKGTPNM,
+			A.LORRY_NO      					AS lorryNo,
+			FORMAT(A.GATE_IN_DT
+				, 'dd/MM/yyyy HH:mm:ss') 		AS gateInTime,
+			FORMAT(SYSDATETIME()
+				,'dd/MM/yyyy HH:mm:ss') 		AS gateOutTime,
+			A.LOC_ID 							AS locId,
+			W.FIRST_WGT 						AS firstWgt,
+			W.SECOND_WGT 						AS secondWgt,
+			'Lorry' 							AS tsptTpNm,
+			A.GATE_TXN_NO 						AS gateTxnNo,
+			T.CHASSIS_NO 						AS chassisNo,
+			ISNULL(J.PKG_QTY, W.PKG_QTY)  		AS pkgQty,
+			(CASE
+				WHEN (A.GR_NO IS NOT NULL AND A.GR_NO <![CDATA[<>]]> '')
+					THEN
+				    	(CASE
+							WHEN G.WGT_CHK = 'N' THEN ISNULL(J.CG_WGT, 0)
+							ELSE ABS(ISNULL(W.FIRST_WGT, 0) - ISNULL(W.SECOND_WGT, 0))
+						END)
+				ELSE
+					(CASE
+						WHEN D.WGT_CHK = 'N' THEN ISNULL(J.CG_WGT, 0)
+						ELSE ABS(ISNULL(W.FIRST_WGT, 0) - ISNULL(W.SECOND_WGT, 0))
+					END)
+			END)		 						AS cgWgt,
+			ISNULL(J.CG_VOL, W.CG_VOL)  		AS cgVol,
+			ISNULL(D.DELV_TP_CD, S.DELV_TP_CD) 	AS DELVTPCD,
+			DBO.F_CM_CODE_NM('MT',
+							'DELVTP',
+							ISNULL(D.DELV_TP_CD, S.DELV_TP_CD)
+			) 									AS DELVTPNM,
+			FORMAT(
+				ISNULL(D.VALID_DATE, G.VALID_DATE)
+			, 'dd/MM/yyyy HH:mm:ss') 			AS validDate,
+			(CASE
+				WHEN A.GR_NO IS NOT NULL
+				    THEN (
+				    	SELECT
+							STRING_AGG(PKG_NO, ', ') WITHIN GROUP (ORDER BY PKG_NO)
+						FROM
+							(SELECT DISTINCT
+								PKG_NO
+							FROM
+								TMT_PKG_INFO
+							WHERE
+								VSL_CALL_ID 	= #{vslCallId}
+								AND REF_NO 		= G.SHIPG_NOTE_NO
+								AND GR_NO 		= A.GR_NO
+							) sub_query
+						)
+				ELSE (
+					SELECT
+						STRING_AGG(PKG_NO, ', ') WITHIN GROUP (ORDER BY PKG_NO)
+					FROM (
+						SELECT DISTINCT
+							PKG_NO
+						FROM
+							TMT_PKG_INFO
+						WHERE
+							VSL_CALL_ID 		= #{vslCallId}
+							AND REF_NO 			= B.BL_NO
+							AND SDO_NO 			= A.SDO_NO
+						) sub_query
+					)
+			END) 								AS PKGNO,
+			'TON' 								AS MEASURE,
+			(SELECT TOP(1)
+				ENG_NM
+			FROM
+				TMT_USER_INFO
+			WHERE
+				USER_ID 						= #{userId}
+			) 									AS userName,
+			W.RMK 								AS cirRemark
+
+		FROM
+			TMT_CG_ARRV_DELV A
+				LEFT OUTER JOIN TMT_ASSIGN_TRANSPORT T
+					ON A.VSL_CALL_ID = T.VSL_CALL_ID
+					AND (
+					    ((A.SDO_NO IS NOT NULL AND A.SDO_NO <![CDATA[<>]]> '') AND A.SDO_NO = T.SDO_NO)
+					        OR
+					    ((A.GR_NO IS NOT NULL AND A.GR_NO <![CDATA[<>]]> '') AND A.GR_NO = T.GR_NO))
+				LEFT OUTER JOIN TMT_WEIGHTBRIDGE W /*NONEXISTED TABLE*/
+					ON A.VSL_CALL_ID 			= W.VSL_CALL_ID
+					AND A.GATE_TXN_NO 			= W.GATE_TICKET_NO
+					AND W.STATUS 				= 'Y'
+				LEFT OUTER JOIN TMT_DO_DTL D
+					ON A.VSL_CALL_ID 			= D.VSL_CALL_ID
+					AND A.CG_NO 				= D.BL_NO
+					AND A.SDO_NO 				= D.SDO_NO
+				LEFT OUTER JOIN TMT_BL B
+					ON D.VSL_CALL_ID 			= B.VSL_CALL_ID
+					AND D.BL_NO					= B.BL_NO
+				LEFT OUTER JOIN TMT_GR G
+					ON A.VSL_CALL_ID 			= G.VSL_CALL_ID
+					AND A.CG_NO 				= G.GR_NO
+				LEFT OUTER JOIN TMT_SHIPG_NOTE S
+					ON G.VSL_CALL_ID 			= S.VSL_CALL_ID
+					AND G.SHIPG_NOTE_NO 		= S.SHIPG_NOTE_NO
+				LEFT OUTER JOIN TMT_VSL_SCH V
+					ON A.VSL_CALL_ID 			= V.VSL_CALL_ID
+				LEFT OUTER JOIN TMT_VSL_PART P
+					ON V.VSL_CD 				= P.VSL_CD
+				LEFT OUTER JOIN JOB J
+					ON A.VSL_CALL_ID 			= J.VSL_CALL_ID
+					AND A.CG_NO 				= J.CG_NO
+					AND A.GATE_TXN_NO 			= J.GATE_TXN_NO
+		WHERE
+			A.VSL_CALL_ID 						= #{vslCallId}
+			AND A.LORRY_NO 						= #{lorryNo}
+			AND A.GATE_TXN_NO 					= #{gateTxnNo}
+		<!-- 		        <if test="sdoNo != null and sdoNo != ''"> -->
+		<!-- 	     			AND A.SDO_NO = #{sdoNo} -->
+		<!-- 			   	</if> -->
+		<!-- 			   	<if test="grNo != null and grNo != ''"> -->
+		<!-- 	     			AND A.GR_NO = #{grNo} -->
+		<!-- 			   	</if> -->
+	</select>
+</mapper>

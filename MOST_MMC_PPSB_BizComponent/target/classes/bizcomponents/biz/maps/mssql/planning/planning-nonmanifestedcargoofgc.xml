@@ -1,0 +1,909 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="nonManifestedCargoOfGc">
+
+   	<resultMap 	id="resultLinkageComboItem" type="nonManifestedCargoOfGcItem">
+   		<result property = "cd"						column = "CD"/>
+		<result property = "cdNm" 					column = "CD_NM"/>
+		<result property = "linkageMblBookingNo" 	column = "DOC_NO"/>
+		<result property = "catgCd"					column = "CATG_CD"/>
+		<result property = "catgNm" 				column = "CATG_NM"/>
+		<result property = "cgTpCd" 				column = "CG_TP_CD"/>
+		<result property = "cgTpNm"					column = "CG_TP_NM"/>
+		<result property = "delvTpCd" 				column = "DELV_TP_CD"/>
+		<result property = "delvTpNm" 				column = "DELV_TP_NM"/>
+		<result property = "cmdtCd"					column = "CMDT_CD"/>
+		<result property = "cmdtNm" 				column = "CMDT_NM"/>
+		<result property = "shaCd" 					column = "SHA_CD"/>
+		<result property = "shaNm"					column = "SHA_NM"/>
+		<result property = "fwdCd" 					column = "FWD_CD"/>
+		<result property = "fwdNm" 					column = "FWD_NM"/>
+		<result property = "cnsCd" 					column = "CNS_CD"/>
+		<result property = "cnsNm" 					column = "CNS_NM"/>
+		<result property = "wgt" 					column = "CG_WGT"/>
+		<result property = "pkgQty" 				column = "PKG_QTY"/>
+		<result property = "m3"						column = "CG_VOL"/>
+ 		<result property = "hdlInStDt" 				column = "WORK_ST_DT"/>
+ 		<result property = "hdlInEndDt" 			column = "WORK_END_DT"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultNonManifestedGcItem" type="nonManifestedCargoOfGcItem">
+   		<result property = "cd"								column = "CD"/>
+		<result property = "cdNm" 							column = "CD_NM"/>
+   		<result property = "vslCallId"						column = "VSL_CALL_ID"/>
+		<result property = "catgCd" 						column = "OPE_CLASS_CD"/>
+		<result property = "catgNm" 						column = "OPE_CLASS_NM"/>
+		<result property = "orgBlSnNo"						column = "ORG_BL_SN_NO"/>
+		<result property = "orgGrNo" 						column = "ORG_GR_NO"/>
+		<result property = "linkageMblBookingNo" 			column = "DOC_NO"/>
+		<result property = "linkageBlSnNo"					column = "CG_NO"/>
+		<result property = "linkageGrNo" 					column = "GR_NO"/>
+		<result property = "cgTpCd" 						column = "CG_TP_CD"/>
+		<result property = "cgTpNm"							column = "CG_TP_NM"/>
+		<result property = "nonManifestedMt" 				column = "NONMANIFESTEDMT"/>
+		<result property = "nonManifestedQty" 				column = "NONMANIFESTEDQTY"/>
+		<result property = "nonManifestedM3"				column = "NONMANIFESTEDM3"/>
+		<result property = "nonManifestedLocId" 			column = "CRANE"/>
+		<result property = "remark" 						column = "NON_MANIFESTED_RMK"/>
+		<result property = "updDate" 						column = "UPD_DT"/>
+		<result property = "updUserId" 						column = "UPD_USER_ID"/>
+		<result property = "nonManifestedStatus" 			column = "NON_MANIFESTED"/>
+ 		<result property = "orgCgNo" 						column = "ORIGINAL_CG_NO"/>
+ 		<result property = "jobGroup" 						column = "JOB_GROUP"/>
+ 		<result property = "currentCgNo" 					column = "CURRENT_CG_NO"/>
+ 		<result property = "markNos" 						column = "MARK_NO"/>
+ 		<result property = "pkgQty" 						column = "PKG_QTY"/>
+ 		<result property = "wgt" 							column = "CG_WGT"/>
+ 		<result property = "m3" 							column = "CG_VOL"/>
+ 		<result property = "shftId" 						column = "SHFT_ID"/>
+ 		<result property = "shftDt" 						column = "SHFT_DT"/>
+ 		<result property = "hdlInStDt" 						column = "WORK_ST_DT"/>
+ 		<result property = "hdlInEndDt" 					column = "WORK_END_DT"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultComboItem" type="nonManifestedCargoOfGcItem">
+   		<result property = "cd"						column = "CD"/>
+		<result property = "cdNm" 					column = "CD_NM"/>
+ 	</resultMap>
+ 	
+ 	<sql id="getNonManifestedGeneralCargoItems">
+		SELECT /*nonManifestedCargoOfGc.getNonManifestedGeneralCargoItems*/
+			J.VSL_CALL_ID,
+			J.JOB_NO JOBNO,
+			J.OPE_CLASS_CD CATGCD,
+			DBO.F_CM_CODE_NM ('MT', 'CATGTP', J.OPE_CLASS_CD) AS CATGNM,
+			L.DELV_TP_NM DELVTPNM,
+			L.DOC_NO,
+			ISNULL(L.CG_NO,'') CG_NO,
+			L.CG_TP_CD,
+			L.CG_TP_NM,
+			J.CG_WGT NONMANIFESTEDMT,
+			J.PKG_QTY NONMANIFESTEDQTY,
+			J.CG_VOL NONMANIFESTEDM3,
+			L.CG_WGT,
+			L.PKG_QTY,
+			L.CG_VOL,
+			J.CRANE,
+			J.NON_MANIFESTED,
+			J.RMK REMARK,
+			J.SHFT_DT,
+			J.SHFT_ID,
+			FORMAT(J.UPDATE_TIME, 'dd/MM/yyyy hh:mm') AS UPD_DT,
+			FORMAT(J.WORK_ST_DT, 'dd/MM/yyyy hh:mm') AS WORK_ST_DT,
+			FORMAT(J.WORK_END_DT, 'dd/MM/yyyy hh:mm') AS WORK_END_DT,
+			J.STAFF_CD UPDUSERID,
+			J.JOB_GROUP,
+			ISNULL(J.ORIGINAL_CG_NO, J.CG_NO) AS ORGCGNO,
+			L.CMDT_CD CMDTCD,
+			L.CMDT_NM CMDTNM,
+			L.FWD_CD FWDCD,
+			L.FWD_NM FWDNM,
+			L.CNS_CD CNSCD,
+			L.CNS_NM CNSNM,
+			L.MARK_NO MARKNOS
+		FROM 
+			TMT_NON_MANIFEST J /*NONEXISTED TABLE*/
+		LEFT OUTER JOIN (
+			SELECT 
+				BL.VSL_CALL_ID,
+				BL.BL_NO AS CG_NO,
+				BL.MF_DOC_ID AS DOC_NO,
+				BL.CATG_CD,
+				DBO.F_CM_CODE_NM ('MT', 'CATGTP', BL.CATG_CD) AS CATG_NM,
+				BL.CG_TP_CD,
+				DBO.F_CM_CODE_NM ('MT', 'CGTP', BL.CG_TP_CD) AS CG_TP_NM,
+				BL.DELV_TP_CD,
+				DBO.F_CM_CODE_NM ('MT', 'DELVTP', BL.DELV_TP_CD) AS DELV_TP_NM,
+				BL.CMDT_CD,
+				(SELECT CMDT.CMDT_DESC FROM TMT_CMDT CMDT WHERE CMDT.CMDT_CD = BL.CMDT_CD) AS CMDT_NM,
+				BL.FWRD AS FWD_CD,
+				DBO.F_PTNR_SNM (BL.FWRD, 'FWD') AS FWD_NM,
+				BL.CNSNE AS CNS_CD,
+				DBO.F_PTNR_SNM (BL.CNSNE, 'CNS') AS CNS_NM,
+				MARK_NO,
+				CG_WGT,
+				CG_VOL,
+				PKG_QTY
+			FROM TMT_BL BL
+			WHERE BL.VSL_CALL_ID = #{vslCallId}
+    	) L	
+		ON 
+			L.VSL_CALL_ID = J.VSL_CALL_ID AND J.CG_NO = L.CG_NO
+		WHERE 
+			J.VSL_CALL_ID = #{vslCallId}
+			AND J.JOB_PURP_CD IN ('VA')
+        <if test="blNo != null and blNo != ''">
+        	AND (L.CATG_CD = 'I' AND L.CG_NO = #{blNo})
+        </if>
+        <if test="snNo != null and snNo != ''">
+        	AND (L.CATG_CD = 'E' AND L.CG_NO = #{snNo})
+        </if>
+	</sql>
+
+	<select id="selectNonManifestedGeneralCargoItemsCount" parameterType="nonManifestedCargoOfGcParm" resultType="java.lang.String" >
+		SELECT /*nonManifestedCargoOfGc.selectNonManifestedGeneralCargoItemsCount*/
+			 COUNT(*)
+		FROM 
+			(<include refid="getNonManifestedGeneralCargoItems"/>) AS getNonManifestedGeneralCargoItems
+	</select>
+	
+	<select id="selectNonManifestedGeneralCargoItems" parameterType="nonManifestedCargoOfGcParm" resultMap="resultNonManifestedGcItem">
+	 	<if test="pageNo != 0"> 
+			SELECT /*nonManifestedCargoOfGc.selectNonManifestedGeneralCargoItems*/
+				* 
+			FROM 
+				(SELECT 
+					inner_querry.*,  ROW_NUMBER() OVER(ORDER BY(SELECT NULL)) row_num 
+				FROM ( 
+		</if>
+				<include refid="getNonManifestedGeneralCargoItems"/>
+		<if test="pageNo != 0"> 
+				)inner_querry 
+			)inner_querry 
+			WHERE 
+				inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+
+	<select id="selectBlComboBoxItem" parameterType="nonManifestedCargoOfGcParm" resultMap="resultNonManifestedGcItem">
+		SELECT DISTINCT /*nonManifestedCargoOfGc.selectBlComboBoxItem*/
+	        BL.BL_NO 										AS CD,
+	        BL.BL_NO 										AS CDNM,
+	        BL.MF_DOC_ID 									AS DOC_NO,
+	        BL.CATG_CD,
+	        DBO.F_CM_CODE_NM('MT', 'CATGTP', BL.CATG_CD) 	AS CATG_NM,
+	        BL.CG_TP_CD,
+	        DBO.F_CM_CODE_NM('MT', 'CGTP', BL.CG_TP_CD) 	AS CG_TP_NM,
+	        BL.DELV_TP_CD,
+	        DBO.F_CM_CODE_NM('MT', 'DELVTP', BL.DELV_TP_CD) AS DELV_TP_NM,
+	        BL.CMDT_CD,
+	        (SELECT 
+				CMDT.CMDT_DESC 
+			FROM 
+				TMT_CMDT CMDT 
+			WHERE 
+				CMDT.CMDT_CD = BL.CMDT_CD) 					AS CMDT_NM,
+	        BL.FWRD 										AS FWD_CD,
+	        DBO.F_PTNR_SNM(BL.FWRD, 'FWD') 					AS FWD_NM,
+	        BL.CNSNE										AS CNS_CD,
+	        DBO.F_PTNR_SNM(BL.CNSNE, 'CNS') 				AS CNS_NM
+		FROM 
+			TMT_BL BL
+		INNER JOIN 
+			TMT_VSL_SCH VS 
+		ON 
+			BL.VSL_CALL_ID = VS.VSL_CALL_ID
+		WHERE 
+			VS.VSL_CALL_ID = #{vslCallId}
+			AND BL.BL_NO NOT IN (SELECT 
+									ISNULL(BL_NO, '') 
+								FROM 
+									TMT_CG_MST 
+								WHERE 
+									VSL_CALL_ID = #{vslCallId})
+	</select>
+	
+	<select id="selectSnComboBoxItem" parameterType="nonManifestedCargoOfGcParm" resultMap="resultLinkageComboItem">
+		SELECT DISTINCT /*nonManifestedCargoOfGc.selectSnComboBoxItem*/
+	        SN.SHIPG_NOTE_NO 								AS CD,
+	        SN.SHIPG_NOTE_NO 								AS CDNM,
+	        SN.MF_DOC_ID 									AS DOC_NO,
+	        SN.CATG_CD,
+	        DBO.F_CM_CODE_NM('MT', 'CATGTP', SN.CATG_CD) 	AS CATG_NM,
+	        SN.CG_TP_CD,
+	        DBO.F_CM_CODE_NM('MT', 'CGTP', SN.CG_TP_CD) 	AS CG_TP_NM,
+	        SN.DELV_TP_CD,
+	        DBO.F_CM_CODE_NM('MT', 'DELVTP', SN.DELV_TP_CD) AS DELV_TP_NM,
+	        SN.CMDT_CD,
+	        (SELECT 
+				CMDT.CMDT_DESC 
+			FROM 
+				TMT_CMDT CMDT 
+			WHERE 
+				CMDT.CMDT_CD = SN.CMDT_CD) 					AS CMDT_NM,
+	        SN.SHIPG_AGNCY 									AS SHA_CD,
+	        DBO.F_PTNR_SNM(SN.SHIPG_AGNCY, 'SHA') 			AS SHA_NM,
+	        SN.FWRD 										AS FWD_CD,
+	        DBO.F_PTNR_SNM(SN.FWRD, 'FWD') 					AS FWD_NM,
+	        SN.SHPR 										AS CNS_CD,
+	        DBO.F_PTNR_SNM(SN.SHPR, 'CNS') 					AS CNS_NM
+		FROM 
+			TMT_SHIPG_NOTE SN
+		INNER JOIN 
+			TMT_VSL_SCH VS 
+		ON 
+			SN.VSL_CALL_ID = VS.VSL_CALL_ID
+		WHERE 
+			VS.VSL_CALL_ID = #{vslCallId}
+			AND SN.SHIPG_NOTE_NO NOT IN (SELECT 
+											ISNULL(SHIPG_NOTE_NO, '') 
+										FROM 
+											TMT_CG_MST 
+										WHERE 
+											VSL_CALL_ID = #{vslCallId})
+	</select>
+	
+	<select id="selectGrComboBoxItem" parameterType="nonManifestedCargoOfGcParm" resultMap="resultComboItem">
+		SELECT /*nonManifestedCargoOfGc.selectGrComboBoxItem*/
+			GR.GR_NO AS CD, 
+			GR.GR_NO AS CD_NM
+		FROM 
+			TMT_GR GR
+		WHERE 
+			GR.VSL_CALL_ID 			= #{vslCallId}
+			AND GR.SHIPG_NOTE_NO	= #{snNo}
+	</select>
+	
+	<update id="updateNonManifestedGcCargoMasterItem" parameterType="nonManifestedCargoOfGcItem">
+		UPDATE /*nonManifestedCargoOfGc.updateNonManifestedGcCargoMasterItem*/
+			TMT_CG_MST 
+		SET		
+			CG_NO 			= #{linkageCgNo},
+			UPDATE_TIME 	= SYSDATETIME(),
+			STAFF_CD 		= #{userId},
+			VERSION 		= #{newVersion},
+			BL_NO 			= #{blNo},
+			SHIPG_NOTE_NO 	= #{shipgNoteNo},
+			ACTL_DELV_TP_CD = 'I'
+			<if test="blNo != null and blNo != ''">
+				,SHIPG_AGNT = (SELECT 
+									SHIPG_AGENT 
+								FROM 
+									TMT_BL 
+								WHERE 
+									VSL_CALL_ID = #{vslCallId}  
+									AND BL_NO = #{blNo})
+				,FWR_AGNT = (SELECT 
+								FWRD 
+							FROM 
+								TMT_BL 
+							WHERE 
+								VSL_CALL_ID = #{vslCallId}  
+								AND BL_NO = #{blNo})
+				,CNSNE = (SELECT 
+							CNSNE 
+						FROM 
+							TMT_BL 
+						WHERE 
+							VSL_CALL_ID = #{vslCallId}  
+							AND BL_NO = #{blNo})
+				,SHPR = (SELECT 
+							SHPR 
+						FROM 
+							TMT_BL 
+						WHERE 
+							VSL_CALL_ID = #{vslCallId}  
+							AND BL_NO = #{blNo})
+				,DELV_TP_CD = (SELECT 
+								DELV_TP_CD 
+							FROM 
+								TMT_BL 
+							WHERE 
+								VSL_CALL_ID = #{vslCallId}  
+								AND BL_NO = #{blNo})
+				,CMDT_CD = (SELECT 
+								CMDT_CD 
+							FROM 
+								TMT_BL 
+							WHERE 
+								VSL_CALL_ID = #{vslCallId}  
+								AND BL_NO = #{blNo})
+				,CG_TP_CD = (SELECT 
+								CG_TP_CD 
+							FROM 
+								TMT_BL 
+							WHERE 
+								VSL_CALL_ID = #{vslCallId}  
+								AND BL_NO = #{blNo})
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				,SHIPG_AGNT = (SELECT 
+									SHIPG_AGNCY 
+								FROM 
+									TMT_SHIPG_NOTE 
+								WHERE 
+									VSL_CALL_ID = #{vslCallId}  
+									AND SHIPG_NOTE_NO = #{shipgNoteNo})
+				,FWR_AGNT = (SELECT 
+								FWRD 
+							FROM 
+								TMT_SHIPG_NOTE 
+							WHERE 
+								VSL_CALL_ID = #{vslCallId}  
+								AND SHIPG_NOTE_NO = #{shipgNoteNo})
+				,CNSNE = (SELECT 
+							CNSNE 
+						FROM 
+							TMT_SHIPG_NOTE 
+						WHERE 
+							VSL_CALL_ID = #{vslCallId}  
+							AND SHIPG_NOTE_NO = #{shipgNoteNo})
+				,SHPR = (SELECT 
+							SHPR 
+						FROM 
+							TMT_SHIPG_NOTE 
+						WHERE 
+							VSL_CALL_ID = #{vslCallId}  
+							AND SHIPG_NOTE_NO = #{shipgNoteNo})
+				,DELV_TP_CD = (SELECT 
+								DELV_TP_CD 
+							FROM 
+								TMT_SHIPG_NOTE 
+							WHERE 
+								VSL_CALL_ID = #{vslCallId}  
+								AND SHIPG_NOTE_NO = #{shipgNoteNo})
+				,CMDT_CD = (SELECT 
+								CMDT_CD 
+							FROM 
+								TMT_SHIPG_NOTE 
+							WHERE 
+								VSL_CALL_ID = #{vslCallId}  
+								AND SHIPG_NOTE_NO = #{shipgNoteNo})
+				,CG_TP_CD = (SELECT 
+								CG_TP_CD 
+							FROM 
+								TMT_SHIPG_NOTE 
+							WHERE 
+								VSL_CALL_ID = #{vslCallId}  
+								AND SHIPG_NOTE_NO = #{shipgNoteNo})
+			</if>
+		WHERE 
+			VSL_CALL_ID = #{vslCallId} 
+			AND CG_NO = #{currentCgNo} 
+	</update>
+	
+	<update id="updateNonManifestedGcJobItem" parameterType="nonManifestedCargoOfGcItem">
+		UPDATE /*nonManifestedCargoOfGc.updateNonManifestedGcJobItem*/
+			TMT_JOB 
+		SET		
+			CG_NO 				= #{linkageCgNo},
+			UPDATE_TIME 		= SYSDATETIME(),
+			STAFF_CD 			= #{userId},
+			VERSION 			= #{newVersion},
+			<!-- NON_MANIFESTED 		= #{nonManifestedStatus},
+			NON_MANIFESTED_RMK 	= #{nonManifestedRmk}, -->
+			TO_LOC_ID 			= #{locId}
+		WHERE 
+			VSL_CALL_ID 		= #{vslCallId} 
+			AND CG_NO 			= #{currentCgNo} 
+			AND JOB_NO 			= #{jobNo}
+	</update>
+	
+	<update id="updateNonManifestedGcInventoryLocItem" parameterType="nonManifestedCargoOfGcItem">
+		UPDATE /*nonManifestedCargoOfGc.updateNonManifestedGcInventoryLocItem*/
+			TMT_INV_LOC 
+		SET		
+			CG_NO 				= #{linkageCgNo},
+			UPDATE_TIME 		= SYSDATETIME(),
+			STAFF_CD 			= #{userId},
+			VERSION 			= #{newVersion}
+		WHERE 
+			VSL_CALL_ID 		= #{vslCallId} 
+			AND CG_NO		 	= #{currentCgNo} 
+			AND JOB_NO 			= #{jobNo}
+	</update>
+	
+	<delete id="deleteNonManifestedGcInventoryLocItem" parameterType="nonManifestedCargoOfGcItem">
+		DELETE /*nonManifestedCargoOfGc.deleteNonManifestedGcInventoryLocItem*/
+			TMT_INV_LOC 
+		WHERE 
+			VSL_CALL_ID 		= #{vslCallId} 
+			AND CG_NO 			= #{currentCgNo}
+	</delete>
+	
+	<delete id="deleteNonManifestedGcCargoMasterItem" parameterType="nonManifestedCargoOfGcItem">
+		DELETE /*nonManifestedCargoOfGc.deleteNonManifestedGcCargoMasterItem*/
+			TMT_CG_MST
+		WHERE 
+			VSL_CALL_ID 		= #{vslCallId} 
+			AND CG_NO 			= #{currentCgNo} 
+	</delete>
+	
+	<delete id="deleteNonManifestedGccargoJobItem" parameterType="nonManifestedCargoOfGcItem">
+		DELETE 
+			TMT_JOB /*nonManifestedCargoOfGc.deleteNonManifestedGccargoJobItem*/
+		WHERE 
+			VSL_CALL_ID 		= #{vslCallId} 
+			AND CG_NO 			= #{currentCgNo}
+	</delete>
+	
+	<select id="selectCargoJobItems" parameterType="nonManifestedCargoOfGcParm" resultType="nonManifestedCargoOfGcItem">
+		SELECT /*nonManifestedCargoOfGc.selectCargoJobItems*/
+			J.JOB_NO AS jobNo
+		FROM 
+			TMT_JOB J
+		WHERE 
+			J.VSL_CALL_ID 		= #{vslCallId}
+			AND J.CG_NO 		= #{cgNo}
+	</select>
+	
+	<insert id="insertNonManifestedGcInvLocationItems"  parameterType="nonManifestedCargoOfGcItem">
+		INSERT /*nonManifestedCargoOfGc.insertNonManifestedGcInvLocationItems*/
+		INTO TMT_INV_LOC (
+					/*MISSING COLUMN*/
+						VSL_CD,
+						CALL_YEAR,
+						CALL_SEQ,
+						MF_DOC_ID,
+					/*MISSING COLUMN*/
+			JOB_NO,
+			CG_NO,
+			LOC_ID,
+			CG_WGT,
+			CG_VOL,
+			PKG_QTY,
+			VSL_CALL_ID,
+			WH_TP_CD,
+			UPDATE_TIME,
+			STAFF_CD,
+			VERSION,
+			SEQ,
+			WH_LOC_ID
+		) VALUES (
+			(SELECT VSL_CD FROM TMT_VSL_SCH WHERE VSL_CALL_ID= #{vslCallId}),
+			(SELECT CALL_YEAR FROM TMT_VSL_SCH WHERE VSL_CALL_ID= #{vslCallId}),
+			(SELECT CALL_SEQ FROM TMT_VSL_SCH WHERE VSL_CALL_ID= #{vslCallId}),
+			(SELECT MF_DOC_ID FROM TMT_VSL_SCH WHERE VSL_CALL_ID= #{vslCallId}),
+			#{jobNo},
+			#{cgNo},
+			#{locId},
+			#{locWgt},
+			#{locMsrmt},
+			#{locQty},
+			#{vslCallId},
+			#{whTpCd},
+			SYSDATETIME(),
+			#{userId},
+			#{newVersion},
+			(
+				SELECT 
+					ISNULL(MAX(SEQ), 0)+1
+				FROM 
+					TMT_INV_LOC
+				WHERE 
+					VSL_CALL_ID 	= #{vslCallId}
+					AND CG_NO 		= #{linkageCgNo}
+					AND JOB_NO 		= #{jobNo}
+					AND LOC_ID 		= #{locId}
+			),
+			SUBSTRING(#{locId}, 1, CHARINDEX('-', #{locId})-1)
+		)
+	</insert>
+	
+	<insert id="insertNonManifesedGcCargoMasterItems"  parameterType="nonManifestedCargoOfGcItem">
+		INSERT /*nonManifestedCargoOfGc.insertNonManifesedGcCargoMasterItems*/
+		INTO TMT_CG_MST (
+					/*MISSING COLUMN*/
+						VSL_CD,
+						CALL_YEAR,
+						CALL_SEQ,
+						MF_DOC_ID,
+					/*MISSING COLUMN*/
+			VSL_CALL_ID, 
+			CG_NO, 
+			OPE_CLASS_CD, 
+			TSPT_TP_CD, 
+			STAT_CD, 
+			HDL_IN_ST_DT, 
+			HDL_IN_END_DT,
+			PKG_QTY, 
+			PKG_TP_CD, 
+			CG_WGT, 
+			CG_VOL, 
+			DMG_YN, 
+			BL_NO,
+			TMNL_IN_DT,
+			ACTL_DELV_TP_CD,
+			BILL_WGT_V,
+			BILL_MSRMT_V,
+			BILL_PKG_QTY_V,
+			UPDATE_TIME,
+			STAFF_CD,
+			VERSION,
+			SHIPG_NOTE_NO,
+			DELV_TP_CD, 
+			CG_TP_CD, 
+			CMDT_CD,
+			FWR_AGNT, 
+			CNSNE, 
+			CNSNE_NM
+		) VALUES (
+			(SELECT VSL_CD FROM TMT_VSL_SCH WHERE VSL_CALL_ID= #{vslCallId}),
+			(SELECT CALL_YEAR FROM TMT_VSL_SCH WHERE VSL_CALL_ID= #{vslCallId}),
+			(SELECT CALL_SEQ FROM TMT_VSL_SCH WHERE VSL_CALL_ID= #{vslCallId}),
+			(SELECT MF_DOC_ID FROM TMT_VSL_SCH WHERE VSL_CALL_ID= #{vslCallId}),
+			#{vslCallId}, 
+			#{cgNo}, 
+			#{opeClassCd}, 
+			#{tsptTpCd}, 
+			'ST', 
+			#{workStDt}, 
+			#{workEndDt}, 
+			#{pkgQty}, 
+			#{pkgTpCd}, 
+			#{wgt}, 
+			#{msrmt}, 
+			#{dmgYn},
+			#{blNo},
+			#{workEndDt},
+			'I',
+			#{wgt},
+			#{msrmt},
+			#{pkgQty},
+			SYSDATETIME(),
+			#{userId},
+			#{newVersion},
+			#{shipgNoteNo}
+			<if test="blNo != null and blNo != ''">
+				,(SELECT 
+					DELV_TP_CD 
+				FROM 
+					TMT_BL 
+				WHERE 
+					VSL_CALL_ID = #{vslCallId}  
+					AND BL_NO = #{blNo})
+				,(SELECT 
+					CG_TP_CD 
+				FROM 
+					TMT_BL 
+				WHERE 
+					VSL_CALL_ID = #{vslCallId}  
+					AND BL_NO = #{blNo})
+				,(SELECT 
+					CMDT_CD 
+				FROM 
+					TMT_BL 
+				WHERE 
+					VSL_CALL_ID = #{vslCallId}  
+					AND BL_NO = #{blNo})
+				,(SELECT 
+					FWRD 
+				FROM 
+					TMT_BL 
+				WHERE 
+					VSL_CALL_ID = #{vslCallId}  
+					AND BL_NO = #{blNo})
+				,(SELECT 
+					CNSNE 
+				FROM 
+					TMT_BL 
+				WHERE 
+					VSL_CALL_ID = #{vslCallId}  
+					AND BL_NO = #{blNo}) 
+				,(SELECT 
+					DBO.F_PTNR_SNM(CNSNE, 'CNS') 
+				FROM 
+					TMT_BL 
+				WHERE 
+					VSL_CALL_ID = #{vslCallId}  
+					AND BL_NO = #{blNo}) 
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				,(SELECT 
+					DELV_TP_CD 
+				FROM 
+					TMT_SHIPG_NOTE 
+				WHERE 
+					VSL_CALL_ID = #{vslCallId}  
+				AND SHIPG_NOTE_NO = #{shipgNoteNo})
+				,(SELECT 
+					CG_TP_CD 
+				FROM 
+					TMT_SHIPG_NOTE 
+				WHERE 
+					VSL_CALL_ID = #{vslCallId}  
+					AND SHIPG_NOTE_NO = #{shipgNoteNo})
+				,(SELECT 
+					CMDT_CD 
+				FROM 
+					TMT_SHIPG_NOTE 
+				WHERE 
+					VSL_CALL_ID = #{vslCallId}  
+					AND SHIPG_NOTE_NO = #{shipgNoteNo})
+				,(SELECT 
+					SHIPG_AGNCY 
+				FROM 
+					TMT_SHIPG_NOTE 
+				WHERE 
+					VSL_CALL_ID = #{vslCallId}  
+					AND SHIPG_NOTE_NO = #{shipgNoteNo})
+				,(SELECT 
+					FWRD 
+				FROM 
+					TMT_SHIPG_NOTE 
+				WHERE 
+					VSL_CALL_ID = #{vslCallId}  
+					AND SHIPG_NOTE_NO = #{shipgNoteNo})
+				,(SELECT 
+					SHPR 
+				FROM 
+					TMT_SHIPG_NOTE 
+				WHERE 
+					VSL_CALL_ID = #{vslCallId}  
+					AND SHIPG_NOTE_NO = #{shipgNoteNo})
+				,(SELECT 
+					DBO.F_PTNR_SNM(SHPR, 'CNS') 
+				FROM 
+					TMT_SHIPG_NOTE 
+				WHERE 
+					VSL_CALL_ID = #{vslCallId}  
+					AND SHIPG_NOTE_NO = #{shipgNoteNo})		
+				,(SELECT 
+					CNSNE 
+				FROM 
+					TMT_SHIPG_NOTE 
+				WHERE 
+					VSL_CALL_ID = #{vslCallId}  
+					AND SHIPG_NOTE_NO = #{shipgNoteNo})
+				,(SELECT 
+					DBO.F_PTNR_SNM(CNSNE, 'CNS') 
+				FROM 
+					TMT_SHIPG_NOTE 
+				WHERE 
+					VSL_CALL_ID = #{vslCallId}  
+					AND SHIPG_NOTE_NO = #{shipgNoteNo})
+			</if>
+		)
+	</insert>
+	
+	<update id="updateCargoMasterProcedure" parameterType="nonManifestedCargoOfGcItem">
+	/*nonManifestedCargoOfGc.updateCargoMasterProcedure*/
+		{EXECUTE DBO.PRC_CG_MST_UPDATE_AMT #{vslCallId}, #{currentCgNo}, #{jobNo}, #{opeClassCd}, #{userId}, #{newVersion} }
+	</update> 
+	
+	<select id="selectOrgBlComboBoxItem" parameterType="nonManifestedCargoOfGcParm" resultMap="resultLinkageComboItem">
+		SELECT /*nonManifestedCargoOfGc.selectOrgBlComboBoxItem*/
+			BL.BL_NO 																	AS CD,
+			BL.BL_NO 																	AS CD_NM,BL.CATG_CD,
+	        DBO.F_CM_CODE_NM('MT', 'CATGTP', BL.CATG_CD) 								AS CATG_NM,
+	        BL.CG_TP_CD,
+	        DBO.F_CM_CODE_NM('MT', 'CGTP', BL.CG_TP_CD) 								AS CG_TP_NM,BL.DELV_TP_CD,
+	        DBO.F_CM_CODE_NM('MT', 'DELVTP', BL.DELV_TP_CD) 							AS DELV_TP_NM,
+	        BL.CMDT_CD,
+	        (SELECT CMDT.CMDT_DESC FROM TMT_CMDT CMDT WHERE CMDT.CMDT_CD = BL.CMDT_CD) 	AS CMDT_NM,
+	        BL.FWRD 																	AS FWD_CD,
+	        DBO.F_PTNR_SNM(BL.FWRD, 'FWD') 												AS FWD_NM,
+	        BL.CNSNE 																	AS CNS_CD,
+	        DBO.F_PTNR_SNM(BL.CNSNE, 'CNS') 											AS CNS_NM,
+	        MARK_NO,
+	        BL.CG_WGT,
+	        BL.CG_VOL,
+	        BL.PKG_QTY
+		FROM 
+			TMT_BL BL
+		WHERE 
+			BL.VSL_CALL_ID = #{vslCallId}
+			AND BL.DELV_TP_CD IN ('I')
+			AND BL.STAT_CD = 'AP'
+			AND BL.BL_NO NOT IN (
+				SELECT 
+					SLP.BL_NO 
+				FROM 
+					TMT_CONFM_SLP_DTL SLP 
+				WHERE 
+					SLP.VSL_CALL_ID 	= BL.VSL_CALL_ID 
+					AND CG_OPT_TP_CD 	= 'DS'
+			)
+	</select>
+	
+	<insert id="insertNonManifestedGcJobItems"  parameterType="nonManifestedCargoOfGcItem">
+		INSERT /*nonManifestedCargoOfGc.insertNonManifestedGcJobItems*/
+		INTO TMT_JOB (
+			/*MISSING COLUMN*/
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			MF_DOC_ID,
+			/*MISSING COLUMN*/
+			JOB_NO,
+			JOB_TP_CD,
+			CG_NO,
+			VSL_CALL_ID,
+			JOB_GROUP,
+			JOB_PURP_CD,
+			JOB_CO_CD,
+			DELV_TP_CD,
+			OPE_CLASS_CD,
+			TSPT_TP_CD,
+			WORK_ST_DT,
+			WORK_END_DT,
+			SHFT_ID,
+			SHFT_DT,
+			PKG_TP_CD,
+			CG_WGT,
+			CG_VOL,
+			PKG_QTY,
+			STAT_CD,
+			FNL_OPE_YN,
+			FNL_DELV_YN,
+			DMG_YN,
+			UPDATE_TIME,
+			STAFF_CD,
+			VERSION,
+			TO_LOC_ID
+		) VALUES (
+			(SELECT VSL_CD FROM TMT_VSL_SCH WHERE VSL_CALL_ID= #{vslCallId}),
+			(SELECT CALL_YEAR FROM TMT_VSL_SCH WHERE VSL_CALL_ID= #{vslCallId}),
+			(SELECT CALL_SEQ FROM TMT_VSL_SCH WHERE VSL_CALL_ID= #{vslCallId}),
+			(SELECT MF_DOC_ID FROM TMT_VSL_SCH WHERE VSL_CALL_ID= #{vslCallId}),
+			#{jobNo},
+			#{jobTpCd},
+			#{cgNo},
+			#{vslCallId},
+			#{jobGroup},
+			#{jobPurpCd},
+			#{jobCoCd},
+			#{delvTpCd},
+			#{opeClassCd},
+			#{tsptTpCd},
+			#{workStDt},
+			#{workEndDt},
+			#{shftId},
+			CONVERT(datetime, #{shftDt},103),
+			#{pkgTpCd},
+			CASE WHEN ISNULL(#{wgt},0) = 0 THEN 0 ELSE #{wgt} END,
+			CASE WHEN ISNULL(#{msrmt},0) = 0 THEN 0 ELSE #{msrmt} END,
+			CASE WHEN ISNULL(#{pkgQty},0) = 0 THEN 0 ELSE #{pkgQty} END,
+			#{statCd},
+			#{fnlOpeYn},
+			#{fnlDelvYn},
+			#{dmgYn},
+			SYSDATETIME(),
+			#{userId},
+			#{newVersion},
+			#{locId}
+		)
+	</insert>
+	
+	<insert id="insertNonManifestedRegister"  parameterType="nonManifestedCargoOfGcItem">
+		INSERT /*nonManifestedCargoOfGc.insertNonManifestedRegister*/
+		INTO TMT_NON_MANIFEST (
+			JOB_NO,
+			JOB_TP_CD,
+			CG_NO,
+			VSL_CALL_ID,
+			JOB_PURP_CD,
+			OPE_CLASS_CD,
+			CG_WGT,
+			CG_VOL,
+			PKG_QTY,
+			WORK_ST_DT,
+			WORK_END_DT,
+			UPDATE_TIME,
+			STAFF_CD,
+			VERSION,
+			NON_MANIFESTED,
+			RMK,
+			ORIGINAL_CG_NO,
+			SHFT_ID,
+			SHFT_DT,
+			TO_LOC_ID,
+			CRANE
+		) VALUES (
+			('J' + TO_CHAR(SYSDATETIME(), 'YYMMDD') + (SELECT ISNULL(TRIM(To_CHAR(SUBSTRING(MAX(JOB_NO) ,-8,8)+1, '00000000')),'00000000') FROM TMT_NON_MANIFEST)), /*NONEXISTED TABLE*/
+			#{jobTpCd},
+			('NON_' + #{vslCallId} + (SELECT ISNULL(TRIM(To_CHAR(SUBSTRING(MAX(JOB_NO) ,-3,3)+1, '000')),'000') FROM TMT_NON_MANIFEST)),/*NONEXISTED TABLE*/
+			#{vslCallId},
+			#{jobPurpCd},
+			#{catgCd},
+			#{nonManifestedMt},
+			#{nonManifestedM3},
+			#{nonManifestedQty},
+			CONVERT(datetime, #{hdlInStDt}),
+			CONVERT(datetime, #{hdlInEndDt}),
+			SYSDATETIME(),
+			#{userId},
+			#{newVersion},
+			#{nonManifestedStatus},
+			#{remark},
+			#{orgCgNo},
+			#{shftId},
+			#{shftDt},
+			#{craneNo},
+			#{craneNo}
+		)
+	</insert>
+	
+	<update id="updateNonManifestedGc" parameterType="nonManifestedCargoOfGcItem">
+		UPDATE /*nonManifestedCargoOfGc.updateNonManifestedGc*/
+			TMT_NON_MANIFEST 
+		SET		
+			CG_NO 			= #{linkageBlNo},
+			ORIGINAL_CG_NO 	= #{orgCgNo},
+			NON_MANIFESTED 	= #{nonManifestedStatus},
+			UPDATE_TIME 	= SYSDATETIME(),
+			STAFF_CD 		= #{userId},
+			VERSION 		= #{newVersion}
+		WHERE 
+			VSL_CALL_ID	 	= #{vslCallId} 
+		<if test="orgCgNo != null and orgCgNo != ''">
+			AND CG_NO 		= #{orgCgNo}
+		</if>
+		<if test="orgCgNo == null or orgCgNo == ''">
+			AND ORIGINAL_CG_NO = #{linkageBlNo}
+		</if>
+	</update> 
+	
+	<select id="isDeleteValidation" parameterType="nonManifestedCargoOfGcParm" resultType="nonManifestedCargoOfGcItem">
+		SELECT /*nonManifestedCargoOfGc.isDeleteValidation*/
+			CASE 
+				WHEN COUNT (*) 	= 0 THEN 'Y' 
+				ELSE 'N' 
+			END AS isDeleteValidated
+		FROM 
+			TMT_JOB
+		WHERE 
+			VSL_CALL_ID 		= #{vslCallId}
+			AND CG_NO 			= #{cgNo} 
+			AND JOB_PURP_CD IN ('WG', 'WA')
+	</select>
+	
+	
+	<select id="selectShiftInfor" parameterType="nonManifestedCargoOfGcParm" resultMap="resultNonManifestedGcItem">
+		SELECT /*nonManifestedCargoOfGc.selectShiftInfor*/
+			SHFT_ID  				AS SHFTID,
+			SHFT_NM  				AS SHFTNM,
+			CONVERT(DATETIME, (
+				SELECT 
+					CONVERT(VARCHAR,CONVERT(date,#{shftDt} ,112) ,103) + ' ' +CONVERT(VARCHAR, CONCAT(LEFT(S.FM_HHMM, 2), ':', RIGHT(S.FM_HHMM, 2))) AS STARTDT
+				FROM 
+					TMT_SHFT S
+		        WHERE 
+					S.SHFT_METH_CD 	='Standard' 
+					AND S.VLD_YN 	= 'Y'
+					AND S.SHFT_ID	= #{shftId}
+		     ),103) 					AS HDLINSTDT, /*DONE ABOVE*/
+			CONVERT(DATETIME,
+					CASE
+						WHEN CAST(S.TO_HHMM AS INT) >= CAST(S.FM_HHMM AS INT) THEN CONVERT(VARCHAR, DATEADD(DAY, 1, CONVERT(DATETIME,'20011211', 112)), 103) + ' ' 
+							+ CONVERT(VARCHAR, CONCAT(LEFT(S.TO_HHMM, 2), ':', RIGHT(S.TO_HHMM, 2)))
+						ELSE CONVERT(VARCHAR, CONVERT(DATETIME, '20011211', 112), 103) + ' ' 
+							+ CONVERT(VARCHAR, CONCAT(LEFT(S.TO_HHMM, 2), ':', RIGHT(S.TO_HHMM, 2)))
+					END, 103)  		AS HDLINENDDT
+        FROM 
+			TMT_SHFT 
+        WHERE 
+			SHFT_ID=#{shftId}
+	</select>
+	
+	<select id="selectIsCargoMst"   parameterType="nonManifestedCargoOfGcParm" resultType="java.lang.String">
+		SELECT TOP(1) /*nonManifestedCargoOfGc.selectIsCargoMst*/
+			'1' 
+		FROM 
+			TMT_CG_MST
+		WHERE 
+			CG_NO = #{cgNo} 
+			AND	VSL_CALL_ID = #{vslCallId}
+	</select>
+	
+	<select id="selectJobGroupNo" parameterType="nonManifestedCargoOfGcParm" resultType="java.lang.String">
+	 	SELECT /*nonManifestedCargoOfGc.selectJobGroupNo*/
+	 		ISNULL(MAX(CAST(S.JOB_GROUP AS INT)),0)+1 AS JOBGROUP 
+	 	FROM 
+			TMT_JOB S
+	 	WHERE 
+			S.VSL_CALL_ID = #{vslCallId}
+	</select>
+</mapper>

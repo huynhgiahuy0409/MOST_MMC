@@ -1,0 +1,129 @@
+Ext.define('MOST.model.billing.InvoiceAdvice', {
+	extend : 'MOST.model.foundation.dataitem.DataItem',
+	fields: [
+	{
+		name:'vesselCallingID',
+		type:'string'
+	},
+	{
+		name:'vesselName',
+		type:'string'
+	},
+	{
+		name:'adviceNo',
+		type:'string'
+	},
+	{
+		name:'isExisted',
+		type:'string'
+	},
+	{
+		name:'partnerTypeCode',
+		type:'string'
+	},
+	{
+		name:'partnerTypeName',
+		type:'string'
+	},
+	{
+		name:'partnerCode',
+		type:'string'
+	},
+	{
+		name:'partnerName',
+		type:'string'
+	},
+	{
+		name:'tarrifTypeCode',
+		type:'string'
+	},
+	{
+		name:'tarrifTypeName',
+		type:'string'
+	},
+	{
+		name:'operationTypeCode',
+		type:'string'
+	},
+	{
+		name:'operationTypeName',
+		type:'string'
+	},
+	{
+		name:'commodityCode',
+		type:'string'
+	},
+	{
+		name:'handleAmount',
+		type:'string'
+	},
+	{
+		name:'ackStatusCode',
+		type:'string'
+	},
+	{
+		name:'eta',
+		type:'string'
+
+	},
+	{
+		name:'etd',
+		type:'string'
+	},
+	{
+		name:'shippingAgent',
+		type:'string'
+	},
+	{
+		name:'loadding',
+		type:'string'
+	},
+	{
+		name:'discharging',
+		type:'string'
+	},
+	{
+		name:'advSeq',
+		type:'string'
+	},
+	{
+		name:'no',
+		type:'string'
+	},
+	{
+		name:'searchType',
+		type:'string'
+	},
+	{
+		name:'updUserId',
+		type:'string'
+	},
+	{
+		name:'rmk',
+		type:'string'
+	},
+	{
+		name:'updateTimeField',
+		type: 'date',
+		dateFormat: 'time'
+	},
+	{
+		name:'items',
+		mapping: 'invoiceAdviceMap'
+	},
+	{
+		name:'bbtLoc',
+		type:'string'
+	},
+	{
+		name:'cgTpCdDoc',
+		type:'string'
+	},
+	],
+
+	associations: [{
+		type: 'hasMany',
+		name: 'invoiceAdviceMap',
+		model: 'MOST.model.billing.InvoiceAdvice'
+	}]
+});

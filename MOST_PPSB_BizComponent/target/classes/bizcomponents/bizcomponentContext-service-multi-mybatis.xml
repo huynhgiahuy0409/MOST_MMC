@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	<!--  <import resource="classpath:/bizcomponents/bizcomponentContext-basebiz-mybatis.xml"/> -->
+	<!--Database -->
+	<bean id="bwctSqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+ 		 <property name="dataSource">
+			<ref bean="bwctMostDataSource" />
+		 </property>
+		   <property name="configLocation">
+		  	<value>classpath:/bizcomponents/biz/maps/business-${db.type}-map-bwct-mybatis.xml</value>
+		  </property>	
+	</bean>
+
+	<bean id="bwctSqlSession" class="org.mybatis.spring.SqlSessionTemplate" >
+  		<constructor-arg index="0" ref="bwctSqlSessionFactory" />
+	</bean>
+
+	<bean id="nbctSqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+ 		 <property name="dataSource">
+			<ref bean="nbctMostDataSource" />
+		 </property>
+		   <property name="configLocation">
+		  	<value>classpath:/bizcomponents/biz/maps/business-${db.type}-map-nbct-mybatis.xml</value>
+		  </property>	
+	</bean>
+
+	<bean id="nbctSqlSession" class="org.mybatis.spring.SqlSessionTemplate" >
+  		<constructor-arg index="0" ref="nbctSqlSessionFactory" />
+	</bean>
+
+	<bean id="ppctSqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+ 		 <property name="dataSource">
+			<ref bean="bwctMostDataSource" />
+		 </property>
+		   <property name="configLocation">
+		  	<value>classpath:/bizcomponents/biz/maps/business-${db.type}-map-ppct-mybatis.xml</value>
+		  </property>	
+	</bean>
+
+	<bean id="ppctSqlSession" class="org.mybatis.spring.SqlSessionTemplate" >
+  		<constructor-arg index="0" ref="ppctSqlSessionFactory" />
+	</bean>
+		
+	<!-- ############ DAO Defindtions : MyBatis implements #################### -->
+	<!-- per module -->
+	<bean id="bwctMostUnifiedDao" class="com.tsb.most.framework.dao.SqlMapUnifiedDaoMyBatis">
+	    <property name="sqlSession"><ref bean="bwctSqlSession" /></property>
+    </bean>  	
+ 	<bean id="nbctMostUnifiedDao" class="com.tsb.most.framework.dao.SqlMapUnifiedDaoMyBatis">
+	    <property name="sqlSession"><ref bean="nbctSqlSession" /></property>
+    </bean>  	
+ 	<bean id="ppctMostUnifiedDao" class="com.tsb.most.framework.dao.SqlMapUnifiedDaoMyBatis">
+	    <property name="sqlSession"><ref bean="ppctSqlSession" /></property>
+    </bean>   	    
+	<bean id="mostDaoUtil" class="com.tsb.most.framework.bizcomponemt.base.DaoUtil" />    
+	
+  	<!-- ########### DAO for ServiceBizComponents ################################# -->
+
+  	<!-- Document -->
+	<bean id="bwctDraftSurvayDao" class="com.tsb.most.biz.dao.multidb.BwctDraftSurvayDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="bwctMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+	</bean>
+	<bean id="nbctDraftSurvayDao" class="com.tsb.most.biz.dao.multidb.NbctDraftSurvayDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="nbctMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+	</bean>
+	<bean id="ppctDraftSurvayDao" class="com.tsb.most.biz.dao.multidb.PpctDraftSurvayDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="ppctMostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+	</bean>
+	
+  	<!-- ################## ServiceBiz Component Target ######################## -->	
+  	<bean id="bwctdraftSurvayServiceTarget" class="com.tsb.most.biz.service.multidb.BwctDraftSurvayService" lazy-init="true">
+  		<property name="bwctDraftSurvayDao" 				ref="bwctDraftSurvayDao"/>
+  	</bean>
+   	<bean id="nbctdraftSurvayServiceTarget" class="com.tsb.most.biz.service.multidb.NbctDraftSurvayService" lazy-init="true">
+  		<property name="nbctDraftSurvayDao" 				ref="nbctDraftSurvayDao"/>
+  	</bean>
+   	<bean id="ppctdraftSurvayServiceTarget" class="com.tsb.most.biz.service.multidb.PpctDraftSurvayService" lazy-init="true">
+  		<property name="ppctDraftSurvayDao" 				ref="ppctDraftSurvayDao"/>
+  	</bean> 	 	
+	<!-- ###########  Service Component  ################################# -->
+
+	<bean id="bwctdraftSurvayService" parent="bwctMostTxProxyTemplate">
+		<property name="target">
+			<ref bean="bwctdraftSurvayServiceTarget"/>
+		</property>
+	</bean>
+	<bean id="nbctdraftSurvayService" parent="nbctMostTxProxyTemplate">
+		<property name="target">
+			<ref bean="nbctdraftSurvayServiceTarget"/>
+		</property>
+	</bean>
+	<bean id="ppctdraftSurvayService" parent="pbctMostTxProxyTemplate">
+		<property name="target">
+			<ref bean="ppctdraftSurvayServiceTarget"/>
+		</property>
+	</bean>
+</beans>

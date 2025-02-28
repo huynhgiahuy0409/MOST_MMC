@@ -1,0 +1,207 @@
+package com.tsb.most.biz.service.operation;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import com.tsb.most.biz.dao.operation.IVesselDraftSurveyDao;
+import com.tsb.most.biz.dataitem.document.ValidationCodeItem;
+import com.tsb.most.biz.dataitem.operation.VesselDraftSurveyItem;
+import com.tsb.most.biz.parm.operation.SearchVesselDraftSurveyParm;
+import com.tsb.most.framework.baseservice.MOSTBaseService;
+import com.tsb.most.framework.bizparm.BaseBizParm;
+import com.tsb.most.framework.bizparm.base.DeleteItemsBizParm;
+import com.tsb.most.framework.bizparm.base.InsertItemsBizParm;
+import com.tsb.most.framework.bizparm.base.UpdateItemsBizParm;
+import com.tsb.most.framework.dataitem.DataItemList;
+import com.tsb.most.framework.exception.BizException;
+import com.tsb.most.framework.exception.ServiceException;
+import com.tsb.most.framework.serviceprovider.pojo.ServiceProviderPojo;
+
+public class VesselDraftSurvey extends MOSTBaseService implements IVesselDraftSurvey {
+	private static final String[] TERMINALS = { 
+			"anch", "bdsw", "bwct", "calt", "esso", "fery", 
+			"pbct", "prwf", "shel", "swpr", "votp" 
+	};
+	
+	private IVesselDraftSurveyDao vesselDraftSurveyDao;
+
+	public void setVesselDraftSurveyDao(IVesselDraftSurveyDao vesselDraftSurveyDao) {
+		this.vesselDraftSurveyDao = vesselDraftSurveyDao;
+	}
+
+	@Override
+	public DataItemList getVesselDraftSurveyList(SearchVesselDraftSurveyParm parm) throws BizException {
+		return vesselDraftSurveyDao.getVesselDraftSurveyList(parm);
+	}
+
+	@Override
+	public DataItemList getVesselDraftSurveyDetailList(SearchVesselDraftSurveyParm parm) throws BizException {
+		return vesselDraftSurveyDao.getVesselDraftSurveyDetailList(parm);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public DataItemList getVesselDraftSurveyInfo(SearchVesselDraftSurveyParm parm) throws BizException {
+		DataItemList resultList = new DataItemList();
+		VesselDraftSurveyItem vslDraftSurveyItem = new VesselDraftSurveyItem();
+
+		DataItemList terminalDataList = fetchTerminalData(parm, null, "getSummaryDocumentForTerminals");
+
+		double totalWeighbridgeWgt = 0.0;
+		double totalOperationWgt = 0.0;
+		Set<String> uniqueVslCallIds = new HashSet<>();
+
+		for (VesselDraftSurveyItem terminalData : (List<VesselDraftSurveyItem>) terminalDataList.getCollection()) {
+			totalWeighbridgeWgt += terminalData.getWeighbridgeWgt() != null ? terminalData.getWeighbridgeWgt() : 0.0;
+			totalOperationWgt += terminalData.getOperationWgt() != null ? terminalData.getOperationWgt() : 0.0;
+			uniqueVslCallIds.add(terminalData.getVslCallId());
+		}
+
+		vslDraftSurveyItem.setScn(parm.getScn());
+		vslDraftSurveyItem.setVslCd(parm.getVslCd());
+		vslDraftSurveyItem.setWeighbridgeWgt(totalWeighbridgeWgt);
+		vslDraftSurveyItem.setOperationWgt(totalOperationWgt);
+		vslDraftSurveyItem.setNumberOfCalls(uniqueVslCallIds.size());
+
+		resultList.add(vslDraftSurveyItem);
+		return resultList;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public DataItemList insertItems(InsertItemsBizParm insertParm) throws BizException {
+		DataItemList returnList = new DataItemList();
+
+		VesselDraftSurveyItem vslDraftSurvey = (VesselDraftSurveyItem) insertParm.getInsertItem();
+
+		DataItemList vslDraftSurveyDtlList = fetchTerminalData(insertParm, vslDraftSurvey, "getDocumentItems");
+
+		calculateVslDraftSurveyDtl(vslDraftSurvey, vslDraftSurveyDtlList.getCollection());
+
+		insertParm.setInsertItems(vslDraftSurveyDtlList);
+
+		try {
+			for (String terminal : TERMINALS) {
+				new ServiceProviderPojo().execute(String.format("MOST.%sDraftSurveyService.insertItems", terminal),
+						insertParm);
+			}
+		} catch (Exception e) {
+			throw new BizException(e);
+		}
+
+		returnList.add(vslDraftSurvey);
+
+		return returnList;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public DataItemList updateItems(UpdateItemsBizParm updateParm) throws BizException, ServiceException {
+		VesselDraftSurveyItem vslDraftSurvey = (VesselDraftSurveyItem) updateParm.getUpdateItem();
+
+		SearchVesselDraftSurveyParm searchParm = new SearchVesselDraftSurveyParm();
+		searchParm.setBranchCode(updateParm.getBranchCode());
+		searchParm.setScn(vslDraftSurvey.getScn());
+		searchParm.setVslCd(vslDraftSurvey.getVslCd());
+
+		DataItemList vslDraftSurveyDtlList = getVesselDraftSurveyDetailList(searchParm);
+		calculateVslDraftSurveyDtl(vslDraftSurvey, vslDraftSurveyDtlList.getCollection());
+
+		updateParm.setUpdateItems(vslDraftSurveyDtlList);
+
+		try {
+			for (String terminal : TERMINALS) {
+				new ServiceProviderPojo().execute(String.format("MOST.%sDraftSurveyService.updateItems", terminal),
+						updateParm);
+			}
+		} catch (Exception e) {
+			throw new BizException(e);
+		}
+
+		DataItemList returnList = new DataItemList();
+		returnList.add(vslDraftSurvey);
+
+		return returnList;
+	}
+
+	@Override
+	public DataItemList deleteItems(DeleteItemsBizParm deleteParm) throws BizException {
+		DataItemList deleteItems = deleteParm.getDeleteItems();
+		VesselDraftSurveyItem deleteItem = (VesselDraftSurveyItem) deleteItems.getCollection().get(0);
+
+		SearchVesselDraftSurveyParm searchParm = new SearchVesselDraftSurveyParm();
+		searchParm.setBranchCode(deleteParm.getBranchCode());
+		searchParm.setScn(deleteItem.getScn());
+		searchParm.setVslCd(deleteItem.getVslCd());
+
+		try {
+			for (String terminal : TERMINALS) {
+				new ServiceProviderPojo().execute(String.format("MOST.%sDraftSurveyService.deleteItems", terminal),
+						deleteParm);
+			}
+		} catch (Exception e) {
+			throw new BizException(e);
+		}
+
+		return new DataItemList();
+	}
+
+	private DataItemList fetchTerminalData(BaseBizParm baseBizParm, VesselDraftSurveyItem vslDraftSurvey,
+			String serviceMethod) throws BizException {
+		SearchVesselDraftSurveyParm searchParm = null;
+
+		if (baseBizParm instanceof SearchVesselDraftSurveyParm) {
+			searchParm = (SearchVesselDraftSurveyParm) baseBizParm;
+		} else {
+			searchParm = new SearchVesselDraftSurveyParm();
+			searchParm.setScn(vslDraftSurvey.getScn());
+			searchParm.setVslCd(vslDraftSurvey.getVslCd());
+			searchParm.setBranchCode(baseBizParm.getBranchCode());
+		}
+
+		DataItemList combinedData = new DataItemList();
+
+		for (String terminal : TERMINALS) {
+			DataItemList terminalData = (DataItemList) new ServiceProviderPojo()
+					.execute(String.format("MOST.%sDraftSurveyService.%s", terminal, serviceMethod), searchParm);
+			if (terminalData.size() > 0) {
+				combinedData.addDataItemList(terminalData);
+			}
+		}
+
+		return combinedData;
+	}
+
+	public void calculateVslDraftSurveyDtl(VesselDraftSurveyItem vslDraftSurvey, List<VesselDraftSurveyItem> vslDraftSurveyDtlList) {
+		double overallWeight = vslDraftSurvey.getWeighbridgeWgt() + vslDraftSurvey.getOperationWgt();
+
+		vslDraftSurveyDtlList.forEach(vslDraffSurveyDtl -> {
+			double weightFactor = (vslDraffSurveyDtl.getWeighbridgeWgt() + vslDraffSurveyDtl.getOperationWgt())
+					/ overallWeight;
+			vslDraffSurveyDtl.setDraftSurveyWgt(weightFactor * vslDraftSurvey.getDraftSurveyWgt());
+			vslDraffSurveyDtl.setUserId(vslDraftSurvey.getUserId());
+		});
+	}
+
+	@Override
+	public DataItemList isValidated(SearchVesselDraftSurveyParm parm) throws BizException {
+		ValidationCodeItem validationResult = new ValidationCodeItem();
+		validationResult.setIsValidated("Y");
+
+		for (String terminal : TERMINALS) {
+			DataItemList validationItems = (DataItemList) new ServiceProviderPojo().execute(
+					String.format("MOST.%sDraftSurveyService.checkIfReconcileStatusIsVerified", terminal), parm);
+
+			if (validationItems != null && !validationItems.getCollection().isEmpty()) {
+				validationResult.setIsValidated("N");
+				break;
+			}
+		}
+
+		DataItemList result = new DataItemList();
+		result.add(validationResult);
+		return result;
+	}
+}

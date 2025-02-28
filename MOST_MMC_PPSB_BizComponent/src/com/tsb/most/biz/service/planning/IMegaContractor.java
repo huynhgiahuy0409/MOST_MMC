@@ -1,0 +1,9 @@
+package com.tsb.most.biz.service.planning;
+
+import com.tsb.most.biz.parm.planning.SearchMegaParm;
+import com.tsb.most.framework.dataitem.DataItemList;
+import com.tsb.most.framework.exception.BizException;
+
+public interface IMegaContractor {
+    public DataItemList selectMegaContractorList(SearchMegaParm parm) throws BizException;
+}

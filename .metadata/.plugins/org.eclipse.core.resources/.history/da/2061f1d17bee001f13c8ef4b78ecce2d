@@ -1,0 +1,4562 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="popupService">
+
+	<resultMap 	id="resultPartnerCodeTypeList" 					type="popupServiceItem">
+		<result property = "ptnrCode"							column = "PTNR_CODE"/>
+		<result property = "ptnrType"							column = "PTNR_TYPE"/>
+		<result property = "ptnrTpNm"							column = "PTYDIVNAME"/>
+		<result property = "ptnrName"							column = "ENG_SNM"/>
+		<result property = "telNo"								column = "TEL_NO"/>
+		<result property = "faxNo"								column = "FAX_NO"/>
+		<result property = "representative"						column = "REPRESENTATIVE"/>
+		<result property = "holdChk"							column = "HOLD_CHK"/>
+		<result property = "accountHold"						column = "ACCOUNT_HOLD"/>
+		<result property = "accNo"								column = "ACC_NO"/>
+		<result property = "addr"								column = "ADDR"/>
+		<result property = "paymentType"						column = "PAYMENT_TYPE"/>
+		
+		<result property = "lorryNo"							column = "LORRY_NO"/>
+		<result property = "lorryId"							column = "LORRY_ID"/>
+		<result property = "transportCd"						column = "ENG_SNM"/>
+		<result property = "transportName"						column = "ENG_SNM"/>
+	</resultMap>
+	
+	<resultMap 	id="resultCodeMasterList" 						type="popupServiceItem">
+		<result property = "code"								column = "S_CD"/>
+		<result property = "codeName"							column = "S_CD_NM"/>
+		<result property = "mcd"	 							column = "M_CD"/>
+        <result property = "scdLgv"		 						column = "S_CD_LGV"/> 
+        <result property = "scdVal"		 						column = "S_CD_VAL"/>
+        <result property = "scdDesc"		 					column = "S_CD_DESC"/>
+        <result property = "cgTp"		 						column = "CG_TP"/>
+        <result property = 'mfDocId'							column = "MF_DOC_ID"/>
+	</resultMap>
+	
+	<resultMap 	id="resultCommodityGrpCode" 					type="popupServiceItem">
+		<result property = "code"								column = "CODE"/>
+		<result property = "codeName"							column = "CODENAME"/>
+		<result property = "cmmdGrpCode"						column = "CMDT_GRP_CD"/>
+		<result property = "cmmdGrpName"						column = "CMDT_GRP_DESC"/>
+		<result property = "cmmdTpCd"							column = "CG_TP_CD"/>
+	</resultMap>
+	
+	<resultMap 	id="resultCommodityCode" 						type="popupServiceItem">
+		<result property = "code"								column = "CMDT_CD"/>
+		<result property = "codeName"							column = "CMDT_DESC"/>
+		<result property = "cmmdTpCd"							column = "CG_TP_CD"/>
+		<result property = "cmmdGrpCode"						column = "CMDT_GRP_CD"/>
+		<result property = "cmmdGrpName"						column = "CMDT_GRP_DESC"/>
+		<result property = "unno"								column = "UNNO"/>
+		<result property = "imdg"								column = "IMDG"/>
+	</resultMap>
+	
+	<resultMap 	id="resultGroupList" 							type="popupServiceItem">
+		<result property = "authGrp"							column = "AUTH_GRP"/>
+		<result property = "authGrpName"						column = "AUTH_GRP_NM"/>
+	</resultMap>
+	
+	<resultMap 	id="resultDelayCodeList" 						type="popupServiceItem">
+		<result property = "scd"								column = "SCD"/>
+		<result property = "scdNm"								column = "SCDNM"/>
+		<result property = "acptYN"								column = "ACPTYN"/>
+	</resultMap>
+	
+	<resultMap 	id="resultEmpIdList" 							type="popupServiceItem">
+		<result property = "roleCd"								column = "ROLECD"/>
+		<result property = "sRoleCd"							column = "SROLECD"/>
+		<result property = "empId"								column = "EMPID"/>
+		<result property = "empNm"								column = "EMPNM"/>
+	</resultMap>
+	
+
+	<select id="selectShippingAgentCodeTypeList"  parameterType="searchpopupServiceParm" resultMap="resultPartnerCodeTypeList">
+		SELECT /* popupservice.selectShippingAgentCodeTypeList */
+			AGENCY_CODE          	 							AS PTNR_CODE,
+			PTNR_TYPE         		 							AS PTNR_TYPE,
+			(SELECT TOP(1)
+				S_CD_NM 
+			FROM
+				TMT_CD_MSTD 
+			WHERE 
+				L_CD	 = 'CM' 
+				AND M_CD = 'PTNRTP' 
+				AND S_CD = AGNT.PTNR_TYPE) 						AS PTYDIVNAME,
+			ENG_SNM          		 							AS ENG_SNM,
+			TEL_NO                    							AS TELNO,
+			FAX_NO                    							AS FAXNO,
+			REPRESENTATIVE            							AS REPRESENTATIVE,
+			HOLD_CHK					 						AS HOLDCHK,
+			ACCOUNT_HOLD				 						AS ACCOUNTHOLD,
+			ADDR						 						AS ADDR,
+			AGNT.ACC_NO 				 						AS ACC_NO,
+			ISNULL(AGNT.PAYMENT_TYPE, 'M') 						AS PAYMENT_TYPE
+		FROM 
+			TMT_AGENCY_INFO 									AGNT
+		WHERE 
+			1 = 1
+			<if test="accNoYn == 'Y'">
+					AND	(AGNT.ACC_NO IS NOT NULL				AND AGNT.ACC_NO <![CDATA[<>]]> '')
+			</if> 
+			<if test="ptnrType != null and ptnrType != ''">
+					AND	PTNR_TYPE 								=  #{ptnrType}
+			</if>
+			<if test="ptnrType == null or ptnrType == ''">
+					<if test='defaultPtnrCodeYn == null or defaultPtnrCodeYn == "N"'>
+						AND PTNR_TYPE 							IN ('FWD', 'SHA')
+					</if>
+			</if>
+			<if test="reqType == 'CD'">
+				<if test="ptnrCode != null and ptnrCode != ''">
+					AND	PTNR_CODE 								LIKE  #{ptnrCode} + '%'
+				</if>
+			</if>
+			<if test="reqType == 'NM'">
+				<if test="ptnrName != null and ptnrName != ''">
+					AND	ENG_SNM 								LIKE  #{ptnrName} + '%'
+				</if>
+			</if>
+		GROUP BY 
+		  	AGNT.AGENCY_CODE,
+			AGNT.PTNR_TYPE,
+			AGNT.ENG_SNM,
+			AGNT.TEL_NO,
+			AGNT.FAX_NO,
+			AGNT.REPRESENTATIVE,
+			AGNT.HOLD_CHK,
+			AGNT.ACCOUNT_HOLD,
+			AGNT.ACC_NO,
+			AGNT.PAYMENT_TYPE
+			AGNT.ADDR
+	</select>
+
+
+	<select id="selectPartnerCodeType"  parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		SELECT /* popupservice.selectPartnerCodeType */
+			S_CD												AS PTYCD,
+			S_CD_NM 											AS ENGPTYNM
+		FROM 
+			TMT_CD_MSTD 
+		WHERE 
+			M_CD 												LIKE 'PTNRTP'
+		<if test="searchModule != null and searchModule != ''">
+			AND L_CD											= 'MT' 
+		</if>
+		<if test="searchModule == null or searchModule == ''">
+			AND L_CD											= 'CM' 
+		</if>		  		
+	</select>
+	
+	<select id="selectPartnerCodeTypeList"  parameterType="searchpopupServiceParm" resultMap="resultPartnerCodeTypeList">
+		SELECT /* popupservice.selectPartnerCodeTypeList */
+	  		PTNR_CODE,
+			PTNR_TYPE,
+			(SELECT TOP(1)
+				S_CD_NM 
+			FROM 
+				TMT_CD_MSTD 
+			WHERE 
+				L_CD					= 'CM' 
+				AND M_CD				= 'PTNRTP' 
+				AND S_CD 				= PTNR.PTNR_TYPE) 		AS PTYDIVNAME,
+			ENG_SNM,
+			TEL_NO,
+			FAX_NO,
+			REPRESENTATIVE,
+			HOLD_CHK,
+			ACCOUNT_HOLD,
+			dbo.F_PTNR_TYPE_LIST(	
+				'SELECT 
+					PTNR_TYPE 
+				FROM 
+					TMT_AGENCY_INFO 
+				WHERE  
+					AGENCY_CODE = ''' + PTNR.PTNR_CODE + ''''  
+				+ ' UNION ALL ' + 
+				'SELECT 
+					PTNR_TYPE 
+				FROM 
+					TMT_PTNR 
+				WHERE 
+					PTNR_CODE = '''+PTNR.PTNR_CODE+'''', '/') 	AS PTNRTYPES,
+			PTNR.ADDR 											AS ADDR,
+			PTNR.ACC_NO 										AS ACC_NO,
+			PTNR.PAYMENT_TYPE
+		FROM 
+			TMT_PTNR PTNR
+		WHERE 
+			1 = 1
+			<if test="accNoYn == 'Y'">
+				AND	(PTNR.ACC_NO IS NOT NULL					AND PTNR.ACC_NO <![CDATA[<>]]> '')
+			</if>
+			<if test="ptnrStatus == 'active'">
+				AND PTNR.PTNR_CODE 								NOT IN	(SELECT
+																			PTNR_CODE
+																		FROM     
+																			TMT_PTNR_SYS PTNS 
+																		WHERE     
+																			PTNS.SYS_OWNER_AP 	 = 'P'
+																			AND PTNS.USER_ID	 = 'SYSTEM'
+																			AND PTNS.SYSTEM_CODE = 'MPTS')
+			</if> 	  	     	      
+			<if test="ptnrType != null and ptnrType != ''">
+				AND	PTNR_TYPE 									=  #{ptnrType}
+			</if>
+			<if test="ptnrType == null or ptnrType == ''">
+				<if test='defaultPtnrCodeYn == null or defaultPtnrCodeYn == "N"'>
+					AND PTNR_TYPE 								IN ('FWD', 'SHA')
+				</if>
+			</if>
+			<if test="reqType == 'CD'">
+				<if test="ptnrCode != null and ptnrCode != ''">
+					AND	PTNR.PTNR_CODE 							LIKE  #{ptnrCode} + '%'
+				</if>
+			</if>
+			<if test="reqType == 'NM'">
+				<if test="ptnrName != null and ptnrName != ''">
+					AND	ENG_SNM 								LIKE  #{ptnrName} + '%'
+				</if>
+			</if>
+	  	GROUP BY 
+		  	PTNR.PTNR_CODE,
+			PTNR.PTNR_TYPE,
+			PTNR.ENG_SNM,
+			PTNR.TEL_NO,
+			PTNR.FAX_NO,
+			PTNR.REPRESENTATIVE,
+			PTNR.HOLD_CHK,
+			PTNR.ACCOUNT_HOLD,
+			PTNR.ADDR,
+			PTNR.ACC_NO,
+			PTNR.PAYMENT_TYPE
+	</select>
+	
+	<select id="selectCodeMasterList"  parameterType="searchpopupServiceParm" resultMap="resultCodeMasterList">
+		SELECT	/* popup-popupservice.selectCodeMasterList */
+			A.S_CD 												AS S_CD, 
+			A.S_CD_NM 											AS S_CD_NM
+		FROM 
+			TMT_CD_MSTD 										A, 
+			TMT_CD_MSTM 										B, 
+			TMT_CD_MSTL 										C
+		<where> 
+			A.L_CD 												= C.L_CD
+			AND B.L_CD 											= C.L_CD
+			AND	A.M_CD 											= B.M_CD
+		<if test="lcd != null and lcd != ''">
+			AND C.L_CD 											= #{lcd}
+		</if>
+		<if test="mcd != null and mcd != ''">
+			AND	B.M_CD 											= #{mcd}
+		</if>
+		<if test="scd !=null and scd != ''">
+			AND	A.S_CD 											LIKE '%' + #{scd} + '%'
+		</if>
+		<if test="scdNm !=null and scdNm != ''">
+			AND	A.S_CD_NM 										LIKE '%' + #{scdNm} + '%'
+		</if>
+		<if test="commCd != null and commCd != ''">
+			AND A.S_CD 											IN 	(SELECT 
+																		D.PKGTP_CD 
+																	FROM 
+																		TMT_CMDT_PKGTP D 
+																	WHERE 
+																		D.CMDT_CD LIKE #{commCd})
+		</if>
+			AND C.USE_YN										= 'Y'
+			AND B.USE_YN										= 'Y'
+		</where>
+		ORDER BY 
+			A.L_CD, 
+			A.M_CD, 
+			A.S_CD
+	</select>
+	
+	<select id="selectImportManifestComboList" parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		SELECT DISTINCT /* popup-popupservice.selectImportManifestComboList */
+			BL.VSL_CALL_ID 										AS vslCallId,
+			BL.MF_DOC_ID 										AS code,
+			BL.MF_DOC_ID 										AS codeName,
+			BL.CG_TP_CD 										AS cgTp,
+			BL.MF_DOC_ID 										AS mfDocId
+		FROM 
+			TMT_BL 												BL
+		INNER JOIN 
+			TMT_MF MF 
+				ON BL.VSL_CALL_ID 								= MF.VSL_CALL_ID 
+				AND BL.MF_DOC_ID 								= MF.MF_DOC_ID
+		WHERE 
+			BL.CG_TP_CD 										NOT IN ('RCV', 'RMA')
+		<if test="vslCallId != null and vslCallId != ''">
+			AND BL.VSL_CALL_ID 									= #{vslCallId}
+		</if>
+		ORDER BY 
+			BL.VSL_CALL_ID
+	</select>
+	
+	<select id="selectCommodityGroupCode"  parameterType="searchpopupServiceParm" resultMap="resultCommodityGrpCode">
+		SELECT /* popup-popupservice.selectCommodityGroupCode */
+			CMDT_GRP_CD 										AS CODE,
+			CMDT_GRP_CD 										AS CMDT_GRP_CD,
+			CMDT_GRP_DESC										AS CODENAME,
+			CMDT_GRP_DESC										AS CMDT_GRP_DESC,
+			CG_TP_CD											AS CG_TP_CD 
+		FROM 
+		 	TMT_CMDT_GRP
+		WHERE 
+		 	1 = 1
+			<if test="reqType == 'CD'">
+				<if test="scd != null and scd != ''">
+					AND CMDT_GRP_CD 							LIKE #{scd} + '%'
+				</if> 
+				<if test="scd == null or scd == ''">
+					<if test="cgTpCd != null and cgTpCd != ''">					
+						AND CG_TP_CD 							LIKE #{cgTpCd} 							
+					</if>						
+				</if>
+			</if>
+			<if test="reqType == 'NM'">
+				<if test="scdNm != null and scdNm != ''">
+					AND CMDT_GRP_DESC 							LIKE #{scdNm} = '%'
+				</if>
+				<if test="scdNm == null or scdNm == ''">
+					<if test="cgTpCd != null and cgTpCd != ''">					
+						AND CG_TP_CD 							LIKE #{cgTpCd} 							
+					</if>								
+				</if>
+			</if>		
+			AND (CMDT_GRP_CD IS NOT NULL						AND CMDT_GRP_CD <![CDATA[<>]]> '')
+		ORDER BY 
+			CMDT_GRP_DESC
+	</select>
+
+	<select id="selectCommodityCode"  parameterType="searchpopupServiceParm" resultMap="resultCommodityCode">
+		SELECT /* popup-popupservice.selectCommodityCode */
+			CMDT_CD      										AS CMDT_CD,
+			CMDT_DESC    										AS CMDT_DESC,
+			CG_TP_CD 											AS CG_TP_CD,
+			CMDT_GRP_CD 										AS CMDT_GRP_CD,
+			CMDT_GRP_DESC										AS CMDT_GRP_DESC,
+			IMDG												AS IMDG,
+			UNNO												AS UNNO
+		FROM 	
+			TMT_CMDT
+		WHERE 	
+			1 = 1  
+		<if test="codeType != null and codeType != ''">
+   			AND CG_TP_CD 										= UPPER(#{codeType})
+		</if>
+		<if test="reqType == 'CD'">
+			<if test="scd != null and scd != ''">
+   				AND CMDT_CD 									LIKE #{scd} + '%'
+			</if>
+			<if test="scd == null or scd == ''">								
+					<if test="((commGrpCd != null and commGrpCd != '') and (cgTpCd == null or cgTpCd == '')) or ((commGrpCd != null and commGrpCd != '') and (cgTpCd != null and cgTpCd != ''))">
+						AND CMDT_GRP_CD 						LIKE #{commGrpCd}	
+					</if>
+					<if test="(commGrpCd == null or commGrpCd == '') and (cgTpCd != null and cgTpCd != '')">
+						AND CG_TP_CD 							LIKE #{cgTpCd}	
+					</if>
+			</if>
+		</if>
+		<if test="reqType == 'NM'">
+			<if test="scdNm != null and scdNm != ''">
+   					AND CMDT_DESC 								LIKE #{scdNm} + '%'
+			</if>
+			<if test="scdNm == null or scdNm == ''">						
+					<if test="((commGrpCd != null and commGrpCd != '') and (cgTpCd == null or cgTpCd == '')) or ((commGrpCd != null and commGrpCd != '') and (cgTpCd != null and cgTpCd != ''))">
+						AND CMDT_GRP_CD							LIKE #{commGrpCd}	
+					</if>
+					<if test="(commGrpCd == null or commGrpCd == '') and (cgTpCd != null and cgTpCd != '')">
+						AND CG_TP_CD 							LIKE #{cgTpCd}	
+					</if>						
+			</if>
+		</if>
+		ORDER BY 
+			CMDT_DESC
+	</select>
+
+	<select id="selectPartnerCodeList"  parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		SELECT /* popup-popupservice.selectPartnerCodeList */
+			PTNR.PTNR_CODE          							AS ptnrCode,
+		   	ENG_SNM          									AS ptnrName,
+		   	(SELECT TOP(1)
+		   		S_CD_NM 
+		   	FROM 
+		   		TMT_CD_MSTD 
+		   	WHERE 
+		   		L_CD 		= 'CM' 
+		   		AND M_CD 	= 'PTNRTP' 
+		   		AND S_CD 	= PTNR.PTNR_TYPE
+		   	) 													AS ptnrTpNm,
+		   	TEL_NO                   							AS TELNO,
+		   	FAX_NO                    							AS FAXNO,
+		   	CUST_CD				   								AS ACCOUNTNO		   	
+		   	<if test="ptnrType != 'VDPR'">
+		   		, PTNR_TYPE         							AS ptnrType
+            	, dbo.F_PTNR_TYPE_LIST (PTNR.PTNR_CODE,
+		          '/') 											AS ptnrTypes
+		        , 1												AS ptnrTypes
+		   		, ADDR                    						AS ADDR
+		   		, REPRESENTATIVE         						AS REPRESENTATIVE
+		   		, HOLD_CHK				 						AS HOLDCHK
+		   		, ACCOUNT_HOLD			 						AS ACCOUNTHOLD
+		   	</if>
+		FROM 
+			TMT_PTNR PTNR
+		WHERE
+			1 = 1
+	    <if test="ptnrType != null and ptnrType != ''">
+       		AND
+		    <if test="ptnrType == 'VDPR'">
+				PTNR_TYPE 										IN ('STV','CTT','TRM')
+			</if>
+			<if test="ptnrType != 'VDPR'">
+			    PTNR_TYPE 										=  #{ptnrType}
+			</if>
+		</if>
+		<if test="reqType == 'CD'">
+			<if test="ptnrCode != null and ptnrCode != ''">
+		    	AND PTNR.PTNR_CODE 								LIKE  #{ptnrCode} + '%'
+			</if>
+		</if>
+		<if test="reqType == 'NM'">
+		    <if test="ptnrName != null and ptnrName != ''">
+        		AND (ENG_SNM LIKE #{ptnrName} + '%' 			OR LOWER(ENG_SNM) LIKE LOWER(#{ptnrName}) + '%') 
+			</if>
+		</if>
+		GROUP BY 
+			PTNR.PTNR_CODE,
+			ENG_SNM,
+		    PTNR_TYPE,
+		    TEL_NO,
+            FAX_NO,
+		    ADDR,
+		    REPRESENTATIVE,
+		    HOLD_CHK,
+		    ACCOUNT_HOLD,
+		    CUST_CD
+		ORDER BY 
+			ptnrName ASC       	  
+	</select>
+
+	<select id="selectShippingAgentPartnerCodeList"  parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		SELECT /* popup-popupservice.selectShippingAgentPartnerCodeList */
+			*
+		FROM 
+			(SELECT
+				AGNT.AGENCY_CODE          						AS ptnrCode,
+				PTNR_TYPE         		  						AS ptnrType,
+				(SELECT TOP(1)
+					S_CD_NM 
+				FROM 
+					TMT_CD_MSTD 
+				WHERE 
+					L_CD 	 = 'CM' 
+					AND M_CD ='PTNRTP' 
+					AND S_CD = AGNT.PTNR_TYPE) 					AS ptnrTpNm,
+				ENG_SNM          		  						AS ptnrName,
+				TEL_NO                     						AS TELNO,
+				FAX_NO                     						AS FAXNO,
+				ADDR                       						AS addr,
+				REPRESENTATIVE             						AS representative,
+				HOLD_CHK					  					AS holdChk,
+				ACCOUNT_HOLD				 					AS accountHold,
+				CUST_CD					  						AS ACCOUNTNO
+			FROM 
+				TMT_AGENCY_INFO 								AGNT
+			WHERE 
+				1 = 1
+				<if test="reqType == 'CD'">
+					AND AGNT.AGENCY_CODE 						LIKE #{ptnrCode} + '%'
+				</if>
+				<if test="reqType == 'NM'">
+					AND ENG_SNM 								LIKE #{ptnrName} + '%'
+				</if>
+			GROUP BY 
+				AGNT.AGENCY_CODE,
+				PTNR_TYPE,
+				ENG_SNM,
+				TEL_NO,
+				FAX_NO,
+				ADDR,
+				REPRESENTATIVE,
+				HOLD_CHK,
+				ACCOUNT_HOLD,
+				CUST_CD
+			) A
+	</select>
+	
+	<select id="selectAuthorityGroupPopup" parameterType="searchpopupServiceParm" resultMap="resultGroupList">
+		SELECT /* popup-popupservice.selectAuthorityGroupPopup */
+			AUTH_GRP    										AS authGrp, 
+			AUTH_GRP_NM 										AS authGrpName
+		FROM 
+			TMT_AUTH_GROUP
+		WHERE 
+			1 = 1
+		<if test="authGrp != null and authGrp != ''">
+			AND AUTH_GRP 										LIKE '%' + #{authGrp} + '%'
+		</if>
+		<if test="authGrpName != null and authGrpName != ''">
+			AND UPPER(AUTH_GRP_NM) 								LIKE UPPER('%' + #{authGrpName} + '%')
+		</if>
+		ORDER BY 
+			AUTH_GRP
+	</select>
+
+	<select id="selectSAgentList" parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		SELECT /* popup-popupservice.selectSAgentList */
+			PTNR_CODE 											AS ptnrCode, 
+			ENG_SNM 											AS ptnrName, 
+			REG_NO, 
+			(SELECT DISTINCT
+				S_CD_NM 
+			FROM 
+				TMT_CD_MSTD 
+			WHERE 
+				L_CD 	 = 'CM' 
+				AND M_CD = 'PTNRTP' 
+				AND S_CD = PTNR_TYPE) 							AS ptnrType
+		FROM 
+			TMT_PTNR
+		WHERE 
+			SUBSTRING(PTNR_CODE, 0, 4)  						&lt;&gt; 'PTNR'
+			AND ISNULL(HOLD_CHK, 'N') 							&lt;&gt; 'Y'
+		<if test="ptnrType != '' and ptnrType != null">
+			AND PTNR_TYPE 										= UPPER(#{ptyDivCd})
+		</if>
+		<if test="ptnrCode != '' and ptnrCode != null">
+			AND PTNR_CODE 										LIKE UPPER(#{ptnrCode} + '%')
+		</if>
+		<if test="ptnrName != '' and ptnrName != null ">
+			AND UPPER(ENG_SNM) 									LIKE UPPER(#{ptnrName} + '%')
+		</if>
+		ORDER BY 
+			ENG_SNM
+		OFFSET 0 ROWS
+		FETCH NEXT 1001 ROWS ONLY;
+	</select>
+	
+	<select id="selectTariffCodeList" parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		<!-- sMantis: 0167150 -->
+		WITH 
+			TARIFF_INFO AS (
+				SELECT
+						C.UNIT_PRC 								AS UNITPRC,
+						C.SUB_TRF_CD 							AS subTrfCd,
+						CONVERT(DATETIME, C.APLY_YMD, 112) 		AS aplyYmd,		
+						C.MIN_RATE								AS minRate,	
+						CASE
+							WHEN (C.EXPR_YMD IS NULL OR C.EXPR_YMD = '')
+								THEN 'N/A'
+							ELSE C.EXPR_YMD
+						END										AS exprYmd,
+					C.TRF_CD 									AS trfCd 
+					FROM 
+						TMT_B_TRF 								C 
+					WHERE 
+						C.PRC_TP_CD 							= 'S'
+			)
+		<!-- eMantis: 0167150 -->
+		SELECT /* popup-popupservice.selectTariffCodeList */
+			TRF_CD 												AS trfCd,
+			SUB_TRF_CD 											AS subTrfCd,
+			DESCR 												AS descr,
+			TRF_TP_CD 											AS trfTpCd,
+			(SELECT TOP(1)
+				S_CD_NM 
+			FROM 
+				TMT_CD_MSTD 
+			WHERE 
+				L_CD 	 = 'MT' 
+				AND M_CD = 'TRFTP' 
+				AND S_CD = TRF_TP_CD) 							AS trfTpCdNm, 
+			BILL_TP_CD 											AS billTpCd,
+			SSR_TP_CD 											AS ssrTpCd,
+			(SELECT 
+				S_CD_NM 
+			FROM 
+				TMT_CD_MSTD 
+			WHERE 
+				L_CD 	 = 'MT' 
+				AND M_CD = 'SSRTP' 
+				AND S_CD = SSR_TP_CD) 							AS ssrTpCdNm,
+			COST_CENT_CD 										AS costCntCd,
+			PAYER 												AS payerCd,
+			IV_UNIT1 											AS ivUnit1,
+			IV_UNIT2 											AS ivUnit2,
+			IV_UNIT3 											AS ivUnit3,
+			(SELECT TOP(1)
+				CASE CHARINDEX('.', CAST(UNITPRC AS VARCHAR(20)))
+					WHEN 1 
+						THEN '0' + + CAST(UNITPRC AS VARCHAR(20))
+					ELSE CAST(UNITPRC AS VARCHAR(20))
+
+				END 											AS UNITPRC
+			FROM 
+				TARIFF_INFO
+			WHERE 
+				trfCd 											= A.TRF_CD 
+				AND subTrfCd 									= A.SUB_TRF_CD 
+				AND aplyYmd 									<![CDATA[<=]]> SYSDATETIME()
+				AND (exprYmd 		= 'N/A' 
+					OR 	(exprYmd 	!= 'N/A' 
+						AND CONVERT(DATETIME, exprYmd, 112) > SYSDATETIME() ))
+			ORDER BY 
+				aplyYmd
+			) 													AS stdPrc,
+			(SELECT TOP(1)
+				MINRATE											AS MINRATE
+			FROM 
+				TARIFF_INFO
+			WHERE 
+				trfCd 											= A.TRF_CD 
+				AND subTrfCd 									= A.SUB_TRF_CD 
+				AND aplyYmd 									<![CDATA[<=]]> SYSDATETIME()
+				AND (exprYmd 		= 'N/A' 
+					OR 	(exprYmd 	!= 'N/A' 
+						AND CONVERT(DATETIME, exprYmd, 112) > SYSDATETIME() ))
+			ORDER BY 
+				aplyYmd
+			) 													AS minRate,
+			STAFF_CD 											AS staffCd,
+			FORMAT(UPDATE_TIME,'dd/MM/yyyy HH:mm:ss') 			AS updTime,
+			TAX_TYPE											AS gstTpCd,
+			ISNULL(TAX_VALUE, 0)								AS gstRate,
+			ERP_COST_CENT 										AS erpCostCntCd
+		FROM 
+			TMT_B_TRF_CD 										A
+		WHERE 
+			VLD_YN 												= 'Y'
+			<if test="costCntCd != null and costCntCd != ''">
+  				AND	COST_CENT_CD 								= #{costCntCd}
+			</if>
+			<if test="trfTpCd != null and trfTpCd != ''">
+  				AND	TRF_TP_CD 									= #{trfTpCd}
+			</if>
+			<if test="billTpCd != null and billTpCd != ''">
+  				AND	BILL_TP_CD 									= #{billTpCd}
+			</if>
+			<if test="trfCd != null and trfCd != ''">
+   				AND	TRF_CD 										= #{trfCd}
+			</if>
+			<if test="subTrfCd != null and subTrfCd != ''">
+   				AND	SUB_TRF_CD 									= #{subTrfCd}
+			</if>
+			<if test="searchType == 'INV_TPL'">
+				ORDER BY 
+					trfTpCdNm
+			</if>
+		ORDER BY 
+			trfTpCd ASC, 
+			SUB_TRF_CD ASC
+	</select>
+
+	<select id="selectPortCodeList" parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+        SELECT /* popup-popupservice.selectTariffCodeList */
+			A.CNTRY_CD 											AS countryCode,
+			B.CNTRY_NM 											AS countryName,
+			PORT_NM 											AS portName,
+			A.CNTRY_CD + PORT_CD  								AS portCode
+        FROM 
+			TMT_PORT_MST 										A, 
+			TMT_CNTRY_MST 										B
+        WHERE 
+			1 = 1
+        	AND A.CNTRY_CD 										= B.CNTRY_CD
+			<if test="countryCode !='' and countryCode !=null">
+				AND UPPER(A.CNTRY_CD) 							LIKE UPPER(#{countryCode}) + '%'
+			</if>
+			<if test="countryName !='' and countryName !=null">
+				AND UPPER(B.CNTRY_NM) 							LIKE UPPER(#{countryName}) + '%'
+			</if>
+			<if test="portName !='' and portName !=null">
+				AND UPPER(PORT_NM) 								LIKE UPPER(#{portName}) + '%'
+			</if>
+			<if test="portCode !='' and portCode != null">
+				AND (UPPER(A.CNTRY_CD) + UPPER(PORT_CD)) 		LIKE  '%' + UPPER(#{portCode}) + '%'
+			</if>
+    	ORDER BY 
+			UPPER(PORT_NM)
+	</select>
+
+	<select id="selectPackageList" parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		SELECT /* popup-popupservice.selectPackageList */
+		    A.PKGTP_CD											AS code,
+		    B.S_CD_NM											AS codeName,
+		    A.CMDT_CD
+		FROM
+		    TMT_CMDT_PKGTP 										A,
+		    (SELECT 
+				* 
+			FROM 
+				TMT_CD_MSTD 
+			WHERE 
+				M_CD = 'PKGTP' ) 								B 
+		WHERE 
+			A.PKGTP_CD 											= B.S_CD
+        <if test="pkgTpCode !='' and pkgTpCode !=null"> 
+ 			AND A.PKGTP_CD 										LIKE #{pkgTpCode} + '%' 
+		</if> 
+		<if test="scdNm !='' and scdNm !=null">
+			AND B.S_CD_NM 										LIKE #{scdNm} +'%'
+		</if>
+		<if test="commCd !='' and commCd !=null">
+			AND A.CMDT_CD 										LIKE #{commCd}
+		</if>
+	</select>
+
+	<select id="selectUnnoList" parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		SELECT /* popup-popupservice.selectUnnoList */
+			UNNO 												AS unno, 
+		    CLASS 												AS classLevel,
+		    SUBSTANCE 											AS substance
+		FROM 
+			TMT_IMDGDATA
+		WHERE 
+			1 = 1
+		<if test="reqType == 'CD'">
+	        <if test="unno !='' and unno !=null"> 
+	 			AND UNNO 										LIKE #{unno} +'%' 
+			</if> 
+		</if>
+		<if test="reqType == 'NM'">
+			<if test="classLevel !='' and classLevel !=null">
+				AND CLASS 										LIKE #{classLevel} +'%'
+			</if>
+		 </if>
+		<if test="substance !='' and substance !=null">
+			AND SUBSTANCE 										LIKE #{substance} +'%'
+		</if>
+		ORDER BY 
+			UNNO
+	</select>
+
+	<select id="selectImdgList" parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+	  	SELECT /* popup-popupservice.selectImdgList */
+			UNNO 												AS code, 
+	        CLASS 												AS codeName
+	    FROM 
+			TMT_IMDGDATA
+		WHERE 
+			1 = 1
+		<if test="reqType == 'CD'">
+			<if test="scd != null and scd != ''">
+   				AND UNNO 										LIKE  #{scd} + '%'
+			</if>
+		</if>
+		<if test="reqType == 'NM'">
+			<if test="scdNm != null and scdNm != ''">
+   				AND CLASS 										LIKE  #{scdNm} + '%'
+			</if>
+		</if>
+		ORDER BY 
+			UNNO
+	</select>
+
+	<select id="selectCountryCodeList" parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		SELECT /* popup-popupservice.selectCountryCodeList */
+			CNTRY_CD											AS code,
+			CNTRY_NM											AS codeName			 
+		FROM 
+			TMT_CNTRY_MST
+		WHERE 
+			1 = 1
+		<if test="scd !='' and scd !=null">
+			AND (UPPER(CNTRY_CD)+UPPER(CNTRY_CD)) 				LIKE  '%' + UPPER(#{scd}) + '%'
+		</if>
+		<if test="scdNm !='' and scdNm != null">
+			AND UPPER(CNTRY_NM) 								LIKE UPPER(#{scdNm}) + '%'
+		</if>
+		ORDER BY 
+			CNTRY_CD ASC
+	</select>
+
+	<select id = "selectExternalTruckList"  parameterType = "searchpopupServiceParm" resultType = "popupServiceItem">
+		SELECT DISTINCT /* popup-popupservice.selectExternalTruckList */
+			ISNULL(LORRY_NO, ' ') 								AS lorryNo,
+			ISNULL(LORRY_ID, ' ') 								AS lorryId,
+			PTNR_CD            									AS ptnrCode,
+			ALLOW_WGT		   									AS allowWgt,
+			AUTH_TOW_WGT	   									AS towedWgt,
+			(SELECT 
+				P.ENG_SNM 
+			FROM 
+				TMT_PTNR P 
+			WHERE 
+				P.PTNR_TYPE 	= 'TRK' 
+				AND P.PTNR_CODE = PTNR_CD) 						AS transportName
+		FROM 
+			TMT_TRUCK_MST
+		<where>
+			<if test="tsptComp != null and tsptComp != ''">
+				AND PTNR_CD    									IN (${tsptComp})
+			</if>
+			<if test="lorryNo != null and lorryNo != ''">
+				AND LORRY_NO 									LIKE '%' + #{lorryNo} + '%'			
+			</if>
+			<if test="lorryId != null and lorryId != ''">
+				AND LORRY_ID 									LIKE '%' + #{lorryId} + '%'
+			</if>
+		</where>
+	</select>
+	
+	<select id = "selectInternalTruckList"  parameterType = "searchpopupServiceParm" resultType = "popupServiceItem">
+		SELECT DISTINCT /* popup-popupservice.selectInternalTruckList */
+			ISNULL(EQ_FAC_NO, ' ') 								AS lorryNo,
+			ISNULL(EQ_FAC_NO, ' ') 								AS lorryId,
+			'' 													AS ptnrCode,
+			CA.CAPA 											AS allowWgt,
+			CA.CAPA 											AS towedWgt,
+			'' 													AS transportName
+		FROM 	
+			TMT_EQ_FAC 											EQ
+		LEFT OUTER JOIN 
+			TMT_EQ_CAPA 										CA
+		        ON EQ.CAPA_CD 									= CA.CAPA_CD 
+				AND EQ.EQ_TP_CD 								= CA.EQ_TP_CD
+		WHERE 	
+			EQ.EQ_TP_CD 										= 'YT' 
+			AND ((EQ.VLD_YN IS NULL OR EQ.VLD_YN = '') OR EQ.VLD_YN != 'N')
+			<if test="lorryNo != null and lorryNo != ''">
+				AND EQ_FAC_NO 									LIKE '%' + #{lorryNo} + '%'			
+			</if>
+			<if test="contractor != null and contractor != ''">
+				AND CONTT_NO = #{contractor}			
+			</if>
+	</select>
+	
+	<select id = "selectExternalDriverList"  parameterType = "searchpopupServiceParm" resultType = "popupServiceItem">
+		<if test="codeType == null or codeType == ''">
+			SELECT DISTINCT /* popup-popupservice.selectExternalDriverList */
+				ISNULL(M.DRIVER_ID, ' ') 						AS driverId,
+				ISNULL(M.DRIVER_NM, ' ') 						AS driverName,
+				ISNULL(M.LICS_NO, ' ')   						AS licenseNo,
+				FORMAT(M.LICS_EXPR_YMD,'dd/MM/yyyy') 			AS licenseExpired,
+				PTNR_CD             							AS ptnrCode,
+				P.ENG_SNM 										AS transportName
+			FROM 
+				TMT_DRIVER_MST 									M
+					LEFT OUTER JOIN TMT_PTNR P
+        				ON P.PTNR_TYPE 							= 'TRK'
+        				AND P.PTNR_CODE 						= M.PTNR_CD
+				<if test="cgTpCd != null and cgTpCd != ''">
+					LEFT OUTER JOIN 
+						TMT_CG_ARRV_DELV 						D 
+							ON D.DRIVER_ID 						= M.DRIVER_ID
+				</if>
+			<where>
+				<if test="tsptComp != null and tsptComp != ''">
+					AND M.PTNR_CD 								IN (${tsptComp})
+				</if>
+				<if test="driverId != null and driverId != ''">
+					AND	M.DRIVER_ID 							LIKE '%' + #{driverId} + '%'
+				</if>
+				<if test="driverName != null and driverName != ''">
+					AND M.DRIVER_NM 							LIKE '%' + #{driverName} + '%'
+				</if>
+				<if test="vslCallId != null and vslCallId != ''">
+					AND D.VSL_CALL_ID 							LIKE '%' + #{vslCallId} + '%'
+				</if>
+				<if test="blNo != null and blNo != ''">
+					AND D.CG_NO 								LIKE '%' + #{blNo} + '%'
+				</if>
+				<if test="cgTpCd != null and cgTpCd != ''">
+					AND (D.GATE_IN_DT IS NOT NULL				AND D.GATE_IN_DT  <![CDATA[<>]]> '')
+					AND (D.GATE_OUT_DT IS NULL					OR D.GATE_OUT_DT  = '')
+					AND (D.GATE_TXN_NO IS NOT NULL				AND D.GATE_TXN_NO <![CDATA[<>]]> '')
+					AND (D.JOB_NO IS NULL						OR D.JOB_NO = '')
+					AND D.CG_TP_CD IN ('RCV')
+				</if>
+			</where>
+		</if>
+
+		<if test="codeType != null and codeType != ''">
+			SELECT DISTINCT /* popup-popupservice.selectExternalDriverList */							
+				TDM.DRIVER_ID													AS DRIVERID,
+                TDM.DRIVER_NM													AS DRIVERNAME,
+                TDM.LICS_NO														AS LICENSENO,
+                TDM.LICS_EXPR_YMD												AS LICENSEEXPIRED,
+                TDM.PTNR_CD														AS TRANSPORTCD,
+				TDM.PTNR_CD														AS PTNRCODE,
+                dbo.F_GET_PARTNER_INFO ( TDM.PTNR_CD, 'ENG_SNM')		  		AS TRANSPORTNAME,
+                L.LORRY_NO														AS LORRYNO,
+                CASE
+                   	WHEN (L.BL_NO IS NOT NULL AND L.BL_NO <![CDATA[<>]]> '') 
+				   	THEN B.CG_TP_CD
+                   	ELSE S.CG_TP_CD
+                END 															AS CG_TP_CD,
+                CASE
+                   	WHEN (L.BL_NO IS NOT NULL AND L.BL_NO <![CDATA[<>]]> '')
+						THEN
+							CASE
+								WHEN 
+									(SELECT 
+										COUNT (*)
+									FROM 
+										TMT_CUSTOMS_RELEASE
+									WHERE     
+										VSL_CALL_ID = L.VSL_CALL_ID
+										AND DOC_NO  = B.MF_DOC_ID) > 0
+								THEN
+									'Released'
+								ELSE
+									'Hold'
+							END
+                   	ELSE
+                      	CASE
+                         	WHEN 
+						 		(SELECT 
+						 			COUNT (*)
+                                FROM 
+									TMT_CUSTOMS_RELEASE
+                                WHERE     
+									VSL_CALL_ID = L.VSL_CALL_ID
+                                    AND DOC_NO 	= S.MF_DOC_ID) > 0
+                         			THEN 'Released'
+                         	ELSE 'Hold'
+                      	END
+                END																AS customsReleasedStatus,
+                CASE
+                   	WHEN (L.BL_NO IS NOT NULL AND L.BL_NO <![CDATA[<>]]> '')
+						THEN FORMAT(CGSDO.CHECKIN_TIME, 'dd/MM/yyyy HH:mm')
+                   	ELSE FORMAT(CGGR.CHECKIN_TIME, 'dd/MM/yyyy HH:mm')
+                END																AS agChkInTime,
+                CASE
+                   	WHEN (L.BL_NO IS NOT NULL AND L.BL_NO <![CDATA[<>]]> '') 
+				   		THEN CGSDO.GATE_IN_DT
+                   	ELSE CGGR.GATE_IN_DT
+                END																AS gateInDt,
+                CASE
+                   	WHEN (L.BL_NO IS NOT NULL AND L.BL_NO <![CDATA[<>]]> '') 
+				   		THEN CGSDO.GATE_OUT_DT
+                   	ELSE CGGR.GATE_OUT_DT
+                END																AS gateOutDt
+	        FROM 
+				TMT_ASSIGN_TRANSPORT 											L
+	        LEFT JOIN 
+				TMT_GR 															G
+	                ON L.VSL_CALL_ID 											= G.VSL_CALL_ID
+	            	AND L.SHIPG_NOTE_NO 										= G.SHIPG_NOTE_NO
+	                AND L.GR_NO 												= G.GR_NO
+	        LEFT JOIN 
+				TMT_DO_DTL 														D
+	                ON L.VSL_CALL_ID 											= D.VSL_CALL_ID
+					AND L.BL_NO 												= D.BL_NO
+					AND L.DO_NO 												= D.DO_NO
+					AND L.SDO_NO 												= D.SDO_NO
+	        LEFT JOIN 
+				TMT_SHIPG_NOTE 													S
+	                ON L.VSL_CALL_ID 											= S.VSL_CALL_ID
+	                AND L.SHIPG_NOTE_NO 										= S.SHIPG_NOTE_NO
+	        LEFT JOIN 
+				TMT_BL 															B
+	                ON L.VSL_CALL_ID 											= B.VSL_CALL_ID 
+					AND L.BL_NO 												= B.BL_NO
+	        LEFT OUTER JOIN 
+				TMT_CG_ARRV_DELV 												CGSDO
+	                ON L.VSL_CALL_ID 											= CGSDO.VSL_CALL_ID
+	                AND L.SDO_NO 												= CGSDO.SDO_NO
+	                AND L.LORRY_NO 												= CGSDO.LORRY_NO
+	        LEFT OUTER JOIN 
+				TMT_CG_ARRV_DELV 												CGGR
+	                ON L.VSL_CALL_ID 											= CGGR.VSL_CALL_ID
+	                AND L.GR_NO 												= CGGR.GR_NO
+	                AND L.LORRY_NO 												= CGGR.LORRY_NO
+	       	LEFT OUTER JOIN (
+	       		SELECT 
+	       			DRIVER_ID,
+	       			DRIVER_NM,
+	       			PTNR_CD,
+	       			LICS_NO,
+	       			FORMAT(LICS_EXPR_YMD, 'dd/MM/yyyy')						AS LICS_EXPR_YMD
+	       		FROM
+	       			TMT_DRIVER_MST
+	       	)																	TDM
+	       		ON L.DRIVER_ID 													= TDM.DRIVER_ID
+	       		AND L.TRANSPORT													= TDM.PTNR_CD
+	        WHERE 
+				1 = 1
+				<if test='cgTpCd != null and cgTpCd.equals("RCV")'>
+					AND (B.CG_TP_CD IN ('RCV') 									OR S.CG_TP_CD IN('RCV'))
+				</if>
+				AND (L.DRIVER_ID IS NOT NULL									AND L.DRIVER_ID <![CDATA[<>]]> '')
+				<if test="driverId != null and driverId != ''">
+					AND L.DRIVER_ID 											LIKE '%' + #{driverId} + '%'
+				</if>
+				<if test="vslCallId != null and vslCallId != ''">
+					AND L.VSL_CALL_ID 											LIKE '%' + #{vslCallId} + '%'
+				</if>
+				<if test="blNo != null and blNo != ''">
+					AND L.BL_NO 												LIKE '%' + #{blNo} + '%'
+				</if>
+				<if test="driverName != null and driverName != ''">
+					AND TDM.DRIVER_NM 											LIKE '%' + #{driverName} + '%'
+				</if> 
+		</if>
+	</select>
+
+	<select id = "selectChassisList"  parameterType = "searchpopupServiceParm" resultType = "popupServiceItem">
+		SELECT 	DISTINCT /* popup-popupservice.selectChassisList */
+			ISNULL(PLATE_NO, ' ') 								AS plateNo,
+			PTNR_CD             								AS ptnrCode,
+			ALLOW_WGT											AS allowWgt,
+			TARE_WGT											AS tareWgt
+		FROM 
+			TMT_CHASSIS_MST
+		<where>
+			<if test="plateNo != null and plateNo != ''">
+				AND PLATE_NO 									LIKE '%'+ #{plateNo} + '%'
+			</if>
+			<if test="tsptComp != null and tsptComp != ''">
+				AND PTNR_CD 									IN (${tsptComp})
+			</if>
+		</where>
+	</select>
+	
+	<select id = "selectInternalChassisList"  parameterType = "searchpopupServiceParm" resultType = "popupServiceItem">
+		SELECT DISTINCT /* popup-popupservice.selectInternalChassisList */
+			ISNULL(EQ_FAC_NO, '') 								AS plateNo,
+			'' 													AS ptnrCode,
+			'' 													AS allowWgt
+		FROM 	
+			TMT_EQ_FAC 											EQ
+		LEFT OUTER JOIN 
+			TMT_EQ_CAPA 										CA
+		    	ON EQ.CAPA_CD 									= CA.CAPA_CD 
+				AND EQ.EQ_TP_CD 								= CA.EQ_TP_CD
+		WHERE 	
+			EQ.EQ_TP_CD 										= 'CH'
+			AND ((EQ.VLD_YN IS NULL								OR EQ.VLD_YN = '') 
+				OR EQ.VLD_YN != 'N')
+			<if test="plateNo != null and plateNo != ''">
+				AND EQ_FAC_NO 									LIKE '%' + #{plateNo} + '%'
+			</if>
+	</select>
+	
+	<select id = "selectAssignmentYardTruckList"  parameterType = "searchpopupServiceParm" resultType = "popupServiceItem">
+		SELECT /* popup-popupservice.selectAssignmentYardTruckList */
+			A.VSL_CALL_ID     									AS vslCallId,
+			A.BL_NO           									AS blNo,
+			A.SHIPG_NOTE_NO   									AS shipgNoteNo,
+			A.LORRY_NO        									AS lorryNo,
+			A.CHASSIS_NO      									AS plateNo,
+			A.DRIVER_ID       									AS driverId
+			,W.TRANSACTION_NO   								AS wbTransactionNo 
+			,W.FIRST_WGT										AS firstWgt
+		FROM    
+			TMT_ASSIGN_TRANSPORT 								A 
+		INNER JOIN 
+			TMT_EQ_FAC E 
+				ON A.LORRY_NO 									= E.EQ_FAC_NO
+		LEFT OUTER JOIN 
+			TMT_BL B 
+				ON A.VSL_CALL_ID 								= B.VSL_CALL_ID 
+				AND A.BL_NO 									= B.BL_NO
+		LEFT OUTER JOIN 
+			TMT_SHIPG_NOTE 										S 
+				ON A.VSL_CALL_ID 								= S.VSL_CALL_ID 
+				AND A.SHIPG_NOTE_NO 							= S.SHIPG_NOTE_NO
+		LEFT OUTER JOIN 
+			TMT_WEIGHTBRIDGE 									W 
+				ON A.VSL_CALL_ID 								= W.VSL_CALL_ID 
+				AND A.LORRY_NO 									= W.LORRY_NO
+				AND (((A.SHIPG_NOTE_NO IS NOT NULL 				AND A.SHIPG_NOTE_NO <![CDATA[<>]]> '') 
+					AND A.SHIPG_NOTE_NO 						= W.SHIPG_NOTE_NO )
+					OR 	((A.BL_NO IS NOT NULL					AND A.BL_NO <![CDATA[<>]]> '') 
+						AND A.BL_NO 							= W.BL_NO))
+		WHERE   
+			A.TRUCK_MODE 										= 'I'
+			AND E.EQ_TP_CD 										= 'YT'
+			AND E.STAT_CD 										= 'AV'
+			AND (
+				    (ISNULL(B.WGT_CHK, S.WGT_CHK) = 'N' OR B.CG_TP_CD = 'LQD')
+				    OR 	
+				    (
+					    (W.GATE_TICKET_NO IS NULL OR W.GATE_TICKET_NO = '')
+						AND (W.FIRST_WGT IS NOT NULL AND W.FIRST_WGT <![CDATA[<>]]> 0)
+						AND (W.SECOND_WGT IS NULL OR W.SECOND_WGT = 0)
+						AND W.STATUS != 'N'
+					)
+               	)
+		<!-- 
+			<if test="weightCheckYn eq 'Y'.toString()"> 
+				AND W.GATE_TICKET_NO IS NULL 
+				AND W.FIRST_WGT IS NOT NULL 
+				AND W.SECOND_WGT IS NULL 
+ 	        </if> 
+		-->  
+			<if test="vslCallId != null and vslCallId != ''">
+				AND A.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+				<if test="blNo != null and blNo != ''">
+				AND A.BL_NO 									= #{blNo}
+			</if>
+				<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				AND A.SHIPG_NOTE_NO 							= #{shipgNoteNo}
+			</if>
+	</select>
+	
+	<select id = "selectAssignmentTruckList"  parameterType = "searchpopupServiceParm" resultType = "popupServiceItem">
+		<if test='withoutSDO == "Y"'>
+					WITH 			
+			GR_EXIST_OPE_DIRECT AS
+				(SELECT DISTINCT
+					VSL_CALL_ID,
+					CG_NO
+				FROM 
+					TMT_JOB
+				WHERE 
+					JOB_TP_CD 			= 'LD' 
+					AND JOB_PURP_CD 	= 'GV'),
+			
+			GR_EXIST_OPE_INDIRECT AS
+				(SELECT DISTINCT
+					VSL_CALL_ID,
+					CG_NO
+				FROM 
+					TMT_JOB
+				WHERE 
+					JOB_TP_CD 			= 'LF' 
+					AND JOB_PURP_CD 	= 'GW'),
+
+			ASSIGNMENT_DATA AS
+				(SELECT DISTINCT
+					L.VSL_CALL_ID       												AS VSLCALLID,
+					L.LORRY_NO          												AS LORRYNO,
+					(SELECT TOP(1)
+						L.DRIVER_ID 
+					FROM 
+						TMT_DRIVER_MST D 
+					WHERE 
+						L.DRIVER_ID = D.DRIVER_ID) 										AS DRIVERID,
+					(SELECT TOP(1)
+						D.DRIVER_NM 
+					FROM 
+						TMT_DRIVER_MST D 
+					WHERE 
+						D.DRIVER_ID = L.DRIVER_ID) 										AS DRIVERNAME,
+					(SELECT TOP(1)
+						D.LICS_NO 
+					FROM 
+						TMT_DRIVER_MST D 
+					WHERE 
+						D.DRIVER_ID = L.DRIVER_ID) AS LICENSENO,
+					(SELECT TOP(1)
+						FORMAT(D.LICS_EXPR_YMD, 'dd/MM/yyyy') 
+					FROM 
+						TMT_DRIVER_MST D 
+					WHERE 
+						D.DRIVER_ID = L.DRIVER_ID) 										AS LICENSEEXPIRED,
+					(SELECT TOP(1)
+						MST.PTNR_CD
+					FROM 
+						TMT_TRUCK_MST MST
+					WHERE 
+						L.LORRY_NO = MST.LORRY_NO
+						AND CHARINDEX(',' + MST.PTNR_CD + ',', ',' + L.TRANSPORT + ',') > 0
+					) 																	AS TRANSPORTCD,
+					dbo.F_GET_PARTNER_INFO(
+						(SELECT TOP(1) 
+							MST.PTNR_CD
+						FROM 
+							TMT_TRUCK_MST MST
+						WHERE 
+							L.LORRY_NO = MST.LORRY_NO
+							AND CHARINDEX(',' + MST.PTNR_CD + ',', ',' + L.TRANSPORT + ',') > 0
+						), 
+						'ENG_SNM') 														AS TRANSPORTNAME,
+					L.BL_NO             												AS BLNO,
+					L.DO_NO																AS DONO,
+					L.SHIPG_NOTE_NO     												AS SHIPGNOTENO,
+					L.GR_NO             												AS GRNO,
+					CASE
+						WHEN (L.BL_NO IS NOT NULL AND L.BL_NO <![CDATA[<>]]> '') 
+							THEN B.CG_TP_CD
+						ELSE S.CG_TP_CD
+					END 																AS CG_TP_CD,
+					(
+						SELECT TOP 1
+							CASE 
+								WHEN L.BL_NO IS NOT NULL THEN 'I' 
+								ELSE 'E'
+							END AS IECD
+						FROM TMT_GCS_RECV CR
+						WHERE
+							CR.BK_NO =  (
+											CASE 
+												WHEN L.BL_NO IS NOT NULL THEN L.BL_NO
+												ELSE S.MF_DOC_ID
+											END
+										)
+							AND CR.VSL_ID		= L.VSL_CALL_ID
+							AND CR.CUST_MSG_TP	= 'N'
+						ORDER BY CR.SEQ03 DESC
+					)																	AS custMode,
+					CASE 	
+						WHEN (L.BL_NO IS NOT NULL AND L.BL_NO <![CDATA[<>]]> '')
+							THEN
+								CASE 
+									WHEN 
+										(SELECT 
+											COUNT(*) 
+										FROM 
+										 	 TMT_CUSTOMS_RELEASE 
+										WHERE 
+										 	VSL_CALL_ID 	= L.VSL_CALL_ID 
+										 	AND DOC_NO 		= B.MF_DOC_ID) > 0 
+										THEN 'Released' 
+									ELSE 'Hold' 
+								END
+						ELSE
+							CASE 
+								WHEN 
+									(SELECT 
+										COUNT(*) 
+									FROM 
+										TMT_CUSTOMS_RELEASE 
+									WHERE 
+										VSL_CALL_ID 		= L.VSL_CALL_ID 
+										AND DOC_NO 			= S.MF_DOC_ID) > 0 
+									THEN 'Released' 
+								ELSE 'Hold' 
+							END
+					END 																AS customsReleasedStatus,
+					CASE
+						WHEN (L.BL_NO IS NOT NULL AND L.BL_NO <![CDATA[<>]]> '') 
+							THEN FORMAT(CGDO.CHECKIN_TIME, 'dd/MM/yyyy HH:mm')
+						ELSE FORMAT(CGGR.CHECKIN_TIME, 'dd/MM/yyyy HH:mm')
+					END 																AS agChkInTime,
+					CASE
+						WHEN (L.BL_NO IS NOT NULL AND L.BL_NO <![CDATA[<>]]> '') 
+							THEN CGDO.GATE_IN_DT
+						ELSE CGGR.GATE_IN_DT
+					END 																AS gateInDt,
+					CASE
+						WHEN (L.BL_NO IS NOT NULL AND L.BL_NO <![CDATA[<>]]> '') 
+							THEN CGDO.GATE_OUT_DT
+						ELSE CGGR.GATE_OUT_DT
+					END 																AS gateOutDt
+				FROM    
+					TMT_ASSIGN_TRANSPORT 												L
+
+				LEFT JOIN 
+					TMT_GR 																G
+						ON 	L.VSL_CALL_ID 												= G.VSL_CALL_ID
+						AND L.SHIPG_NOTE_NO 											= G.SHIPG_NOTE_NO
+						AND L.GR_NO 													= G.GR_NO
+
+				LEFT JOIN 
+					TMT_DO 																D
+						ON  L.VSL_CALL_ID 												= D.VSL_CALL_ID
+						AND L.BL_NO 													= D.BL_NO
+						AND L.DO_NO 													= D.DO_NO
+						AND L.DO_NO 													= D.DO_NO
+
+				LEFT JOIN TMT_SHIPG_NOTE 												S
+						ON  L.VSL_CALL_ID 												= S.VSL_CALL_ID
+						AND L.SHIPG_NOTE_NO 											= S.SHIPG_NOTE_NO
+				
+				LEFT JOIN 
+					TMT_BL 																B 
+						ON  L.VSL_CALL_ID 												= B.VSL_CALL_ID 
+						AND L.BL_NO 													= B.BL_NO
+				
+				LEFT OUTER JOIN 
+					TMT_CG_ARRV_DELV 													CGDO
+						ON L.VSL_CALL_ID 												= CGDO.VSL_CALL_ID
+						AND L.DO_NO 													= CGDO.DO_NO
+						AND L.LORRY_NO 													= CGDO.LORRY_NO
+				
+				LEFT OUTER JOIN 
+					TMT_CG_ARRV_DELV 													CGGR
+						ON L.VSL_CALL_ID 												= CGGR.VSL_CALL_ID
+						AND L.GR_NO 													= CGGR.GR_NO
+						AND L.LORRY_NO 													= CGGR.LORRY_NO
+				LEFT OUTER JOIN 
+					GR_EXIST_OPE_DIRECT 												OPEDIRECTGR
+						ON  L.VSL_CALL_ID 												= OPEDIRECTGR.VSL_CALL_ID
+						AND L.GR_NO 													= OPEDIRECTGR.CG_NO
+				
+				LEFT OUTER JOIN 
+					GR_EXIST_OPE_INDIRECT 												OPEINDIRECTGR
+						ON  L.VSL_CALL_ID 												= OPEINDIRECTGR.VSL_CALL_ID
+						AND L.GR_NO 													= OPEINDIRECTGR.CG_NO
+				WHERE 
+					1 = 1
+					<if test="cgTpCd == null or cgTpCd == ''">
+						AND L.TRUCK_MODE 												= 'E'
+					</if>
+			)
+
+		SELECT DISTINCT /* popup-popupservice.selectAssignmentTruckList */
+		    VSLCALLID,
+            BLNO,
+			DONO,
+		    SHIPGNOTENO,
+		    GRNO,
+			LORRYNO,
+			DRIVERID,
+			DRIVERNAME,
+			LICENSENO,
+			LICENSEEXPIRED,
+			TRANSPORTCD,
+			TRANSPORTNAME,
+			CUSTOMSRELEASEDSTATUS,
+			AGCHKINTIME,
+			CUSTMODE
+		FROM    
+			ASSIGNMENT_DATA
+		WHERE   
+			(GATEINDT IS NULL OR GATEINDT = '')
+			AND (TRANSPORTCD <![CDATA[<>]]> '' AND TRANSPORTCD IS NOT NULL)
+			<if test="cgTpCd != null and cgTpCd != ''">
+				AND CG_TP_CD  															IN ('RCV')
+			</if>
+			<if test="cgTpCd == null or cgTpCd == ''">
+				AND CG_TP_CD 															NOT IN ('RCV')
+			</if>
+			<if test="lorryNo != null and lorryNo != ''">
+				AND LORRYNO 															LIKE '%' + #{lorryNo} + '%'
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+				AND VSLCALLID 															= #{vslCallId}
+			</if>
+		GROUP BY
+		    VSLCALLID,
+            BLNO,
+			DONO,
+            SHIPGNOTENO,
+            GRNO,
+			LORRYNO,
+			DRIVERID,
+			DRIVERNAME,
+			LICENSENO,
+			LICENSEEXPIRED,
+			TRANSPORTCD,
+			TRANSPORTNAME,
+			CUSTOMSRELEASEDSTATUS,
+			AGCHKINTIME,
+			CUSTMODE
+		</if>
+		<if test='withoutSDO != "Y"'>
+				WITH 			
+				<!-- Table to check SDO existed Gate out or not -->
+				SDO_EXIST_GATE_OUT AS
+					(SELECT DISTINCT
+						VSL_CALL_ID,
+						CG_NO,
+						SDO_NO
+					FROM 
+						TMT_JOB
+					WHERE 
+						JOB_TP_CD 			= 'GO'),
+					
+				<!-- Table to check GR existed Gate out or not -->
+				GR_EXIST_GATE_OUT AS
+					(SELECT DISTINCT
+						VSL_CALL_ID,
+						CG_NO
+					FROM 
+						TMT_JOB
+					WHERE 
+						JOB_TP_CD 			= 'GO'),
+	         
+				<!-- Table to check SDO has done operation or not -->
+				SDO_EXIST_OPE_DIRECT AS
+					(SELECT DISTINCT
+						VSL_CALL_ID,
+						CG_NO,
+						SDO_NO
+					FROM 
+						TMT_JOB
+					WHERE 
+						JOB_TP_CD 			= 'DS' 
+						AND JOB_PURP_CD 	= 'VG'),
+	         
+				<!-- Table to check SDO has done operation or not -->
+				SDO_EXIST_OPE_INDIRECT AS
+					(SELECT DISTINCT
+						VSL_CALL_ID,
+						CG_NO,
+						SDO_NO
+					FROM 
+						TMT_JOB
+					WHERE 
+						JOB_TP_CD 			= 'LO' 
+						AND JOB_PURP_CD 	= 'WG' 
+						AND (SDO_NO IS NOT NULL AND SDO_NO <![CDATA[<>]]> '')),
+	         
+				<!-- Table to check GR has done operation or not -->
+				GR_EXIST_OPE_DIRECT AS
+					(SELECT DISTINCT
+						VSL_CALL_ID,
+						CG_NO
+					FROM 
+						TMT_JOB
+					WHERE 
+						JOB_TP_CD 			= 'LD' 
+						AND JOB_PURP_CD 	= 'GV'),
+				
+				<!-- Table to check GR has done operation or not -->
+				GR_EXIST_OPE_INDIRECT AS
+					(SELECT DISTINCT
+						VSL_CALL_ID,
+						CG_NO
+					FROM 
+						TMT_JOB
+					WHERE 
+						JOB_TP_CD 			= 'LF' 
+						AND JOB_PURP_CD 	= 'GW'),
+					
+				<!-- Table to check GR has done operation or not -->
+				GR_EXIST_OPE_RTS AS
+					(SELECT DISTINCT
+						VSL_CALL_ID,
+						CG_NO
+					FROM 
+						TMT_JOB
+					WHERE 
+						JOB_TP_CD 			= 'LO' 
+						AND JOB_PURP_CD 	= 'WG' 
+						AND (SDO_NO IS NULL	AND SDO_NO = '')),
+				
+				ASSIGNMENT_DATA AS
+					(SELECT DISTINCT
+						L.VSL_CALL_ID       												AS VSLCALLID,
+						L.LORRY_NO          												AS LORRYNO,
+						(SELECT TOP(1)
+							L.DRIVER_ID 
+						FROM 
+							TMT_DRIVER_MST D 
+						WHERE 
+							L.DRIVER_ID = D.DRIVER_ID) 										AS DRIVERID,
+						(SELECT TOP(1)
+							D.DRIVER_NM 
+						FROM 
+							TMT_DRIVER_MST D 
+						WHERE 
+							D.DRIVER_ID = L.DRIVER_ID) 										AS DRIVERNAME,
+						(SELECT TOP(1)
+							D.LICS_NO 
+						FROM 
+							TMT_DRIVER_MST D 
+						WHERE 
+							D.DRIVER_ID = L.DRIVER_ID) AS LICENSENO,
+						(SELECT TOP(1)
+							FORMAT(D.LICS_EXPR_YMD, 'dd/MM/yyyy') 
+						FROM 
+							TMT_DRIVER_MST D 
+						WHERE 
+							D.DRIVER_ID = L.DRIVER_ID) 										AS LICENSEEXPIRED,
+						(SELECT TOP(1)
+							MST.PTNR_CD
+						FROM 
+							TMT_TRUCK_MST MST
+						WHERE 
+							L.LORRY_NO = MST.LORRY_NO
+							AND CHARINDEX(',' + MST.PTNR_CD + ',', ',' + L.TRANSPORT + ',') > 0
+						) 																	AS TRANSPORTCD,
+						dbo.F_GET_PARTNER_INFO(
+							(SELECT TOP(1) 
+								MST.PTNR_CD
+							FROM 
+								TMT_TRUCK_MST MST
+							WHERE 
+								L.LORRY_NO = MST.LORRY_NO
+								AND CHARINDEX(',' + MST.PTNR_CD + ',', ',' + L.TRANSPORT + ',') > 0
+							), 
+							'ENG_SNM') 														AS TRANSPORTNAME,
+						L.BL_NO             												AS BLNO,
+						L.SHIPG_NOTE_NO     												AS SHIPGNOTENO,
+						L.SDO_NO            												AS sdoNo,
+						L.GR_NO             												AS GRNO,
+						CASE
+							WHEN (L.BL_NO IS NOT NULL AND L.BL_NO <![CDATA[<>]]> '') 
+								THEN B.CG_TP_CD
+							ELSE S.CG_TP_CD
+						END 																AS CG_TP_CD,
+						CASE 	
+							WHEN (L.BL_NO IS NOT NULL AND L.BL_NO <![CDATA[<>]]> '')
+								THEN
+									CASE 
+										WHEN 
+											(SELECT 
+												COUNT(*) 
+											FROM 
+											 	 TMT_CUSTOMS_RELEASE 
+											WHERE 
+											 	VSL_CALL_ID 	= L.VSL_CALL_ID 
+											 	AND DOC_NO 		= B.MF_DOC_ID) > 0 
+											THEN 'Released' 
+										ELSE 'Hold' 
+									END
+							ELSE
+								CASE 
+									WHEN 
+										(SELECT 
+											COUNT(*) 
+										FROM 
+											TMT_CUSTOMS_RELEASE 
+										WHERE 
+											VSL_CALL_ID 		= L.VSL_CALL_ID 
+											AND DOC_NO 			= S.MF_DOC_ID) > 0 
+										THEN 'Released' 
+									ELSE 'Hold' 
+								END
+						END 																AS customsReleasedStatus,
+						CASE
+							WHEN (L.BL_NO IS NOT NULL AND L.BL_NO <![CDATA[<>]]> '') 
+								THEN FORMAT(CGSDO.CHECKIN_TIME, 'dd/MM/yyyy HH:mm')
+							ELSE FORMAT(CGGR.CHECKIN_TIME, 'dd/MM/yyyy HH:mm')
+						END 																AS agChkInTime,
+						CASE
+							WHEN (L.BL_NO IS NOT NULL AND L.BL_NO <![CDATA[<>]]> '') 
+								THEN CGSDO.GATE_IN_DT
+							ELSE CGGR.GATE_IN_DT
+						END 																AS gateInDt,
+						CASE
+							WHEN (L.BL_NO IS NOT NULL AND L.BL_NO <![CDATA[<>]]> '') 
+								THEN CGSDO.GATE_OUT_DT
+							ELSE CGGR.GATE_OUT_DT
+						END 																AS gateOutDt,
+						CASE
+							WHEN (L.BL_NO IS NOT NULL AND L.BL_NO <![CDATA[<>]]> '') 
+								THEN GOSDO.SDO_NO
+							ELSE GOGR.CG_NO
+						END 																AS isExistGo,
+						CASE
+							WHEN L.TRUCK_MODE = 'E' 
+								THEN 
+									CASE
+										WHEN L.SDO_NO IS NOT NULL 
+											THEN 
+												CASE
+													WHEN D.DELV_TP_CD = 'D' 
+														THEN OPEDIRECTSDO.SDO_NO
+													ELSE OPEINDIRECTSDO.SDO_NO
+												END
+										ELSE 
+											CASE
+												WHEN G.RHDL_MODE = 'R' 
+													THEN OPERTS.CG_NO
+												ELSE 
+													CASE
+														WHEN S.DELV_TP_CD = 'D' 
+															THEN OPEDIRECTGR.CG_NO
+														ELSE OPEINDIRECTGR.CG_NO
+													END
+											END
+									END
+							ELSE ''				           
+						END 																AS isExistOpe	
+					FROM    
+						TMT_ASSIGN_TRANSPORT 												L
+	
+					LEFT JOIN 
+						TMT_GR 																G
+							ON 	L.VSL_CALL_ID 												= G.VSL_CALL_ID
+							AND L.SHIPG_NOTE_NO 											= G.SHIPG_NOTE_NO
+							AND L.GR_NO 													= G.GR_NO
+	
+					LEFT JOIN 
+						TMT_DO_DTL 															D
+							ON  L.VSL_CALL_ID 												= D.VSL_CALL_ID
+							AND L.BL_NO 													= D.BL_NO
+							AND L.DO_NO 													= D.DO_NO
+							AND L.SDO_NO 													= D.SDO_NO
+	
+					LEFT JOIN TMT_SHIPG_NOTE 												S
+							ON  L.VSL_CALL_ID 												= S.VSL_CALL_ID
+							AND L.SHIPG_NOTE_NO 											= S.SHIPG_NOTE_NO
+					
+					LEFT JOIN 
+						TMT_BL 																B 
+							ON  L.VSL_CALL_ID 												= B.VSL_CALL_ID 
+							AND L.BL_NO 													= B.BL_NO
+					
+					LEFT OUTER JOIN 
+						TMT_CG_ARRV_DELV 													CGSDO
+							ON L.VSL_CALL_ID 												= CGSDO.VSL_CALL_ID
+							AND L.SDO_NO 													= CGSDO.SDO_NO
+							AND L.LORRY_NO 													= CGSDO.LORRY_NO
+					
+					LEFT OUTER JOIN 
+						TMT_CG_ARRV_DELV 													CGGR
+							ON L.VSL_CALL_ID 												= CGGR.VSL_CALL_ID
+							AND L.GR_NO 													= CGGR.GR_NO
+							AND L.LORRY_NO 													= CGGR.LORRY_NO
+					
+					LEFT OUTER JOIN 
+						SDO_EXIST_GATE_OUT 													GOSDO
+							ON  L.VSL_CALL_ID 												= GOSDO.VSL_CALL_ID
+							AND L.BL_NO 													= GOSDO.CG_NO
+							AND L.SDO_NO 													= GOSDO.SDO_NO
+					
+					LEFT OUTER JOIN 
+						GR_EXIST_GATE_OUT 													GOGR
+							ON  L.VSL_CALL_ID 												= GOGR.VSL_CALL_ID
+							AND L.GR_NO 													= GOGR.CG_NO
+					
+					LEFT OUTER JOIN 
+						SDO_EXIST_OPE_DIRECT 												OPEDIRECTSDO
+							ON  L.VSL_CALL_ID 												= OPEDIRECTSDO.VSL_CALL_ID
+							AND L.BL_NO 													= OPEDIRECTSDO.CG_NO
+							AND L.SDO_NO 													= OPEDIRECTSDO.SDO_NO
+					
+					LEFT OUTER JOIN 
+						SDO_EXIST_OPE_INDIRECT 												OPEINDIRECTSDO
+							ON  L.VSL_CALL_ID 												= OPEINDIRECTSDO.VSL_CALL_ID
+							AND L.BL_NO 													= OPEINDIRECTSDO.CG_NO
+							AND L.SDO_NO 													= OPEINDIRECTSDO.SDO_NO
+					
+					LEFT OUTER JOIN 
+						GR_EXIST_OPE_DIRECT 												OPEDIRECTGR
+							ON  L.VSL_CALL_ID 												= OPEDIRECTGR.VSL_CALL_ID
+							AND L.GR_NO 													= OPEDIRECTGR.CG_NO
+					
+					LEFT OUTER JOIN 
+						GR_EXIST_OPE_INDIRECT 												OPEINDIRECTGR
+							ON  L.VSL_CALL_ID 												= OPEINDIRECTGR.VSL_CALL_ID
+							AND L.GR_NO 													= OPEINDIRECTGR.CG_NO
+					
+					LEFT OUTER JOIN 
+						GR_EXIST_OPE_RTS 													OPERTS
+							ON  L.VSL_CALL_ID 												= OPERTS.VSL_CALL_ID
+							AND L.GR_NO 													= OPERTS.CG_NO                   
+					WHERE 
+						1 = 1
+						<if test="cgTpCd == null or cgTpCd == ''">
+							AND L.TRUCK_MODE 												= 'E'
+						</if>
+				)
+	
+			SELECT DISTINCT /* popup-popupservice.selectAssignmentTruckList */
+			    VSLCALLID,
+	            BLNO,
+			    SHIPGNOTENO,
+			    SDONO,
+			    GRNO,
+				LORRYNO,
+				DRIVERID,
+				DRIVERNAME,
+				LICENSENO,
+				LICENSEEXPIRED,
+				TRANSPORTCD,
+				TRANSPORTNAME,
+				CUSTOMSRELEASEDSTATUS,
+				AGCHKINTIME        
+			FROM    
+				ASSIGNMENT_DATA
+			WHERE   
+				<!-- sMantis: 0166803 -->
+				(GATEINDT IS NULL 															OR GATEINDT = '')
+				<!-- eMantis: 0166803 -->
+				AND (ISEXISTGO IS NULL OR ISEXISTGO= '') 
+				AND (TRANSPORTCD <![CDATA[<>]]> '' AND TRANSPORTCD IS NOT NULL)
+				AND (ISEXISTOPE IS NULL OR ISEXISTOPE= '')
+				<if test="cgTpCd != null and cgTpCd != ''">
+					AND CG_TP_CD  															IN ('RCV')
+				</if>
+				<if test="cgTpCd == null or cgTpCd == ''">
+					AND CG_TP_CD 															NOT IN ('RCV')
+				</if>
+				<!-- AND DRIVERID IS NOT NULL -->
+				<if test="lorryNo != null and lorryNo != ''">
+					AND LORRYNO 															LIKE '%' + #{lorryNo} + '%'
+				</if>
+				<if test="vslCallId != null and vslCallId != ''">
+					AND VSLCALLID 															= #{vslCallId}
+				</if>
+			GROUP BY
+			    VSLCALLID,
+	            BLNO,
+	            SHIPGNOTENO,
+	            SDONO,
+	            GRNO,
+				LORRYNO,
+				DRIVERID,
+				DRIVERNAME,
+				LICENSENO,
+				LICENSEEXPIRED,
+				TRANSPORTCD,
+				TRANSPORTNAME,
+				CUSTOMSRELEASEDSTATUS,
+				AGCHKINTIME
+		</if>
+	</select>
+	
+	<select id = "selectGateInTruckList"  parameterType = "searchpopupServiceParm" resultType = "popupServiceItem">
+		WITH 
+			OPE_LORRY_SDO AS (
+				SELECT DISTINCT 
+					J.GATE_TXN_NO, 
+					J.VSL_CALL_ID, 
+					J.CG_NO, 
+					J.SDO_NO, 	
+					J.LORRY_NO
+				FROM 
+					TMT_JOB 									J 
+				INNER JOIN 
+					TMT_DO_DTL SDO
+						ON 	SDO.VSL_CALL_ID 					= J.VSL_CALL_ID 
+						AND SDO.BL_NO 							= J.CG_NO 
+						AND SDO.SDO_NO 							= J.SDO_NO
+				WHERE 
+					J.JOB_PURP_CD 								<![CDATA[<>]]> 'OI'	
+					AND (J.GATE_TXN_NO IS NOT NULL				AND J.GATE_TXN_NO <![CDATA[<>]]> '') 
+					<if test="vslCallId != null and vslCallId != ''">
+						AND J.VSL_CALL_ID 						= #{vslCallId}
+					</if>
+					<if test="subDoNo != null and subDoNo != ''">
+						AND J.SDO_NO 							= #{subDoNo}
+					</if>		        
+			),
+		
+			OPE_LORRY_GR AS (
+				SELECT DISTINCT 
+					J.GATE_TXN_NO, 
+					J.VSL_CALL_ID, 
+					J.CG_NO, 
+					J.LORRY_NO
+				FROM 
+					TMT_JOB J 
+				INNER JOIN 
+					TMT_GR GR
+						ON GR.VSL_CALL_ID 						= J.VSL_CALL_ID 
+						AND GR.GR_NO 							= J.CG_NO
+				WHERE 
+					J.JOB_PURP_CD 								<![CDATA[<>]]> 'OI' 
+					AND (J.GATE_TXN_NO IS NOT NULL				AND J.GATE_TXN_NO <![CDATA[<>]]> '')
+					<if test="vslCallId != null and vslCallId != ''">
+						AND J.VSL_CALL_ID 						= #{vslCallId}
+					</if>
+					<if test="grNo != null and grNo != ''">
+						AND J.CG_NO 							= #{grNo}
+					</if>
+			)		
+		
+		SELECT 	/* popup-popupservice.selectGateInTruckList */
+			GT.LORRY_NO         																			AS lorryNo,
+			(SELECT TOP(1)
+				PTNR_CD
+			FROM 
+				TMT_TRUCK_MST
+			WHERE 
+				LORRY_NO = GT.LORRY_NO) 																	AS transportCd,
+			dbo.F_GET_PARTNER_INFO(
+				(SELECT TOP(1)
+					PTNR_CD
+				FROM 
+					TMT_TRUCK_MST
+				WHERE 
+					LORRY_NO = GT.LORRY_NO), 
+				'ENG_SNM')  																				AS TRANSPORTNAME,                   
+			GT.GATE_TXN_NO         																			AS gateTxnNo,
+			GT.DRIVER_ID         																			AS DRIVERID,
+			(SELECT TOP(1)
+				D.DRIVER_NM 
+			FROM 
+				TMT_DRIVER_MST D 
+			WHERE 
+				D.DRIVER_ID = GT.DRIVER_ID) 																AS DRIVERNAME,
+			(SELECT TOP(1)
+				D.LICS_NO 
+			FROM 
+				TMT_DRIVER_MST D 
+			WHERE 
+				D.DRIVER_ID = GT.DRIVER_ID) 																AS LICENSENO,
+			(SELECT TOP(1)
+				FORMAT(D.LICS_EXPR_YMD, 'dd/MM/yyyy') 
+			FROM 
+				TMT_DRIVER_MST D 
+			WHERE 
+				D.DRIVER_ID = GT.DRIVER_ID) 																AS LICENSEEXPIRED,
+			GT.SDO_NO 																						AS sdoNo,
+			GT.GR_NO 																						AS grNo,
+			GT.DO_NO 																						AS doNo,
+			GT.VSL_CALL_ID 																					AS vslCallId,
+			<if test="cgTpCd == null or cgTpCd == ''">
+				<!-- WB.TRANSACTION_NO 																		AS wbTransactionNo, -->
+			</if>
+			DO.BL_NO 																						AS BLNO,
+			GT.CG_NO 																						AS CGNO,
+			GR.SHIPG_NOTE_NO 																				AS SHIPGNOTENO,
+			CASE 
+				WHEN (GT.GR_NO IS NOT NULL AND GT.GR_NO <![CDATA[<>]]> '')
+					THEN
+						CASE 
+							WHEN 
+								(SELECT 
+									COUNT(*) 
+								FROM 
+									TMT_CUSTOMS_RELEASE 
+								WHERE 
+									VSL_CALL_ID	= GT.VSL_CALL_ID 
+									AND DOC_NO 	=	(SELECT TOP(1)
+														MF_DOC_ID 
+													FROM 
+														TMT_SHIPG_NOTE 
+													WHERE 
+														SHIPG_NOTE_NO =	(SELECT TOP(1)
+																			SHIPG_NOTE_NO 
+																		FROM 
+																			TMT_DO 
+																		WHERE 
+																			DO_NO = (SELECT TOP(1)
+																						DO_NO 
+																					FROM 
+																						TMT_DO_DTL 
+																					WHERE 
+																						SDO_NO = GT.SDO_NO
+																					) 
+																		) 
+													)
+								) > 0 
+							THEN 'Released' 
+							ELSE 'Hold' 
+						END
+				ELSE
+					CASE 
+						WHEN 
+							(SELECT 
+								COUNT(*) 
+							FROM 
+								TMT_CUSTOMS_RELEASE 
+							WHERE 
+								VSL_CALL_ID	= GT.VSL_CALL_ID 
+								AND DOC_NO  = 	(SELECT TOP(1)
+													MF_DOC_ID 
+												FROM 
+													TMT_DO_DTL 
+												WHERE 
+													SDO_NO = GT.SDO_NO)
+							) > 0 
+								THEN 'Released' 
+						ELSE 'Hold' 
+					END
+			END 																							AS customsReleasedStatus,
+			FORMAT (GT.GATE_IN_DT, 'dd/MM/yyyy HH:mm') 														AS gateInDate,
+			CASE
+				WHEN GT.CHECKIN_TIME IS NOT NULL 
+					THEN FORMAT(GT.GATE_IN_DT, 'dd/MM/yyyy HH:mm')
+				ELSE ''
+			END 																							AS agGateInDt,
+			FORMAT(GT.CHECKIN_TIME, 'dd/MM/yyyy HH:mm') 													AS agChkInTime,
+			WB.TRANSACTION_NO AS  wbTransactionNo
+		FROM 	
+			TMT_CG_ARRV_DELV 																				GT
+		LEFT OUTER JOIN 
+			TMT_DO_DTL 																						DO 
+				ON GT.VSL_CALL_ID 																			= DO.VSL_CALL_ID 
+				AND GT.SDO_NO 																				= DO.SDO_NO
+      	LEFT OUTER JOIN 
+			TMT_GR 																							GR 
+				ON GT.VSL_CALL_ID 																			= GR.VSL_CALL_ID 
+				AND GT.GR_NO 																				= GR.GR_NO
+		LEFT OUTER JOIN TMT_WEIGHTBRIDGE WB ON 
+				    WB.VSL_CALL_ID = GT.VSL_CALL_ID 
+				AND WB.GATE_TICKET_NO = GT.GATE_TXN_NO
+				AND WB.LORRY_NO = GT.LORRY_NO
+				AND
+				(
+				     ((GT.SDO_NO IS NULL OR GT.SDO_NO = '') AND WB.GR_NO = GT.GR_NO AND WB.SHIPG_NOTE_NO = GT.SHIPG_NOTE_NO)
+				        OR
+				     ((GT.GR_NO IS NULL OR GT.GR_NO = '') AND WB.SDO_NO = GT.SDO_NO)
+				)
+		<!-- <if test="cgTpCd == null or cgTpCd == ''">
+		LEFT OUTER JOIN 
+			TMT_WEIGHTBRIDGE WB
+				ON GT.VSL_CALL_ID       = WB.VSL_CALL_ID 
+				AND GT.LORRY_NO         = WB.LORRY_NO 
+				AND GT.GATE_TXN_NO      = WB.GATE_TICKET_NO
+				AND GR.SHIPG_NOTE_NO    = WB.SHIPG_NOTE_NO 
+				AND GR.GR_NO            = WB.GR_NO 
+				AND DO.BL_NO            = WB.BL_NO 
+				AND DO.DO_NO            = WB.DO_NO 
+		</if> -->
+		<if test="isOpeChk != null and isOpeChk != ''">
+			LEFT OUTER JOIN 
+				OPE_LORRY_SDO 																				OPESDO 
+				ON 	OPESDO.VSL_CALL_ID 																		= GT.VSL_CALL_ID 
+				AND OPESDO.GATE_TXN_NO 																		= GT.GATE_TXN_NO 
+				AND OPESDO.SDO_NO 																			= GT.SDO_NO
+			
+			LEFT OUTER JOIN 
+				OPE_LORRY_GR 																				OPEGR 
+				ON OPEGR.VSL_CALL_ID 																		= GT.VSL_CALL_ID 
+				AND OPEGR.GATE_TXN_NO 																		= GT.GATE_TXN_NO 
+				AND OPEGR.CG_NO 																			= GT.GR_NO
+		</if>
+		WHERE 	
+			(GT.GATE_OUT_DT IS NULL 							OR GT.GATE_OUT_DT = '')
+			AND (GT.GATE_IN_DT IS NOT NULL 						AND GT.GATE_IN_DT <![CDATA[<>]]> '')
+			AND (GT.GATE_TXN_NO IS NOT NULL 					AND GT.GATE_TXN_NO <![CDATA[<>]]> '')
+			AND (GT.LORRY_NO IS NOT NULL 						AND GT.LORRY_NO <![CDATA[<>]]> '')
+			<if test="cgTpCd != null and cgTpCd != ''">
+				AND GT.CG_TP_CD 																			IN ('RCV')
+			</if>
+			<!-- NTH241114 Missing SDO for operation 
+				<if test="searchDelvTp != null and searchDelvTp != ''">
+					AND CASE 
+							WHEN DO.SDO_NO IS NOT NULL 
+								THEN DO.DELV_TP_CD 
+							ELSE 
+								(SELECT TOP(1)
+									DELV_TP_CD 
+								FROM 
+									TMT_SHIPG_NOTE 
+								WHERE 
+									VSL_CALL_ID 					= GT.VSL_CALL_ID 
+									AND SHIPG_NOTE_NO 				= GR.SHIPG_NOTE_NO 
+								)
+						END = #{searchDelvTp}
+				</if>
+			 -->
+			<!-- <if test="isOpeChk != null and isOpeChk != ''">
+				AND CASE 
+						WHEN 
+							DO.SDO_NO IS NOT NULL 
+								THEN OPESDO.SDO_NO 
+						ELSE OPEGR.CG_NO 
+					END IS NULL
+			</if> -->
+			
+			<choose>
+				<when test="searchType eq 'GO'.toString()">
+				</when>
+				<otherwise>
+				    <if test="searchType eq 'OP'.toString()">
+	                    AND NOT EXISTS (SELECT JOB_NO FROM TMT_JOB
+	                                 WHERE JOB_PURP_CD IN ('VG', 'WG', 'GW', 'GV')
+	                                        AND VSL_CALL_ID = GT.VSL_CALL_ID
+	                                        AND GATE_TXN_NO = GT.GATE_TXN_NO)
+	                </if>
+					<!-- NTH241114 Missing SDO for operation 
+						AND (ISNULL(DO.WGT_CHK, GR.WGT_CHK) 	= 'N'
+							OR 	(							
+									(WB.FIRST_WGT IS NOT NULL 		AND WB.FIRST_WGT <![CDATA[<>]]> 0)
+									AND (WB.SECOND_WGT IS NULL		OR 	WB.SECOND_WGT = 0)
+									AND WB.STATUS != 'N'
+								    AND ((WB.GR_NO IS NOT NULL		AND WB.GR_NO <![CDATA[<>]]> '') 
+									        OR 
+									     (WB.SDO_NO IS NOT NULL	AND WB.SDO_NO <![CDATA[<>]]> '')
+									    )
+								)
+							OR 	(ISNULL(DO.WGT_CHK, GR.WGT_CHK) = 'Y' 
+								AND GT.CG_TP_CD = 'LQD')
+							)
+					 -->	
+				</otherwise>
+			</choose> 
+		
+			<if test="lorryNo != null and lorryNo != ''">
+				<choose>
+					<when test="searchType != null and searchType != ''">
+						AND GT.LORRY_NO 						LIKE '%' + #{lorryNo} + '%'
+					</when>
+					<otherwise>
+						AND GT.LORRY_NO 						LIKE '%' + #{lorryNo} + '%'
+					</otherwise>
+				</choose>		
+			</if>
+
+			<if test="vslCallId != null and vslCallId != ''">
+				AND GT.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test="grNo != null and grNo != ''">
+				AND GT.GR_NO 									= #{grNo}
+			</if>
+			<if test="subDoNo != null and subDoNo != ''">
+				AND GT.SDO_NO 									= #{subDoNo}
+			</if>
+			
+			<choose>
+				<when test="searchType eq 'GO'.toString()">
+				</when>
+				<otherwise>
+					<choose>
+						<when test="isMultiCargo eq 'Y'.toString()">
+							AND GT.JOB_NO IS NOT NULL
+							<if test="blNo != null and blNo != ''">
+								AND GT.CG_NO 					!= #{blNo}
+							</if>
+						</when>
+						<otherwise>
+							<!-- AND GT.JOB_NO IS NULL -->
+							<if test="blNo != null and blNo != ''">
+								AND GT.CG_NO 					= #{blNo}
+							</if>
+						</otherwise>
+					</choose>
+				</otherwise>
+			</choose>
+		GROUP BY 	
+			GT.LORRY_NO,
+			GT.GATE_TXN_NO,
+			GT.DRIVER_ID,
+			GT.SDO_NO,
+			GT.GR_NO,
+			GT.DO_NO,
+			GT.CG_NO,
+			GT.VSL_CALL_ID,
+			<if test="cgTpCd == null or cgTpCd == ''">
+			<!-- 
+				WB.TRANSACTION_NO, 
+			-->
+			</if>
+			DO.BL_NO,
+			GR.SHIPG_NOTE_NO,
+			GT.GATE_IN_DT,
+			CASE
+				WHEN (GT.CHECKIN_TIME IS NOT NULL AND GT.CHECKIN_TIME <![CDATA[<>]]> '') 
+					THEN FORMAT(GT.GATE_IN_DT, 'dd/MM/yyyy HH:mm')
+				ELSE ''
+			END,
+			GT.CHECKIN_TIME,
+			WB.TRANSACTION_NO
+  		ORDER BY 
+			GT.GATE_IN_DT DESC			
+	</select>
+	
+	<select id = "selectGateInTruckList_withoutSDO"  parameterType = "searchpopupServiceParm" resultType = "popupServiceItem">
+		WITH 
+					OPE_LORRY_DO AS (
+						SELECT DISTINCT 
+							J.GATE_TXN_NO, 
+							J.VSL_CALL_ID, 
+							J.CG_NO, 
+							J.LORRY_NO,
+							DO.DO_NO
+						FROM 
+							TMT_JOB 									J
+						INNER JOIN 
+							TMT_DO DO
+								ON 	DO.VSL_CALL_ID 					= J.VSL_CALL_ID 
+								AND DO.BL_NO 						= J.CG_NO 
+						WHERE 
+							J.JOB_PURP_CD 								<![CDATA[<>]]> 'OI'	
+							<if test="vslCallId != null and vslCallId != ''">
+								AND J.VSL_CALL_ID 						= #{vslCallId}
+							</if>
+					),
+					OPE_LORRY_GR AS (
+						SELECT DISTINCT 
+							J.GATE_TXN_NO, 
+							J.VSL_CALL_ID, 
+							J.CG_NO, 
+							J.LORRY_NO
+						FROM 
+							TMT_JOB J 
+						INNER JOIN 
+							TMT_GR GR
+								ON GR.VSL_CALL_ID 						= J.VSL_CALL_ID 
+								AND GR.GR_NO 							= J.CG_NO
+						WHERE 
+							J.JOB_PURP_CD 								<![CDATA[<>]]> 'OI' 
+							AND (J.GATE_TXN_NO IS NOT NULL				AND J.GATE_TXN_NO <![CDATA[<>]]> '')
+					)		
+		SELECT 
+			GT.LORRY_NO         																			AS lorryNo,
+			(SELECT TOP(1)
+				PTNR_CD
+			FROM 
+				TMT_TRUCK_MST
+			WHERE 
+				LORRY_NO = GT.LORRY_NO) 																	AS transportCd,
+			dbo.F_GET_PARTNER_INFO(
+				(SELECT TOP(1)
+					PTNR_CD
+				FROM 
+					TMT_TRUCK_MST
+				WHERE 
+					LORRY_NO = GT.LORRY_NO), 
+				'ENG_SNM')  																				AS TRANSPORTNAME,                   
+			GT.GATE_TXN_NO         																			AS gateTxnNo,
+			GT.DRIVER_ID         																			AS DRIVERID,
+			(SELECT TOP(1)
+				D.DRIVER_NM 
+			FROM 
+				TMT_DRIVER_MST D 
+			WHERE 
+				D.DRIVER_ID = GT.DRIVER_ID) 																AS DRIVERNAME,
+			(SELECT TOP(1)
+				D.LICS_NO 
+			FROM 
+				TMT_DRIVER_MST D 
+			WHERE 
+				D.DRIVER_ID = GT.DRIVER_ID) 																AS LICENSENO,
+			(SELECT TOP(1)
+				FORMAT(D.LICS_EXPR_YMD, 'dd/MM/yyyy') 
+			FROM 
+				TMT_DRIVER_MST D 
+			WHERE 
+				D.DRIVER_ID = GT.DRIVER_ID) 																AS LICENSEEXPIRED,
+			GT.GR_NO 																						AS grNo,
+			GT.VSL_CALL_ID 																					AS vslCallId,
+			DO.BL_NO 																						AS BLNO,
+			DO.DO_NO 																						AS DONO,
+			CASE
+				WHEN DO.DO_NO IS NOT NULL OR DO.DO_NO != '' THEN DO.BL_NO
+				ELSE GR.SHIPG_NOTE_NO																						
+			END																							 	AS CGNO,
+			GR.SHIPG_NOTE_NO 																				AS SHIPGNOTENO,
+			ISNULL(
+			(
+					SELECT 
+				    CASE CUST_MSG_MODE
+						WHEN 'C' THEN 'RELEASE'
+						ELSE 'HOLD'
+					END 											AS status
+			    FROM TMT_GCS_RECV
+				WHERE	
+					1 = 1
+					AND VSL_ID = GT.VSL_CALL_ID
+							AND BK_NO = CASE 
+									WHEN DO.BL_NO IS NOT NULL THEN DO.BL_NO
+									ELSE GR.SHIPG_NOTE_NO	
+								END
+					AND IE_CD = CASE 
+									WHEN DO.BL_NO IS NOT NULL THEN 'I'
+									ELSE 'E'
+								END
+					AND CUST_MSG_TP										= 'N'
+					AND SEQ03 = (
+						SELECT 
+							MAX(SEQ03)
+						FROM	
+							TMT_GCS_RECV 
+						WHERE	
+							1 = 1
+							AND VSL_ID = GT.VSL_CALL_ID
+							AND BK_NO = CASE 
+									WHEN DO.BL_NO IS NOT NULL THEN DO.BL_NO
+									ELSE GR.SHIPG_NOTE_NO	
+								END
+							AND IE_CD = CASE 
+											WHEN DO.BL_NO IS NOT NULL THEN 'I'
+											ELSE 'E'
+										END
+							AND CUST_MSG_TP										= 'N'
+						GROUP BY VSL_ID, IE_CD, BK_NO
+					)
+			), 'HOLD') AS customsReleasedStatus,
+			FORMAT (GT.GATE_IN_DT, 'dd/MM/yyyy HH:mm') 														AS gateInDate,
+			CASE
+				WHEN GT.CHECKIN_TIME IS NOT NULL 
+					THEN FORMAT(GT.GATE_IN_DT, 'dd/MM/yyyy HH:mm')
+				ELSE ''
+			END 																							AS agGateInDt,
+			FORMAT(GT.CHECKIN_TIME, 'dd/MM/yyyy HH:mm') 													AS agChkInTime,
+			WB.TRANSACTION_NO AS  wbTransactionNo
+		FROM 
+			TMT_CG_ARRV_DELV GT
+		LEFT OUTER JOIN  
+			TMT_DO 																							DO 
+				ON GT.VSL_CALL_ID 																			= DO.VSL_CALL_ID 
+				AND GT.DO_NO 																				= DO.DO_NO
+		LEFT OUTER JOIN 
+			TMT_GR																							GR 
+				ON GT.VSL_CALL_ID 																			= GR.VSL_CALL_ID 
+				AND GT.GR_NO 																				= GR.GR_NO
+		LEFT OUTER JOIN TMT_WEIGHTBRIDGE WB ON 
+						    WB.VSL_CALL_ID = GT.VSL_CALL_ID 
+						AND WB.GATE_TICKET_NO = GT.GATE_TXN_NO
+						AND WB.LORRY_NO = GT.LORRY_NO
+						AND
+						(
+						     ((GT.DO_NO IS NULL OR GT.DO_NO = '') AND WB.GR_NO = GT.GR_NO AND WB.SHIPG_NOTE_NO = GT.SHIPG_NOTE_NO)
+						        OR
+						     ((GT.GR_NO IS NULL OR GT.GR_NO = '') AND WB.DO_NO = GT.DO_NO)
+						)
+		WHERE 	
+					(GT.GATE_OUT_DT IS NULL 							OR GT.GATE_OUT_DT = '')
+					AND (GT.GATE_IN_DT IS NOT NULL 						AND GT.GATE_IN_DT <![CDATA[<>]]> '')
+					AND (GT.GATE_TXN_NO IS NOT NULL 					AND GT.GATE_TXN_NO <![CDATA[<>]]> '')
+					AND (GT.LORRY_NO IS NOT NULL 						AND GT.LORRY_NO <![CDATA[<>]]> '')
+					AND GT.VSL_CALL_ID 									= #{vslCallId}
+					<choose>
+						<when test="searchType eq 'GO'.toString()">
+						</when>
+						<otherwise>
+						    <if test="searchType eq 'OP'.toString()">
+			                    AND NOT EXISTS (SELECT JOB_NO FROM TMT_JOB
+			                                 WHERE JOB_PURP_CD IN ('VG', 'WG', 'GW', 'GV')
+			                                        AND VSL_CALL_ID = GT.VSL_CALL_ID
+			                                        AND GATE_TXN_NO = GT.GATE_TXN_NO)
+			                </if>
+							AND (ISNULL(DO.WGT_CHK, GR.WGT_CHK) 	= 'N'
+							OR 	(							
+									(WB.FIRST_WGT IS NOT NULL 		AND WB.FIRST_WGT <![CDATA[<>]]> 0)
+									AND (WB.SECOND_WGT IS NULL		OR 	WB.SECOND_WGT = 0)
+									AND WB.STATUS != 'N'
+								    AND ((WB.GR_NO IS NOT NULL		AND WB.GR_NO <![CDATA[<>]]> '') 
+									        OR 
+									     (WB.DO_NO IS NOT NULL	AND WB.DO_NO <![CDATA[<>]]> '')
+									    )
+								)
+							OR 	(ISNULL(DO.WGT_CHK, GR.WGT_CHK) = 'Y' 
+								AND GT.CG_TP_CD = 'LQD')
+							)
+						</otherwise>
+					</choose> 
+					<if test="lorryNo != null and lorryNo != ''">
+						<choose>
+							<when test="searchType != null and searchType != ''">
+								AND GT.LORRY_NO 						LIKE '%' + #{lorryNo} + '%'
+							</when>
+							<otherwise>
+								AND GT.LORRY_NO 						LIKE '%' + #{lorryNo} + '%'
+							</otherwise>
+						</choose>		
+					</if>
+					<if test="grNo != null and grNo != ''">
+						AND GT.GR_NO 									= #{grNo}
+					</if>
+					<choose>
+						<when test="searchType eq 'GO'.toString()">
+						</when>
+						<otherwise>
+							<choose>
+								<when test="isMultiCargo eq 'Y'.toString()">
+									AND GT.JOB_NO IS NOT NULL
+									<if test="blNo != null and blNo != ''">
+										AND GT.CG_NO 					!= #{blNo}
+									</if>
+								</when>
+								<otherwise>
+									AND GT.JOB_NO IS NULL
+									<if test="blNo != null and blNo != ''">
+										AND GT.CG_NO 					= #{blNo}
+									</if>
+								</otherwise>
+							</choose>
+						</otherwise>
+					</choose>
+		GROUP BY 	
+					GT.LORRY_NO,
+					GT.GATE_TXN_NO,
+					GT.DRIVER_ID,
+					GT.GR_NO,
+					GT.VSL_CALL_ID,
+					DO.BL_NO,
+					DO.DO_NO,
+					GT.CG_NO,
+					GR.SHIPG_NOTE_NO,
+					GT.GATE_IN_DT,
+					DO.DO_NO,
+					CASE
+						WHEN (GT.CHECKIN_TIME IS NOT NULL AND GT.CHECKIN_TIME <![CDATA[<>]]> '') 
+							THEN FORMAT(GT.GATE_IN_DT, 'dd/MM/yyyy HH:mm')
+						ELSE ''
+					END,
+					GT.CHECKIN_TIME,
+					WB.TRANSACTION_NO
+		  		ORDER BY 
+					GT.GATE_IN_DT DESC	
+	</select>
+	
+	<select id = "selectApronYardTruckPopupList"  parameterType = "searchpopupServiceParm" resultType = "popupServiceItem">
+		SELECT DISTINCT /* popupservice.selectApronYardTruckPopupList */
+			J.VSL_CALL_ID     									AS vslCallId,
+			J.LORRY_NO        									AS lorryNo,
+			B.BL_NO           									AS blNo,
+			S.SHIPG_NOTE_NO   									AS shipgNoteNo,
+			<!-- 
+			W.TRANSACTION_NO  									AS wbTransactionNo, 
+			-->
+			J.PKG_QTY   										AS pkgQty,
+			J.CG_WGT    										AS mt,
+			J.CG_VOL    										AS m3
+  		FROM 	TMT_JOB J
+		LEFT OUTER JOIN 
+			TMT_BL 												B
+				ON J.VSL_CALL_ID 								= B.VSL_CALL_ID 
+				AND J.CG_NO 									= B.BL_NO
+		LEFT OUTER JOIN 
+			TMT_GR 												G
+				ON J.VSL_CALL_ID 								= G.VSL_CALL_ID 
+				AND J.CG_NO 									= G.GR_NO
+		LEFT OUTER JOIN 
+			TMT_SHIPG_NOTE 										S
+				ON J.VSL_CALL_ID 								= S.VSL_CALL_ID
+				AND G.SHIPG_NOTE_NO 							= S.SHIPG_NOTE_NO
+		<!-- LEFT OUTER JOIN 
+			TMT_WEIGHTBRIDGE 									W
+				ON	J.VSL_CALL_ID 								= W.VSL_CALL_ID
+				AND J.LORRY_NO 									= W.LORRY_NO
+				AND J.WB_TRANSACTION_NO 						= W.TRANSACTION_NO
+				AND (((	S.SHIPG_NOTE_NO 						IS NOT NULL
+						AND S.SHIPG_NOTE_NO 					<![CDATA[<>]]> '')
+					AND S.SHIPG_NOTE_NO 						= W.SHIPG_NOTE_NO)
+				OR 	(B.BL_NO IS NOT NULL 						AND B.BL_NO = W.BL_NO)) 
+		-->
+ 		WHERE  	
+			J.JOB_PURP_CD 										IN ('VA', 'WA')
+			AND ((J.NEXT_JOB_NO IS NULL OR J.NEXT_JOB_NO = '')
+				OR J.NEXT_JOB_NO = 'BARGE')
+			<if test="lorryNo != null and lorryNo != ''">
+				<choose>
+					<when test="searchType != null and searchType != ''">
+						AND J.LORRY_NO 							= #{lorryNo}
+					</when>
+					<otherwise>
+						AND J.LORRY_NO 							LIKE '%' + #{lorryNo} + '%'
+					</otherwise>
+				</choose>
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+				AND J.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			
+			<if test="blNo != null and blNo != ''">
+				AND B.BL_NO 									= #{blNo}
+			</if>
+			
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				AND S.SHIPG_NOTE_NO 							= #{shipgNoteNo}
+			</if>
+			<!-- 
+			AND (W.GATE_TICKET_NO IS NULL
+				
+				AND W.FIRST_WGT IS NOT NULL
+				AND W.SECOND_WGT IS NOT NULL
+				 
+				)-->
+			AND CASE 
+					WHEN J.NEXT_JOB_NO = 'BARGE'
+						THEN 
+							CASE 
+								WHEN 
+									(SELECT 
+										COUNT(JJ.WB_TRANSACTION_NO) 
+									FROM 
+										TMT_JOB 				JJ 
+									WHERE 
+										JJ.WB_TRANSACTION_NO 	= J.WB_TRANSACTION_NO 
+										AND JJ.VSL_CALL_ID 		= J.VSL_CALL_ID 
+										AND JJ.CG_NO 			= J.CG_NO 
+										AND JJ.LORRY_NO 		= J.LORRY_NO
+									) = 1
+								THEN 1
+								ELSE 0
+							END
+							
+						ELSE 
+							CASE 
+								WHEN 
+									(SELECT TOP(1)
+										JJ.CG_WGT
+									FROM 
+										TMT_JOB JJ 
+									WHERE 
+										JJ.WB_TRANSACTION_NO 	= J.WB_TRANSACTION_NO 
+										AND JJ.VSL_CALL_ID 		= J.VSL_CALL_ID 
+										AND JJ.CG_NO 			= J.CG_NO 
+										AND JJ.LORRY_NO 		= J.LORRY_NO
+										AND JJ.JOB_NO 			= J.JOB_NO
+									) <![CDATA[>]]> 0
+										THEN 1
+								ELSE 0
+							END
+				END = 1
+				
+		UNION ALL
+		
+		SELECT DISTINCT
+			J.VSL_CALL_ID     									AS vslCallId,
+			J.LORRY_NO        									AS lorryNo,
+			B.BL_NO           									AS blNo,
+			S.SHIPG_NOTE_NO   									AS shipgNoteNo,
+			<!-- 
+			''				  									AS wbTransactionNo, 
+			-->
+			SUM(ISNULL(J.PKG_QTY, 0))   						AS pkgQty,
+			SUM(ISNULL(J.CG_WGT, 0))    						AS mt,
+			SUM(ISNULL(J.CG_VOL, 0))   							AS m3
+  		FROM 	
+			TMT_JOB 											J
+		LEFT OUTER JOIN TMT_BL 									B
+			ON 	J.VSL_CALL_ID 									= B.VSL_CALL_ID 
+			AND J.CG_NO 										= B.BL_NO
+		LEFT OUTER JOIN TMT_GR 									G
+			ON 	J.VSL_CALL_ID 									= G.VSL_CALL_ID 
+			AND J.CG_NO 										= G.GR_NO
+		LEFT OUTER JOIN TMT_SHIPG_NOTE 							S
+			ON	J.VSL_CALL_ID 									= S.VSL_CALL_ID
+			AND G.SHIPG_NOTE_NO 								= S.SHIPG_NOTE_NO
+ 		WHERE  	
+			J.JOB_PURP_CD 										IN ('VA', 'WA')
+			AND ((J.NEXT_JOB_NO IS NULL 						OR J.NEXT_JOB_NO = '') 
+				OR J.NEXT_JOB_NO = 'BARGE')	
+			<if test="lorryNo != null and lorryNo != ''">
+				<choose>
+					<when test="searchType != null and searchType != ''">
+						AND J.LORRY_NO 							= #{lorryNo}
+					</when>
+					<otherwise>
+						AND J.LORRY_NO 							LIKE '%' + #{lorryNo} + '%'
+					</otherwise>
+				</choose>
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+				AND J.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test="blNo != null and blNo != ''">
+				AND B.BL_NO 									= #{blNo}
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				AND S.SHIPG_NOTE_NO 							= #{shipgNoteNo}
+			</if>
+			AND ISNULL(B.WGT_CHK, S.WGT_CHK) 					= 'N'	
+		GROUP BY 
+			J.VSL_CALL_ID,
+			J.LORRY_NO,
+			B.BL_NO,
+			S.SHIPG_NOTE_NO
+	</select>
+	
+	<select id="selectGoodsReceiptList"  parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		WITH 
+			WH_PLAN AS (
+		    SELECT  
+				VSL_CALL_ID,
+		        MAX(PLAN_LOC_ID) 								AS PLAN_LOC_ID,
+		        SHIPG_NOTE_NO
+		    FROM    
+				TMT_SPC_REQ
+		    WHERE   
+				STAT_CD 										= 'CNF'
+		        AND (SHIPG_NOTE_NO IS NOT NULL 					AND SHIPG_NOTE_NO <![CDATA[<>]]> '')
+		    GROUP BY 
+				VSL_CALL_ID, 
+				SHIPG_NOTE_NO
+			),
+		
+			CUSTOMS_RELEASE AS (
+				SELECT	
+					SN.VSL_CALL_ID,
+					SN.MF_DOC_ID,
+					CASE
+						WHEN (CUS.DOC_NO IS NULL AND CUS.DOC_NO = '') 
+							THEN 'HOLD'
+						ELSE 'RELEASE'
+					END 										AS status
+				FROM     
+					TMT_SHIPG_NOTE 								SN
+				LEFT OUTER JOIN 
+					TMT_CUSTOMS_RELEASE 						CUS
+						ON	CUS.VSL_CALL_ID 					= SN.VSL_CALL_ID
+						AND CUS.DOC_NO 							= SN.MF_DOC_ID
+				WHERE   
+					ISNULL(CUS.BONDED_WH_YN, 'N') 				= 'N'
+					<if test="vslCallId != null and vslCallId != ''">
+						AND SN.VSL_CALL_ID 						= #{vslCallId}
+					</if>
+					<if test="shipgNoteNo != null and shipgNoteNo != ''">
+						AND SN.SHIPG_NOTE_NO 					= #{shipgNoteNo}
+					</if>
+			)
+		 <choose>
+			<when test="searchType eq 'O'.toString()">
+				, HDL_JOB AS (
+					SELECT TOP(1)
+						VSL_CALL_ID, 
+						CG_NO, 
+						GATE_TXN_NO, 
+						CG_WGT, 
+						PKG_QTY, 
+						CG_VOL
+					FROM 	
+						TMT_JOB 
+					WHERE 	
+						(GATE_TXN_NO IS NOT NULL 				AND GATE_TXN_NO <![CDATA[<>]]> '') 
+						AND JOB_PURP_CD 						NOT IN ('IO', 'OI') 
+						<if test="lorryNo != null and lorryNo != ''">
+							AND LORRY_NO 						= #{lorryNo}
+						</if>
+						<if test="vslCallId != null and vslCallId != ''">
+							AND VSL_CALL_ID 					= #{vslCallId}
+						</if>
+						<if test="grNo != null and grNo != ''">
+							AND CG_NO 							= #{grNo}
+						</if>		
+				)
+			</when>
+		</choose>
+		
+		SELECT DISTINCT /* popup-popupservice.selectGoodsReceiptList */
+			G.VSL_CALL_ID   									AS vslCallId,
+			G.SHIPG_NOTE_NO 									AS shipgNoteNo,
+			S.MF_DOC_ID 										AS mfDocId,
+			G.GR_NO 											AS grNo,
+			<choose>
+				<when test="searchType eq 'I'.toString()">
+					G.PKG_QTY   								AS pkgQty,
+					G.CG_WGT   									AS mt,
+					G.CG_VOL    								AS m3,
+				</when>
+				<when test="searchType eq 'O'.toString()">
+					J.PKG_QTY   								AS pkgQty,
+					J.CG_WGT    								AS mt,
+					J.CG_VOL    								AS m3,
+				</when>
+			</choose>
+			G.CMDT_CD   										AS cmdtCode,
+			dbo.F_GET_CMDT_DESC(G.CMDT_CD) 						AS cmdtName,
+			S.DELV_TP_CD    									AS delvTpCode,
+			dbo.F_CM_CODE_NM('MT', 'DELVTP', S.DELV_TP_CD) 		AS delvTpName,
+			CASE S.DELV_TP_CD
+				WHEN 'D' THEN V.BERTH_LOC
+				ELSE P.PLAN_LOC_ID
+			END 												AS location,
+			S.PKG_TP_CD 										AS pkgTpCd,
+			S.CATG_CD 											AS opeClassCd,
+			S.MF_DOC_ID 										AS mfDocId,
+			<choose>
+				<when test="searchType eq 'O'.toString()">
+					FORMAT(A.GATE_IN_DT, 'dd/MM/yyyy HH:mm') 	AS gateInDate,
+					A.GATE_TXN_NO								AS gateTxnNo,
+				</when>
+			</choose>
+			ISNULL(C.REPKG_TP_CD, S.PKG_TP_CD) 					AS rePkgTpCd,
+			ISNULL(CUS.STATUS, 'HOLD') 							AS CUSTOMSRELEASEDSTATUS
+		        
+		FROM    
+			TMT_GR 												G
+		INNER JOIN 
+			TMT_SHIPG_NOTE S
+		        ON  G.VSL_CALL_ID 								= S.VSL_CALL_ID
+		        AND G.SHIPG_NOTE_NO 							= S.SHIPG_NOTE_NO
+		<choose>
+			<when test="searchType eq 'I'.toString()">
+				LEFT OUTER JOIN 
+					TMT_ASSIGN_TRANSPORT 						A 
+						ON  G.VSL_CALL_ID 						= A.VSL_CALL_ID
+						AND G.SHIPG_NOTE_NO 					= A.SHIPG_NOTE_NO
+						AND G.GR_NO 							= A.GR_NO
+			</when>
+			<when test="searchType eq 'O'.toString()">
+					LEFT OUTER JOIN 
+						TMT_CG_ARRV_DELV 						A 
+							ON  G.VSL_CALL_ID 					= A.VSL_CALL_ID
+							AND G.GR_NO 						= A.GR_NO
+						
+					LEFT OUTER JOIN 
+						HDL_JOB 								J
+						ON 	G.VSL_CALL_ID 						= J.VSL_CALL_ID
+						AND G.GR_NO 							= J.CG_NO
+						AND A.GATE_TXN_NO 						= J.GATE_TXN_NO
+			</when>
+		</choose>
+		LEFT OUTER JOIN 
+			TMT_VSL_SCH 										V 
+				ON  G.VSL_CALL_ID 								= V.VSL_CALL_ID
+		LEFT OUTER JOIN 
+			WH_PLAN 											P 
+				ON  G.VSL_CALL_ID 								= P.VSL_CALL_ID
+				AND G.SHIPG_NOTE_NO 							= P.SHIPG_NOTE_NO 
+		LEFT OUTER JOIN 
+			TMT_CG_MST 											C
+				ON G.VSL_CALL_ID 								= C.VSL_CALL_ID 
+				AND G.GR_NO 									= C.CG_NO			
+		LEFT OUTER JOIN 
+			CUSTOMS_RELEASE 									CUS
+				ON CUS.VSL_CALL_ID 								= S.VSL_CALL_ID
+				AND CUS.MF_DOC_ID 								= S.MF_DOC_ID            
+		WHERE   
+			1 = 1
+			<choose>
+				<when test="searchType eq 'I'.toString()">
+					AND (A.GR_NO IS NOT NULL 					AND A.GR_NO <![CDATA[<>]]> '')
+					<if test="lorryNo != null and lorryNo != ''">
+						AND A.LORRY_NO 							= #{lorryNo}
+					</if>
+				</when>
+				<when test="searchType eq 'O'.toString()">
+					AND (A.GR_NO IS NOT NULL 					AND A.GR_NO <![CDATA[<>]]> '')
+					<if test="lorryNo != null and lorryNo != ''">
+						AND A.LORRY_NO 							= #{lorryNo}
+					</if>
+				</when>
+			</choose>
+
+			<if test="vslCallId != null and vslCallId != ''">
+				AND G.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test="grNo != null and grNo != ''">
+				AND G.GR_NO 									= #{grNo}
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				AND G.SHIPG_NOTE_NO 							= #{shipgNoteNo}
+			</if>
+	</select>
+	
+	<select id="selectSubDeliveryOrderList"  parameterType="searchpopupServiceParm" resultType="popupServiceItem">		
+		WITH 
+			ACT_LOCATION AS 
+				(SELECT 
+					I.LOC_ID, 
+					I.VSL_CALL_ID, 
+					I.CG_NO
+	            FROM 
+					TMT_INV_LOC 								I
+	            INNER JOIN 
+					TMT_BL 										B
+	                    ON I.VSL_CALL_ID 						= B.VSL_CALL_ID 
+						AND I.CG_NO 							= B.BL_NO
+	         	GROUP BY 
+					I.LOC_ID, 
+					I.VSL_CALL_ID, 
+					I.CG_NO
+	          	 HAVING 
+				 	SUM (I.CG_WGT) > 0 
+					OR SUM (I.PKG_QTY) > 0),
+	           
+	    	CUSTOMS_RELEASE AS
+				(SELECT	
+					BL.VSL_CALL_ID,
+					BL.MF_DOC_ID,
+					CASE
+						WHEN (CUS.DOC_NO IS NULL OR CUS.DOC_NO = '') 
+							THEN 'HOLD'
+						ELSE 'RELEASE'
+					END 										AS status
+					FROM     
+						TMT_BL BL
+					LEFT OUTER JOIN 
+						TMT_CUSTOMS_RELEASE 					CUS
+							ON CUS.VSL_CALL_ID 					= BL.VSL_CALL_ID
+							AND CUS.DOC_NO 						= BL.MF_DOC_ID
+					WHERE   
+						ISNULL(CUS.BONDED_WH_YN, 'N') = 'N'
+						<if test="vslCallId != null and vslCallId != ''">
+							AND BL.VSL_CALL_ID 					= #{vslCallId}
+						</if>
+						<if test="blNo != null and blNo != ''">
+							AND BL.BL_NO 						= #{blNo}
+						</if>
+				)       
+		
+		SELECT DISTINCT /* popup-popupservice.selectSubDeliveryOrderList */
+			S.VSL_CALL_ID   									AS vslCallId,
+			S.BL_NO 											AS blNo,
+			S.DO_NO 											AS doNo,
+			S.SDO_NO 											AS sdoNo,
+			ISNULL(S.D_QTY, 0) 	+  ISNULL(S.I_QTY, 0)   		AS pkgQty,
+			ISNULL(S.D_MT, 0) 	+  ISNULL(S.I_MT, 0)   			AS mt,
+			ISNULL(S.D_M3, 0) 	+  ISNULL(S.I_M3, 0)   			AS m3,
+			B.CMDT_CD   										AS cmdtCode,
+			dbo.F_GET_CMDT_DESC(B.CMDT_CD) 						AS cmdtName,
+			S.DELV_TP_CD    									AS delvTpCode,
+			dbo.F_CM_CODE_NM('MT', 'DELVTP', S.DELV_TP_CD) 		AS delvTpName,
+			CASE S.DELV_TP_CD
+				WHEN 'D' THEN V.BERTH_LOC
+				ELSE 
+					(SELECT 
+						STRING_AGG(LOC_ID, ', ') 
+							WITHIN GROUP (ORDER BY LOC_ID)
+						FROM 
+							ACT_LOCATION
+						WHERE 
+						VSL_CALL_ID 	= S.VSL_CALL_ID 
+						AND CG_NO 		= D.BL_NO)
+			END 												AS location,
+			B.PKG_TP_CD 										AS pkgTpCd,
+			B.CATG_CD 											AS opeClassCd,
+			B.MF_DOC_ID 										AS mfDocId,
+			ISNULL(C.REPKG_TP_CD, B.PKG_TP_CD) 					AS rePkgTpCd,
+			ISNULL(CUS.STATUS, 'HOLD') 							AS CUSTOMSRELEASEDSTATUS      
+		FROM    
+			TMT_DO_DTL 											S
+		INNER JOIN 
+			TMT_DO 												D
+		        ON  S.VSL_CALL_ID 								= D.VSL_CALL_ID
+		        AND S.BL_NO 									= D.BL_NO
+		        AND S.DO_NO 									= D.DO_NO      
+		INNER JOIN 
+			TMT_BL 												B
+		        ON  S.VSL_CALL_ID 								= B.VSL_CALL_ID
+		        AND S.BL_NO 									= B.BL_NO
+		LEFT OUTER JOIN 
+			TMT_ASSIGN_TRANSPORT 								A 
+		        ON 	S.VSL_CALL_ID 								= A.VSL_CALL_ID
+				AND S.BL_NO 									= A.BL_NO
+				AND S.SDO_NO 									= A.SDO_NO
+		LEFT OUTER JOIN 
+			TMT_VSL_SCH 										V 
+		        ON  S.VSL_CALL_ID 								= V.VSL_CALL_ID
+		LEFT OUTER JOIN 
+			TMT_CG_MST 											C
+          		ON S.VSL_CALL_ID 								= C.VSL_CALL_ID 
+				AND S.BL_NO 									= C.CG_NO			
+        LEFT OUTER JOIN 
+			CUSTOMS_RELEASE 									CUS
+          		ON CUS.VSL_CALL_ID 								= S.VSL_CALL_ID
+		        AND CUS.MF_DOC_ID 								= B.MF_DOC_ID      
+		WHERE   
+			1 = 1
+			<if test="lorryNo != null and lorryNo != ''">
+				AND (A.SDO_NO IS NOT NULL 						AND A.SDO_NO <![CDATA[<>]]> '')
+				AND A.LORRY_NO 									= #{lorryNo}
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+				AND S.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test="subDoNo != null and subDoNo != ''">
+				AND S.SDO_NO 									= #{subDoNo}
+			</if>
+			<if test="blNo != null and blNo != ''">
+				AND S.BL_NO 									= #{blNo}
+			</if>
+	</select>
+	
+	<select id="selectDeliveryOrderList"  parameterType="searchpopupServiceParm" resultType="popupServiceItem">		
+			WITH 
+				ACT_LOCATION AS 
+					(SELECT 
+						I.LOC_ID, 
+						I.VSL_CALL_ID, 
+						I.CG_NO
+		            FROM 
+						TMT_INV_LOC 								I
+		            INNER JOIN 
+						TMT_BL 										B
+		                    ON I.VSL_CALL_ID 						= B.VSL_CALL_ID 
+							AND I.CG_NO 							= B.BL_NO
+		         	GROUP BY 
+						I.LOC_ID, 
+						I.VSL_CALL_ID, 
+						I.CG_NO
+		          	 HAVING 
+					 	SUM (I.CG_WGT) > 0 
+						OR SUM (I.PKG_QTY) > 0)
+			SELECT DISTINCT /* popup-popupservice.selectDeliveryOrderList */
+				D.VSL_CALL_ID   									AS vslCallId,
+				D.BL_NO 											AS blNo,
+				D.DO_NO 											AS doNo,
+				ISNULL(D.QTY, 0) 	 								AS pkgQty,
+				ISNULL(D.MT, 0) 									AS mt,
+				ISNULL(D.M3, 0) 									AS m3,
+				B.CMDT_CD   										AS cmdtCode,
+				dbo.F_GET_CMDT_DESC(B.CMDT_CD) 						AS cmdtName,
+				D.DELV_TP_CD    									AS delvTpCode,
+				dbo.F_CM_CODE_NM('MT', 'DELVTP', D.DELV_TP_CD) 		AS delvTpName,
+				CASE D.DELV_TP_CD
+					WHEN 'D' THEN V.BERTH_LOC
+					ELSE 
+						(SELECT 
+							STRING_AGG(LOC_ID, ', ') 
+								WITHIN GROUP (ORDER BY LOC_ID)
+							FROM 
+								ACT_LOCATION
+							WHERE 
+							VSL_CALL_ID 	= D.VSL_CALL_ID 
+							AND CG_NO 		= D.BL_NO)
+				END 												AS location,
+				B.PKG_TP_CD 										AS pkgTpCd,
+				B.CATG_CD 											AS opeClassCd,
+				B.MF_DOC_ID 										AS mfDocId,
+				ISNULL(C.REPKG_TP_CD, B.PKG_TP_CD) 					AS rePkgTpCd
+			FROM    
+				TMT_DO 												D
+			INNER JOIN 
+				TMT_BL 												B
+			        ON  D.VSL_CALL_ID 								= B.VSL_CALL_ID
+			        AND D.BL_NO 									= B.BL_NO
+			LEFT JOIN TMT_ASSIGN_TRANSPORT 								A 
+			        ON 	D.VSL_CALL_ID 								= A.VSL_CALL_ID
+					AND D.BL_NO 									= A.BL_NO
+					AND D.DO_NO 									= A.DO_NO
+			LEFT OUTER JOIN 
+				TMT_VSL_SCH 										V 
+			        ON  D.VSL_CALL_ID 								= V.VSL_CALL_ID
+			LEFT OUTER JOIN 
+				TMT_CG_MST 											C
+	          		ON D.VSL_CALL_ID 								= C.VSL_CALL_ID 
+					AND D.BL_NO 									= C.CG_NO	     
+			WHERE   
+				1 = 1
+				<if test="lorryNo != null and lorryNo != ''">
+					(A.DO_NO IS NOT NULL 						AND A.DO_NO <![CDATA[<>]]> '')
+					AND A.LORRY_NO 									= #{lorryNo}
+				</if>
+				<if test="vslCallId != null and vslCallId != ''">
+					AND D.VSL_CALL_ID 								= #{vslCallId}
+				</if>
+				<if test="doNo != null and doNo != ''">
+					AND D.DO_NO 									= #{doNo}
+				</if>
+				<if test="blNo != null and blNo != ''">
+					AND D.BL_NO 									= #{blNo}
+				</if>
+	</select>
+	
+	
+	<select id="selectGatePassList"  parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		WITH 
+			HDL_JOB AS (
+		    	SELECT TOP(1)
+					VSL_CALL_ID, 
+					CG_NO, 
+					GATE_TXN_NO, 
+					CG_WGT, 
+					PKG_QTY, 
+					CG_VOL
+		    	FROM 	
+					TMT_JOB 
+		    	WHERE 	
+					(GATE_TXN_NO IS NOT NULL 					AND GATE_TXN_NO <![CDATA[<>]]> '') 
+		    		AND JOB_PURP_CD 							NOT IN ('IO', 'OI') 
+		    		<if test="lorryNo != null and lorryNo != ''">
+						AND LORRY_NO 							= #{lorryNo}
+					</if>
+					<if test="vslCallId != null and vslCallId != ''">
+						AND VSL_CALL_ID 						= #{vslCallId}
+					</if>
+			)
+		
+		SELECT /* popupservice.selectGatePassList */
+			DISTINCT 
+			A.VSL_CALL_ID           							AS vslCallId,
+			A.CG_NO                 							AS cgNo,
+			A.GATE_PASS_NO          							AS gatePassNo,
+			A.LORRY_NO              							AS lorryNo,
+			FORMAT(A.GATE_IN_DT, 'dd/MM/yyyy HH:mm')			AS gateInDate,
+			A.GATE_TXN_NO           							AS gateTxnNo,
+			A.CMDT_CD               							AS cmdtCode,
+			dbo.F_GET_CMDT_DESC(A.CMDT_CD) 						AS cmdtName,
+			J.CG_WGT                							AS mt,
+			J.CG_VOL                							AS m3,
+			J.PKG_QTY               							AS pkgQty		        
+		FROM    
+			TMT_CG_ARRV_DELV A
+		LEFT OUTER JOIN 
+			HDL_JOB J
+		        ON A.VSL_CALL_ID 								= J.VSL_CALL_ID
+		        AND A.CG_NO 									= J.CG_NO
+		        AND A.GATE_TXN_NO 								= J.GATE_TXN_NO
+		WHERE   
+			(A.GATE_PASS_NO IS NOT NULL							AND A.GATE_PASS_NO <![CDATA[<>]]> '')
+			AND (A.GATE_TXN_NO IS NOT NULL						AND A.GATE_TXN_NO <![CDATA[<>]]> '')
+			AND (A.GATE_OUT_DT IS NULL							OR A.GATE_OUT_DT = '')
+			<if test="lorryNo != null and lorryNo != ''">
+				AND A.LORRY_NO 									= #{lorryNo}
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+				AND A.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test="gatePassNo != null and gatePassNo != ''">
+				AND A.GATE_PASS_NO 								= #{gatePassNo}
+			</if>
+	</select>
+	
+	<select id="selectLocationCodeList"  parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		<if test='searchType == "BerthLoc"'>
+			SELECT /* popupservice.selectLocationCodeList */
+	  			BERTH_CD 										AS CODE, 
+				BERTH_NM 										AS CODENAME 
+			FROM 
+				TMT_BERTH_LOC
+			WHERE 
+				LOC_CD 											= #{locCd}
+			<if test="berthTp == null or berthTp == ''">
+				AND (BERTH_TP IS NOT NULL 						AND BERTH_TP <![CDATA[<>]]> '')
+				AND BERTH_TP 									= 'WRF'
+			</if>
+			<if test="berthTp != null and berthTp != ''">
+	  			AND BERTH_TP 									= #{berthTp}
+			</if>
+			<if test="cd != null and cd != ''">
+				AND BERTH_CD 									LIKE  #{cd} + '%'
+			</if>
+			ORDER BY 
+				CODE, 
+				CODENAME
+		</if>
+		<if test='searchType == "LocDef"'>
+			SELECT /* popupservice.selectLocationCodeList */
+	  			LOC_ID 											AS CODE, 
+				LOC_NM 											AS CODENAME 
+			FROM 
+				TMT_LOC_DEF
+			WHERE 
+				LOC_DIV_CD 										= #{locDivCd}
+			ORDER BY 
+				CODE, 
+				CODENAME
+		</if>
+		<if test='searchType == "Others"'>
+			SELECT /* popupservice.selectLocationCodeList */
+	  			LOC_ID 											AS CODE, 
+				LOC_NM 											AS CODENAME 
+			FROM 
+				TMT_LOC_DEF
+			WHERE 
+				LOC_DIV_CD 										= ''
+			ORDER BY 
+				CODE, 
+				CODENAME
+		</if>
+	</select>
+	
+	<select id="selectPackageNoList"  parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		<choose>
+			<when test="ixCd eq 'I'.toString()">
+				WITH /* popupservice.selectPackageNoList ixCd eq I*/
+					AW_JOB AS
+						(SELECT 
+							* 
+						FROM 
+							TMT_PKG_JOB 
+						WHERE 
+							VSL_CALL_ID 						= #{vslCallId} 
+							AND REF_NO 							= #{blNo} 
+							AND JOB_PURP_CD 					IN ('AW') 
+							AND JOB_TP_CD 						= 'DS'),
+				 	WG_JOB AS
+						(SELECT 
+							* 
+						FROM 
+							TMT_PKG_JOB 
+						WHERE 
+							VSL_CALL_ID 						= #{vslCallId} 
+							AND REF_NO 							= #{blNo} 
+							AND JOB_PURP_CD 					IN ('WG') 
+							AND JOB_TP_CD 						= 'LO'),
+				 	VG_JOB AS
+						(SELECT 
+							* 
+						FROM 
+							TMT_PKG_JOB 
+						WHERE 
+							VSL_CALL_ID 						= #{vslCallId} 
+							AND REF_NO 							= #{blNo} 
+							AND JOB_PURP_CD 					IN ('VG') 
+							AND JOB_TP_CD 						= 'DS'),
+					VA_JOB AS
+						(SELECT 
+							* 
+						FROM 
+							TMT_PKG_JOB 
+						WHERE 
+							VSL_CALL_ID 						= #{vslCallId} 
+							AND REF_NO 							= #{blNo} 
+							AND JOB_PURP_CD 					IN ('VA') 
+							AND JOB_TP_CD 						= 'DS'),
+				 	VB_JOB AS
+						(SELECT 
+							* 
+						FROM 
+							TMT_PKG_JOB 
+						WHERE 
+							VSL_CALL_ID 						= #{vslCallId} 
+							AND REF_NO 							= #{blNo} 
+							AND JOB_PURP_CD 					IN ('VB') 
+							AND JOB_TP_CD 						= 'DS'),
+				 	AB_JOB AS
+						(SELECT 
+							* 
+						FROM 
+							TMT_PKG_JOB 
+						WHERE 
+							VSL_CALL_ID 						= #{vslCallId} 
+							AND REF_NO 							= #{blNo} 
+							AND JOB_PURP_CD 					IN ('AB') 
+							AND JOB_TP_CD 						= 'DS')
+				
+				
+				SELECT /* popupservice.selectPackageNoList */	
+					PK.VSL_CALL_ID								AS VSLCALLID,
+					PK.MF_DOC_ID								AS MFDOCID,
+					PK.REF_NO									AS REFNO,
+					PK.PKG_NO									AS PACKAGENO,
+					PK.PKG_DESC									AS PACKAGEDESC,
+					PK.CG_WGT									AS MT,
+					PK.CG_VOL									AS M3,
+					PK.LENGTH									AS LENGTH,
+					PK.WIDTH									AS WIDTH,
+					PK.HEIGHT									AS HEIGHT
+					<if test="jobPurpCd == 'AB'">
+						, (SELECT 
+							LORRY_NO 
+						FROM 
+							TMT_JOB 
+						WHERE 
+							VSL_CALL_ID = VA.VSL_CALL_ID 
+							AND CG_NO 	= VA.REF_NO 
+							AND JOB_NO 	= VA.JOB_NO ) 			AS LORRYNO
+					</if>
+				FROM 	
+					TMT_PKG_INFO 								PK
+				    LEFT OUTER JOIN 
+						AW_JOB AW 
+							ON PK.VSL_CALL_ID 					= AW.VSL_CALL_ID 
+							AND PK.REF_NO 						= AW.REF_NO 
+							AND PK.PKG_NO 						= AW.PKG_NO
+				    LEFT OUTER JOIN 
+						WG_JOB 									WG 
+							ON PK.VSL_CALL_ID 					= WG.VSL_CALL_ID 
+							AND PK.REF_NO 						= WG.REF_NO 
+							AND PK.PKG_NO 						= WG.PKG_NO
+				    LEFT OUTER JOIN 
+						VG_JOB 									VG 
+							ON PK.VSL_CALL_ID 					= VG.VSL_CALL_ID 
+							AND PK.REF_NO 						= VG.REF_NO 
+							AND PK.PKG_NO 						= VG.PKG_NO
+					LEFT OUTER JOIN 
+						VA_JOB 									VA 
+							ON PK.VSL_CALL_ID 					= VA.VSL_CALL_ID 
+							AND PK.REF_NO 						= VA.REF_NO 
+							AND PK.PKG_NO 						= VA.PKG_NO
+					LEFT OUTER JOIN 
+						VB_JOB 									VB 
+							ON PK.VSL_CALL_ID 					= VB.VSL_CALL_ID 
+							AND PK.REF_NO 						= VB.REF_NO 
+							AND PK.PKG_NO 						= VB.PKG_NO
+					LEFT OUTER JOIN 
+						AB_JOB 									AB 
+							ON PK.VSL_CALL_ID 					= AB.VSL_CALL_ID 
+							AND PK.REF_NO 						= AB.REF_NO 
+							AND PK.PKG_NO 						= AB.PKG_NO
+				WHERE 	
+					PK.VSL_CALL_ID 								= #{vslCallId} 
+					AND PK.REF_NO 								= #{blNo}
+					<if test="packageNo != null and packageNo != ''">
+						AND PK.PKG_NO 							LIKE '%' + #{packageNo} + '%'
+					</if>
+					<choose>
+						<when test="jobPurpCd == 'VG'">
+							AND (VG.PKG_NO IS NULL				OR VG.PKG_NO = '')
+							AND (VA.PKG_NO IS NULL 				OR VA.PKG_NO = '')
+							<if test="subDoNo != null and subDoNo != ''">
+								AND PK.SDO_NO 					= #{subDoNo}
+							</if>
+						</when>
+						<when test="jobPurpCd == 'AW'">
+						<!-- 								
+							AND VG.PKG_NO IS NULL 
+							AND AW.PKG_NO IS NULL 
+						-->
+							AND (AW.PKG_NO IS NULL				OR AW.PKG_NO = '')
+							AND (VA.PKG_NO IS NOT NULL			AND VA.PKG_NO <![CDATA[<>]]> '')
+							<if test="jobNo != null and jobNo != ''">
+								AND VA.JOB_NO 					= #{jobNo}
+							</if>
+							<if test="subDoNo == null or subDoNo == ''">
+								AND CASE 
+										WHEN 
+											(SELECT TOP(1)
+												DELV_TP_CD 
+											FROM 
+												TMT_DO_DTL
+											WHERE 
+												VSL_CALL_ID 	= PK.VSL_CALL_ID 
+												AND BL_NO 		= PK.REF_NO 
+												AND SDO_NO 		= PK.SDO_NO
+											) = 'D'
+												THEN PK.SDO_NO
+											ELSE NULL
+									END IS NULL					  					
+							</if>
+						</when>
+						<when test="jobPurpCd == 'WG'">
+							AND (AW.PKG_NO IS NOT NULL 			AND AW.PKG_NO <![CDATA[<>]]> '')
+							AND WG.PKG_NO IS NULL				OR WG.PKG_NO = ''
+							AND PK.SDO_NO 						= #{subDoNo}
+						</when>
+						<when test="jobPurpCd == 'VB'">
+							AND (VB.PKG_NO IS NOT NULL			AND VB.PKG_NO <![CDATA[<>]]> '')
+							AND PK.SDO_NO 						= #{subDoNo}
+						</when>
+						<when test="jobPurpCd == 'VA'">
+							AND (VA.PKG_NO IS NULL 				OR VA.PKG_NO = '')
+							<if test="subDoNo == null or subDoNo == ''">
+								AND CASE 
+										WHEN 
+											(SELECT TOP(1)
+												DELV_TP_CD 
+											FROM 
+												TMT_DO_DTL
+											WHERE 
+												VSL_CALL_ID 	= PK.VSL_CALL_ID 
+												AND BL_NO 		= PK.REF_NO 
+												AND SDO_NO 		= PK.SDO_NO 
+											) = 'D'	
+											AND
+											(SELECT TOP(1) 
+												TSPT_TP_CD 
+											FROM 
+												TMT_DO_DTL
+											WHERE 
+												VSL_CALL_ID 	= PK.VSL_CALL_ID 
+												AND BL_NO 		= PK.REF_NO 
+												AND SDO_NO 		= PK.SDO_NO
+											) = 'LR'
+												THEN PK.SDO_NO
+
+										WHEN 
+											(SELECT TOP(1)
+												DELV_TP_CD 
+											FROM 
+												TMT_DO_DTL
+											WHERE 
+												VSL_CALL_ID 	= PK.VSL_CALL_ID 
+												AND BL_NO 		= PK.REF_NO 
+												AND SDO_NO 		= PK.SDO_NO
+											) = 'D'
+											AND
+											(SELECT TOP(1)
+												TSPT_TP_CD 
+											FROM 
+												TMT_DO_DTL
+											WHERE 
+												VSL_CALL_ID 	= PK.VSL_CALL_ID 
+												AND BL_NO 		= PK.REF_NO 
+												AND SDO_NO 		= PK.SDO_NO
+											) = 'SE'
+												THEN NULL
+
+										ELSE NULL
+									END IS NULL					  					
+							</if>
+						</when>
+						<when test="jobPurpCd == 'AB'">
+							AND (VA.PKG_NO IS NOT NULL 			AND VA.PKG_NO <![CDATA[<>]]> '')
+							AND PK.SDO_NO 						= #{subDoNo}
+							AND (SELECT TOP(1)
+									LORRY_NO 
+								FROM 
+									TMT_JOB 
+								WHERE 
+									VSL_CALL_ID 				= VA.VSL_CALL_ID 
+									AND CG_NO 					= VA.REF_NO 
+									AND JOB_NO 					= VA.JOB_NO 
+								) = #{lorryNo}
+						</when>
+						<otherwise>
+							AND (VG.PKG_NO IS NOT NULL 			AND VG.PKG_NO <![CDATA[<>]]> '')
+							AND (VA.PKG_NO IS NULL_NO IS NULL	OR VA.PKG_NO IS NULL_NO = '') 
+							AND (AW.PKG_NO IS NULL_NO IS NULL	OR AW.PKG_NO IS NULL_NO = '') 
+						</otherwise>
+					</choose>
+				ORDER BY 
+					PK.PKG_NO
+			</when>
+			<otherwise>
+				WITH /* popupservice.selectPackageNoList otherwise Case*/
+					WA_JOB AS
+						(SELECT 
+							* 
+						FROM 
+							TMT_PKG_JOB 
+						WHERE 
+							VSL_CALL_ID 						= #{vslCallId} 
+							AND REF_NO 							= #{shipgNoteNo} 
+							AND JOB_PURP_CD 					IN ('WA') 
+							AND JOB_TP_CD 						= 'LD'), 
+					AV_JOB AS
+						(SELECT 
+							* 
+						FROM 
+							TMT_PKG_JOB 
+						WHERE 
+							VSL_CALL_ID 						= #{vslCallId} 
+							AND REF_NO 							= #{shipgNoteNo} 
+							AND JOB_PURP_CD 					IN ('AV') 
+							AND JOB_TP_CD 						= 'LD'), 
+					GW_JOB AS
+						(SELECT 
+							* 
+						FROM 
+							TMT_PKG_JOB 
+						WHERE 
+							VSL_CALL_ID 						= #{vslCallId} 
+							AND REF_NO 							= #{shipgNoteNo} 
+							AND JOB_PURP_CD 					IN ('GW') 
+							AND JOB_TP_CD 						= 'LF'), 
+					GV_JOB AS
+						(SELECT 
+							* 
+						FROM 
+							TMT_PKG_JOB 
+						WHERE 
+							VSL_CALL_ID 						= #{vslCallId} 
+							AND REF_NO 							= #{shipgNoteNo} 
+							AND JOB_PURP_CD 					IN ('GV') 
+							AND JOB_TP_CD 						= 'LD'), 
+					BV_JOB AS
+						(SELECT 
+							* 
+						FROM 
+							TMT_PKG_JOB 
+						WHERE 
+							VSL_CALL_ID 						= #{vslCallId} 
+							AND REF_NO 							= #{shipgNoteNo} 
+							AND JOB_PURP_CD 					IN ('BV') 
+							AND JOB_TP_CD 						= 'LD')
+				
+				SELECT /* popupservice.selectPackageNoList */	
+					PK.VSL_CALL_ID								AS VSLCALLID,
+					PK.MF_DOC_ID								AS MFDOCID,
+					PK.REF_NO									AS REFNO,
+					PK.PKG_NO									AS PACKAGENO,
+					PK.PKG_DESC									AS PACKAGEDESC,
+					PK.CG_WGT									AS MT,
+					PK.CG_VOL									AS M3,
+					PK.LENGTH									AS LENGTH,
+					PK.WIDTH									AS WIDTH,
+					PK.HEIGHT									AS HEIGHT 
+				FROM 	
+					TMT_PKG_INFO 								PK
+				LEFT OUTER JOIN 
+					GW_JOB 										GW 
+						ON PK.VSL_CALL_ID 						= GW.VSL_CALL_ID 
+						AND PK.REF_NO 							= GW.REF_NO 
+						AND PK.PKG_NO 							= GW.PKG_NO
+				LEFT OUTER JOIN 
+					WA_JOB 										WA 
+						ON PK.VSL_CALL_ID 						= WA.VSL_CALL_ID 
+						AND PK.REF_NO 							= WA.REF_NO 
+						AND PK.PKG_NO 							= WA.PKG_NO
+				LEFT OUTER JOIN 
+					AV_JOB 										AV 
+						ON PK.VSL_CALL_ID 						= AV.VSL_CALL_ID 
+						AND PK.REF_NO 							= AV.REF_NO 
+						AND PK.PKG_NO 							= AV.PKG_NO
+				LEFT OUTER JOIN 
+					GV_JOB 										GV 
+						ON PK.VSL_CALL_ID 						= GV.VSL_CALL_ID 
+						AND PK.REF_NO 							= GV.REF_NO 
+						AND PK.PKG_NO 							= GV.PKG_NO
+				LEFT OUTER JOIN 
+					BV_JOB 										BV 
+						ON PK.VSL_CALL_ID 						= BV.VSL_CALL_ID 
+						AND PK.REF_NO 							= BV.REF_NO 
+						AND PK.PKG_NO 							= BV.PKG_NO
+				WHERE 	
+					PK.VSL_CALL_ID 								= #{vslCallId} 
+					AND PK.REF_NO 								= #{shipgNoteNo}
+					<if test="packageNo != null and packageNo != ''">
+						AND PK.PKG_NO 							LIKE '%' + #{packageNo} + '%'
+					</if>
+					<choose>
+						<when test="jobPurpCd == 'GW'">
+							AND (GW.PKG_NO IS NULL				OR GW.PKG_NO = '')
+							AND PK.GR_NO 						= #{grNo}
+						</when>
+						<when test="jobPurpCd == 'WA'">
+							AND (GW.PKG_NO IS NOT NULL			AND GW.PKG_NO <![CDATA[<>]]> '')
+							AND (WA.PKG_NO IS NULL 				OR WA.PKG_NO = '')
+						</when>
+						<when test="jobPurpCd == 'AV'">
+							AND (WA.PKG_NO IS NOT NULL			AND WA.PKG_NO <![CDATA[<>]]> '')
+							AND (AV.PKG_NO IS NULL 				OR AV.PKG_NO = '')
+							<if test="jobNo != null and jobNo != ''">
+								AND WA.JOB_NO 					= #{jobNo}
+							</if>
+						</when>
+						<when test="jobPurpCd == 'BV'">
+							AND (BV.PKG_NO IS NULL				OR BV.PKG_NO = '')
+							AND PK.GR_NO 						= #{grNo}
+						</when>
+						<when test="jobPurpCd == 'GV'">
+							AND (GV.PKG_NO IS NULL				OR GV.PKG_NO = '')
+							AND PK.GR_NO 						= #{grNo}
+						</when>
+						<otherwise>
+							AND (GW.PKG_NO IS NULL				OR GW.PKG_NO = '')
+						</otherwise>
+					</choose>
+				ORDER BY
+					PK.PKG_NO
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="selectBargeNoList"  parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		<choose>
+        	<when test="searchType eq 'I'.toString()">
+				SELECT	/* popupservice.selectBargeNoList */
+					V.VSL_CALL_ID 								AS BARGENO,
+					P.VSL_NM 									AS VSLNM,
+					FORMAT(V.ATB, 'dd/MM/yyyy HH:mm') 			AS ATB,
+					FORMAT(V.ATU, 'dd/MM/yyyy HH:mm') 			AS ATU 
+				FROM    
+					TMT_VSL_SCH V
+				LEFT OUTER JOIN 
+					TMT_VSL_PART P 
+						ON V.VSL_CD 						= P.VSL_CD
+				WHERE   
+					P.VSL_TP = 'BRGE'
+					AND (V.ATB IS NOT NULL					AND V.ATB <![CDATA[<>]]> '')
+					AND (V.ATU IS NULL						AND V.ATU = '')
+					<if test="bargeNo != null and bargeNo != ''">
+						AND V.VSL_CALL_ID 					LIKE '%' + #{bargeNo} + '%'
+					</if>
+        	</when>
+        	<otherwise>
+        		WITH 
+					DBL_BNK AS
+						(SELECT  
+							D.DBL_BNK_SHIP1 AS BARGENO,
+							P.VSL_NM AS VSLNM,
+							FORMAT(D.SHIP1_ATB, 'dd/MM/yyyy HH:mm') 	AS ATB,
+							FORMAT(D.SHIP1_ATU, 'dd/MM/yyyy HH:mm') 	AS ATU 
+						FROM    
+							TMT_DBL_BNK D 
+						LEFT OUTER JOIN 
+							TMT_VSL_SCH V 
+								ON D.DBL_BNK_SHIP1 						= V.VSL_CALL_ID
+						LEFT OUTER JOIN 
+							TMT_VSL_PART P 
+								ON V.VSL_CD 							= P.VSL_CD
+						WHERE   
+							D.VSL_CALL_ID 								= #{vslCallId}
+							AND D.DBL_BNK_DIV_CD 						IN ('BG', 'BT')
+							AND P.VSL_TP 								= 'BRGE'
+					
+						UNION    
+
+						SELECT  
+							D.DBL_BNK_SHIP2 							AS BARGENO,
+							P.VSL_NM 									AS VSLNM,
+							FORMAT(D.SHIP2_ATB, 'dd/MM/yyyy HH:mm') 	AS ATB,
+							FORMAT(D.SHIP2_ATU, 'dd/MM/yyyy HH:mm') 	AS ATU 
+						FROM    
+							TMT_DBL_BNK 								D 
+						LEFT OUTER JOIN 
+							TMT_VSL_SCH V 
+								ON D.DBL_BNK_SHIP2 						= V.VSL_CALL_ID
+						LEFT OUTER JOIN 
+							TMT_VSL_PART P 
+								ON V.VSL_CD 							= P.VSL_CD
+						WHERE   
+							D.VSL_CALL_ID 								= #{vslCallId}
+							AND D.DBL_BNK_DIV_CD 						IN ('BG', 'BT')
+							AND P.VSL_TP 								= 'BRGE'
+							AND (D.DBL_BNK_SHIP2 IS NOT NULL			AND D.DBL_BNK_SHIP2 <![CDATA[<>]]> '')
+								
+						UNION    
+
+						SELECT  
+							D.DBL_BNK_SHIP3 							AS BARGENO,
+							P.VSL_NM 									AS VSLNM,
+							FORMAT(D.SHIP3_ATB, 'dd/MM/yyyy HH:mm') 	AS ATB,
+							FORMAT(D.SHIP3_ATU, 'dd/MM/yyyy HH:mm') 	AS ATU 
+						FROM    
+							TMT_DBL_BNK D 
+						LEFT OUTER JOIN 
+							TMT_VSL_SCH V 
+								ON D.DBL_BNK_SHIP3 						= V.VSL_CALL_ID
+						LEFT OUTER JOIN 
+							TMT_VSL_PART P
+								ON V.VSL_CD 							= P.VSL_CD
+						WHERE   
+							D.VSL_CALL_ID 								= #{vslCallId}
+							AND D.DBL_BNK_DIV_CD 						IN ('BG', 'BT')
+							AND P.VSL_TP 								= 'BRGE'
+							AND (D.DBL_BNK_SHIP3 IS NOT NULL			AND D.DBL_BNK_SHIP3 <![CDATA[<>]]> '')
+					)
+				SELECT 	/* popupservice.selectBargeNoList */
+					* 
+				FROM 	
+					DBL_BNK
+				<where>
+					<if test="bargeNo != null and bargeNo != ''">
+						BARGENO LIKE '%' + #{bargeNo} + '%'
+					</if>
+				</where>
+        	</otherwise>
+        </choose>
+		
+		
+	</select>
+	
+	<select id="searchVin" parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		SELECT DISTINCT /* popupservice.searchVin */
+	        CHASSIS_NO 											AS CODE,
+	        CHASSIS_NO 											AS CODENAME,
+	        PLAN_LOC_ID 										AS YARDLOC
+		FROM 
+			TMT_RORO_MST
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND CG_NO 											= #{docNo}
+			AND CATG_CD 										= #{ie}
+			AND CG_TP_CD 										IN ('RCV')
+        <if test="ie eq 'I'.toString()" >
+			AND STAT_CD 										IN ('RS','OD','ST','DV')
+		</if>
+		<if test="ie eq 'E'.toString()" >
+			AND STAT_CD 										IN ('RS','IC','ST')
+		</if>
+			AND CHASSIS_NO 										LIKE '%' + #{cdNm} + '%' 
+	</select>
+	
+	<select id="selectVinList" parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		SELECT DISTINCT /* popupservice.selectVinList */
+	        CHASSIS_NO 											AS CODE,
+	        CHASSIS_NO 											AS CODENAME,
+	        PLAN_LOC_ID 										AS YARDLOC
+		FROM 
+			TMT_RORO_MST
+		WHERE 
+			VSL_CALL_ID 										= #{vslCallId}
+			AND CG_NO 											= #{docNo}
+			AND CATG_CD 										= #{ie}
+			AND CG_TP_CD 										IN ('RCV')
+        <if test="ie eq 'I'.toString()" >
+			AND STAT_CD 										IN ('RS','OD','ST','DV')
+		</if>
+		<if test="ie eq 'E'.toString()" >
+			AND STAT_CD 										IN ('RS','IC','ST','OL')
+		</if>
+	</select>
+	
+	<select id="selectEqList" parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		SELECT /* popupserver.selectEqList */
+			 A.EQ_FAC_NO AS EQFACNO,	
+			 A.EQ_FAC_NM AS EQNAME,
+			 CAST(B.CAPA AS VARCHAR) AS EQCAPACITY
+		 FROM 
+			 TMT_EQ_FAC A
+			 INNER JOIN TMT_EQ_CAPA B 
+				ON A.CAPA_CD = B.CAPA_CD AND A.EQ_TP_CD = B.EQ_TP_CD
+		WHERE 
+			 A.EQ_TP_CD = #{eqCd}
+			 <if test="eqValue != null and eqValue != ''">
+			 	AND A.EQ_FAC_NO = #{eqValue}
+			 </if>
+	</select>
+	
+	<select id="selectEquipmentCodeList"  parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		SELECT /* popupservice.selectEquipmentCodeList */
+			A.EQ_TP_CD   									 	AS EQDIVCD, 
+			C.S_CD_NM    									 	AS EQDIVCDNM, 
+			A.EQ_FAC_NO  									 	AS EQFACNO, 
+			A.EQ_FAC_NM  									 	AS EQFACNM, 
+			A.OWN_DIV_CD 									 	AS OWNDIVCD,
+			dbo.F_CM_CODE_NM('MT', 'EQFCOWNCD', A.OWN_DIV_CD) 	AS OWNDIVNM,
+			B.CAPA_CD    									 	AS CAPACD, 
+			B.CAPA_DESCR 										AS CAPADESCR
+			<include refid="sqlEquipmentCode"/>
+		<!-- SELECT /* popupservice.selectEquipmentCodeList */		DISTINCT
+			A.EQ_TP_CD   									 	AS EQDIVCD, 
+			A.EQ_FAC_NM  									 	AS EQDIVCDNM, 
+			B.CAPA_CD    									 	AS CAPACD, 
+			B.CAPA_DESCR 										AS CAPADESCR
+			, B.CAPA
+			FROM 
+				TMT_EQ_FAC 										A, 
+				TMT_EQ_CAPA 									B
+		  	WHERE 
+				A.VLD_YN 										= 'Y'
+				AND A.EQ_TP_CD 									= #{ptnrType}
+				AND B.EQ_TP_CD 									= #{ptnrType} -->
+	</select>
+
+	<sql id="sqlEquipmentCode">
+			<if test="ptnrType == 'FL'">
+				, B.CAPA + 'T' CAPA
+			</if>
+			<if test="ptnrType != 'FL'">
+				, ' ' CAPA
+			</if>
+ 	       	FROM 
+				TMT_EQ_FAC 										A, 
+				TMT_EQ_CAPA 									B, 
+				TMT_CD_MSTD 									C
+		  	WHERE 
+				A.VLD_YN 										= 'Y'
+			<if test="ptnrType != null and ptnrType != ''">
+   				AND A.EQ_TP_CD 									= #{ptnrType}
+			</if>
+			<if test="eqFacNo != null and eqFacNo != ''">
+				<if test="likeYN != null and likeYN = 'Y'">
+				        AND EQ_FAC_NO LIKE '%' + #{eqFacNo} + '%'
+				</if>
+				<if test="likeYN == null or likeYN == ''">
+						AND A.EQ_FAC_NO   						= #{eqFacNo}
+				</if>
+			</if>
+			<if test="eqDivCd != null and eqDivCd != ''">
+   				AND A.EQ_TP_CD 									= #{eqDivCd}
+			</if>
+				AND A.CAPA_CD 									= B.CAPA_CD
+			<if test="reqType == 'CODE'">
+				<if test="ptnrName != null and ptnrName != ''">
+    			AND B.CAPA_CD 									LIKE '%' + #{ptnrName} + '%'
+				</if>
+			</if>
+			<if test="reqType == 'DESC'">
+				<if test="ptnrName != null and ptnrName != ''">
+    			AND B.CAPA_DESCR 								LIKE '%' + #{ptnrName} + '%'
+				</if>
+			</if>
+				AND A.EQ_TP_CD 									= C.S_CD
+				AND C.L_CD 										= 'MT'
+				AND C.M_CD 										= 'EQFCTPCD'
+			<!-- 
+			<if test="scdLgv != null and scdLgv != ''">
+   				AND C.S_CD_LGV = #{scdLgv}
+			</if>
+			<if test="scdVal != null and scdVal != ''">
+   				AND C.S_CD_VAL = #{scdVal}
+			</if>		 
+			-->	
+	</sql> 
+	
+	<select id="selectEquipmentCodeLoc"  parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		SELECT /* popupservice.selectEquipmentCodeLoc */
+		       /*+ FIRST_ROWS(10)*/
+  			LOC_ID    											AS LOCID,
+		    LOC_NM    											AS LOCNM
+		FROM 
+			TMT_LOC_DEF
+		WHERE 
+			LOC_DIV_CD 											= #{locDivCd}
+	</select>
+	
+	<select id="selectEquipmentGearList"  parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		SELECT /* popupservice.selectEquipmentGearList */
+			EQ_FAC_NO 											AS EQDIVCD, 
+			'GEAR' 												AS EQDIVCDNM, 
+			EQ_FAC_NM 											AS capaDescr, 
+			'Internal' 											AS OWNDIVNM 
+		FROM 
+			TMT_EQ_FAC
+		<where>
+			<if test="gearCd != null and gearCd != ''">
+				EQ_TP_CD 										= #{gearCd} 
+			</if>
+		</where>
+		 	
+		<!-- <if test="ptnrName != null and ptnrName != ''">
+    		AND EQ_FAC_NM LIKE '%' + #{ptnrName} + '%'
+		</if> -->
+		ORDER BY 
+			EQ_FAC_NM
+	</select>
+	
+	<select id="selectEquipmentCode"  parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		<if test="viewType != 'Multi'">
+			SELECT /* popupservice.selectEquipmentCode */
+				A.EQ_TP_CD   									AS EQDIVCD, 
+				C.S_CD_NM    									AS EQDIVCDNM,
+				B.CAPA_CD    									AS CAPACD, 
+				B.CAPA_DESCR 									AS CAPADESCR,
+				' '          									AS OWNDIVCD,
+				' '          									AS OWNDIVNM
+				<include refid="sqlEquipmentCode"/>
+			GROUP BY 
+				A.EQ_TP_CD, 
+				C.S_CD_NM, 
+				B.CAPA_CD, 
+				B.CAPA_DESCR, 
+				B.CAPA
+			<if test="eqDivCd != 'FL'">
+				ORDER BY 
+					CAPADESCR
+			</if>
+			<if test="eqDivCd == 'FL'">
+				ORDER BY 
+					B.CAPA,CAPADESCR
+			</if>
+		</if>
+		<if test="viewType == 'Multi'">
+			SELECT /* popupservice.selectEquipmentCode*/
+				A.EQ_TP_CD   									AS EQDIVCD, 
+				C.S_CD_NM    									AS EQDIVCDNM,
+				A.OWN_DIV_CD 									AS OWNDIVCD,
+				dbo.F_CM_CODE_NM(
+					'MT', 
+					'EQFCOWNCD',
+					A.OWN_DIV_CD) 								AS OWNDIVNM,
+				B.CAPA_CD    									AS CAPACD, 
+				B.CAPA_DESCR 									AS CAPADESCR
+				<include refid="sqlEquipmentCode"/>
+			GROUP BY 
+				A.EQ_TP_CD, 
+				C.S_CD_NM, 
+				A.OWN_DIV_CD, 
+				B.CAPA_CD, 
+				B.CAPA_DESCR, 
+				B.CAPA
+			<if test="ptnrType != 'FL'">
+				ORDER BY 
+					CAPADESCR
+			</if>
+			<if test="ptnrType == 'FL'">
+				ORDER BY 
+					B.CAPA,
+					CAPADESCR
+			</if>
+		</if>
+	</select>
+	
+	<select id="selectEquipmentCodeListGear"  parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		SELECT /*popupservice.selectEquipmentCodeListGear*/
+			S_CD gearCd, 
+			S_CD_NM gearNm
+		FROM 
+		TMT_CD_MSTD 
+		WHERE 
+			M_CD 												='EQFCTPCD' 
+			AND S_CD_VAL 										='GR' 
+		ORDER BY 
+			S_CD_NM
+	</select>
+		
+	<select id="selectYardTruckPopupList" parameterType="searchpopupServiceParm" resultMap="resultCodeMasterList">
+	 	<if test="pageNo != 0"> 
+			SELECT /*popupservice.selectYardTruckPopupList*/
+            	* 
+			FROM (
+				SELECT 
+					ROW_NUMBER() OVER(ORDER BY EQ_FAC_NO) AS ROW_NUM,
+					innerTable.* 
+				FROM ( 
+		</if>
+				<include refid="selectYardTruckList"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable 
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	CAST((CASE WHEN #{pageNo}  = '0' THEN '1' ELSE #{pageNo} END) AS INT) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+
+	<sql id="selectYardTruckList">
+		SELECT /* selectYardTruckPopupList */
+			EQ_FAC_NO  											AS scd,
+			EQ_FAC_NM  											AS scdNm
+		FROM 
+			TMT_EQ_FAC 
+		WHERE  
+			EQ_TP_CD 											='YT'
+			AND STAT_CD 										= 'AV'
+		<if test="scd != null and scd != ''">
+			AND	EQ_FAC_NO 										LIKE #{scd} + '%'
+		</if>
+		<if test="scdNm != null and scdNm != ''">
+			AND	EQ_FAC_NM 										LIKE #{scdNm} + '%'
+		</if>
+	</sql>
+	
+	
+	
+	<sql id = "selectAllTruckAssigned">
+		SELECT /*selectAllTruckAssigned*/
+			A.SHIPG_NOTE_NO 									AS SHIPGNOTENO,
+			A.VSL_CALL_ID 										AS VSLCALLID,
+			ISNULL(A.LORRY_NO,' ') 								AS LORRYNO,
+			ISNULL(A.DRIVER_ID, ' ') 							AS DRIVERID,
+			(SELECT 
+				DRIVER_NM 
+			FROM 
+				TMT_DRIVER_MST
+			WHERE 
+				DRIVER_ID = A.DRIVER_ID)						AS DRIVERNM,
+			A.BL_NO 											AS BLNO,
+			A.TRANSPORT 										AS TSPTR,
+			ISNULL(A.ALLOW_WGT, 0) 								AS ALLOWWGT,
+			ISNULL(A.ALLOWWGT_VAL, 0) 							AS ALLOWWGTVAL
+		FROM 
+			TMT_ASSIGN_TRANSPORT A
+		WHERE 
+			A.VSL_CALL_ID 										= #{vslCallId}
+			AND (A.LORRY_NO IS NOT NULL							AND A.LORRY_NO <![CDATA[<>]]> '')
+			<if test="blNo != null and blNo != ''">
+				AND A.BL_NO 									= #{blNo}
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				AND A.SHIPG_NOTE_NO 							= #{shipgNoteNo}
+			</if>
+			<if test="lorryNo != null and lorryNo != ''">
+				AND A.LORRY_NO 									= #{lorryNo}
+			</if>
+			<if test="docTp != null and docTp != ''">
+			<if test="docTp	 eq 'SN'.toString()">
+				AND (A.SHIPG_NOTE_NO IS NOT NULL				AND A.SHIPG_NOTE_NO <![CDATA[<>]]> '')
+			</if>
+			<if test="docTp eq 'BL'.toString()">
+				AND (A.BL_NO IS NOT NULL						AND A.BL_NO <![CDATA[<>]]> '')
+			</if>
+			</if>
+		ORDER BY 
+		   	A.VSL_CALL_ID, 
+			A.SHIPG_NOTE_NO, 
+			LORRY_NO
+	</sql>
+	
+	<sql id = "selectGateInTruckItems">
+		<!--ADP. CUSP: Lorry Gate In, not Gate Out yet -->
+		SELECT /*selectGateInLorryItems*/
+			GT.VSL_CALL_ID     									AS VSLCALLID,
+			CG_NO             									AS CGNO,
+			GR.GR_NO											AS GRNO,
+			CG_IN_OUT_CD     									AS CGINOUT,
+			GT.LORRY_NO      									AS LORRYNO,
+			GT.DRIVER_ID										AS DRIVERID,
+			(SELECT 
+				DRIVER_NM 
+			FROM 
+				TMT_DRIVER_MST
+			WHERE 
+				DRIVER_ID = GT.DRIVER_ID) 						AS DRIVERNM,
+			(SELECT TOP(1)
+				PTNR_CD 
+			FROM 
+				TMT_TRUCK_MST
+			WHERE 
+				LORRY_NO = GT.LORRY_NO)							AS TSPTR,
+			GATE_IN_DT     										AS GATE_IN_DT,
+			GATE_OUT_DT     									AS GATE_OUT_DT,
+			GATE_TXN_NO     									AS GATETXNNO,
+			BL.BL_NO 											AS BLNO,
+			BL.BL_NO 											AS CDNM,
+			SN.SHIPG_NOTE_NO 									AS SHIPGNOTENO,
+			(SELECT TOP(1)
+				ISNULL(L.ALLOW_WGT, 0) 
+			FROM 
+				TMT_ASSIGN_TRANSPORT	L 
+			WHERE  
+				L.VSL_CALL_ID 			= GT.VSL_CALL_ID 
+				AND (L.CHASSIS_NO IS NOT NULL 	
+					AND L.CHASSIS_NO <![CDATA[<>]]> '') 
+			) 													AS ALLOWWGT,
+			
+			(SELECT TOP(1) 
+				ISNULL(L.ALLOWWGT_VAL, 0) 
+			FROM 
+				TMT_ASSIGN_TRANSPORT 	L 
+			WHERE  
+				L.VSL_CALL_ID 			= GT.VSL_CALL_ID 
+				AND (L.CHASSIS_NO IS NOT NULL 	
+					AND L.CHASSIS_NO <![CDATA[<>]]> '') 
+			) 													AS ALLOWWGTVAL
+	                
+	    FROM 
+			TMT_CG_ARRV_DELV 									GT
+		LEFT JOIN 
+			TMT_BL 												BL 
+				ON GT.CG_NO 									= BL.BL_NO 
+				AND GT.VSL_CALL_ID 								= BL.VSL_CALL_ID
+		LEFT JOIN 
+			TMT_GR 												GR 
+				ON GT.CG_NO 									= GR.GR_NO 
+				AND GT.VSL_CALL_ID 								= GT.VSL_CALL_ID
+		LEFT JOIN 
+			TMT_SHIPG_NOTE 										SN 
+				ON SN.SHIPG_NOTE_NO 							= GR.SHIPG_NOTE_NO 
+				AND SN.VSL_CALL_ID 								= GR.VSL_CALL_ID
+		WHERE 	
+			(GT.GATE_OUT_DT IS NULL								OR GT.GATE_OUT_DT = '') 
+			AND (GT.GATE_CD_OUT IS NULL							OR GT.GATE_CD_OUT = '')
+			AND (GATE_PASS_NO IS NULL							OR GATE_PASS_NO  = '') 
+			AND (JOB_NO IS NULL									OR JOB_NO = '')
+			<if test="vslCallId != null and vslCallId != ''">
+				AND GT.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test="lorryNo != null and lorryNo != ''">
+				AND	GT.LORRY_NO 								LIKE #{lorryNo} + '%'
+			</if>
+			<if test="blNo != null and blNo != ''">
+				AND	GT.CG_NO 									= #{blNo}
+			</if>
+			<if test="grNo != null and grNo != ''">
+				AND	GT.CG_NO 									= #{grNo}
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				AND	GT.CG_NO IN (SELECT 
+									GR_NO 
+								FROM 
+									TMT_GR 						GR 
+								WHERE 
+									GR.VSL_CALL_ID 				= GT.VSL_CALL_ID
+									AND GR.SHIPG_NOTE_NO 		=  #{shipgNoteNo})
+								
+			</if>
+			<if test="docTp != null and docTp != ''">
+			<if test="docTp	 eq 'SN'.toString()">
+				AND GT.CG_IN_OUT_CD 							= 'I'
+			</if>
+			<if test="docTp eq 'BL'.toString()">
+				AND GT.CG_IN_OUT_CD 							= 'O'
+			</if>
+			</if>
+		ORDER BY
+        	GT.GATE_IN_DT DESC
+	</sql>
+	
+	<sql id = "selectConfirmedJobTruckItems">
+	<!-- List of Truck In side (gate in not gate out) and already confirm Handling Out-->
+		SELECT /* popupService.selectConfirmedJobTruckItems */
+			GT.VSL_CALL_ID         								AS VSLCALLID,
+			CG_IN_OUT_CD         								AS CGINOUT,
+			GT.LORRY_NO          								AS LORRYNO,
+			(SELECT TOP(1)
+				DRIVER_NM 
+			FROM 
+				TMT_DRIVER_MST
+			WHERE 
+				DRIVER_ID = GT.DRIVER_ID)						AS DRIVERNM,
+			(SELECT TOP(1)
+				PTNR_CD 
+			FROM 
+				TMT_TRUCK_MST
+			WHERE 
+				LORRY_NO = GT.LORRY_NO)							AS TSPTR,
+			GATE_TXN_NO         								AS GATETXNNO,
+			BL.BL_NO             								AS BLNO,
+			SN.SHIPG_NOTE_NO     								AS SHIPGNOTENO
+		FROM 
+		    TMT_CG_ARRV_DELV GT
+		LEFT JOIN 
+			TMT_BL 												BL 
+				ON GT.CG_NO 									= BL.BL_NO 
+				AND GT.VSL_CALL_ID 								= BL.VSL_CALL_ID
+		LEFT JOIN 
+			TMT_GR 												GR 
+				ON GT.CG_NO 									= GR.GR_NO 
+				AND GT.VSL_CALL_ID 								= GT.VSL_CALL_ID
+		LEFT JOIN 
+			TMT_SHIPG_NOTE 										SN 
+				ON SN.SHIPG_NOTE_NO 							= GR.SHIPG_NOTE_NO 
+				AND SN.VSL_CALL_ID 								= GR.VSL_CALL_ID
+		WHERE 
+		    (GT.GATE_OUT_DT IS NULL								OR GT.GATE_OUT_DT = '') 
+		    AND (GT.GATE_CD_OUT IS NULL							OR GT.GATE_CD_OUT = '')
+		    AND (GATE_TXN_NO IS NOT NULL						AND GATE_TXN_NO <![CDATA[<>]]> '')
+		    AND (GT.JOB_NO IS NOT NULL							AND GT.JOB_NO   <![CDATA[<>]]> '')
+		    <if test="docTp != null and docTp != ''">
+	         	<if test="docTp	 eq 'SN'.toString()">
+	         	 	AND (SN.SHIPG_NOTE_NO IS NOT NULL			AND SN.SHIPG_NOTE_NO <![CDATA[<>]]> '')
+	         	</if>
+	         	<if test="docTp eq 'BL'.toString()">
+	         	 	AND (BL.BL_NO IS NOT NULL					BL.BL_NO <![CDATA[<>]]> '')
+	         	</if>
+	         </if>
+		GROUP BY 
+		    GT.VSL_CALL_ID,
+		    CG_IN_OUT_CD,
+		    GT.LORRY_NO,
+		    GT.DRIVER_ID,
+		    GATE_TXN_NO,
+		    BL.BL_NO,
+		    SN.SHIPG_NOTE_NO
+	</sql>
+	
+	<select id = "selectServiceOrderList"  parameterType = "searchpopupServiceParm" resultType = "popupServiceItem">
+		SELECT /* popupService."selectServiceOrderList */
+		    CATEGORY1 											AS CATEGORY1,
+            dbo.F_CM_CODE_NM('MT', 'SVCORDCTG1', CATEGORY1) 	AS CATEGORY1NM,
+            SEQ 												AS SEQ,
+            CATEGORY2 											AS CATEGORY2,
+            dbo.F_CM_CODE_NM('MT', 'SVCORDCTG2', CATEGORY2) 	AS CATEGORY2NM,
+            CATEGORY3 											AS CATEGORY3,
+            dbo.F_CM_CODE_NM('MT', 'SVCORDCTG3', CATEGORY3) 	AS CATEGORY3NM,
+            SVC_DT_FMT 											AS SVCDTFMT,
+            SVC_DT_TP 											AS SVCDTTP,
+            DT1_CHK 											AS DT1CHK,
+            DT1_TIT 											AS DT1TIT,
+            DT1_FMT 											AS DT1FMT,
+            DT1_TP 												AS DT1TP,
+            DT2_CHK 											AS DT2CHK,
+            DT2_TIT 											AS DT2TIT,
+            DT2_FMT 											AS DT2FMT,
+            DT2_TP 												AS DT2TP,
+            SHFT_CHK 											AS SHFTCHK,
+            UNIT_TIT 											AS UNITTIT,
+            UNIT_UOM 											AS UNITUOM,
+            dbo.F_CM_CODE_NM('MT', 'UOMTP', UNIT_UOM) 			AS UNITUOMNM,
+            UNIT_DEC 											AS UNITDEC,
+            UNIT1_CHK 											AS UNIT1CHK,
+            UNIT1_TIT 											AS UNIT1TIT,
+            UNIT1_UOM 											AS UNIT1UOM,
+            dbo.F_CM_CODE_NM('MT', 'UOMTP', UNIT1_UOM) 			AS UNIT1UOMNM,
+            UNIT1_DEC 											AS UNIT1DEC,
+            UNIT2_CHK 											AS UNIT2CHK,
+            UNIT2_TIT 											AS UNIT2TIT,
+            UNIT2_UOM 											AS UNIT2UOM,
+            dbo.F_CM_CODE_NM('MT', 'UOMTP', UNIT2_UOM) 			AS UNIT2UOMNM,
+            UNIT2_DEC 											AS UNIT2DEC,
+            PAY_TP_CD 											AS PAYTPCD,
+            dbo.F_CM_CODE_NM('MT', 'PAYTP', PAY_TP_CD) 			AS PAYTPNM,
+            PRC_TP_CD 											AS PRCTPCD,
+            dbo.F_CM_CODE_NM('MT', 'ODRPRCTP', PRC_TP_CD) 		AS PRCTPNM,
+            (SELECT 
+				S_CD_DESC 
+			FROM 
+				TMT_CD_MSTD 
+			WHERE 
+				L_CD = 'MT' 
+				AND M_CD = 'ODRPRCTP' 
+				AND S_CD = PRC_TP_CD) 							AS PRCTPDESC,
+            LOC_CHK                                                        AS LOCCHK,
+			RMK_CHK                                                        AS RMKCHK,
+			CMDTY_CHK                                                      AS CMDTYCHK,
+			DOCUMENT_CHK                                                   AS DOCUMENTCHK,
+			UNIT_CHK                                                       AS UNITCHK,
+			DOCUMENT_TYPE                                                  AS DOCUMENTTP,
+			DOCUMENT_NM                                                    AS DOCUMENTNM
+		FROM  
+			TMT_SVC_ODR_CONF
+		WHERE  
+			1 = 1
+		<if test="category1 != null and category1 != ''">
+			AND CATEGORY1 										= #{category1}
+		</if>
+		<if test="category2 != null and category2 != ''">
+			AND CATEGORY2 										= #{category2}
+		</if>
+		<if test="category3 != null and category3 != ''">
+			AND CATEGORY3 										= #{category3}
+		</if>
+	</select>
+	
+	<select id="selectPkgTpCodeList" parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		SELECT /* popupService.selectPkgTpCodeList */
+			S_CD 	 											AS SCD, 
+			S_CD_NM 											AS SCDNM 
+		FROM 
+			TMT_CD_MSTD 
+		WHERE 
+			M_CD 												= 'PKGTP'
+		<if test="pkgTpCode != null and pkgTpCode != ''">
+			AND S_CD 											LIKE '%' + #{pkgTpCode} + '%'
+		</if>
+	</select>
+	
+	<select id="selectUserType" parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		SELECT /* popupService.selectUserType */
+			A.STAFF_CD          								AS staffCd,
+			A.ENG_SNM                   						AS ptnrName,
+			A.PTNR_TYPE                    						AS ptnrType,
+			A.PTNR_CODE                 						AS ptnrCode
+        FROM 
+			TMT_PTNR 											A
+		WHERE 
+			A.STAFF_CD 											= 'MOSTADMIN'
+		<if test="ptnrTp != null and ptnrTp != ''">
+			AND A.PTNR_TYPE 									=  #{ptnrTp}
+		</if>
+		<if test="ptnrName != null and ptnrName != ''">
+			AND A.ENG_SNM 										LIKE '%' + #{ptnrName} + '%'
+		</if>
+	</select>
+	
+	<select id="selectDelayCodePopup"  parameterType="searchpopupServiceParm" resultMap="resultDelayCodeList">
+		SELECT 	/* popupService.selectDelayCodePopup */
+			DLY_CD             	 								AS SCD,
+		    DESCR        		 								AS SCDNM,		
+			CASE ISNULL(CHAG_YN, 'N')
+				WHEN 'N' THEN 'N'
+				ELSE 'Y'
+			END 												AS ACPTYN	
+		FROM 	
+			TMT_DLY_CD	
+		WHERE 	
+			1 = 1  
+			<if test="tyCd == 'CD'">
+				<if test="scd != null and scd != ''">
+					AND DLY_CD 									LIKE #{scd} + '%'
+				</if>
+			</if>
+			<if test="col1 != null and col1 != ''"> 		
+				AND DLY_CATG_CD 								= #{col1} 
+			</if>
+			<if test="tyCd == 'NM'">
+				<if test="scd != null and scd != ''">
+					AND UPPER(DESCR) 							LIKE UPPER(#{scd} + '%')
+				</if>
+			</if>
+			<if test="lcd != null and lcd != ''">
+				AND
+				<if test="lcd == 'LIQUIQ'">
+					CG_TP = 'LQD'
+				</if>
+				<if test="lcd != 'LIQUIQ'">
+					CASE 
+						WHEN (CG_TP IS NOT NULL AND CG_TP <![CDATA[<>]]> '') 
+						THEN CG_TP ELSE '1' 
+					END 
+					<![CDATA[<>]]> 
+					CASE 
+						WHEN (CG_TP IS NOT NULL AND CG_TP <![CDATA[<>]]> '') 
+							THEN 'LQD' 
+						ELSE '2' 
+					END						
+				</if>
+			</if>
+		ORDER BY 
+			DLY_CD,
+			DESCR
+	</select>
+
+	<select id="selectEmpIdList" parameterType="searchpopupServiceParm" resultMap="resultEmpIdList">
+		SELECT DISTINCT /* popupService.selectEmpIdList */
+			EMP_ID 												AS EMPID, 
+			dbo.F_GET_EMP_ROLE_CD (EMP_ID) 						AS sRoleCd,
+            ENG_NM 												AS EMPNM,
+            ROLE_CD 											AS ROLECD
+		FROM 
+			TMT_STAFF 
+		WHERE 
+			USE_YN												= 'Y'
+			<if test="roleCd != null and roleCd != ''">
+                AND ROLE_CD 									LIKE  '%' + #{roleCd}  + '%' 
+            </if>
+        ORDER BY 
+			ROLECD
+	</select>
+	
+	<select id="selectGateTicketNoList"  parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		WITH 
+			HDL_JOB AS (
+				SELECT	
+					VSL_CALL_ID, 
+					CG_NO, 
+					GATE_TXN_NO, 
+					CG_WGT, 
+					PKG_QTY, 
+					CG_VOL
+				FROM 	
+					TMT_JOB 
+				WHERE 	
+					(GATE_TXN_NO IS NOT NULL 					AND GATE_TXN_NO <![CDATA[<>]]> '') 
+					AND JOB_PURP_CD 							NOT IN ('IO', 'OI') 
+					<if test="lorryNo != null and lorryNo != ''">
+						AND LORRY_NO 							= #{lorryNo}
+					</if>
+					<if test="vslCallId != null and vslCallId != ''">
+						AND VSL_CALL_ID 						= #{vslCallId}
+					</if>
+		)
+		
+		SELECT DISTINCT /* popupService.selectGateTicketNoList */
+		    A.VSL_CD                                            AS vslCd,
+		    A.CALL_YEAR                                         AS callYear,
+		    A.CALL_SEQ                                          AS callSeq,
+			A.VSL_CALL_ID           							AS vslCallId,
+			A.CG_NO                 							AS cgNo,
+			A.LORRY_NO              							AS lorryNo,
+			FORMAT(A.GATE_IN_DT, 'dd/MM/yyyy HH:mm') 			AS gateInDate,
+			A.GATE_TXN_NO           							AS gateTxnNo,
+			A.CMDT_CD               							AS cmdtCode,
+			B.BL_NO                                             AS blNo,
+			S.SHIPG_NOTE_NO                                     AS shipgNoteNo,
+			dbo.F_GET_CMDT_DESC(A.CMDT_CD) 						AS cmdtName,
+			J.CG_WGT                							AS mt,
+			J.CG_VOL                							AS m3,
+			J.PKG_QTY               							AS pkgQty,
+			A.GATE_TXN_NO 										AS gateTicketNo,
+			A.SDO_NO 											AS sdoNo,
+			A.GR_NO 											AS grNo,
+			ISNULL(D.DELV_TP_CD, S.DELV_TP_CD) 					AS delvTpCode,
+			ISNULL(B.CATG_CD, S.CATG_CD) 						AS opeClassCd,
+			A.CG_IN_OUT_CD 										AS cgInOutCd,
+			ISNULL(C.REPKG_TP_CD, C.PKG_TP_CD) 					AS rePkgTpCd,
+			ISNULL(B.PKG_TP_CD, S.PKG_TP_CD) 					AS pkgTpCd,
+			CASE 
+				WHEN (A.SDO_NO IS NOT NULL AND A.SDO_NO <![CDATA[<>]]> '')
+					THEN 
+						(SELECT 
+							CASE COUNT(*)
+								WHEN 0 THEN 'HOLD'
+								ELSE 'RELEASE'
+							END
+						FROM 
+							TMT_CUSTOMS_RELEASE C1 
+						WHERE 
+							C1.VSL_CALL_ID 		= A.VSL_CALL_ID 
+							AND C1.DOC_NO 		= B.MF_DOC_ID 
+							AND ISNULL(C1.BONDED_WH_YN, 'N') = 'N')
+				ELSE
+					(SELECT 
+						CASE COUNT(*)
+							WHEN 0 THEN 'HOLD'
+							ELSE 'RELEASE'
+						END 
+					FROM 
+						TMT_CUSTOMS_RELEASE 	C1 
+					WHERE 
+						C1.VSL_CALL_ID 			= A.VSL_CALL_ID 
+						AND C1.DOC_NO 			= S.MF_DOC_ID 
+						AND ISNULL(C1.BONDED_WH_YN, 'N') = 'N')
+			END 												AS  CUSTOMSRELEASEDSTATUS        
+		FROM    
+			TMT_CG_ARRV_DELV 									A
+		LEFT OUTER JOIN 
+			HDL_JOB 											J
+		        ON A.VSL_CALL_ID 								= J.VSL_CALL_ID
+		        AND A.CG_NO 									= J.CG_NO
+		        AND A.GATE_TXN_NO 								= J.GATE_TXN_NO
+		LEFT OUTER JOIN 
+			TMT_CG_MST 											C
+          		ON A.VSL_CALL_ID 								= C.VSL_CALL_ID 
+				AND A.CG_NO 									= C.CG_NO
+		LEFT OUTER JOIN 
+			TMT_DO_DTL 											D 
+				ON A.VSL_CALL_ID 								= D.VSL_CALL_ID 
+				AND A.SDO_NO 									= D.SDO_NO 
+				AND A.CG_NO 									= D.BL_NO
+        LEFT OUTER JOIN 
+			TMT_BL 												B 
+				ON B.VSL_CALL_ID 								= D.VSL_CALL_ID 
+				AND B.BL_NO 									= D.BL_NO
+        LEFT OUTER JOIN 
+			TMT_GR 												G 
+				ON A.VSL_CALL_ID 								= G.VSL_CALL_ID 
+				AND A.GR_NO 									= G.GR_NO 
+				AND A.CG_NO 									= G.GR_NO
+        LEFT OUTER JOIN 
+			TMT_SHIPG_NOTE S 
+				ON G.VSL_CALL_ID 								= S.VSL_CALL_ID 
+				AND G.SHIPG_NOTE_NO 							= S.SHIPG_NOTE_NO
+		WHERE   
+			(A.GATE_TXN_NO IS NOT NULL 							AND A.GATE_TXN_NO <![CDATA[<>]]> '')
+			AND (A.GATE_OUT_DT IS NULL							OR A.GATE_OUT_DT = '')
+			AND J.CG_WGT										> 0
+			<if test="lorryNo != null and lorryNo != ''">
+				AND A.LORRY_NO 									= #{lorryNo}
+			</if>
+			<if test="vslCallId != null and vslCallId != ''">
+				AND A.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test="gateTicketNo != null and gateTicketNo != ''">
+				AND A.GATE_TXN_NO 								= #{gateTicketNo}
+			</if>
+	</select>
+	
+	<select id="selectAllPartnerCodeList"  parameterType="searchPopupServiceParm" resultType="popupServiceItem">
+		SELECT /* popupService.selectAllPartnerCodeList */
+			PTNR.PTNR_CODE           							AS ptnrCode,
+		   	ENG_SNM          		 							AS ptnrName,
+		   	(SELECT TOP(1)
+				S_CD_NM 
+			FROM 
+				TMT_CD_MSTD 
+			WHERE 
+				L_CD	 = 'CM' 
+				AND M_CD = 'PTNRTP' 
+				AND S_CD = PTNR.PTNR_TYPE) 						AS ptnrTpNm,
+		   	TEL_NO                    							AS TELNO,
+		   	FAX_NO                    							AS FAXNO,
+		   	CUST_CD				   								AS ACCOUNTNO	   	
+		   	<if test="ptnrType != 'VDPR'">
+		   		, PTNR_TYPE         		 					AS ptnrType,
+            	dbo.F_PTNR_TYPE_LIST (PTNR.PTNR_CODE,
+		          	'/') 										AS ptnrTypes,
+		   		ADDR                    						AS ADDR,
+		   		REPRESENTATIVE          						AS REPRESENTATIVE,
+		   		HOLD_CHK				 						AS HOLDCHK,
+		   		ACCOUNT_HOLD									AS ACCOUNTHOLD
+		   	</if>
+		FROM 
+			TMT_PTNR PTNR
+		WHERE 
+			1 = 1
+			<if test="ptnrType != null and ptnrType != ''">
+				AND
+				<if test="ptnrType == 'VDPR'">
+					PTNR_TYPE 										IN ('STV','CTT','TRM')
+				</if>
+				<if test="ptnrType != 'VDPR'">
+					PTNR_TYPE 										=  #{ptnrType}
+				</if>
+			</if>
+			<if test="reqType == 'CD'">
+				<if test="ptnrCode != null and ptnrCode != ''">
+					AND PTNR.PTNR_CODE 								LIKE '%' + #{ptnrCode} + '%'
+				</if>
+			</if>
+			<if test="reqType == 'NM'">
+				<if test="ptnrName != null and ptnrName != ''">
+					AND (ENG_SNM LIKE '%' + #{ptnrName} + '%' 		OR LOWER(ENG_SNM) LIKE '%' +  LOWER(#{ptnrName}) + '%') 
+				</if>
+			</if>
+		GROUP BY 
+			PTNR.PTNR_CODE,
+			ENG_SNM,
+		    PTNR_TYPE,
+		    TEL_NO,
+            FAX_NO,
+		    ADDR,
+		    REPRESENTATIVE,
+		    HOLD_CHK,
+		    ACCOUNT_HOLD,
+			CUST_CD
+			
+		UNION ALL  
+		
+		SELECT
+			PTNR.AGENCY_CODE           							AS ptnrCode,
+		   	ENG_SNM          		 							AS ptnrName,
+		   	(SELECT TOP(1)
+				S_CD_NM 
+			FROM 
+				TMT_CD_MSTD 
+			WHERE 
+				L_CD	 = 'CM' 
+				AND M_CD = 'PTNRTP' 
+				AND S_CD = PTNR.PTNR_TYPE) 						AS ptnrTpNm,
+		   	TEL_NO                    							AS TELNO,
+		   	FAX_NO                   							AS FAXNO,
+		   	CUST_CD												AS ACCOUNTNO		   	
+		   	<if test="ptnrType != 'VDPR'">
+		   		, PTNR_TYPE         		 					AS ptnrType
+            	, dbo.F_PTNR_TYPE_LIST(PTNR.AGENCY_CODE,
+					'/') 										AS ptnrTypes
+		   		, ADDR                    						AS ADDR
+		   		, REPRESENTATIVE          						AS REPRESENTATIVE
+		   		, HOLD_CHK				 						AS HOLDCHK
+		   		, ACCOUNT_HOLD			 						AS ACCOUNTHOLD
+		   	</if>
+		FROM 
+			TMT_AGENCY_INFO 									PTNR
+		WHERE 
+			1 = 1
+			<if test="ptnrType != null and ptnrType != ''">
+				AND
+				<if test="ptnrType == 'VDPR'">
+					PTNR_TYPE 									IN ('STV','CTT','TRM')
+				</if>
+				<if test="ptnrType != 'VDPR'">
+					PTNR_TYPE 									=  #{ptnrType}
+				</if>
+			</if>
+			<if test="reqType == 'CD'">
+				<if test="ptnrCode != null and ptnrCode != ''">
+					AND PTNR.AGENCY_CODE 						LIKE '%' + #{ptnrCode} + '%'
+				</if>
+			</if>
+			<if test="reqType == 'NM'">
+				<if test="ptnrName != null and ptnrName != ''">
+					AND (ENG_SNM LIKE '%' + #{ptnrName} + '%' OR LOWER(ENG_SNM) LIKE '%' +  LOWER(#{ptnrName}) + '%') 
+				</if>
+			</if>
+		GROUP BY 
+			PTNR.AGENCY_CODE,
+			ENG_SNM,
+		    PTNR_TYPE,
+		    TEL_NO,
+            FAX_NO,
+		    ADDR,
+		    REPRESENTATIVE,
+		    HOLD_CHK,
+		    ACCOUNT_HOLD,
+		    CUST_CD
+		ORDER BY 
+			ptnrName ASC   	  
+	</select>
+	
+	<!-- Ship Call No List Popup -->
+	<select id="selectShipCallNoList"  parameterType="searchPopupServiceParm" resultType="popupServiceItem">
+        SELECT * FROM(
+            SELECT ROW_NUMBER() OVER (ORDER BY VSLCALLID DESC) RN, A.*,A.PORTCD AS LASTPORTCD
+            FROM (
+                    SELECT 
+                        A.VSL_NM AS VSLNM,
+                        B.VSL_CALL_ID AS VSLCALLID,
+                        B.ETA AS ETA,
+                        FORMAT (B.ETA, 'dd/MM/yyyy HH:mm:ss') AS ETA1,
+                        B.ETB AS ETB,
+                        B.ETD AS ETD,
+                        FORMAT (B.ETD, 'dd/MM/yyyy HH:mm:ss') AS ETD1,
+                        B.ETW AS ETW,
+                        FORMAT (B.ETW, 'dd/MM/yyyy HH:mm:ss') AS ETW1,
+                        B.VSL_OPERATOR AS VSLOPERATOR,
+                        A.VSL_TP AS VSLTP,
+                        (SELECT TOP(1) S_CD_NM FROM TMT_CD_MSTD WHERE L_CD = 'VC' AND M_CD = 'VSLTP' AND A.VSL_TP = S_CD ) AS VSLTPNM,
+                        B.VSL_CD AS VSLCD,
+                        A.CALL_SIGN AS CALLSIGN,
+                        B.CALL_SEQ AS CALLSEQ,
+                        B.INB_VOY AS INBVOY,
+                        B.OUTB_VOY AS OUTBVOY,
+                        B.INB_VOY + '/' + B.OUTB_VOY AS VOYAGE,
+                        B.BERTH_LOC AS BERTHLOC,
+                        (SELECT TOP(1) BERTH_TP FROM TMT_BERTH_LOC    WHERE BERTH_CD = B.BERTH_LOC) AS BERTHTP,
+                        (SELECT TOP(1) LOC_CD FROM TMT_BERTH_LOC WHERE BERTH_CD = B.BERTH_LOC) AS LOCCD,
+                        A.VSL_FLAG_CD AS FLAGCD,
+                        (SELECT TOP(1) CNTRY_NM from TMT_CNTRY_MST where CNTRY_CD = A.VSL_FLAG_CD) AS FLAGNM,
+                        B.SHIP_CALL_NO AS SCN,
+                        A.LOA AS LOA,
+                        '' AS PORTCD,   
+                        '' AS PORTNM,
+                        '' AS portCdNext,
+                        '' AS PORTNEXTNM,
+                        B.ATB AS atb,
+                        B.ATW AS atw,
+                        B.ATC AS atc,
+                        B.ATU AS atu,
+                        B.ATD AS atd,       
+                        DEPR_SA_ID AS depSaid,
+                        ARRV_SA_ID AS arrvSaId,
+                        B.CALL_YEAR AS CALLYEAR,
+                        B.PURP_CALL AS PURPCALLCD,
+                        (SELECT TOP(1) S_CD_NM FROM TMT_CD_MSTD WHERE L_CD = 'VC' AND M_CD = 'POC' AND S_CD = B.PURP_CALL) AS PURPCALL,
+                        B.CG_OP_TP AS CGOPTP,
+                        (SELECT TOP(1) S_CD_NM FROM TMT_CD_MSTD WHERE L_CD = 'MT' AND M_CD = 'CGTP' AND S_CD = B.CARGO_TP) AS CGTPNM,                         
+                        (SELECT TOP(1) ENG_SNM FROM TMT_AGENCY_INFO WHERE PTNR_TYPE = 'SHA' AND AGENCY_CODE = B.ARRV_SA_ID) AS arrvSaNm,
+                        (SELECT CASE WHEN COUNT (*) = 0 THEN 'N'ELSE 'Y' END FROM tmt_vsl_shft WHERE vsl_call_id = B.VSL_CALL_ID AND atb_dt IS NOT NULL) AS vslShiftingYN,
+                        (SELECT MAX (SEQ) AS VSLSHFTSEQ FROM tmt_vsl_shft WHERE vsl_call_id = B.VSL_CALL_ID AND atb_dt IS NOT NULL) AS vslShiftingSeq,
+                        CASE WHEN (SELECT MAX (SEQ) AS VSLSHFTSEQ FROM tmt_vsl_shft WHERE vsl_call_id = B.VSL_CALL_ID AND atb_dt IS NOT NULL) IS NOT NULL
+                               THEN (SELECT ATB_DT AS CURRATB FROM tmt_vsl_shft WHERE vsl_call_id = B.VSL_CALL_ID AND atb_dt IS NOT NULL AND SEQ = (SELECT MAX (SEQ) AS VSLSHFTSEQ FROM tmt_vsl_shft WHERE vsl_call_id = B.VSL_CALL_ID AND atb_dt IS NOT NULL))
+                          ELSE B.ATB
+                        END AS CURRATB,
+                        CASE WHEN (SELECT MAX (SEQ) AS VSLSHFTSEQ FROM tmt_vsl_shft WHERE vsl_call_id = B.VSL_CALL_ID AND atb_dt IS NOT NULL) IS NOT NULL
+                               THEN (SELECT ATU_DT AS CURRATB FROM tmt_vsl_shft WHERE vsl_call_id = B.VSL_CALL_ID AND atb_dt IS NOT NULL AND SEQ = (SELECT MAX (SEQ) AS VSLSHFTSEQ FROM tmt_vsl_shft WHERE vsl_call_id = B.VSL_CALL_ID AND atb_dt IS NOT NULL))
+                        ELSE B.ATU
+                        END AS CURRATU,
+                        B.WHARF_MARK_FROM as wharfStart,
+                        B.WHARF_MARK_TO as wharfEnd,
+                        A.SHIPPING_LINE_CD as shipLineCd,
+                        DBO.F_GET_PARTNER_INFO (A.SHIPPING_LINE_CD, 'ENG_SNM') as shipLineNm
+                   FROM TMT_VSL_PART A 
+	                    INNER JOIN TMT_VSL_SCH B
+	                       ON A.VSL_CD = B.VSL_CD
+		                    AND B.SUMMIT_STAT <![CDATA[ <> ]]> 'CC'
+		                <if test="etaStart != null and etaStart != '' and etaEnd != null and etaEnd != ''">
+                            <![CDATA[
+                                AND B.ETA >= CONVERT(DATE, #{etaStart}, 103) 
+                                AND B.ETA < DATEADD(DAY, 1, CONVERT(DATE, #{etaEnd}, 103))
+                            ]]>
+                        </if>
+						<if test="scn != null and scn != '' and scn != 'STRG'">
+							AND B.ETA IS NOT NULL
+							AND B.ETD IS NOT NULL
+							AND B.SHIP_CALL_NO = #{scn}
+						</if>
+            ) A         
+        ) B
+    </select>
+    <!-- s-OPR-015: Gate Operation – Modification -->
+    <select id="selectShippingNoteListForGateOperationPopup" parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		WITH 
+			TO_LOCATION AS (
+				SELECT /* gateoperation.selectCargoInfoForGateIn GR_WH_PLAN */
+					VSL_CD,
+					VSL_CALL_ID,
+					SHIPG_NOTE_NO,
+					STRING_AGG (PLAN_LOC_ID, ', ') 
+						WITHIN GROUP (ORDER BY PLAN_LOC_ID) 	AS LOCATION
+				FROM
+					TMT_SPC_REQ
+				WHERE
+					STAT_CD 									= 'CNF'
+					AND (SHIPG_NOTE_NO IS NOT NULL AND SHIPG_NOTE_NO <![CDATA[<>]]> '')
+				GROUP BY
+					VSL_CD,
+					VSL_CALL_ID,
+					SHIPG_NOTE_NO
+			)
+			
+		SELECT /* popupService.selectShippingNoteListForGateOperationPopup */
+			SN.SHIP_CALL_NO										AS scn,
+			SN.VSL_CALL_ID										AS vslCallId,
+			SN.MF_DOC_ID										AS mfDocId,
+			SN.SHIPG_NOTE_NO									AS shipgNoteNo,
+			SN.VSL_CD											AS vslCd,
+			SN.CALL_SEQ											AS callSeq,
+			SN.CALL_YEAR										AS callYear,
+			SN.SHPR												AS shipper,
+			VP.VSL_NM											AS vslNm,
+			GR.GR_NO											AS grNo,
+			PTNR.ENG_SNM										AS shipperNm,
+			CMDT.CMDT_DESC										AS cmdtName,
+			CASE SN.DELV_TP_CD
+				WHEN 'I' THEN 'Indirect'
+				WHEN 'D' THEN 'Direct'
+				ELSE 'Both Direct and Indirect'
+			END 												AS delvTpName,
+			SN.CG_WGT											AS wgt,
+			SN.CG_VOL											AS msrmt,
+			SN.PKG_QTY											AS pkgQty,
+			CASE
+				WHEN TGR.CUST_MSG_TP = 'C' THEN 'RELEASE'
+				ELSE 'HOLD'
+			END													AS customsReleasedStatus,
+			SN.CMDT_CD											AS cmdtCd,
+			SN.CG_TP_CD											AS cgTpCd,
+			CASE SN.DELV_TP_CD
+				WHEN 'D' THEN VS.BERTH_LOC
+				ELSE TL.LOCATION		
+			END													AS locId
+		FROM 
+			TMT_SHIPG_NOTE										SN
+		INNER JOIN
+			TMT_GR												GR
+		ON
+			SN.VSL_CD											= GR.VSL_CD
+			AND SN.VSL_CALL_ID									= GR.VSL_CALL_ID
+			AND SN.SHIPG_NOTE_NO								= GR.SHIPG_NOTE_NO
+		LEFT JOIN
+			TMT_VSL_SCH											VS
+		ON
+			SN.VSL_CD											= VS.VSL_CD
+			AND SN.VSL_CALL_ID									= VS.VSL_CALL_ID
+		LEFT JOIN
+			TMT_VSL_PART										VP
+		ON
+			SN.VSL_CD											= VP.VSL_CD	
+		LEFT JOIN
+			TMT_PTNR											PTNR
+		ON
+			SN.SHPR												= PTNR.PTNR_CODE
+			AND PTNR.PTNR_TYPE 									= 'CNS'
+		LEFT JOIN
+			TMT_CMDT											CMDT
+		ON
+			SN.CMDT_CD											= CMDT.CMDT_CD
+		LEFT JOIN
+			TMT_GCS_RECV										TGR
+		ON
+			SN.VSL_CALL_ID										= TGR.VSL_ID	
+			AND SN.SHIPG_NOTE_NO								= TGR.BK_NO	
+		LEFT JOIN
+			TO_LOCATION											TL
+		ON
+			TL.VSL_CD											= SN.VSL_CD
+			AND TL.VSL_CALL_ID									= SN.VSL_CALL_ID
+			AND TL.SHIPG_NOTE_NO								= SN.SHIPG_NOTE_NO					
+		WHERE 
+			SN.CG_TP_CD											= 'BBK'
+			<if test="vslCd != null and vslCd != ''">
+                AND SN.VSL_CD									= #{vslCd}
+            </if>
+			<if test="mfDocId != null and mfDocId != ''">
+                AND SN.MF_DOC_ID								= #{mfDocId}
+            </if>
+			<if test="vslCallId != null and vslCallId != ''">
+                AND SN.VSL_CALL_ID								= #{vslCallId}
+            </if>
+            <if test="scn != null and scn != ''">
+                AND SN.SHIP_CALL_NO								= #{scn}
+            </if>
+            <if test="ptnrCode != null and ptnrCode != ''">
+                AND SN.SHPR										= #{ptnrCode}
+            </if>
+	</select>
+	
+	<select id="selectBLDOListForGateOperationPopup" parameterType="searchpopupServiceParm" resultType="popupServiceItem">
+		WITH TO_LOCATION AS (
+			SELECT
+				I.VSL_CD,
+				I.LOC_ID,
+				I.VSL_CALL_ID,
+				I.CG_NO,
+				STRING_AGG (I.LOC_ID, ', ') WITHIN GROUP (ORDER BY LOC_ID) AS LOCATION
+			FROM
+				TMT_INV_LOC 								I
+			INNER JOIN 
+				TMT_BL 										B
+			ON 
+				I.VSL_CD									= B.VSL_CD
+				AND I.VSL_CALL_ID 							= B.VSL_CALL_ID
+				AND I.CG_NO 								= B.BL_NO
+			WHERE 
+				B.PROJECT_CARGO								= 'Y'
+			GROUP BY
+				I.LOC_ID,
+				I.VSL_CALL_ID,
+				I.CG_NO,
+				I.VSL_CD
+			HAVING
+				SUM (I.CG_WGT) > 0 OR SUM (I.PKG_QTY) > 0
+		)
+		SELECT /* popupService.selectBLDOListForGateOperationPopup */
+			BL.SHIP_CALL_NO										AS scn,
+			BL.VSL_CALL_ID										AS vslCallId,
+			BL.MF_DOC_ID										AS mfDocId,
+			BL.BL_NO											AS blNo,
+			BL.VSL_CD											AS vslCd,
+			BL.CALL_SEQ											AS callSeq,
+			BL.CALL_YEAR										AS callYear,
+			BL.CNSNE											AS cnsne,
+			VP.VSL_NM											AS vslNm,
+			DO.DO_NO											AS doNo,
+			PTNR.ENG_SNM										AS cnsneNm,
+			CMDT.CMDT_DESC										AS cmdtName,
+			CASE BL.DELV_TP_CD
+				WHEN 'I' THEN 'Indirect'
+				WHEN 'D' THEN 'Direct'
+				ELSE 'Both Direct and Indirect'
+			END 												AS delvTpName,
+			BL.CG_WGT											AS wgt,
+			BL.CG_VOL											AS msrmt,
+			BL.PKG_QTY											AS pkgQty,
+			CASE
+				WHEN TGR.CUST_MSG_TP = 'C' THEN 'RELEASE'
+				ELSE 'HOLD'
+			END													AS customsReleasedStatus,
+			BL.CMDT_CD											AS cmdtCd,
+			BL.CG_TP_CD											AS cgTpCd,
+			CASE BL.DELV_TP_CD
+				WHEN 'D' THEN VS.BERTH_LOC
+				ELSE TL.LOCATION		
+			END													AS locId
+		FROM 
+			TMT_BL												BL
+		INNER JOIN
+			TMT_DO												DO
+		ON
+			BL.VSL_CD											= DO.VSL_CD
+			AND BL.VSL_CALL_ID									= DO.VSL_CALL_ID
+			AND BL.BL_NO										= DO.BL_NO
+		LEFT JOIN
+			TMT_VSL_SCH											VS
+		ON
+			BL.VSL_CD											= VS.VSL_CD
+			AND BL.VSL_CALL_ID									= VS.VSL_CALL_ID
+		LEFT JOIN
+			TMT_VSL_PART										VP
+		ON
+			BL.VSL_CD											= VP.VSL_CD	
+		LEFT JOIN
+			TMT_PTNR											PTNR
+		ON
+			BL.CNSNE											= PTNR.PTNR_CODE
+			AND PTNR.PTNR_TYPE 									= 'CNS'
+		LEFT JOIN
+			TMT_CMDT											CMDT
+		ON
+			BL.CMDT_CD											= CMDT.CMDT_CD
+		LEFT JOIN
+			TMT_GCS_RECV										TGR
+		ON
+			BL.VSL_CALL_ID										= TGR.VSL_ID
+			AND BL.BL_NO										= TGR.BK_NO
+		LEFT JOIN
+			TO_LOCATION											TL
+		ON
+			TL.VSL_CD											= BL.VSL_CD
+			AND TL.VSL_CALL_ID									= BL.VSL_CALL_ID
+			AND TL.CG_NO										= BL.BL_NO	
+		WHERE 
+			BL.CG_TP_CD											= 'BBK'
+			<if test="vslCd != null and vslCd != ''">
+                AND BL.VSL_CD									= #{vslCd}
+            </if>
+            <if test="mfDocId != null and mfDocId != ''">
+                AND BL.MF_DOC_ID								= #{mfDocId}
+            </if>
+			<if test="vslCallId != null and vslCallId != ''">
+                AND BL.VSL_CALL_ID								= #{vslCallId}
+            </if>
+            <if test="scn != null and scn != ''">
+                AND BL.SHIP_CALL_NO								= #{scn}
+            </if>
+            <if test="ptnrCode != null and ptnrCode != ''">
+                AND BL.CNSNE									= #{ptnrCode}
+            </if>
+	</select> 
+	<!-- e-OPR-015: Gate Operation – Modification -->
+</mapper>

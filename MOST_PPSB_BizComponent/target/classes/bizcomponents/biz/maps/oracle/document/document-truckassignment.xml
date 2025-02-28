@@ -1,0 +1,1357 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace = "truckAssignment">
+	<resultMap 	id="resultImtReportMap" 	type="truckAssignmentItem">
+   		<result property = "vslCallId"		column = "VSL_CALL_ID"/>
+   		<result property = "vslNm"			column = "VSL_NM"/>
+   		<result property = "inbVoyage"		column = "INB_VOY"/>
+   		
+   		<result property = "shp"			column = "SHP"/>
+   		<result property = "shpNm"			column = "SHP_NM"/>
+   		<result property = "shpAddr" 		column = "SHP_ADDR"/>
+   		<result property = "cnsne"			column = "CNSNE"/>
+   		<result property = "cnsneNm"		column = "CNSNE_NM"/>
+   		<result property = "cnsneAddr"		column = "CNSNE_ADDR"/>
+   		
+   		<result property = "shipgNoteNo"	column = "SHIPG_NOTE_NO"/>
+   		<result property = "blNo"			column = "BL_NO"/>
+   		<result property = "grNo"			column = "GR_NO"/>
+   		<result property = "subDoNo"		column = "SDO_NO"/>
+
+		<result property = "cgTpCd"			column = "CG_TP_CD"/>
+   		<result property = "cgTpNm"			column = "CG_TP_NM"/>
+   		<result property = "delvTpCd"		column = "DELV_TP_CD"/>
+   		<result property = "delvTpNm"		column = "DELV_TP_NM"/>
+   		<result property = "lotNo"			column = "LOT_NO"/>
+
+		<result property = "cmdtCd"			column = "CMDT_CD"/>
+   		<result property = "cmdtNm"			column = "CMDT_NM"/>
+   		<result property = "cmdtGrpCd"		column = "CMDT_GRP_CD"/>
+   		<result property = "cmdtGrpNm" 		column = "CMDT_GRP_NM"/>
+   		<result property = "pkgTpCd"		column = "PKG_TP_CD"/>
+   		<result property = "pkgTpNm"		column = "PKG_TP_NM"/>
+   		
+   		<result property = "wgt"			column = "CG_WGT"/>
+   		<result property = "vol"			column = "CG_VOL"/>
+   		<result property = "pkgqty"			column = "PKG_QTY"/>
+   		
+   		<result property = "lorryNo"		column = "LORRY_NO"/>
+   		<result property = "lorryRegValidDate"		column = "LORRY_REG_VALID_DT"/>
+   		<result property = "lorryTareWgt"		column = "LORRY_TARE_WGT"/>
+   		<result property = "chassisNo" 		column = "CHASSIS_NO"/>
+   		<result property = "chassisRegValidDate"	column = "CHASSIS_REG_VALID_DT"/>
+   		<result property = "chassisTareWgt"		column = "CHASSIS_TARE_WGT"/>
+   		<result property = "driverId"		column = "DRIVER_ID"/>
+   		<result property = "driverNm"		column = "DRIVER_NM"/>
+   		
+   		<result property = "allowWgt"		column = "ALLOW_WGT"/>
+   		<result property = "locationNo"		column = "LOCATION_ID"/>
+   		<result property = "scaleNo"		column = "WB_NO"/>
+   		<result property = "gateNo"			column = "GATE_NO"/>
+   		<result property = "qrNo"			column = "QR_CD"/>
+   		<result property = "truckMode"		column = "TRUCK_MODE"/>
+   		<result property = "validDate"		column = "VALID_DATE"/>
+   		<result property = "markNo"		column = "MARK_NO"/>
+   		<result property = "balWgt"		column = "BAL_WGT"/>
+   		
+ 	</resultMap>
+ 	
+	<select id = "selectChangeBLSNo"  parameterType = "truckAssignmentParm" resultType = "truckAssignmentItem">
+		<if test="blNo != null and blNo != ''">
+			SELECT  /*truckAssignment.selectChangeBLSNo*/
+					SCH.VSL_CD 				AS VSLCD,
+					SCH.CALL_SEQ 			AS CALLSEQ,
+					SCH.CALL_YEAR 			AS CALLYEAR,
+					BL.VSL_CALL_ID AS VSLCALLID,
+					DO.TSPT_COMP AS TSPTR,
+					DO.CMDT_CD AS CMDTCD,
+					DECODE (BL.DELV_TP_CD,  'D', 'Direct',  'I', 'Indirect',  'B', 'Both') AS DELVTPCD,
+					BL.BL_NO AS BLNO,
+					DO.DO_NO AS DONO,
+					DECODE (BL.DELV_TP_CD,  'D',  NVL(BL.CG_WGT,0), 0) AS DMT,
+	                DECODE (BL.DELV_TP_CD,  'D',  NVL(BL.CG_VOL,0), 0) AS DM3,
+	                DECODE (BL.DELV_TP_CD,  'D',  NVL(BL.PKG_QTY,0), 0) AS DQTY,
+	                DECODE (BL.DELV_TP_CD,  'I',  NVL(BL.CG_WGT,0), 0) AS IMT,
+	                DECODE (BL.DELV_TP_CD,  'I',  NVL(BL.CG_VOL,0), 0) AS IM3,
+	                DECODE (BL.DELV_TP_CD,  'I',  NVL(BL.PKG_QTY,0), 0) AS IQTY,
+					NVL (BL.CG_WGT, 0.0) AS WGT,
+					NVL (BL.CG_VOL, 0.0) AS VOL,
+					NVL (BL.PKG_QTY, 0) AS PKGQTY
+			FROM 	TMT_BL BL
+        			INNER JOIN TMT_VSL_SCH SCH ON SCH.VSL_CALL_ID = BL.VSL_CALL_ID
+        			LEFT OUTER JOIN TMT_DO DO ON BL.VSL_CALL_ID = DO.VSL_CALL_ID AND BL.BL_NO = DO.BL_NO
+			WHERE 	SCH.VSL_CALL_ID = #{vslCallId}
+					AND BL.BL_NO = #{blNo}
+		</if>
+		<if test="shipgNoteNo != null and shipgNoteNo != ''">
+			SELECT /*truckAssignment.selectChangeBLSNo*/
+					SCH.VSL_CD 				AS VSLCD,
+					SCH.CALL_SEQ 			AS CALLSEQ,
+					SCH.CALL_YEAR 			AS CALLYEAR,
+					SN.VSL_CALL_ID			AS VSLCALLID,
+					SN.CMDT_CD             	AS CMDTCD,
+					SN.SHIPG_NOTE_NO 		AS SHIPGNOTENO,
+					DECODE(SN.DELV_TP_CD, 'D', 'Direct', 'I', 'Indirect', 'B', 'Both') AS DELVTPCD,
+					''						AS DONO,
+					DECODE (SN.DELV_TP_CD,  'D',  NVL(SN.CG_WGT,0), 0) AS DMT,
+	                DECODE (SN.DELV_TP_CD,  'D',  NVL(SN.CG_VOL,0), 0) AS DM3,
+	                DECODE (SN.DELV_TP_CD,  'D',  NVL(SN.PKG_QTY,0), 0) AS DQTY,
+	                DECODE (SN.DELV_TP_CD,  'I',  NVL(SN.CG_WGT,0), 0) AS IMT,
+	                DECODE (SN.DELV_TP_CD,  'I',  NVL(SN.CG_VOL,0), 0) AS IM3,
+	                DECODE (SN.DELV_TP_CD,  'I',  NVL(SN.PKG_QTY,0), 0) AS IQTY,
+					NVL(SN.CG_WGT, 0)		AS WGT,
+					NVL(SN.CG_VOL, 0)		AS VOL,
+					NVL(SN.PKG_QTY, 0)		AS PKGQTY
+			FROM 	TMT_SHIPG_NOTE SN
+					INNER JOIN TMT_VSL_SCH SCH ON SCH.VSL_CALL_ID = SN.VSL_CALL_ID
+			WHERE 	SCH.VSL_CALL_ID = #{vslCallId}
+					AND SN.SHIPG_NOTE_NO = #{shipgNoteNo}
+		</if>
+	</select>
+	
+	<select id = "selectTruckAssignmentItems"  parameterType = "truckAssignmentParm" resultType = "truckAssignmentItem">
+		SELECT * /*truckAssignment.selectTruckAssignmentItems*/
+		FROM (
+			SELECT DISTINCT
+		        L.SEQ AS SEQ,
+		        NVL((SELECT DISTINCT LORRY_ID FROM TMT_TRUCK_MST WHERE LORRY_NO = L.LORRY_NO AND ROWNUM = 1 ), ' ') AS LORRYID,
+		        NVL((SELECT DISTINCT DRIVER_NM FROM TMT_DRIVER_MST WHERE DRIVER_ID = L.DRIVER_ID AND ROWNUM = 1 ), ' ') AS DRIVERNM, 
+		        L.STAFF_CD AS USERID,
+		        L.UPDATE_TIME AS UPDATETIME,
+		        NVL(L.BL_NO, ' ') AS BL_NO,
+		        NVL(L.SHIPG_NOTE_NO, ' ') AS SHIPG_NOTE_NO,
+		        NVL((SELECT DISTINCT PTNR_CD FROM TMT_TRUCK_MST WHERE LORRY_NO = L.LORRY_NO AND ROWNUM = 1),' ') AS LORRYTSPTR,
+		        NVL((SELECT DISTINCT PTNR_CD FROM TMT_DRIVER_MST WHERE DRIVER_ID = L.DRIVER_ID AND ROWNUM = 1),' ') AS DRIVERTSPTR,
+		        L.SHIPG_NOTE_NO AS SHIPGNOTENO,
+		        L.GR_NO AS GRNO,
+		        L.VSL_CALL_ID AS VSLCALLID,
+		        NVL(L.LORRY_NO,' ') AS LORRYNO,
+		        NVL(L.DRIVER_ID, ' ') AS DRIVERID,
+		        L.BL_NO AS BLNO,
+		        L.CHASSIS_NO AS CHASSISNO,
+		        L.ALLOW_WGT AS ALLOWWGT,
+        		L.ALLOWWGT_VAL AS ALLOWWGTVAL,
+        		
+        		NVL(L.OVERWGT_PERMIT, 'N') AS PERMITYN,
+		        CASE
+		            WHEN L.BL_NO IS NOT NULL THEN D.CMDT_CD
+		            ELSE S.CMDT_CD
+		        END AS CMDTCD,
+		        DECODE(
+	                    CASE
+	                        WHEN L.BL_NO IS NOT NULL THEN B.DELV_TP_CD
+	                        ELSE S.DELV_TP_CD
+	                    END, 'D', 'Direct', 'I', 'Indirect', 'B', 'Both'
+				) AS DELVTPCD,
+		        D.DO_NO      AS DONO,
+		        L.SDO_NO AS SUBDONO,
+		        L.TRANSPORT AS TSPTR,
+		       	CASE
+                  WHEN L.BL_NO IS NOT NULL AND L.SDO_NO IS NULL THEN NVL (B.CG_WGT, 0)
+                  WHEN L.BL_NO IS NOT NULL AND L.SDO_NO IS NOT NULL THEN NVL(SDO.D_MT,0) + NVL(SDO.I_MT,0)
+                  WHEN L.SHIPG_NOTE_NO IS NOT NULL AND L.GR_NO IS NOT NULL THEN NVL (GR.CG_WGT, 0)
+                  ELSE NVL (S.CG_WGT, 0)
+               	END
+                  AS WGT,
+               	CASE
+                  WHEN L.BL_NO IS NOT NULL AND L.SDO_NO IS NULL THEN NVL (B.CG_VOL, 0)
+                  WHEN L.BL_NO IS NOT NULL AND L.SDO_NO IS NOT NULL THEN NVL(SDO.D_M3,0) + NVL(SDO.I_M3,0)
+                  WHEN L.SHIPG_NOTE_NO IS NOT NULL AND L.GR_NO IS NOT NULL THEN NVL (GR.CG_VOL, 0)
+                  ELSE NVL (S.CG_VOL, 0)
+               	END
+                  AS VOL,
+               	CASE
+                  WHEN L.BL_NO IS NOT NULL AND L.SDO_NO IS NULL THEN NVL (B.PKG_QTY, 0)
+                  WHEN L.BL_NO IS NOT NULL AND L.SDO_NO IS NOT NULL THEN NVL(SDO.D_QTY,0) + NVL(SDO.I_QTY,0)
+                  WHEN L.SHIPG_NOTE_NO IS NOT NULL AND L.GR_NO IS NOT NULL THEN NVL (GR.PKG_QTY, 0)
+                  ELSE NVL (S.PKG_QTY, 0)
+               	END
+                  AS PKGQTY,
+               
+               	CASE
+                  WHEN L.BL_NO IS NOT NULL AND L.SDO_NO IS NOT NULL THEN NVL(SDO.D_MT,0)
+                  WHEN L.SHIPG_NOTE_NO IS NOT NULL AND L.GR_NO IS NOT NULL THEN DECODE (S.DELV_TP_CD,  'D',  NVL(GR.CG_WGT,0), 0)
+                  ELSE 0
+               	END
+                  AS DMT,
+               	CASE
+                  WHEN L.BL_NO IS NOT NULL AND L.SDO_NO IS NOT NULL THEN NVL(SDO.D_M3,0)
+                  WHEN L.SHIPG_NOTE_NO IS NOT NULL AND L.GR_NO IS NOT NULL THEN DECODE (S.DELV_TP_CD,  'D',  NVL(GR.CG_VOL,0), 0)
+                  ELSE 0
+               	END
+                  AS DM3,
+               	CASE
+                  WHEN L.BL_NO IS NOT NULL AND L.SDO_NO IS NOT NULL THEN NVL(SDO.D_QTY,0)
+                  WHEN L.SHIPG_NOTE_NO IS NOT NULL AND L.GR_NO IS NOT NULL THEN DECODE (S.DELV_TP_CD,  'D',  NVL(GR.PKG_QTY,0), 0)
+                  ELSE 0
+               	END
+                  AS DQTY,
+                  
+               	CASE
+                  WHEN L.BL_NO IS NOT NULL AND L.SDO_NO IS NOT NULL THEN NVL(SDO.I_MT,0)
+                  WHEN L.SHIPG_NOTE_NO IS NOT NULL AND L.GR_NO IS NOT NULL THEN DECODE (S.DELV_TP_CD,  'I',  NVL(GR.CG_WGT,0), 0)
+                  ELSE 0
+               	END
+                  AS IMT,
+               	CASE
+                  WHEN L.BL_NO IS NOT NULL AND L.SDO_NO IS NOT NULL THEN NVL(SDO.I_M3,0)
+                  WHEN L.SHIPG_NOTE_NO IS NOT NULL AND L.GR_NO IS NOT NULL THEN DECODE (S.DELV_TP_CD,  'I',  NVL(GR.CG_VOL,0), 0)
+                  ELSE 0
+               	END
+                  AS IM3,
+               	CASE
+                  WHEN L.BL_NO IS NOT NULL AND L.SDO_NO IS NOT NULL THEN NVL(SDO.I_QTY,0)
+                  WHEN L.SHIPG_NOTE_NO IS NOT NULL AND L.GR_NO IS NOT NULL THEN DECODE (S.DELV_TP_CD,  'I',  NVL(GR.PKG_QTY,0), 0)
+                  ELSE 0
+               	END
+                  AS IQTY,
+		        CASE
+		            WHEN L.BL_NO IS NOT NULL THEN B.CG_TP_CD
+		            ELSE S.CG_TP_CD
+		        END AS CGTPCD
+		        <if test="allTruck eq 'N'.toString()">
+		 			,CG.GATE_IN_DT GATE_IN_DT, CG.GATE_OUT_DT GATE_OUT_DT
+				</if>
+		 		,CASE
+                    WHEN L.TRUCK_MODE = 'E'
+                    THEN
+                       CASE
+                          WHEN     L.SDO_NO IS NOT NULL
+                               AND EXSDO.GATE_IN_DT IS NOT NULL
+                          THEN
+                             'Y'
+                          WHEN     L.GR_NO IS NOT NULL
+                               AND EXGR.GATE_IN_DT IS NOT NULL
+                          THEN
+                             'Y'
+                          ELSE
+                             'N'
+                       END
+                    WHEN L.TRUCK_MODE = 'I'
+                    THEN
+                       CASE
+                          WHEN     L.BL_NO IS NOT NULL
+                               AND INBL.FIRST_WGT_DT IS NOT NULL
+                          THEN
+                             'Y'
+                          WHEN     L.SHIPG_NOTE_NO IS NOT NULL
+                               AND INSN.FIRST_WGT_DT IS NOT NULL
+                          THEN
+                             'Y'
+                          ELSE
+                             'N'
+                       END
+                    ELSE
+                       ''
+                 END AS DELIVERED
+				,NVL(L.TRUCK_MODE, 'E') AS TRUCKMODE
+				,(SELECT TO_CHAR(MEASURE_DT,'DD/MM/YYYY') FROM TMT_TRUCK_MST WHERE LORRY_NO = L.LORRY_NO AND INSTR(L.TRANSPORT, PTNR_CD) > 0 AND ROWNUM=1) AS LORRYREGVALIDDATE
+    			,(SELECT TO_CHAR(MEASURE_DT,'DD/MM/YYYY') FROM TMT_CHASSIS_MST WHERE PLATE_NO = L.CHASSIS_NO AND INSTR(L.TRANSPORT, PTNR_CD) > 0 AND ROWNUM=1) AS CHASSISREGVALIDDATE		
+				,L.WB_IF_YN AS WBIFYN
+				,CASE 	WHEN L.BL_NO IS NOT NULL
+	                    THEN
+	                        CASE WHEN (SELECT COUNT(*) FROM TMT_CUSTOMS_RELEASE WHERE VSL_CALL_ID = L.VSL_CALL_ID AND DOC_NO = B.MF_DOC_ID) > 0 THEN 'Y' ELSE 'N' END
+	                    ELSE
+	                        CASE WHEN (SELECT COUNT(*) FROM TMT_CUSTOMS_RELEASE WHERE VSL_CALL_ID = L.VSL_CALL_ID AND DOC_NO = S.MF_DOC_ID) > 0 THEN 'Y' ELSE 'N' END
+	                END AS customsReleasedYn
+				,NVL((SELECT VERIFY_CHK FROM TMT_TRUCK_MST WHERE LORRY_NO = L.LORRY_NO AND ROWNUM = 1), ' ') AS TRUCKVERIFY
+				,NVL((SELECT VLD_YN FROM TMT_CHASSIS_MST WHERE PLATE_NO = L.CHASSIS_NO AND ROWNUM = 1), ' ') AS CHASSISVERIFY
+				,CASE 	WHEN L.BL_NO IS NOT NULL
+	                    THEN
+	                        B.MF_DOC_ID
+	                    ELSE
+	                        ''
+	               END AS MASTERBLNO,
+	             EXSDO.GATE_OUT_DT AS EXSDOGATEOUT,
+                 EXGR.GATE_OUT_DT AS EXGRGATEOUT,
+                 CASE WHEN S.SHIPG_NOTE_NO IS NULL THEN B.DOMESTIC_CHK ELSE S.DOMESTIC_CHK END AS DOMESTICCHK
+				
+			FROM 	TMT_ASSIGN_TRANSPORT L
+		    		LEFT OUTER JOIN TMT_SHIPG_NOTE S
+                  		ON L.VSL_CALL_ID = S.VSL_CALL_ID AND L.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO
+					LEFT OUTER JOIN TMT_GR GR
+					   ON L.VSL_CALL_ID = GR.VSL_CALL_ID AND L.SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO AND L.GR_NO = GR.GR_NO
+					LEFT OUTER JOIN TMT_BL B
+					   ON L.VSL_CALL_ID = B.VSL_CALL_ID AND L.BL_NO = B.BL_NO
+					LEFT OUTER JOIN TMT_DO D
+					   ON L.VSL_CALL_ID = D.VSL_CALL_ID AND L.BL_NO = D.BL_NO AND L.DO_NO = D.DO_NO
+					LEFT OUTER JOIN TMT_DO_DTL SDO
+					   ON L.VSL_CALL_ID = SDO.VSL_CALL_ID AND L.BL_NO = SDO.BL_NO AND L.DO_NO = SDO.DO_NO AND L.SDO_NO = SDO.SDO_NO  
+					LEFT OUTER JOIN TMT_CG_ARRV_DELV EXSDO
+                    ON     L.VSL_CALL_ID = EXSDO.VSL_CALL_ID
+                       AND L.SDO_NO = EXSDO.SDO_NO
+                       AND L.LORRY_NO = EXSDO.LORRY_NO
+	                 LEFT OUTER JOIN TMT_CG_ARRV_DELV EXGR
+	                    ON     L.VSL_CALL_ID = EXGR.VSL_CALL_ID
+	                       AND L.GR_NO = EXGR.GR_NO
+	                       AND L.LORRY_NO = EXGR.LORRY_NO
+	                 LEFT OUTER JOIN TMT_WEIGHTBRIDGE INBL
+	                    ON     L.VSL_CALL_ID = INBL.VSL_CALL_ID
+	                       AND L.BL_NO = INBL.BL_NO
+	                       AND L.LORRY_NO = INBL.LORRY_NO AND INBL.SDO_NO IS NULL
+	                 LEFT OUTER JOIN TMT_WEIGHTBRIDGE INSN
+	                    ON     L.VSL_CALL_ID = INSN.VSL_CALL_ID
+	                       AND L.SHIPG_NOTE_NO = INSN.SHIPG_NOTE_NO
+	                       AND L.LORRY_NO = INSN.LORRY_NO AND INSN.GR_NO IS NULL	   
+			<if test="allTruck eq 'N'.toString()">
+ 				INNER JOIN (
+ 					SELECT 
+ 						VSL_CALL_ID, 
+ 						CG_NO, 
+ 						CG_IN_OUT_CD, 
+ 						LORRY_NO, 
+		 				MAX (GATE_IN_DT) GATE_IN_DT, 
+		 				MAX (GATE_OUT_DT) GATE_OUT_DT
+					FROM TMT_CG_ARRV_DELV
+                    WHERE VSL_CALL_ID = #{vslCallId} 
+	                AND GATE_PASS_NO IS NULL 
+	                AND JOB_NO IS NULL
+	                GROUP BY VSL_CALL_ID, CG_NO, CG_IN_OUT_CD, LORRY_NO
+				) CG
+		 		ON L.VSL_CALL_ID = CG.VSL_CALL_ID
+				AND CG.LORRY_NO = L.LORRY_NO
+				AND GATE_OUT_DT IS NULL
+				<if test="blNo != null and blNo != ''">
+				 	AND	L.BL_NO = CG.CG_NO
+				 	AND CG_IN_OUT_CD = 'O'
+				</if>
+                <if test="shipgNoteNo != null and shipgNoteNo != ''">
+                	AND CG_IN_OUT_CD = 'I'
+					AND CG.CG_NO IN (SELECT GR_NO FROM TMT_GR WHERE SHIPG_NOTE_NO = L.SHIPG_NOTE_NO)
+				</if>
+		 	</if>
+			)
+			WHERE  1=1
+		 	AND VSLCALLID = #{vslCallId}
+		 	AND CGTPCD NOT IN ('RCV')
+		 	AND CASE
+                WHEN TRUCKMODE = 'E'
+                THEN
+                   CASE
+                      WHEN SUBDONO IS NOT NULL THEN EXSDOGATEOUT
+                      ELSE EXGRGATEOUT
+                   END
+                ELSE NULL
+             END IS NULL
+		 	<if test="subDoNo != null and subDoNo != ''">
+	 			AND SUBDONO= #{subDoNo}
+	 		</if>
+	 		<if test="grNo != null and grNo != ''">
+	 			AND GRNO= #{grNo}
+	 		</if>
+	 		<if test="mfDocId != null and mfDocId != ''">
+	 			AND MASTERBLNO= #{mfDocId}
+	 		</if>
+	 		<if test="blNo != null and blNo != ''">
+	 			AND BLNO = #{blNo}
+	 			<if test="allTruck eq 'Y'.toString()">
+					AND LORRYNO NOT IN (
+						SELECT LORRY_NO
+					 	FROM TMT_CG_ARRV_DELV
+						WHERE VSL_CALL_ID = #{vslCallId}
+						AND GATE_PASS_NO IS NOT NULL
+						AND GATE_OUT_DT IS NULL
+					)
+	 			</if>
+	 		</if>
+	 		<if test="shipgNoteNo != null and shipgNoteNo != ''">
+	 			AND SHIPGNOTENO = #{shipgNoteNo}
+	 		</if>
+	 		<if test="lorryNo != null and lorryNo != ''">
+	 			AND LORRYNO= #{lorryNo}
+	 		</if>
+	 		<if test="tsptr != null and tsptr != ''">
+	 			AND LORRYTSPTR IN (${tsptr})
+	 		</if>
+	 		<if test="allTruck eq 'N'.toString()">
+	 			AND GATE_IN_DT IS NOT NULL AND GATE_OUT_DT IS NULL
+	 		</if>
+	 		
+	 	ORDER BY BLNO, SUBDONO, SHIPGNOTENO, GRNO	 		
+	</select>
+	
+	<select id = "selectTruckRegistrationItems"  parameterType = "truckAssignmentParm" resultType = "truckAssignmentItem">
+		SELECT DISTINCT /*truckAssignment.selectTruckRegistrationItems*/
+			NVL(LORRY_NO, ' ') AS CD,
+			NVL(LORRY_ID, ' ') AS CDNM,
+			' '                AS LICSNO,
+			' '                AS LICSEXPRYMD,
+			PTNR_CD            AS ptnrCd,
+			(SELECT P.ENG_SNM FROM TMT_PTNR P WHERE P.PTNR_TYPE = 'TRK' AND P.PTNR_CODE = PTNR_CD) AS TSPTRNM
+		FROM TMT_TRUCK_MST
+		<where>
+			<if test="ptnrCd != null and ptnrCd != ''">
+				AND PTNR_CD IN (${ptnrCd})
+			</if>
+			<if test="cd != null and cd != ''">
+				<if test='searchType == "popUpList"'>
+					AND LORRY_NO LIKE '%' || #{cd} || '%'						
+				</if>						
+				<if test='searchType == "popUpListForDc"'>
+					AND LORRY_NO LIKE #{cd} || '%'							
+				</if>
+			</if>
+			<if test="cdNm != null and cdNm != ''">
+				AND LORRY_ID LIKE '%' || #{cdNm} || '%'
+			</if>
+		</where>
+	</select>
+	
+	<select id = "selectDriverRegistrationItems"  parameterType = "truckAssignmentParm" resultType = "truckAssignmentItem">
+		SELECT DISTINCT /*truckAssignment.selectDriverRegistrationItems*/
+			NVL(DRIVER_ID, ' ') AS CD,
+			NVL(DRIVER_NM, ' ') AS CDNM,
+			NVL(LICS_NO, ' ')   AS LICSNO,
+			TO_CHAR(LICS_EXPR_YMD,'DD/MM/YYYY') AS LICSEXPRYMD,
+			PTNR_CD             AS ptnrCd,
+			(SELECT P.ENG_SNM FROM TMT_PTNR P WHERE P.PTNR_TYPE = 'TRK' AND P.PTNR_CODE = PTNR_CD AND ROWNUM = 1) AS TSPTRNM
+		FROM TMT_DRIVER_MST
+		<where>
+			<if test="cd != null and cd != ''">
+				DRIVER_ID LIKE #{cd} || '%'
+			</if>
+			<if test="cdNm != null and cdNm != ''">
+				AND DRIVER_NM LIKE '%' || #{cdNm} || '%'
+			</if>
+		</where>
+	</select>
+
+	<select id = "selectRegisterationItems"  parameterType = "truckAssignmentParm" resultType = "truckAssignmentItem">
+		<if test="screenId != null and screenId != ''">
+			SELECT 	DISTINCT /*truckAssignment.selectRegisterationItems*/
+				<if test='divCd == "LR"'>
+					NVL(A.LORRY_NO, ' ') AS CD,
+					NVL(A.LORRY_ID, ' ') AS CDNM,
+					' '                AS LICSNO,
+					' '                AS LICSEXPRYMD,
+					A.PTNR_CD            AS ptnrCd,
+					(SELECT P.ENG_SNM FROM TB_PTNR P WHERE P.PTNR_TYPE = 'TRK' AND P.PTNR_CODE = PTNR_CD) AS TSPTRNM
+				</if>
+				FROM TMT_LORRY_PL A, TMT_ASGN_LORRY B 
+				WHERE A.LORRY_NO = B.LORRY_NO
+				<if test='divCd == "LR"'>
+					<if test="ptnrCd != null and ptnrCd != ''">
+						AND DIV_CD = #{divCd} AND PTNR_CD IN (${ptnrCd})
+					</if>
+					<if test="cd != null and cd != ''">
+						<if test='searchType == "popUpList"'>
+							AND A.LORRY_NO = #{cd}							
+						</if>						
+						<if test='searchType == "popUpListForDc"'>
+							AND A.LORRY_NO LIKE #{cd} || '%'							
+						</if>
+					</if>
+					<if test="cdNm != null and cdNm != ''">
+     						AND A.LORRY_ID LIKE '%' || #{cdNm} || '%'
+					</if>
+				</if>
+				<if test="vslCallId != null and vslCallId != ''">
+    					AND B.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="shipgNoteNo != null and shipgNoteNo != ''">
+    					AND B.snno = #{shipgNoteNo}
+				</if>
+		</if>
+		<if test="screenId == null or screenId == ''">
+			SELECT DISTINCT /*truckAssignment.selectRegisterationItems*/
+				<if test='divCd == "LR"'>
+					NVL(LORRY_NO, ' ') AS CD,
+					NVL(LORRY_ID, ' ') AS CDNM,
+					' '                AS LICSNO,
+					' '                AS LICSEXPRYMD,
+					PTNR_CD            AS ptnrCd,
+					(SELECT P.ENG_SNM FROM TB_PTNR P WHERE P.PTNR_TYPE = 'TRK' AND P.PTNR_CODE = PTNR_CD) AS TSPTRNM
+				</if>
+				<if test='divCd == "LR2"'>
+					NVL(LORRY_NO, ' ') AS CD,
+					NVL(LORRY_ID, ' ') AS CDNM,
+					' '                AS LICSNO,
+					' '                AS LICSEXPRYMD,
+					PTNR_CD            AS ptnrCd,
+					(SELECT P.ENG_SNM FROM TB_PTNR P WHERE P.PTNR_TYPE = 'TRK' AND P.PTNR_CODE = PTNR_CD) AS TSPTRNM
+				</if>
+				<if test='divCd == "DV"'>
+					NVL(DRIVER_ID, ' ') AS CD,
+					NVL(DRIVER_NM, ' ') AS CDNM,
+					NVL(LICS_NO, ' ')   AS LICSNO,
+					TO_CHAR(LICS_EXPR_YMD,'DD/MM/YYYY') AS LICSEXPRYMD,
+					PTNR_CD             AS ptnrCd,
+					(SELECT P.ENG_SNM FROM TB_PTNR P WHERE P.PTNR_TYPE = 'TRK' AND P.PTNR_CODE = PTNR_CD) AS TSPTRNM
+				</if>
+			FROM TMT_LORRY_PL
+			<where>
+				<if test='divCd == "LR"'>
+					<if test="ptnrCd != null and ptnrCd != ''">
+						AND DIV_CD = #{divCd} 							
+						AND PTNR_CD IN (${ptnrCd})
+					</if>
+					<if test="cd != null and cd != ''">
+						<if test='searchType == "popUpList"'>
+							AND LORRY_NO LIKE '%' || #{cd} || '%'						
+						</if>						
+						<if test='searchType == "popUpListForDc"'>
+							AND LORRY_NO LIKE #{cd} || '%'							
+						</if>
+					</if>
+					<if test="cdNm != null and cdNm != ''">
+     						AND LORRY_ID LIKE '%' || #{cdNm} || '%'
+					</if>
+				</if>
+				<if test='divCd == "LR2"'>
+					<if test="ptnrCd != null and ptnrCd != ''">
+						AND PTNR_CD IN (${ptnrCd})
+					</if>
+					<if test="cd != null and cd != ''">
+						AND LORRY_NO LIKE '%' || #{cd} || '%'							
+					</if>
+					<if test="cdNm != null and cdNm != ''">
+     						AND LORRY_ID LIKE '%' || #{cdNm} || '%'
+					</if>
+				</if>
+				<if test='divCd == "DV"'>
+					AND DIV_CD = #{divCd}
+					<if test="ptnrCd != null and ptnrCd != ''">
+						<if test="lorryNo != null and lorryNo != ''">
+						 	AND PTNR_CD = (SELECT B.PTNR_CD FROM TMT_LORRY_PL B WHERE B.LORRY_NO = #{lorryNo} AND B.PTNR_CD IN (${ptnrCd}) AND ROWNUM=1)
+						</if>
+						<if test="lorryNo == null or lorryNo == ''">
+							AND PTNR_CD IN (${ptnrCd})
+						</if>
+					</if>
+					<if test="cd != null and cd != ''">
+     						AND DRIVER_ID LIKE #{cd} || '%'
+					</if>
+					<if test="cdNm != null and cdNm != ''">
+     						AND DRIVER_NM LIKE '%' || #{cdNm} || '%'
+					</if>
+				</if>	
+			</where>
+		</if>
+	</select>
+	
+	<select id = "selectGoodReceiptItems"  parameterType = "truckAssignmentParm" resultType = "truckAssignmentItem">
+		SELECT 	/*truckAssignment.selectGoodReceiptItems*/
+				GR.GR_NO AS cd,
+				GR.GR_NO AS CDNM,
+				SC.VSL_CD AS VSLCD,
+				SC.CALL_SEQ AS CALLSEQ,
+				SC.CALL_YEAR AS CALLYEAR,
+				SN.VSL_CALL_ID AS VSLCALLID,
+				SN.TSPT_COMP AS TSPTR,
+				DECODE (SN.DELV_TP_CD,  'D', 'Direct',  'I', 'Indirect',  'B', 'Both') AS DELVTPCD,
+				GR.CMDT_CD AS CMDTCD,
+				GR.SHIPG_NOTE_NO AS SHIPGNOTENO,
+				GR.GR_NO AS GRNO,
+				NVL(GR.CG_WGT,0) AS WGT,
+				NVL(GR.CG_VOL,0) AS VOL,
+				NVL(GR.PKG_QTY,0) AS PKGQTY,
+                DECODE (SN.DELV_TP_CD,  'D',  NVL(GR.CG_WGT,0), 0) AS DMT,
+                DECODE (SN.DELV_TP_CD,  'D',  NVL(GR.CG_VOL,0), 0) AS DM3,
+                DECODE (SN.DELV_TP_CD,  'D',  NVL(GR.PKG_QTY,0), 0) AS DQTY,
+                DECODE (SN.DELV_TP_CD,  'I',  NVL(GR.CG_WGT,0), 0) AS IMT,
+                DECODE (SN.DELV_TP_CD,  'I',  NVL(GR.CG_VOL,0), 0) AS IM3,
+                DECODE (SN.DELV_TP_CD,  'I',  NVL(GR.PKG_QTY,0), 0) AS IQTY
+		FROM 	TMT_SHIPG_NOTE SN 
+				INNER JOIN TMT_GR GR ON SN.VSL_CALL_ID = GR.VSL_CALL_ID AND SN.SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO
+				INNER JOIN TMT_VSL_SCH SC ON GR.VSL_CALL_ID = SC.VSL_CALL_ID
+				LEFT OUTER JOIN TMT_CG_ARRV_DELV CG ON GR.VSL_CALL_ID = CG.VSL_CALL_ID AND GR.GR_NO = CG.GR_NO
+				
+		WHERE 	SN.VSL_CALL_ID = #{vslCallId}
+				AND SN.CG_TP_CD NOT IN ('RCV')
+				AND CG.GATE_OUT_DT IS NULL
+				AND GR.TSPT_TP_CD <![CDATA[<>]]> 'PL'
+				<if test="shipgNoteNo != null and shipgNoteNo != ''">
+    				AND SN.SHIPG_NOTE_NO = #{shipgNoteNo}
+				</if>
+				<if test="grNo != null and grNo != ''">
+    				AND GR.GR_NO = #{grNo}
+				</if>
+		ORDER BY GR.GR_NO	
+	</select>
+	
+	<select id = "selectSubDoNoItems"  parameterType = "truckAssignmentParm" resultType = "truckAssignmentItem">
+		SELECT  /*truckAssignment.selectSubDoNoItems*/
+                SDO.SDO_NO AS cd,
+                SDO.SDO_NO AS CDNM,
+                SC.VSL_CD AS VSLCD,
+                SC.CALL_SEQ AS CALLSEQ,
+                SC.CALL_YEAR AS CALLYEAR,
+                SDO.VSL_CALL_ID AS VSLCALLID,
+                SDO.TSPT_COMP AS TSPTR,
+                DECODE (BL.DELV_TP_CD,  'D', 'Direct',  'I', 'Indirect', 'B', 'Both') AS DELVTPCD,
+                BL.CMDT_CD AS CMDTCD,
+                BL.BL_NO AS BLNO,
+                DO.DO_NO AS DONO,
+                SDO.SDO_NO AS SUBDONO,
+                NVL(SDO.D_MT,0) + NVL(SDO.I_MT,0) AS WGT,
+                NVL(SDO.D_M3,0) + NVL(SDO.I_M3,0) AS VOL,
+                NVL(SDO.D_QTY,0) + NVL(SDO.I_QTY,0) AS PKGQTY,
+                NVL(SDO.D_MT,0) AS DMT,
+                NVL(SDO.D_M3,0) AS DM3,
+                NVL(SDO.D_QTY,0) AS DQTY,
+                NVL(SDO.I_MT,0) AS IMT,
+                NVL(SDO.I_M3,0) AS IM3,
+                NVL(SDO.I_QTY,0) AS IQTY
+                 
+        FROM    TMT_DO_DTL SDO
+                INNER JOIN TMT_DO DO ON SDO.VSL_CALL_ID = DO.VSL_CALL_ID AND SDO.BL_NO = DO.BL_NO AND SDO.DO_NO = DO.DO_NO
+                INNER JOIN TMT_BL BL ON DO.VSL_CALL_ID = BL.VSL_CALL_ID AND DO.BL_NO = BL.BL_NO
+                INNER JOIN TMT_VSL_SCH SC ON BL.VSL_CALL_ID = SC.VSL_CALL_ID
+                LEFT OUTER JOIN TMT_CG_ARRV_DELV CG ON CG.VSL_CALL_ID = SDO.VSL_CALL_ID AND CG.SDO_NO = SDO.SDO_NO
+                
+        WHERE   SDO.VSL_CALL_ID = #{vslCallId}
+        		AND BL.CG_TP_CD NOT IN ('RCV')
+        		AND CG.GATE_OUT_DT IS NULL
+        		AND CASE WHEN SDO.DELV_TP_CD = 'D' THEN SDO.TSPT_TP_CD ELSE SDO.I_TSPT_TP_CD END <![CDATA[<>]]> 'PL'
+        		<if test="blNo != null and blNo != ''">
+    				AND BL.BL_NO = #{blNo}
+				</if>
+                <if test="subDoNo != null and subDoNo != ''">
+    				AND SDO.SDO_NO = #{subDoNo}
+				</if>
+				
+		ORDER BY SDO.SDO_NO		
+	</select>
+	
+	<select id = "selectGoodReceiptItemforAssigment"  parameterType = "truckAssignmentParm" resultType = "truckAssignmentItem">
+		SELECT 
+			SC.VSL_CD AS VSLCD,
+			SC.CALL_SEQ AS CALLSEQ,
+			SC.CALL_YEAR AS CALLYEAR,
+			SN.VSL_CALL_ID AS VSLCALLID,
+			SN.TSPT_COMP AS TSPTR,
+			DECODE (SN.DELV_TP_CD,  'D', 'Direct',  'I', 'Indirect',  'B', 'Both') AS DELVTPCD,
+			GR_NO AS GRNO,
+			GR.CMDT_CD AS CMDTCD,
+			GR.SHIPG_NOTE_NO AS SHIPGNOTENO,
+			'' AS BLNO,
+			'' AS DONO,
+			NVL(GR.CG_WGT,0) AS WGT,
+			NVL(GR.CG_VOL,0) AS VOL,
+			NVL(GR.PKG_QTY,0) AS PKGQTY
+		FROM TMT_GR GR
+		INNER JOIN TMT_SHIPG_NOTE SN ON	GR.SHIPG_NOTE_NO = SN.SHIPG_NOTE_NO 
+		AND GR.VSL_CALL_ID = SN.VSL_CALL_ID
+		INNER JOIN TMT_VSL_SCH SC ON GR.VSL_CALL_ID = SC.VSL_CALL_ID 
+		AND GR.VSL_CD = SC.VSL_CD
+		AND GR.CALL_SEQ = SC.CALL_SEQ
+		AND GR.CALL_YEAR = SC.CALL_YEAR
+		WHERE SN.VSL_CALL_ID = #{vslCallId}
+		AND SN.SHIPG_NOTE_NO = #{shipgNoteNo}
+		AND GR_NO = #{grNo}
+		
+		ORDER BY GR_NO
+	</select>
+	
+	<select id="selectInternalMovementTicketReport" parameterType="truckAssignmentParm" resultMap="resultImtReportMap">
+		SELECT *
+		FROM (<include refid="getImtReport"/>)
+		WHERE ROWNUM=1
+	</select>
+	
+	<sql id="getImtReport">
+		WITH ACT_LOCATION AS
+		(
+		    SELECT  LISTAGG(LOC_ID, ', ') WITHIN GROUP (ORDER BY LOC_ID) AS LOC_ID
+		    FROM(
+		        SELECT  I.LOC_ID
+		        FROM    TMT_INV_LOC I
+		        		<if test='truckMode.equals("I")'>
+		    				<if test="shipgNoteNo != null and shipgNoteNo != ''">
+		    					INNER JOIN TMT_GR G ON G.VSL_CALL_ID = I.VSL_CALL_ID AND G.GR_NO = I.CG_NO
+							</if>
+						</if>
+		        		
+		        WHERE   I.VSL_CALL_ID = #{vslCallId} 
+		        		<if test='truckMode.equals("I")'>
+		    				<if test="shipgNoteNo != null and shipgNoteNo != ''">
+		    					AND G.SHIPG_NOTE_NO = #{shipgNoteNo}
+							</if>
+						</if>
+		        		<if test="blNo != null and blNo != ''">
+		    				AND I.CG_NO = #{blNo}
+						</if>
+						<if test="grNo != null and grNo != ''">
+		    				AND I.CG_NO = #{grNo}
+						</if>
+		                
+		        GROUP BY I.LOC_ID
+		        HAVING SUM(I.CG_WGT) > 0 OR SUM(I.PKG_QTY) > 0
+		    )
+		),
+		
+		PLAN_LOCATION AS
+		(
+		    SELECT  LISTAGG(PLAN_LOC_ID, ', ') WITHIN GROUP (ORDER BY PLAN_LOC_ID) AS LOC_ID
+		    FROM(
+		        SELECT  I.PLAN_LOC_ID
+		        FROM    TMT_SPC_REQ I
+		        WHERE   I.VSL_CALL_ID = #{vslCallId}
+		        		<if test="blNo != null and blNo != ''">
+		    				AND I.BL_NO = #{blNo}
+						</if>
+						<if test="shipgNoteNo != null and shipgNoteNo != ''">
+		    				AND I.SHIPG_NOTE_NO = #{shipgNoteNo}
+						</if>
+		        GROUP BY I.PLAN_LOC_ID
+		    )
+		),
+		
+		RC_JOB_INFO_BL AS 
+		(SELECT I.VSL_CALL_ID,
+                  I.CG_NO,
+                  J.RC_CO_CD,
+                  MAX (J.RMK) AS RMK,
+                  SUM (I.CG_WGT) WGT,
+                  SUM (I.CG_VOL) MSRMT,
+                  SUM (I.PKG_QTY) PKGQTY
+             FROM TMT_JOB J
+                  INNER JOIN TMT_INV_LOC I
+                     ON     J.VSL_CALL_ID = I.VSL_CALL_ID
+                        AND J.CG_NO = I.CG_NO
+                        AND J.JOB_NO = I.JOB_NO
+                  INNER JOIN TMT_BL BB ON J.VSL_CALL_ID = BB.VSL_CALL_ID AND J.CG_NO = BB.BL_NO
+            WHERE JOB_TP_CD = 'RC' AND I.VSL_CALL_ID = #{vslCallId} 
+         GROUP BY I.VSL_CALL_ID, I.CG_NO, J.RC_CO_CD),
+         
+        RC_JOB_INFO_SN AS 
+		(SELECT I.VSL_CALL_ID,
+                  I.CG_NO,
+                  J.RC_CO_CD,
+                  GG.SHIPG_NOTE_NO,
+                  MAX (J.RMK) AS RMK,
+                  SUM (I.CG_WGT) WGT,
+                  SUM (I.CG_VOL) MSRMT,
+                  SUM (I.PKG_QTY) PKGQTY
+             FROM TMT_JOB J
+                  INNER JOIN TMT_INV_LOC I
+                     ON     J.VSL_CALL_ID = I.VSL_CALL_ID
+                        AND J.CG_NO = I.CG_NO
+                        AND J.JOB_NO = I.JOB_NO
+                   INNER JOIN TMT_GR GG ON J.VSL_CALL_ID = GG.VSL_CALL_ID AND J.CG_NO = GG.GR_NO
+            WHERE JOB_TP_CD = 'RC' AND I.VSL_CALL_ID = #{vslCallId}
+         GROUP BY I.VSL_CALL_ID, GG.SHIPG_NOTE_NO, I.CG_NO, J.RC_CO_CD)
+		
+		SELECT  A.VSL_CALL_ID,
+		        P.VSL_NM,
+		        V.INB_VOY,
+		        CASE 
+		            WHEN A.BL_NO IS NOT NULL THEN B.SHPR
+		            WHEN A.SHIPG_NOTE_NO IS NOT NULL THEN S.SHPR
+		            ELSE ''
+		        END AS SHP,
+		        CASE 
+		            WHEN A.BL_NO IS NOT NULL THEN F_GET_PARTNER_INFO (B.SHPR, 'ENG_SNM')
+		            WHEN A.SHIPG_NOTE_NO IS NOT NULL THEN F_GET_PARTNER_INFO (S.SHPR, 'ENG_SNM')
+		            ELSE ''
+		        END AS SHP_NM,
+		        CASE 
+		            WHEN A.BL_NO IS NOT NULL THEN F_GET_PARTNER_INFO (B.SHPR, 'ADDR')
+		            WHEN A.SHIPG_NOTE_NO IS NOT NULL THEN F_GET_PARTNER_INFO (S.SHPR, 'ADDR')
+		            ELSE ''
+		        END AS SHP_ADDR,
+		        CASE 
+		            WHEN A.BL_NO IS NOT NULL THEN B.CNSNE
+		            WHEN A.SHIPG_NOTE_NO IS NOT NULL THEN S.CNSNE
+		            ELSE ''
+		        END AS CNSNE,
+		        CASE 
+		            WHEN A.BL_NO IS NOT NULL THEN F_GET_PARTNER_INFO (B.CNSNE, 'ENG_SNM')
+		            WHEN A.SHIPG_NOTE_NO IS NOT NULL THEN F_GET_PARTNER_INFO (S.CNSNE, 'ENG_SNM')
+		            ELSE ''
+		        END AS CNSNE_NM,
+		        CASE 
+		            WHEN A.BL_NO IS NOT NULL THEN F_GET_PARTNER_INFO (B.CNSNE, 'ADDR')
+		            WHEN A.SHIPG_NOTE_NO IS NOT NULL THEN F_GET_PARTNER_INFO (S.CNSNE, 'ADDR')
+		            ELSE ''
+		        END AS CNSNE_ADDR,
+		        A.SHIPG_NOTE_NO,
+		        A.BL_NO,
+		        A.GR_NO,
+		        A.SDO_NO,
+		        NVL(S.CG_TP_CD, B.CG_TP_CD) AS CG_TP_CD,
+		        F_CM_001('MT', 'CGTP', NVL(S.CG_TP_CD, B.CG_TP_CD)) AS CG_TP_NM,
+		        NVL(S.DELV_TP_CD, D.DELV_TP_CD) AS DELV_TP_CD,
+		        F_CM_001('MT', 'DELVTP', DECODE(NVL(S.DELV_TP_CD, D.DELV_TP_CD), NULL, B.DELV_TP_CD, NVL(S.DELV_TP_CD, D.DELV_TP_CD))) AS DELV_TP_NM,
+		        NVL(S.LOT_NO, B.LOT_NO) AS LOT_NO,
+		        NVL(S.CMDT_CD, B.CMDT_CD) AS CMDT_CD,
+		        (SELECT CMDT_DESC FROM TMT_CMDT WHERE CMDT_CD = NVL(S.CMDT_CD, B.CMDT_CD) AND ROWNUM = 1) AS CMDT_NM,
+		        NVL(S.CMDT_GRP_CD, B.CMDT_GRP_CD) AS CMDT_GRP_CD,
+		        (SELECT CMDT_GRP_DESC FROM TMT_CMDT_GRP WHERE CMDT_GRP_CD = NVL(S.CMDT_GRP_CD, B.CMDT_GRP_CD) AND ROWNUM = 1) AS CMDT_GRP_NM,
+		        CASE 
+		        	WHEN A.TRUCK_MODE = 'E' AND A.SDO_NO IS NOT NULL THEN NVL(D.PKG_TP_CD, B.PKG_TP_CD)
+		        	WHEN A.TRUCK_MODE = 'E' AND A.GR_NO IS NOT NULL THEN NVL(G.PKG_TP_CD, S.PKG_TP_CD)
+		        	WHEN A.TRUCK_MODE = 'I' THEN NVL(S.PKG_TP_CD, B.PKG_TP_CD)
+		        	ELSE ''
+		        END AS PKG_TP_CD,
+		        F_CM_001('MT', 'PKGTP', CASE 
+		        						WHEN A.TRUCK_MODE = 'E' AND A.SDO_NO IS NOT NULL THEN NVL(D.PKG_TP_CD, B.PKG_TP_CD)
+		        						WHEN A.TRUCK_MODE = 'E' AND A.GR_NO IS NOT NULL THEN NVL(G.PKG_TP_CD, S.PKG_TP_CD)
+		        						WHEN A.TRUCK_MODE = 'I' THEN NVL(S.PKG_TP_CD, B.PKG_TP_CD)
+		        						ELSE ''
+		       	 						END) AS PKG_TP_NM,
+		        CASE 
+		            WHEN A.BL_NO IS NOT NULL AND A.DO_NO IS NOT NULL AND A.SDO_NO IS NOT NULL THEN (TO_CHAR((NVL(D.I_MT, 0) + NVL(D.D_MT, 0)), 'fm99999999990D000'))
+		            WHEN A.BL_NO IS NOT NULL AND A.DO_NO IS NOT NULL AND A.SDO_NO IS NULL THEN TO_CHAR(NVL(DO.I_MT, 0), 'fm99999999990D000')
+		            WHEN A.BL_NO IS NOT NULL AND A.DO_NO IS NULL AND A.SDO_NO IS NULL THEN TO_CHAR(0, 'fm99999999990D000')
+		            WHEN A.SHIPG_NOTE_NO IS NOT NULL AND A.GR_NO IS NOT NULL THEN TO_CHAR(NVL(G.CG_WGT, 0), 'fm99999999990D000')
+		            WHEN A.SHIPG_NOTE_NO IS NOT NULL AND A.GR_NO IS NULL THEN TO_CHAR(NVL(S.CG_WGT, 0), 'fm99999999990D000')
+		            ELSE TO_CHAR(0, 'fm99999999990D000')
+		        END AS CG_WGT,
+		        CASE 
+		            WHEN A.BL_NO IS NOT NULL AND A.DO_NO IS NOT NULL AND A.SDO_NO IS NOT NULL THEN TO_CHAR((NVL (D.I_M3, 0) + NVL (D.D_M3, 0)), 'fm99999999990D000')
+		            WHEN A.BL_NO IS NOT NULL AND A.DO_NO IS NOT NULL AND A.SDO_NO IS NULL THEN TO_CHAR(NVL(DO.I_M3, 0), 'fm99999999990D000')
+		            WHEN A.BL_NO IS NOT NULL AND A.DO_NO IS NULL AND A.SDO_NO IS NULL THEN TO_CHAR(0, 'fm99999999990D000')
+		            WHEN A.SHIPG_NOTE_NO IS NOT NULL AND A.GR_NO IS NOT NULL THEN TO_CHAR(NVL(G.CG_VOL, 0), 'fm99999999990D000')
+		            WHEN A.SHIPG_NOTE_NO IS NOT NULL AND A.GR_NO IS NULL THEN TO_CHAR(NVL(S.CG_VOL, 0), 'fm99999999990D000')
+		            ELSE TO_CHAR(0, 'fm99999999990D000')
+		        END AS CG_VOL,
+		        CASE 
+		            WHEN A.BL_NO IS NOT NULL AND A.DO_NO IS NOT NULL AND A.SDO_NO IS NOT NULL THEN TO_CHAR((NVL(D.I_QTY, 0) + NVL(D.D_QTY, 0)), 'fm99999999990D000')
+		            WHEN A.BL_NO IS NOT NULL AND A.DO_NO IS NOT NULL AND A.SDO_NO IS NULL THEN TO_CHAR(NVL(DO.I_QTY, 0), 'fm99999999990D000')
+		            WHEN A.BL_NO IS NOT NULL AND A.DO_NO IS NULL AND A.SDO_NO IS NULL THEN TO_CHAR(0, 'fm99999999990D000')
+		            WHEN A.SHIPG_NOTE_NO IS NOT NULL AND A.GR_NO IS NOT NULL THEN TO_CHAR(NVL(G.PKG_QTY, 0), 'fm99999999990D000')
+		            WHEN A.SHIPG_NOTE_NO IS NOT NULL AND A.GR_NO IS NULL THEN TO_CHAR(NVL(S.PKG_QTY, 0), 'fm99999999990D000')
+		            ELSE TO_CHAR(0, 'fm99999999990D000')
+		        END AS PKG_QTY,
+		        A.LORRY_NO,
+		        (SELECT TO_CHAR(MEASURE_DT,'DD/MM/YYYY') FROM TMT_TRUCK_MST WHERE LORRY_NO = A.LORRY_NO AND INSTR(A.TRANSPORT, PTNR_CD) <![CDATA[>]]> 0 AND ROWNUM=1) AS LORRY_REG_VALID_DT,
+		        (SELECT TO_CHAR(NVL(TARE_WGT, 0), 'fm99999999990D000') FROM TMT_TRUCK_MST WHERE LORRY_NO = A.LORRY_NO AND INSTR(A.TRANSPORT, PTNR_CD) <![CDATA[>]]> 0 AND ROWNUM=1) AS LORRY_TARE_WGT,
+		        A.CHASSIS_NO,
+		        (SELECT TO_CHAR(MEASURE_DT,'DD/MM/YYYY') FROM TMT_CHASSIS_MST WHERE PLATE_NO = A.CHASSIS_NO AND INSTR(A.TRANSPORT, PTNR_CD) <![CDATA[>]]> 0 AND ROWNUM=1) AS CHASSIS_REG_VALID_DT,
+		        (SELECT TO_CHAR(NVL(TARE_WGT, 0), 'fm99999999990D000') FROM TMT_CHASSIS_MST WHERE PLATE_NO = A.CHASSIS_NO AND INSTR(A.TRANSPORT, PTNR_CD) <![CDATA[>]]> 0 AND ROWNUM=1) AS CHASSIS_TARE_WGT,
+		        A.DRIVER_ID,
+		        (SELECT DRIVER_NM FROM TMT_DRIVER_MST WHERE DRIVER_ID = A.DRIVER_ID AND ROWNUM=1) AS DRIVER_NM,
+		        TO_CHAR(NVL(A.ALLOWWGT_VAL, ALLOW_WGT), 'fm99999999990D000') AS ALLOW_WGT,
+		        CASE
+		        	WHEN A.TRUCK_MODE = 'E' AND A.DO_NO IS NOT NULL AND A.SDO_NO IS NOT NULL AND D.DELV_TP_CD = 'D' THEN V.BERTH_LOC
+		        	WHEN A.TRUCK_MODE = 'E' AND A.DO_NO IS NOT NULL AND A.SDO_NO IS NOT NULL AND D.DELV_TP_CD = 'I' THEN L1.LOC_ID
+		        	WHEN A.TRUCK_MODE = 'I' AND A.BL_NO IS NOT NULL AND DO.DO_NO IS NOT NULL THEN V.BERTH_LOC
+		        	
+		        	WHEN A.TRUCK_MODE = 'E' AND A.GR_NO IS NOT NULL AND S.DELV_TP_CD = 'D' THEN V.BERTH_LOC
+		        	WHEN A.TRUCK_MODE = 'E' AND A.GR_NO IS NOT NULL AND S.DELV_TP_CD = 'I' AND G.RHDL_MODE IS NULL THEN L2.LOC_ID
+		        	WHEN A.TRUCK_MODE = 'E' AND A.GR_NO IS NOT NULL AND S.DELV_TP_CD = 'I' AND G.RHDL_MODE = 'R' THEN L1.LOC_ID
+		        	WHEN A.TRUCK_MODE = 'I' AND A.SHIPG_NOTE_NO IS NOT NULL THEN L1.LOC_ID
+		        END AS LOCATION_ID,
+		        F_CM_001('MT', 'WBCD', #{scaleNo}) AS WB_NO,
+		        F_CM_001('MT', 'GATECD', #{gateNo}) AS GATE_NO,
+		        A.QR_CD,
+		        NVL(A.TRUCK_MODE, 'E') AS TRUCK_MODE,
+		        CASE 
+		        	WHEN A.DO_NO IS NOT NULL AND A.SDO_NO IS NOT NULL THEN D.RMK
+		        	WHEN A.DO_NO IS NOT NULL AND A.SDO_NO IS NULL THEN DO.RMK
+		        	WHEN A.SHIPG_NOTE_NO IS NOT NULL AND A.GR_NO IS NOT NULL THEN G.RMK
+		        	WHEN A.SHIPG_NOTE_NO IS NOT NULL AND A.GR_NO IS NULL THEN S.RMK
+		        	ELSE ''
+		        END AS SDORMK,
+		        CASE 
+		            WHEN A.DO_NO IS NOT NULL AND A.SDO_NO IS NOT NULL THEN TO_CHAR(D.VALID_DATE, 'DD/MM/YYYY HH24:MI')
+		            WHEN A.SHIPG_NOTE_NO IS NOT NULL AND A.GR_NO IS NOT NULL THEN TO_CHAR(G.VALID_DATE, 'DD/MM/YYYY HH24:MI')
+		            ELSE ''
+		        END AS VALID_DATE,
+		        CASE WHEN A.GR_NO IS NOT NULL 
+                     THEN
+                        (SELECT LISTAGG(PKG_NO, ', ') WITHIN GROUP (ORDER BY PKG_NO) 
+                        FROM (SELECT DISTINCT PKG_NO FROM TMT_PKG_INFO WHERE VSL_CALL_ID = A.VSL_CALL_ID AND REF_NO = A.SHIPG_NOTE_NO AND GR_NO = A.GR_NO))
+                     WHEN A.SDO_NO IS NOT NULL
+                     THEN
+                     	(SELECT LISTAGG(PKG_NO, ', ') WITHIN GROUP (ORDER BY PKG_NO) 
+                        FROM (SELECT DISTINCT PKG_NO FROM TMT_PKG_INFO WHERE VSL_CALL_ID = A.VSL_CALL_ID AND REF_NO = A.BL_NO AND SDO_NO = A.SDO_NO))
+                    ELSE ''
+                END AS MARK_NO,
+		        TO_CHAR((NVL(CASE 
+		            WHEN A.TRUCK_MODE = 'E' AND A.DO_NO IS NOT NULL AND A.SDO_NO IS NOT NULL AND D.DELV_TP_CD = 'D' AND D.TSPT_TP_CD = 'LR' THEN NVL(DO.D_LR_MT, 0)
+		            WHEN A.TRUCK_MODE = 'E' AND A.DO_NO IS NOT NULL AND A.SDO_NO IS NOT NULL AND D.DELV_TP_CD = 'D' AND D.TSPT_TP_CD = 'SE' THEN NVL(DO.D_VSL_MT, 0)
+		            WHEN A.TRUCK_MODE = 'E' AND A.DO_NO IS NOT NULL AND A.SDO_NO IS NOT NULL AND D.DELV_TP_CD = 'I' THEN (SELECT SUM(AA.MT) FROM (SELECT  DISTINCT NVL(JOB1.CG_WGT, 0) MT, SDO1.DO_NO DONO, SDO1.BL_NO BLNO, SDO1.VSL_CALL_ID VSLCALLID, JOB1.JOB_NO
+																														    FROM TMT_JOB JOB1 INNER JOIN TMT_DO_DTL SDO1 ON JOB1.VSL_CALL_ID = SDO1.VSL_CALL_ID AND JOB1.CG_NO = SDO1.BL_NO
+																														   	WHERE JOB1.JOB_TP_CD = 'DS'
+																														    AND JOB1.JOB_PURP_CD = 'AW'
+																														    AND JOB1.DELV_TP_CD = 'I'
+																														    AND SDO1.DO_NO = D.DO_NO) AA) + NVL(RCBL.WGT, 0)
+		            WHEN A.TRUCK_MODE = 'I' AND A.BL_NO IS NOT NULL AND DO.DO_NO IS NOT NULL THEN NVL(DO.I_MT, 0) + NVL(RCBL.WGT, 0)
+		            
+		            WHEN A.TRUCK_MODE = 'E' AND A.GR_NO IS NOT NULL AND S.DELV_TP_CD = 'D' AND G.RHDL_MODE IS NULL THEN (SELECT NVL(D_LR_MT, 0) FROM TMT_SHIPG_NOTE_AMT WHERE VSL_CALL_ID = A.VSL_CALL_ID AND SHIPG_NOTE_NO = A.SHIPG_NOTE_NO AND ROWNUM = 1)
+		            WHEN A.TRUCK_MODE = 'E' AND A.GR_NO IS NOT NULL AND S.DELV_TP_CD = 'I' AND G.RHDL_MODE IS NULL  THEN NVL(S.CG_WGT, 0) + NVL(RCSN.WGT, 0)
+		            WHEN A.TRUCK_MODE = 'I' AND A.SHIPG_NOTE_NO IS NOT NULL AND (SELECT RHDL_NO FROM TMT_RHDL_CG WHERE NX_VSL_CALL_ID = A.VSL_CALL_ID AND NX_REF_NO = A.SHIPG_NOTE_NO) IS NULL THEN (SELECT NVL(I_MT, 0) FROM TMT_SHIPG_NOTE_AMT WHERE VSL_CALL_ID = A.VSL_CALL_ID AND SHIPG_NOTE_NO = A.SHIPG_NOTE_NO AND ROWNUM = 1) + NVL(RCSN.WGT, 0)
+		            
+		            WHEN A.TRUCK_MODE = 'E' AND A.GR_NO IS NOT NULL AND G.RHDL_MODE = 'R' THEN (SELECT SUM(NVL(CG_WGT, 0)) FROM TMT_RHDL_CG WHERE VSL_CALL_ID = A.VSL_CALL_ID AND ORG_REF_NO = A.SHIPG_NOTE_NO AND RHDL_MODE = 'R') + NVL(RCSN.WGT, 0)
+		            
+		            WHEN A.TRUCK_MODE = 'I' AND A.SHIPG_NOTE_NO IS NOT NULL AND S.DELV_TP_CD = 'I' AND (SELECT RHDL_NO FROM TMT_RHDL_CG WHERE NX_VSL_CALL_ID = A.VSL_CALL_ID AND NX_REF_NO = A.SHIPG_NOTE_NO) IS NOT NULL THEN (SELECT SUM(NVL(CG_WGT, 0)) FROM TMT_RHDL_CG WHERE NX_VSL_CALL_ID = A.VSL_CALL_ID AND NX_REF_NO = A.SHIPG_NOTE_NO AND RHDL_MODE = 'C') + NVL(RCSN.WGT, 0)
+		            ELSE 0
+		        END, 0) - 
+		        NVL(CASE 
+		            WHEN A.TRUCK_MODE = 'E' AND A.DO_NO IS NOT NULL AND A.SDO_NO IS NOT NULL AND D.DELV_TP_CD = 'D' AND D.TSPT_TP_CD = 'LR' THEN ( SELECT SUM(AA.MT) FROM (SELECT  DISTINCT NVL(JOB1.CG_WGT, 0) MT, JOB1.SDO_NO SDONO, DIRECTLR.DO_NO DONO, DIRECTLR.BL_NO BLNO, DIRECTLR.VSL_CALL_ID VSLCALLID, DIRECTLR.TSPT_TP_CD TSPT, JOB1.JOB_NO
+																																				   FROM TMT_JOB JOB1 INNER JOIN (SELECT BB.SDO_NO, BB.VSL_CALL_ID, BB.BL_NO, BB.DO_NO, BB.TSPT_TP_CD FROM TMT_DO_DTL BB WHERE BB.DELV_TP_CD = 'D' AND BB.TSPT_TP_CD = 'LR') DIRECTLR ON JOB1.VSL_CALL_ID = DIRECTLR.VSL_CALL_ID AND JOB1.CG_NO = DIRECTLR.BL_NO 
+																																				   WHERE JOB1.JOB_TP_CD = 'DS'
+																																				         AND JOB1.JOB_PURP_CD = 'VG'
+																																				         AND JOB1.DELV_TP_CD = 'D'
+																																				         AND JOB1.CG_NO = D.BL_NO
+																																				         AND DIRECTLR.DO_NO = D.DO_NO
+																																				         AND JOB1.SDO_NO IN (DIRECTLR.SDO_NO)) AA)
+					WHEN A.TRUCK_MODE = 'E' AND A.DO_NO IS NOT NULL AND A.SDO_NO IS NOT NULL AND D.DELV_TP_CD = 'D' AND D.TSPT_TP_CD = 'SE' THEN (SELECT SUM(AA.MT) FROM (SELECT  DISTINCT NVL(JOB1.CG_WGT, 0) MT, JOB1.SDO_NO SDONO, DIRECTVSL.DO_NO DONO, DIRECTVSL.BL_NO BLNO, DIRECTVSL.VSL_CALL_ID VSLCALLID, DIRECTVSL.TSPT_TP_CD TSPT, JOB1.JOB_NO
+																																				   FROM TMT_JOB JOB1 INNER JOIN (SELECT BB.SDO_NO, BB.VSL_CALL_ID, BB.BL_NO, BB.DO_NO, BB.TSPT_TP_CD FROM TMT_DO_DTL BB WHERE BB.DELV_TP_CD = 'D' AND BB.TSPT_TP_CD = 'SE') DIRECTVSL ON JOB1.VSL_CALL_ID = DIRECTVSL.VSL_CALL_ID AND JOB1.CG_NO = DIRECTVSL.BL_NO 
+																																				   WHERE JOB1.JOB_TP_CD = 'DS'
+																																				         AND JOB1.JOB_PURP_CD = 'VG'
+																																				         AND JOB1.DELV_TP_CD = 'D'
+																																				         AND JOB1.CG_NO = D.BL_NO
+																																				         AND DIRECTVSL.DO_NO = D.DO_NO
+																																				         AND JOB1.SDO_NO IN (DIRECTVSL.SDO_NO)) AA)
+		            WHEN A.TRUCK_MODE = 'E' AND A.DO_NO IS NOT NULL AND A.SDO_NO IS NOT NULL AND D.DELV_TP_CD = 'I' THEN (SELECT SUM(AA.MT) FROM (SELECT  DISTINCT NVL(JOB1.CG_WGT, 0) MT, SDO1.DO_NO DONO, SDO1.BL_NO BLNO, SDO1.VSL_CALL_ID VSLCALLID, JOB1.JOB_NO
+																														   FROM TMT_JOB JOB1 INNER JOIN TMT_DO_DTL SDO1 ON JOB1.VSL_CALL_ID = SDO1.VSL_CALL_ID AND JOB1.CG_NO = SDO1.BL_NO
+																														   WHERE JOB1.JOB_TP_CD = 'LO'
+																														         AND JOB1.JOB_PURP_CD = 'WG'
+																														         AND JOB1.DELV_TP_CD = 'I'
+																														         AND SDO1.DO_NO = D.DO_NO) AA)	
+		            WHEN A.TRUCK_MODE = 'I' AND A.BL_NO IS NOT NULL AND DO.DO_NO IS NOT NULL THEN (SELECT SUM_DS_MT FROM (SELECT SUM(NVL(CG_WGT, 0)) AS SUM_DS_MT, CG_NO AS CG_NO FROM TMT_JOB  WHERE JOB_TP_CD = 'DS' AND VSL_CALL_ID = A.VSL_CALL_ID AND DELV_TP_CD = 'I' AND JOB_PURP_CD = 'AW' GROUP BY CG_NO) WHERE CG_NO = A.BL_NO AND ROWNUM = 1) 
+		              
+		            WHEN A.TRUCK_MODE = 'E' AND A.GR_NO IS NOT NULL AND S.DELV_TP_CD = 'D' AND G.RHDL_MODE IS NULL THEN (SELECT SUM(NVL(JOB.CG_WGT, 0)) FROM TMT_JOB JOB INNER JOIN TMT_GR GR ON JOB.VSL_CALL_ID = GR.VSL_CALL_ID AND JOB.CG_NO = GR.GR_NO WHERE JOB.VSL_CALL_ID = A.VSL_CALL_ID AND GR.SHIPG_NOTE_NO = A.SHIPG_NOTE_NO AND JOB.JOB_TP_CD = 'LD' AND JOB.DELV_TP_CD = 'D' AND JOB.TSPT_TP_CD = 'LR' AND JOB.OPE_CLASS_CD = 'E')
+		            WHEN A.TRUCK_MODE = 'E' AND A.GR_NO IS NOT NULL AND S.DELV_TP_CD = 'I' AND G.RHDL_MODE IS NULL THEN (SELECT DISTINCT SUM(NVL(JB1.CG_WGT, 0)) FROM TMT_JOB JB1 INNER JOIN TMT_GR GRR1 ON JB1.CG_NO = GRR1.GR_NO WHERE GRR1.SHIPG_NOTE_NO = A.SHIPG_NOTE_NO AND JB1.JOB_TP_CD = 'LF' AND JB1.JOB_PURP_CD = 'GW' AND JB1.RHDL_MODE IS NULL GROUP BY GRR1.SHIPG_NOTE_NO) 
+		            WHEN A.TRUCK_MODE = 'I' AND A.SHIPG_NOTE_NO IS NOT NULL AND (SELECT RHDL_NO FROM TMT_RHDL_CG WHERE NX_VSL_CALL_ID = A.VSL_CALL_ID AND NX_REF_NO = A.SHIPG_NOTE_NO) IS NULL THEN (SELECT WAMT FROM (SELECT SUM(NVL(JB.CG_WGT,0)) WAMT, GR.SHIPG_NOTE_NO SNNO, JB.VSL_CALL_ID VSLCALLID FROM TMT_JOB JB INNER JOIN TMT_GR GR ON GR.VSL_CALL_ID = JB.VSL_CALL_ID AND GR.GR_NO = JB.CG_NO WHERE JB.JOB_PURP_CD = 'AV' AND JB.JOB_TP_CD = 'LD' AND JB.DELV_TP_CD = 'I' AND OPE_CLASS_CD = 'E' AND JB.RHDL_MODE IS NULL GROUP BY  GR.SHIPG_NOTE_NO, JB.VSL_CALL_ID) WHERE VSLCALLID = A.VSL_CALL_ID AND SNNO = A.SHIPG_NOTE_NO AND ROWNUM = 1)
+		             
+		            WHEN A.TRUCK_MODE = 'E' AND A.GR_NO IS NOT NULL AND G.RHDL_MODE = 'R' THEN (SELECT ACTRHDLMT FROM (SELECT SUM(NVL(JB.CG_WGT,0)) ACTRHDLMT, GR.SHIPG_NOTE_NO SNNO, JB.VSL_CALL_ID VSLCALLID, JB.CG_NO GRNO FROM TMT_JOB JB INNER JOIN TMT_GR GR ON GR.VSL_CALL_ID = JB.VSL_CALL_ID AND GR.GR_NO = JB.CG_NO WHERE JB.JOB_PURP_CD = 'WG' AND JB.JOB_TP_CD = 'LO' GROUP BY JB.VSL_CALL_ID, GR.SHIPG_NOTE_NO, JB.CG_NO) WHERE VSLCALLID = A.VSL_CALL_ID AND SNNO = A.SHIPG_NOTE_NO AND ROWNUM = 1) 
+		            
+		            WHEN A.TRUCK_MODE = 'I' AND A.SHIPG_NOTE_NO IS NOT NULL AND S.DELV_TP_CD = 'I' AND (SELECT RHDL_NO FROM TMT_RHDL_CG WHERE NX_VSL_CALL_ID = A.VSL_CALL_ID AND NX_REF_NO = A.SHIPG_NOTE_NO) IS NOT NULL THEN (SELECT ACTRHDLMT FROM (SELECT SUM(NVL(JB.CG_WGT,0)) ACTRHDLMT, GR.SHIPG_NOTE_NO SNNO, JB.VSL_CALL_ID VSLCALLID, JB.CG_NO GRNO FROM TMT_JOB JB INNER JOIN TMT_GR GR ON GR.VSL_CALL_ID = JB.VSL_CALL_ID AND GR.GR_NO = JB.CG_NO WHERE JB.JOB_PURP_CD = 'WA' AND JB.JOB_TP_CD = 'LD' GROUP BY JB.VSL_CALL_ID, GR.SHIPG_NOTE_NO, JB.CG_NO) WHERE VSLCALLID = A.VSL_CALL_ID AND SNNO = A.SHIPG_NOTE_NO AND ROWNUM = 1)    
+		            ELSE 0
+		        END, 0)), 'fm99999999990D000')
+		         AS BAL_WGT
+		        
+		FROM    TMT_ASSIGN_TRANSPORT A
+		        LEFT OUTER JOIN TMT_DO_DTL D ON A.VSL_CALL_ID  = D.VSL_CALL_ID AND A.BL_NO = D.BL_NO AND A.SDO_NO = D.SDO_NO
+		        LEFT OUTER JOIN TMT_BL B ON A.VSL_CALL_ID  = B.VSL_CALL_ID AND A.BL_NO = B.BL_NO
+		        LEFT OUTER JOIN TMT_GR G ON A.VSL_CALL_ID  = G.VSL_CALL_ID AND A.SHIPG_NOTE_NO = G.SHIPG_NOTE_NO AND A.GR_NO = G.GR_NO
+		        LEFT OUTER JOIN TMT_SHIPG_NOTE S ON A.VSL_CALL_ID  = S.VSL_CALL_ID AND A.SHIPG_NOTE_NO = S.SHIPG_NOTE_NO
+		        LEFT OUTER JOIN TMT_DO DO ON A.VSL_CALL_ID  = DO.VSL_CALL_ID AND A.BL_NO = DO.BL_NO AND A.DO_NO = DO.DO_NO
+		        LEFT OUTER JOIN TMT_VSL_SCH V ON A.VSL_CALL_ID  = V.VSL_CALL_ID
+		        LEFT OUTER JOIN TMT_VSL_PART P ON A.VSL_CD = P.VSL_CD
+		        LEFT OUTER JOIN ACT_LOCATION L1 ON 1=1
+		        LEFT OUTER JOIN PLAN_LOCATION L2 ON 1=1
+		        LEFT OUTER JOIN RC_JOB_INFO_BL RCBL ON RCBL.VSL_CALL_ID = A.VSL_CALL_ID AND RCBL.CG_NO = A.BL_NO
+		        LEFT OUTER JOIN RC_JOB_INFO_SN RCSN ON RCSN.VSL_CALL_ID = A.VSL_CALL_ID AND RCSN.SHIPG_NOTE_NO = A.SHIPG_NOTE_NO
+				
+		WHERE   A.VSL_CALL_ID = #{vslCallId}
+		       	<if test="seq != null and seq != ''">
+    				AND A.SEQ = #{seq}
+				</if>
+		        
+	</sql>
+	<insert id = "insertTruckAssignment"  parameterType = "truckAssignmentItem">
+		INSERT /*truckAssignment.insertTruckAssignment*/
+		INTO TMT_ASSIGN_TRANSPORT (
+			 VSL_CD,
+			 CALL_SEQ,
+			 CALL_YEAR,
+			 VSL_CALL_ID,
+			 SEQ,
+			 TRANSPORT,
+			 LORRY_NO,
+			 DRIVER_ID,
+			 DO_NO,
+			 UPDATE_TIME,
+			 STAFF_CD,
+			 BL_NO,
+			 SHIPG_NOTE_NO,
+			 GR_NO,
+			 VERSION,
+			 CHASSIS_NO,
+			 ALLOW_WGT,
+			 ALLOWWGT_VAL,
+			 SDO_NO,
+			 TRUCK_MODE,
+			 OVERWGT_PERMIT,
+			 QR_CD
+		) VALUES (
+			 #{vslCd},
+			 #{callSeq},
+			 #{callYear},
+			 #{vslCallId},
+			 (SELECT DECODE(MAX(SEQ),NULL,1,MAX(SEQ)+1) FROM TMT_ASSIGN_TRANSPORT WHERE VSL_CALL_ID  = #{vslCallId}),
+			 #{tsptr},
+			 #{lorryNo},
+			 #{driverId},
+			 #{doNo},
+			 SYSDATE,
+			 #{userId},
+			 #{blNo},
+			 #{shipgNoteNo},
+			 #{grNo},
+			 #{newVersion},
+			 #{chassisNo},
+			 #{allowWgt},
+			 #{allowWgtVal},
+			 #{subDoNo},
+			 #{truckMode},
+			 #{permitYn},
+			 <choose>
+			 	<when test='truckMode ==  "E" and grNo != null and grNo != ""'>
+			 		#{grNo}
+			 	</when>
+			 	<when test='truckMode ==  "E" and subDoNo != null and subDoNo != ""'>
+			 		#{subDoNo}
+			 	</when>
+			 	<otherwise>
+			 		sys_guid()
+			 	</otherwise>
+			 </choose>
+		)
+	</insert>
+
+	<update id="updateTruckAssignment" parameterType="truckAssignmentItem">
+		UPDATE /*truckAssignment.updateTruckAssignment*/
+		TMT_ASSIGN_TRANSPORT SET
+			BL_NO			= #{blNo},
+			DO_NO			= #{doNo},
+			SDO_NO			= #{subDoNo},
+			SHIPG_NOTE_NO	= #{shipgNoteNo},
+			GR_NO			= #{grNo},
+			LORRY_NO 		= #{lorryNo},
+			DRIVER_ID 		= #{driverId},
+			UPDATE_TIME 	= SYSDATE,
+			STAFF_CD 		= #{userId},
+			CHASSIS_NO 		= #{chassisNo},
+			ALLOW_WGT 		= #{allowWgt},
+			ALLOWWGT_VAL 	= #{allowWgtVal},
+			VERSION 		= #{newVersion},
+			OVERWGT_PERMIT  = #{permitYn}
+			<if test="wbIfYn != null and wbIfYn != ''">
+			,WB_IF_YN		= #{wbIfYn}
+			</if>
+		WHERE VSL_CALL_ID = #{vslCallId}
+		AND SEQ = #{seq}
+	</update>
+
+	<delete id = "deleteTruckAssignment"  parameterType = "truckAssignmentItem">
+		DELETE /*truckAssignment.deleteTruckAssignment*/
+		FROM TMT_ASSIGN_TRANSPORT 
+		WHERE VSL_CALL_ID = #{vslCallId}
+		<if test="seq != null and seq != ''">
+   			AND SEQ = #{seq}
+		</if>
+		<if test="version != null and version != ''">
+    		AND VERSION = #{version}
+		</if>
+	</delete>       
+    
+    <select id = "selectAssignmentLorrysList"  parameterType = "truckAssignmentParm" resultType = "truckAssignmentItem">
+		SELECT  /*truckAssignment.selectAssignmentLorrysList*/
+			A.VSL_CALL_ID AS VSLCALLID,
+			A.SEQ AS SEQ,
+			NVL(A.LORRY_NO,' ') AS LORRYNO,
+			NVL(A.DRIVER_ID, ' ') AS DRIVERID,
+			NVL((
+				SELECT LORRY_ID FROM TMT_LORRY_PL 
+				WHERE LORRY_NO = A.LORRY_NO AND ROWNUM = 1
+				<if test="tsptr != null and tsptr != ''">
+	   				AND PTNR_CD IN (${tsptr})
+		     	</if>),' ') AS LORRYID,
+			NVL((
+				SELECT DRIVER_NM FROM TMT_LORRY_PL WHERE DRIVER_ID = A.DRIVER_ID AND ROWNUM =1
+				<if test="tsptr != null and tsptr != ''">
+    					AND PTNR_CD IN (${tsptr})
+		     	</if>),' ') AS DRIVERNM,
+			A.STAFF_CD AS USERID,
+			A.UPDATE_TIME AS UPDATETIME,
+			A.SN_BL_NO AS SNBLNO,
+			A.SNNO AS shipgNoteNo
+			<if test="blNo != null and blNo != ''">
+				,(
+					SELECT B.TSPTR 
+					FROM TMT_BL B 
+					WHERE B.BL_NO = A.SN_BL_NO 
+					AND B.VSL_CALL_ID = A.VSL_CALL_ID
+					<if test="vslCallId != null and vslCallId != ''">
+		   				AND B.VSL_CALL_ID = #{vslCallId}
+					</if>
+					<if test="blNo != null and blNo != ''">
+						AND B.BL_NO = #{blNo} 
+					</if>
+					<if test="tsptr != null and tsptr != ''">
+	     				AND B.TSPTR IN (${tsptr})
+					</if>
+				) AS TSPTR
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				,(
+					SELECT B.TSPT_COMP 
+					FROM TMT_SHIPG_NOTE B, TMT_GR GR 
+					WHERE  B.SHIPG_NOTE_NO = A.SNNO 
+					AND  B.SHIPG_NOTE_NO =  GR.SHIPG_NOTE_NO 
+					AND B.VSL_CALL_ID = A.VSL_CALL_ID
+					<if test="vslCallId != null and vslCallId != ''">
+      					AND B.VSL_CALL_ID = #{vslCallId}
+				 	</if>
+					<if test="shipgNoteNo != null and shipgNoteNo != ''">
+       					AND GR.GR_NO = #{shipgNoteNo}
+					</if>
+					<if test="tsptr != null and tsptr != ''">
+      					AND B.TSPT_COMP IN (${tsptr})
+					</if>
+				) AS TSPTR
+			</if>
+			<if test="grNo != null and grNo != ''">
+				,(
+					SELECT B.TSPT_COMP 
+					FROM TMT_SHIPG_NOTE B, TMT_GR GR  
+					WHERE  B.SHIPG_NOTE_NO = A.SNNO 
+					AND  B.SHIPG_NOTE_NO =  GR.SHIPG_NOTE_NO  
+					AND B.VSL_CALL_ID = A.VSL_CALL_ID
+					<if test="vslCallId != null and vslCallId != ''">
+      					AND B.VSL_CALL_ID = #{vslCallId}
+					</if>
+					<if test="grNo != null and grNo != ''">
+       					AND GR.GR_NO = #{grNo}
+					</if>
+					<if test="tsptr != null and tsptr != ''">
+   						AND B.TSPT_COMP IN (${tsptr})
+					</if>
+				) AS TSPTR
+			</if>				
+			<if test="blNo == null or blNo == ''">
+				<if test="shipgNoteNo == null or shipgNoteNo == ''">
+					,(
+						SELECT B.TSPTR 
+						FROM TMT_BL B 
+						WHERE B.BL_NO = A.SN_BL_NO 
+						AND B.VSL_CALL_ID = A.VSL_CALL_ID 
+				  		<if test="vslCallId != null and vslCallId != ''">
+          					AND B.VSL_CALL_ID = #{vslCallId}
+						</if>
+						<if test="tsptr != null and tsptr != ''">
+       			 			AND	B.TSPTR IN (${tsptr})
+						</if>
+        				UNION
+       					SELECT B.TSPT_COMP 
+       					FROM TMT_SHIPG_NOTE B  
+       					WHERE  B.SHIPG_NOTE_NO = A.SNNO 
+       					AND B.VSL_CALL_ID = A.VSL_CALL_ID
+       					<if test="vslCallId != null and vslCallId != ''">
+             				AND B.VSL_CALL_ID = #{vslCallId}
+						</if>
+						<if test="tsptr != null and tsptr != ''">
+       						AND B.TSPT_COMP IN (${tsptr})
+						</if>
+					) AS TSPTR
+				</if>
+			</if>	
+			<if test="blNo != null and blNo != ''">
+				,(
+					SELECT B.CMDT_CD 
+					FROM TMT_BL B 
+					WHERE B.BL_NO = A.SN_BL_NO 
+					AND B.VSL_CALL_ID = A.VSL_CALL_ID
+				) AS CMDTCD
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				,(
+					SELECT B.CMDT_CD 
+					FROM TMT_SHIPG_NOTE B 
+					WHERE B.SHIPG_NOTE_NO = A.SNNO 
+					AND B.VSL_CALL_ID = A.VSL_CALL_ID
+				) AS CMDTCD
+			</if>
+			<if test="grNo != null and grNo != ''">
+				,(
+					SELECT B.CMDT_CD 
+					FROM TMT_SHIPG_NOTE B 
+					WHERE B.SHIPG_NOTE_NO = A.SNNO 
+					AND B.VSL_CALL_ID = A.VSL_CALL_ID
+				) AS CMDTCD
+			</if>
+			<if test="blNo == null or blNo == ''">
+				<if test="shipgNoteNo == null or shipgNoteNo == ''">
+					,(
+					  	SELECT B.CMDT_CD 
+					  	FROM TMT_BL B 
+					  	WHERE B.BL_NO = A.SN_BL_NO 
+					  	AND B.VSL_CALL_ID = A.VSL_CALL_ID
+						UNION
+			          	SELECT B.CMDT_CD 
+			          	FROM TMT_SHIPG_NOTE B 
+			          	WHERE B.SHIPG_NOTE_NO = A.SNNO 
+			          	AND B.VSL_CALL_ID = A.VSL_CALL_ID
+					) AS CMDTCD
+				</if>
+			</if>
+			<if test="blNo != null and blNo != ''">
+				,(
+					SELECT DECODE(DELV_TP_CD,'D','Direct','I','Indirect') 
+					FROM TMT_BL B 
+					WHERE B.BL_NO = A.SN_BL_NO 
+					AND B.VSL_CALL_ID = A.VSL_CALL_ID
+				) AS DELVTPCD
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				,(
+					SELECT DECODE (DELV_TP_CD,  'D', 'Direct',  'I', 'Indirect') 
+					FROM TMT_SHIPG_NOTE B 
+					WHERE B.SHIPG_NOTE_NO = A.SNNO 
+					AND B.VSL_CALL_ID = A.VSL_CALL_ID
+				) AS DELVTPCD
+			</if>
+			<if test="grNo != null and grNo != ''">
+				,(
+					SELECT DECODE (DELV_TP_CD,  'D', 'Direct',  'I', 'Indirect') 
+					FROM TMT_SHIPG_NOTE B 
+					WHERE B.SHIPG_NOTE_NO = A.SNNO 
+					AND B.VSL_CALL_ID = A.VSL_CALL_ID
+				) AS DELVTPCD
+			</if>
+			<if test="blNo == null or blNo == ''">
+				<if test="shipgNoteNo == null or shipgNoteNo == ''">
+				,(
+					SELECT DECODE(DELV_TP_CD,'D','Direct','I','Indirect') 
+					FROM TMT_BL B 
+					WHERE B.BL_NO = A.SN_BL_NO 
+					AND B.VSL_CALL_ID = A.VSL_CALL_ID
+					UNION
+					SELECT DECODE (DELV_TP_CD,  'D', 'Direct',  'I', 'Indirect') 
+					FROM TMT_SHIPG_NOTE B 
+					WHERE B.SHIPG_NOTE_NO = A.SNNO 
+					AND B.VSL_CALL_ID = A.VSL_CALL_ID
+				)  AS DELVTPCD
+				</if>
+			</if>
+		FROM TMT_ASGN_LORRY A
+		WHERE 1 = 1
+		AND	 A.VSL_CALL_ID = #{vslCallId}
+		<if test="lorryNo != null and lorryNo != ''">
+	 		AND
+			<if test='searchType == "onlyLorry"'>
+				A.LORRY_NO = #{lorryNo}							
+			</if>
+			<if test='searchType != "onlyLorry"'>
+				A.LORRY_NO LIKE #{lorryNo} || '%'							
+			</if>
+	  	</if>
+		<if test="blNo != null and blNo != ''">
+			AND A.SN_BL_NO = #{blNo}
+		</if>				     
+		<if test="shipgNoteNo != null and shipgNoteNo != ''">
+      		AND A.SNNO  =  #{shipgNoteNo} 
+		</if>
+		<if test="grNo != null and grNo != ''">
+			AND A.SNNO IN ( SELECT SHIPG_NOTE_NO FROM TMT_GR WHERE GR_NO =  #{grNo})
+		</if>
+	</select>
+	
+	<select id = "selectAssignmentLorrysListForDc"  parameterType = "truckAssignmentParm" resultType = "truckAssignmentItem">
+		SELECT  DISTINCT /*truckAssignment.selectAssignmentLorrysListForDc*/
+			NVL(A.LORRY_NO,' ') AS LORRYNO
+		FROM TMT_ASGN_LORRY A
+		WHERE 1=1
+		<if test="vslCallId != null and vslCallId != ''">
+    		AND A.VSL_CALL_ID = #{vslCallId}
+		</if>
+	    <if test="lorryNo != null and lorryNo != ''">
+        	AND A.LORRY_NO LIKE #{lorryNo} || '%'
+		</if>
+		<if test="blNo != null and blNo != ''">
+			AND A.SN_BL_NO = #{blNo}
+		</if>
+	</select>
+	
+	<select id = "selectRegisterationItemsForDc"  parameterType = "truckAssignmentParm" resultType = "truckAssignmentItem">
+		SELECT 	DISTINCT /*truckAssignment.selectRegisterationItemsForDc*/
+			<if test='divCd == "LR"'>
+				NVL(LORRY_NO, ' ') AS CD,
+				NVL(LORRY_ID, ' ') AS CDNM						
+			</if>
+		FROM TMT_LORRY_PL
+		WHERE DIV_CD = #{divCd}
+		<if test="ptnrCd != null and ptnrCd != ''">
+    		AND	PTNR_CD IN (${ptnrCd})
+		</if>
+		<if test='divCd == "LR"'>
+			<if test="cd != null and cd != ''">
+	  			AND LORRY_NO LIKE #{cd} || '%'
+			</if>
+			<if test="cdNm != null and cdNm != ''">
+     			AND LORRY_ID LIKE '%' || #{cdNm} || '%'
+			</if>
+		</if>
+		<if test='divCd == "DV"'>
+			<if test="cd != null and cd != ''">
+     			AND DRIVER_ID LIKE #{cd} || '%'
+			</if>
+			<if test="cdNm != null and cdNm != ''">
+    			AND DRIVER_NM LIKE '%' || #{cdNm} || '%'
+			</if>
+		</if>
+	</select>
+	
+	<select id = "selectAllLorries"  parameterType = "truckAssignmentParm" resultType = "truckAssignmentItem">
+		SELECT 	DISTINCT /*truckAssignment.selectAllLorries*/
+			NVL(LORRY_NO, ' ') 	AS LORRYNO,
+			NVL(LORRY_ID, ' ') 	AS LORRYID,
+			' '                	AS DRIVERID,
+			' '                	AS VSLCALLID,
+			' ' 				AS DRIVERNM,
+			' ' 				AS snBlNo,
+			' ' 				AS shipgNoteNo,
+			PTNR_CD            	AS tsptr,
+			(SELECT P.ENG_SNM FROM TB_PTNR P WHERE P.PTNR_TYPE = 'TRK' AND P.PTNR_CODE = PTNR_CD) AS tsptCompNm
+		FROM TMT_TRUCK_MST
+		WHERE 1 = 1
+		<if test="tsptr != null and tsptr != ''">
+    		AND PTNR_CD IN (${tsptr})
+		</if>
+		<if test="lorryNo != null and lorryNo != ''">
+    		AND LORRY_NO LIKE '%' || #{lorryNo} || '%'												
+		</if>
+	</select>
+	
+	<select id = "selectAssignmentLorrysGateItems"  parameterType = "truckAssignmentParm" resultType = "truckAssignmentItem">
+		SELECT 	DISTINCT
+				<if test='divCd == "LR2"'>
+					NVL(LORRY_NO, ' ') AS CD,
+					NVL(LORRY_ID, ' ') AS CDNM,
+					' '                AS LICSNO,
+					' '                AS LICSEXPRYMD,
+					PTNR_CD            AS ptnrCd,
+					(SELECT P.ENG_SNM FROM TMT_PTNR P WHERE P.PTNR_TYPE = 'TRK' AND P.PTNR_CODE = PTNR_CD) AS TSPTRNM
+					FROM TMT_TRUCK_MST
+				</if>
+				<if test='divCd == "DV"'>
+					NVL(DRIVER_ID, ' ') AS CD,
+					NVL(DRIVER_NM, ' ') AS CDNM,
+					NVL(LICS_NO, ' ')   AS LICSNO,
+					TO_CHAR(LICS_EXPR_YMD,'DD/MM/YYYY') AS LICSEXPRYMD,
+					PTNR_CD             AS ptnrCd,
+					(SELECT P.ENG_SNM FROM TMT_PTNR P WHERE P.PTNR_TYPE = 'TRK' AND P.PTNR_CODE = PTNR_CD) AS TSPTRNM
+					FROM TMT_DRIVER_MST
+				</if>
+			<where>
+				<if test='divCd == "LR2"'>
+					<if test="ptnrCd != null and ptnrCd != ''">
+						AND PTNR_CD IN (${ptnrCd})
+					</if>
+					<if test="cd != null and cd != ''">
+						AND LORRY_NO LIKE '%' || #{cd} || '%'							
+					</if>
+					<if test="cdNm != null and cdNm != ''">
+     						AND LORRY_ID LIKE '%' || #{cdNm} || '%'
+					</if>
+				</if>
+				<if test='divCd == "DV"'>
+					AND DIV_CD = #{divCd}
+					<if test="ptnrCd != null and ptnrCd != ''">
+						<if test="lorryNo != null and lorryNo != ''">
+						 	AND PTNR_CD = (SELECT B.PTNR_CD FROM TMT_TRUCK_MST B WHERE B.LORRY_NO = #{lorryNo} AND B.PTNR_CD IN (${ptnrCd}) AND ROWNUM=1)
+						</if>
+						<if test="lorryNo == null or lorryNo == ''">
+							AND PTNR_CD IN (${ptnrCd})
+						</if>
+					</if>
+					<if test="cd != null and cd != ''">
+     						AND DRIVER_ID LIKE #{cd} || '%'
+					</if>
+					<if test="cdNm != null and cdNm != ''">
+     						AND DRIVER_NM LIKE '%' || #{cdNm} || '%'
+					</if>
+				</if>	
+			</where>
+	</select>
+	
+</mapper>

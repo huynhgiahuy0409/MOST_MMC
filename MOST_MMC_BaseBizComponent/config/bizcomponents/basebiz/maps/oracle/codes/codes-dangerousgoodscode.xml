@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Thu Jun 18 08:43:11 ICT 2015-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="dangerousGoodsCode">
+
+	<select id="selectDangerousGoodsCode" parameterType="dangerousGoodsCodeParm" resultType="dangerousGoodsCodeItem">
+		<if test="pageNo != 0"> 
+        	SELECT  /* dangerousGoodsCode.selectDangerousGoodsCode */
+        		* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getDangerousGoodsCode"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	
+	<sql id="getDangerousGoodsCode">
+		SELECT 
+			UNNO 								AS unno, 
+			CLASS 								AS unnoClass, 
+			SUBSTANCE 							AS substance, 
+			PACKING_GRP 						AS packingGrp, 
+			PAGE_NO 							AS pageNo, 
+			PSA 								AS psa, 
+			EMS_NO 								AS emsNo, 
+			SUB_RISK_LABEL 						AS subRiskLabel, 
+			FLASH_POINT 						AS flashPoint, 
+	    	MFAG 								AS mfag, 
+	    	MARINE_POLU 						AS marinePolu, 
+	    	SPEC_REQ 							AS specReq,
+	    	SPEC_REQ_RMK 						AS specReqRmk,
+	    	LPK 								AS lpk, 
+	    	FIRE_CODE 							AS fireCode, 
+	    	PREMIUM_CD 							AS premiumCd, 
+	    	STAFF_CD 							AS staffCd, 
+	    	TO_CHAR(UPDATE_TIME,'DD-MM-YYYY') 	AS updatedTime, 
+	    	IMDG_DIV 							AS imdgDiv
+		FROM TMT_IMDGDATA
+		<where>
+			1=1 
+		  	<if test="unno != null and unno != ''">
+		  		AND UNNO  LIKE '%' || #{unno} || '%'
+		  	</if>
+		  	<if test="unnoClass != null and unnoClass != ''">
+		  		AND CLASS LIKE '%' || #{unnoClass} || '%' 
+		  	</if>
+		  	ORDER BY UNNO
+		</where>
+	</sql>
+	
+	<select id="selectDangerousGoodsCodeCount" parameterType="dangerousGoodsCodeParm" resultType="java.lang.String" >
+    	SELECT COUNT(*)
+    		FROM (<include refid="getDangerousGoodsCode"/>)
+	</select>
+	
+	<insert id="insertDangerousGoodsCode" parameterType="dangerousGoodsCodeItem">
+		INSERT /* dangerousGoodsCode.insertDangerousGoodsCode */
+			INTO TMT_IMDGDATA (
+			UNNO,
+        	CLASS,
+        	SUBSTANCE,
+        	PACKING_GRP,
+            PAGE_NO,
+            PSA,
+            EMS_NO,
+            SUB_RISK_LABEL,
+            FLASH_POINT,
+			MFAG,
+			MARINE_POLU,
+			SPEC_REQ,
+			SPEC_REQ_RMK,
+			LPK,
+			FIRE_CODE,
+			PREMIUM_CD,
+			STAFF_CD,
+			UPDATE_TIME,
+			IMDG_DIV
+		)VALUES(
+			#{unno},
+			#{unnoClass},
+			#{substance},
+			#{packingGrp},
+			#{pageNo},
+			#{psa},
+            #{emsNo},
+            #{subRiskLabel},
+            #{flashPoint},
+            #{mfag},
+            #{marinePolu},
+            #{specReq},
+            #{specReqRmk},
+            #{lpk},
+            #{fireCode},
+            #{premiumCd},
+            #{userId},
+            SYSDATE,
+            #{imdgDiv})
+	</insert>
+
+	<update id="updateDangerousGoodsCode" parameterType="dangerousGoodsCodeItem">
+		UPDATE /* dangerousGoodsCode.updateDangerousGoodsCode */
+		TMT_IMDGDATA SET 
+            PACKING_GRP = #{packingGrp},
+            PAGE_NO = #{pageNo},
+            PSA = #{psa},
+            EMS_NO = #{emsNo},
+            SUB_RISK_LABEL = #{subRiskLabel},
+            FLASH_POINT = #{flashPoint},
+            MFAG = #{mfag},
+            MARINE_POLU = #{marinePolu},
+            SPEC_REQ = #{specReq},
+            SPEC_REQ_RMK = #{specReqRmk},
+            LPK = #{lpk},
+            FIRE_CODE = #{fireCode},
+            PREMIUM_CD = #{premiumCd},
+            STAFF_CD = #{userId},
+            UPDATE_TIME = SYSDATE,
+            IMDG_DIV = #{imdgDiv}
+		WHERE UNNO  = #{unno} 
+		    AND CLASS = #{unnoClass} 
+			AND SUBSTANCE = #{substance}
+	</update>
+
+	<delete id="deleteDangerousGoodsCode" parameterType="dangerousGoodsCodeItem">
+		DELETE  /* dangerousGoodsCode.deleteDangerousGoodsCode */
+		FROM TMT_IMDGDATA
+		WHERE UNNO = #{unno}
+			AND CLASS = #{unnoClass}
+			AND SUBSTANCE = #{substance}
+			<if test="packingGrp != null and packingGrp != ''">
+				AND PACKING_GRP = #{packingGrp}
+			</if>
+	</delete>
+	
+</mapper>

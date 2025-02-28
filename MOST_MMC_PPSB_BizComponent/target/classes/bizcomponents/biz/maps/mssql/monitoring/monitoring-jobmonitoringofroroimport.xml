@@ -1,0 +1,946 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="jobMonitoringOfROROImport">
+
+	<resultMap 	id="resultComboList" 	type="jobMonitoringOfROROImportItem">
+   		<result property = "cd"			column = "CD"/>
+   		<result property = "cdNm"		column = "CD_NM"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultBlMap" type="jobMonitoringOfROROImportItem">
+   		<result property = "vslCallId"		column = "VSL_CALL_ID"/>
+		<result property = "catgCd" 		column = "CATG_CD"/>
+		<result property = "catgNm" 		column = "CATG_NM"/>
+		<result property = "masterBlNo" 	column = "M_BL_NO"/>
+		<result property = "blNo" 			column = "BL_NO"/>
+		<result property = "cd" 			column = "CD"/>
+		<result property = "cdNm" 			column = "CD_NM"/>
+		<result property = "doNo" 			column = "MF_DOC_ID"/>
+		<result property = "nosOfUnit" 		column = "NOS_OF_VIN"/>
+		<result property = "brandCd" 		column = "BRAND_CD"/>
+		<result property = "brandNm" 		column = "BRAND_NM"/>
+		<result property = "modelCd" 		column = "MODEL_CD"/>
+		<result property = "modelNm" 		column = "MODEL_NM"/>
+		<result property = "delvTpCd" 		column = "DELV_TP_CD"/>
+		<result property = "delvTpNm" 		column = "DELV_TP_NM"/>
+		<result property = "cgTpCd" 		column = "CG_TP_CD"/>
+		<result property = "cgTpNm" 		column = "CG_TP_NM"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultUnitMap" type="jobMonitoringOfROROImportItem">
+   		<result property = "vslCallId"		column = "VSL_CALL_ID"/>
+		<result property = "masterBlNo" 	column = "MF_DOC_ID"/>
+		<result property = "blNo" 			column = "CG_NO"/>
+		<result property = "unitNo" 		column = "CHASSIS_NO"/>
+		<result property = "roroSeq" 		column = "RORO_SEQ"/>
+		<result property = "inDate" 		column = "IN_DTM"/>
+		<result property = "outDate" 		column = "OUT_DTM"/>
+		<result property = "unitYardLoc" 	column = "LOC_ID"/>
+		<result property = "driverId" 		column = "DRIVER_ID"/>
+		<result property = "driverNm" 		column = "DRIVER_NM"/>
+		<result property = "truckNo" 		column = "TRUCK_NO"/>
+		<result property = "gateOutDate" 	column = "GATE_OUT_DTM"/>
+		<result property = "sdoNo" 			column = "DO_NO"/>
+		<result property = "statCd" 		column = "STAT_CD"/>
+		<result property = "gateInDate" 	column = "GATE_IN_DTM"/>
+		<result property = "dischargedDate" column = "DISCHARGING_DTM"/>
+		<result property = "statNm" 		column = "STAT_NM"/>
+		<result property = "delvTpCd" 		column = "DELV_TP_CD"/>
+		<result property = "delvTpNm" 		column = "DELV_TP_NM"/>
+ 	</resultMap>
+ 	
+ 	 	
+ 	<resultMap 	id="resultUnitDetailMap" type="jobMonitoringOfROROImportItem">
+   		<result property = "vslCallId"		column = "VSL_CALL_ID"/>
+		<result property = "masterBlNo" 	column = "MF_DOC_ID"/>
+		<result property = "blNo" 			column = "CG_NO"/>
+		<result property = "unitNo" 		column = "CHASSIS_NO"/>
+		<result property = "roroSeq" 		column = "RORO_SEQ"/>
+		<result property = "unitYardLoc" 	column = "LOC_ID"/>
+		<result property = "driverId" 		column = "DRIVER_ID"/>
+		<result property = "driverNm" 		column = "DRIVER_NM"/>
+		<result property = "truckNo" 		column = "TRUCK_NO"/>
+		<result property = "confirmedDate" 	column = "CONFIRMED_DTM"/>
+		<result property = "sdoNo" 			column = "DO_NO"/>
+		<result property = "statCd" 		column = "STAT_CD"/>
+		<result property = "statNm" 		column = "STAT_NM"/>
+		<result property = "delvTpCd" 		column = "DELV_TP_CD"/>
+		<result property = "delvTpNm" 		column = "DELV_TP_NM"/>
+		<result property = "mt" 			column = "CG_WGT"/>
+		<result property = "m3" 			column = "CBM"/>
+		<result property = "qty" 		  	column = "QTY"/>
+		<result property = "jobPurpCd" 		column = "JOB_PURP_CD"/>
+		<result property = "jobPurpNm" 		column = "JOB_PURP_NM"/>
+		<result property = "gateTicketNo" 	column = "GATE_TICKET_NO"/>
+		<result property = "catgCd" 		column = "CATG_CD"/>
+		<result property = "catgNm" 		column = "CATG_NM"/>
+		<result property = "cgTpCd" 		column = "CG_TP_CD"/>
+		<result property = "cgTpNm" 		column = "CG_TP_NM"/>
+		<result property = "rhdlNo" 		column = "RHDL_NO"/>
+		
+		<result property = "version" 		column = "VERSION"/>
+ 	</resultMap>
+ 	
+ 	<select id="selectBlItems" parameterType="jobMonitoringOfROROImportParm" resultMap="resultBlMap">
+	 	<if test="pageNo != 0"> 
+			SELECT /* RoroJobMonitoring.selectBlItems */
+				*
+			FROM
+				(SELECT 
+					innerTable.*, ROW_NUMBER() OVER(ORDER BY BL.BL_NO) row_num
+				FROM ( 
+		</if>
+				<include refid="getBlItems"/>
+		<if test="pageNo != 0"> 
+				)innerTable 
+			)innerTable 
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+	 </select>
+	 
+	 <select id="selectBlItemsCount" parameterType="jobMonitoringOfROROImportParm" resultType="java.lang.String">
+	 	SELECT /* RoroJobMonitoring.selectBlItemsCount */
+			COUNT(*)
+		FROM 
+			(<include refid="getBlItems"/>) AS getBlItems
+	 </select>
+	 
+	<sql id="getBlItems">
+		SELECT    /* RoroJobMonitoring.getBlItems */
+			DISTINCT
+			BL.VSL_CALL_ID,
+			BL.BL_NO,
+			BL.BL_NO CD,
+			BL.BL_NO CD_NM,
+			BL.CATG_CD,
+			DBO.F_CM_CODE_NM('MT', 'CATGTP', BL.CATG_CD) 										AS CATG_NM,
+			BL.MF_DOC_ID,
+			COUNT(VIN.CHASSIS_NO) OVER (PARTITION BY VIN.CG_NO, VIN.MF_DOC_ID, VIN.VSL_CALL_ID) AS NOS_OF_VIN,
+			BR.BRAND_CD,
+			BR.BRAND_NM,
+			M.MODEL_CD,
+			M.MODEL_NM,
+			BL.DELV_TP_CD,
+			DBO.F_CM_CODE_NM('MT', 'DELVTP', BL.DELV_TP_CD) 									AS DELV_TP_NM,
+			BL.CG_TP_CD,
+			DBO.F_CM_CODE_NM('MT', 'CGTP', BL.CG_TP_CD) 										AS CG_TP_NM
+        
+        FROM   
+			TMT_BL BL
+		INNER JOIN 
+			TMT_RORO_MST VIN
+		ON  
+			BL.VSL_CALL_ID 		= VIN.VSL_CALL_ID
+			AND BL.BL_NO 		= VIN.CG_NO
+		LEFT OUTER JOIN
+			TMT_BRAND BR
+		ON
+			VIN.BRAND_CD 		= BR.BRAND_CD
+		LEFT OUTER JOIN
+			TMT_BRAND_DTL M
+		ON  
+			VIN.MODEL_CD 		= M.MODEL_CD
+			AND VIN.BRAND_CD 	= M.BRAND_CD
+                  
+        WHERE    
+			BL.VSL_CALL_ID 	= #{vslCallId}
+          
+			<if test="blNo != null and blNo != ''">
+				AND BL.BL_NO = #{blNo}
+			</if>
+			<if test="unitNo != null and unitNo != ''">
+				AND VIN.CHASSIS_NO LIKE CONCAT('%',#{unitNo},'%')
+			</if>
+			<choose>
+				<when test="cgTpCd != null and cgTpCd != ''">
+					AND BL.CG_TP_CD = #{cgTpCd}
+				</when>
+				<otherwise>
+					AND BL.CG_TP_CD IN ('RCV','RMC','RMA')
+				</otherwise>
+			</choose>		
+	</sql>
+	
+	<select id="selectUnitItems"  parameterType="jobMonitoringOfROROImportParm" resultMap="resultUnitMap">
+	 	<if test="pageNo != 0"> 
+			SELECT /* RoroJobMonitoring.selectUnitItems */
+				*
+			FROM 
+				(SELECT 
+					innerTable.*, ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num
+				FROM ( 
+		</if>
+				<include refid="getUnitItems"/>
+		<if test="pageNo != 0"> 
+				)innerTable 
+			)innerTable 
+			WHERE
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+	 </select>
+	 
+	 <select id="selectUnitItemsCount" parameterType="jobMonitoringOfROROImportParm" resultType="java.lang.String">
+	 	SELECT /* RoroJobMonitoring.selectUnitItemsCount */
+			COUNT(*)
+		FROM 
+			(<include refid="getUnitItems"/>) AS getUnitItems
+	 </select>
+	 
+	<sql id="getUnitItems">
+		SELECT    /* RoroJobMonitoring.getUnitItems */
+			VSL_CALL_ID,
+			MF_DOC_ID,
+			CG_NO,
+			CHASSIS_NO,
+			<!-- RORO_SEQ, -->
+			DELV_TP_CD,
+			DBO.F_CM_CODE_NM('MT', 'DELVTP', DELV_TP_CD) 	AS DELV_TP_NM,
+			FORMAT(IN_DTM, 'dd/MM/yyyy HH:mm') 				AS IN_DTM,
+			FORMAT(OUT_DTM, 'dd/MM/yyyy HH:mm') 			AS OUT_DTM,
+			LOC_ID,
+			STAT_CD,
+			DBO.F_CM_CODE_NM('MT', 'CGSTATUS', STAT_CD) 	AS STAT_NM,
+			DRIVER_ID,
+			DRIVER_NM,
+			TRUCK_NO,
+			FORMAT(GATE_OUT_DTM, 'dd/MM/yyyy HH:mm') 		AS GATE_OUT_DTM,
+			DO_NO,
+			FORMAT(GATE_IN_DTM, 'dd/MM/yyyy HH:mm') 		AS GATE_IN_DTM,
+			FORMAT(DISCHARGING_DTM,  'dd/MM/yyyy HH:mm') 	AS DISCHARGING_DTM
+        FROM    
+			TMT_RORO_MST
+        WHERE
+			VSL_CALL_ID = #{vslCallId}
+			AND CG_NO = #{blNo}
+	</sql>
+	
+	<select id="selectUnitJobDetailItems" parameterType="jobMonitoringOfROROImportParm" resultMap="resultUnitDetailMap">
+	 	<if test="pageNo != 0"> 
+			SELECT /* RoroJobMonitoring.selectUnitJobDetailItems */
+				*
+			FROM 
+				(SELECT
+					innerTable.*, ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num
+				FROM ( 
+		</if>
+				<include refid="getUnitJobDetailItems"/>
+		<if test="pageNo != 0"> 
+				)innerTable 
+			)innerTable 
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+	 </select>
+	 
+	 <select id="selectUnitJobDetailItemsCount" parameterType="jobMonitoringOfROROImportParm" resultType="java.lang.String">
+	 	SELECT /* RoroJobMonitoring.selectUnitJobDetailItemsCount */
+			COUNT(*)
+		FROM 
+			(<include refid="getUnitJobDetailItems"/>) AS getUnitJobDetailItems
+	 </select>
+	 
+	<sql id="getUnitJobDetailItems">
+			SELECT  /* RoroJobMonitoring.getUnitJobDetailItems */
+				TEMP.*,
+				DBO.F_CM_CODE_NM ('MT', 'JOBPURP', JOB_PURP_CD) AS JOB_PURP_NM
+			FROM (
+				SELECT  /* RoroJobMonitoring.getUnitJobDetailItems - Discharged Job */
+                      VSL_CALL_ID,
+                       MF_DOC_ID,
+                       CG_NO,
+                       CHASSIS_NO,
+                       <!-- RORO_SEQ, -->
+                       DELV_TP_CD,
+                       DBO.F_CM_CODE_NM ('MT', 'DELVTP', DELV_TP_CD) 	AS DELV_TP_NM,
+                       FORMAT (DISCHARGING_DTM,  'dd/MM/yyyy HH:mm') 	AS CONFIRMED_DTM,
+                       '' LOC_ID,
+                       STAT_CD,
+                       DBO.F_CM_CODE_NM('MT', 'CGSTATUS', STAT_CD) 		AS STAT_NM,
+                       '' DRIVER_ID,
+                       '' DRIVER_NM,
+                       ISNULL(TRUCK_NO, '') 							AS TRUCK_NO,
+                       '' DO_NO,
+                       
+                       CG_WGT,
+                       CBM,
+                       '1' 												AS QTY,
+                       'VA' 											AS JOB_PURP_CD,
+                       CATG_CD,
+                       DBO.F_CM_CODE_NM('MT', 'CATGTP', CATG_CD) 		AS CATG_NM,
+                       CG_TP_CD,
+                       DBO.F_CM_CODE_NM('MT', 'CGTP', CG_TP_CD) 		AS CG_TP_NM,
+                       RHDL_NO
+                       ,FORMAT(UPDATE_TIME, 'dd/MM/yyyy HH:mm') 		AS VERSION
+				FROM
+					TMT_RORO_MST
+				WHERE
+					VSL_CALL_ID 	= #{vslCallId}
+					AND CG_NO 		= #{blNo}
+					AND CHASSIS_NO 	= #{unitNo}
+					AND DISCHARGING_DTM IS NOT NULL
+                UNION ALL
+                SELECT /* RoroJobMonitoring.getUnitJobDetailItems - Handling In Job */
+                      VSL_CALL_ID,
+                       MF_DOC_ID,
+                       CG_NO,
+                       CHASSIS_NO,
+                      <!--  RORO_SEQ, -->
+                       DELV_TP_CD,
+                       DBO.F_CM_CODE_NM ('MT', 'DELVTP', DELV_TP_CD) 	AS DELV_TP_NM,
+                       FORMAT (IN_DTM, 'dd/MM/yyyy HH:mm') 				AS CONFIRMED_DTM,
+                       LOC_ID,
+                       STAT_CD,
+                       DBO.F_CM_CODE_NM ('MT', 'CGSTATUS', STAT_CD) 	AS STAT_NM,
+                       '' DRIVER_ID,
+                       '' DRIVER_NM,
+                       ISNULL(TRUCK_NO, '') 							AS TRUCK_NO,
+                       '' DO_NO,
+                       CG_WGT,
+                       CBM,
+                       '1' 												AS QTY,
+                       'AW' 											AS JOB_PURP_CD,
+                       CATG_CD,
+                       DBO.F_CM_CODE_NM('MT', 'CATGTP', CATG_CD) 		AS CATG_NM,
+                       CG_TP_CD,
+                       DBO.F_CM_CODE_NM('MT', 'CGTP', CG_TP_CD) 		AS CG_TP_NM,
+                       RHDL_NO
+                       ,FORMAT(UPDATE_TIME, 'dd/MM/yyyy HH:mm') 		AS VERSION
+				FROM 
+					TMT_RORO_MST
+				WHERE
+					VSL_CALL_ID 	= #{vslCallId}
+					AND CG_NO 		= #{blNo}
+					AND CHASSIS_NO 	= #{unitNo}
+					AND IN_DTM IS NOT NULL
+                UNION ALL
+                SELECT     /* RoroJobMonitoring.getUnitJobDetailItems - Gate In Job */
+                      VSL_CALL_ID,
+                       MF_DOC_ID,
+                       CG_NO,
+                       CHASSIS_NO,
+                     <!--   RORO_SEQ, -->
+                       DELV_TP_CD,
+                       DBO.F_CM_CODE_NM ('MT', 'DELVTP', DELV_TP_CD) 	AS DELV_TP_NM,
+                       FORMAT (GATE_IN_DTM,  'dd/MM/yyyy HH:mm') 		AS CONFIRMED_DTM,
+                       '' 												AS LOC_ID,
+                       STAT_CD,
+                       DBO.F_CM_CODE_NM ('MT', 'CGSTATUS', STAT_CD) 	AS STAT_NM,
+                       DRIVER_ID,
+                       DRIVER_NM,
+                       ISNULL(TRUCK_NO, '') 							AS TRUCK_NO,
+                       DO_NO,
+                       
+                       CG_WGT,
+                       CBM,
+                       '1' 												AS QTY,
+                       'OI' 											AS JOB_PURP_CD,
+                       CATG_CD,
+                       DBO.F_CM_CODE_NM('MT', 'CATGTP', CATG_CD) 		AS CATG_NM,
+                       CG_TP_CD,
+                       DBO.F_CM_CODE_NM('MT', 'CGTP', CG_TP_CD) 		AS CG_TP_NM,
+                       RHDL_NO
+                       ,FORMAT(UPDATE_TIME, 'dd/MM/yyyy HH:mm') 		AS VERSION
+				FROM 
+					TMT_RORO_MST
+				WHERE
+					VSL_CALL_ID 	= #{vslCallId}
+					AND CG_NO 		= #{blNo}
+					AND CHASSIS_NO 	= #{unitNo}
+					AND GATE_IN_DTM IS NOT NULL
+                UNION ALL
+                SELECT /* RoroJobMonitoring.getUnitJobDetailItems - Handling Out Job */
+                      VSL_CALL_ID,
+                       MF_DOC_ID,
+                       CG_NO,
+                       CHASSIS_NO,
+                       <!-- RORO_SEQ, -->
+                       DELV_TP_CD,
+                       DBO.F_CM_CODE_NM ('MT', 'DELVTP', DELV_TP_CD) 	AS DELV_TP_NM,
+                       FORMAT (OUT_DTM,  'dd/MM/yyyy HH:mm') 			AS CONFIRMED_DTM,
+                       LOC_ID,
+                       STAT_CD,
+                       DBO.F_CM_CODE_NM ('MT', 'CGSTATUS', STAT_CD) 	AS STAT_NM,
+                       ISNULL(DRIVER_ID, '') 							AS DRIVER_ID,
+                       DRIVER_NM,
+                       ISNULL(TRUCK_NO, '') 							AS TRUCK_NO,
+                       DO_NO,
+                       
+                       CG_WGT,
+                       CBM,
+                       '1' 												AS QTY,
+                       'WG' 											AS JOB_PURP_CD,
+                       CATG_CD,
+                       DBO.F_CM_CODE_NM('MT', 'CATGTP', CATG_CD) 		AS CATG_NM,
+                       CG_TP_CD,
+                       DBO.F_CM_CODE_NM('MT', 'CGTP', CG_TP_CD) 		AS CG_TP_NM,
+                       RHDL_NO
+                       ,FORMAT(UPDATE_TIME, 'dd/MM/yyyy HH:mm') 		AS VERSION
+				FROM 
+					TMT_RORO_MST
+				WHERE
+					VSL_CALL_ID 	= #{vslCallId}
+					AND CG_NO 		= #{blNo}
+					AND CHASSIS_NO 	= #{unitNo}
+					AND OUT_DTM IS NOT NULL
+                UNION ALL
+                SELECT    /* RoroJobMonitoring.getUnitJobDetailItems - Gate Out Job */
+                      VSL_CALL_ID,
+                       MF_DOC_ID,
+                       CG_NO,
+                       CHASSIS_NO,
+                      <!--  RORO_SEQ, -->
+                       DELV_TP_CD,
+                       DBO.F_CM_CODE_NM ('MT', 'DELVTP', DELV_TP_CD) 	AS DELV_TP_NM,
+                       FORMAT (GATE_OUT_DTM,  'dd/MM/yyyy HH:mm') 		AS CONFIRMED_DTM,
+                       '' 												AS LOC_ID,
+                       STAT_CD,
+                       DBO.F_CM_CODE_NM ('MT', 'CGSTATUS', STAT_CD) 	AS STAT_NM,
+                       DRIVER_ID,
+                       DRIVER_NM,
+                       ISNULL(TRUCK_NO, '') 							AS TRUCK_NO,
+                       DO_NO,
+                       
+                       CG_WGT,
+                       CBM,
+                       '1' 												AS QTY,
+                       'IO' 											AS JOB_PURP_CD,
+                       CATG_CD,
+                       DBO.F_CM_CODE_NM('MT', 'CATGTP', CATG_CD) 		AS CATG_NM,
+                       CG_TP_CD,
+                       DBO.F_CM_CODE_NM('MT', 'CGTP', CG_TP_CD) 		AS CG_TP_NM,
+                       RHDL_NO
+                       ,FORMAT(UPDATE_TIME, 'dd/MM/yyyy HH:mm') 		AS VERSION
+				FROM
+					TMT_RORO_MST
+				WHERE   
+					VSL_CALL_ID 	= #{vslCallId}
+					AND CG_NO 		= #{blNo}
+					AND CHASSIS_NO 	= #{unitNo}
+					AND GATE_OUT_DTM IS NOT NULL) TEMP
+	</sql>
+	
+	<select id="getUnassignedJobItems" parameterType="jobMonitoringOfROROImportParm" resultMap="resultUnitDetailMap">
+		WITH UNASSIGNED_TICKET AS	
+			(
+			SELECT	/* RoroJobMonitoring.getUnassignedJobItems - Gate In Job */
+				W.VSL_CALL_ID 											AS VSL_CALL_ID,
+				B.M_BL_NO 												AS MF_DOC_ID,
+				W.BL_NO 												AS CG_NO,
+				'' 														AS CHASSIS_NO,
+				'' 														AS RORO_SEQ,
+				W.DELV_TP_CD,
+				DBO.F_CM_GET_NAME_TCMCD ('MT', 'DELVTP', W.DELV_TP_CD) 	AS DELV_TP_NM,
+				FORMAT (W.GATEIN_DT, 'dd/MM/yyyy HH:mm') 				AS CONFIRMED_DTM,
+				'' 														AS AREA,
+				'IC' 													AS STAT_CD,
+				DBO.F_CM_GET_NAME_TCMCD ('MT', 'CGSTATUS', '') 			AS STAT_NM,
+				W.DRIVER_ID,
+				W.DRIVER_NM,
+				W.TRK_NO 												AS TRUCK_NO,
+				W.DO_NO,
+				W.GATE_TICKET_NO,
+				W.TRK_TRE_WGT 											AS CG_WGT,
+				'' AS CBM,
+				'' AS QTY,
+				'OI' AS JOB_PURP_CD,
+				DBO.F_CM_GET_NAME_TCMCD ('MT', 'JOBPURP', 'OI') 		AS JOB_PURP_NM,
+				B.CATG_CD,
+				DBO.F_CM_GET_NAME_TCMCD ('MT', 'CATGTP', B.CATG_CD) 	AS CATG_NM,
+				B.CG_TP_CD,
+				DBO.F_CM_GET_NAME_TCMCD ('MT', 'CGTP', B.CG_TP_CD) 		AS CG_TP_NM
+			FROM 
+				TMT_WEIGHBRIDGE W
+			LEFT OUTER JOIN 
+				TMT_RORO_MST R 
+			ON 
+				R.VSL_CALL_ID 			= W.VSL_CALL_ID
+				AND R.CG_NO 			= W.BL_NO 
+				AND R.GATE_TICKET_NO 	= W.GATE_TICKET_NO
+			INNER JOIN 
+				TMT_BL B
+			ON
+				W.VSL_CALL_ID 	= B.VSL_CALL_ID
+				AND W.BL_NO 	= B.BL_NO
+			WHERE 
+				ISNULL (W.DO_NO, '') != ''
+				AND ISNULL (UNIT_NO, '') = ''
+				AND ISNULL (W.TRK_NO, '') != ''
+				AND B.CG_TP_CD IN ('RCV')
+				AND R.GATE_TICKET_NO IS NULL
+				AND W.VSL_CALL_ID 	= #{vslCallId}
+				AND W.BL_NO 		= #{blNo}
+	
+			UNION ALL
+		
+			SELECT	/* RoroJobMonitoring.getUnassignedJobItems - Gate Out Job */
+				W.VSL_CALL_ID 											AS VSL_CALL_ID,
+				B.M_BL_NO 												AS MF_DOC_ID,
+				W.BL_NO 												AS CG_NO,
+				'' 														AS CHASSIS_NO,
+				'' 														AS RORO_SEQ,
+				W.DELV_TP_CD,
+				DBO.F_CM_GET_NAME_TCMCD ('MT', 'DELVTP', W.DELV_TP_CD) 	AS DELV_TP_NM,
+				FORMAT (W.GATEIN_DT, 'dd/MM/yyyy HH:mm') 				AS CONFIRMED_DTM,
+				'' 														AS AREA,
+				'IC' AS STAT_CD,
+				DBO.F_CM_GET_NAME_TCMCD ('MT', 'CGSTATUS', '') 			AS STAT_NM,
+				W.DRIVER_ID,
+				W.DRIVER_NM,
+				W.TRK_NO 												AS TRUCK_NO,
+				W.DO_NO,
+				W.GATE_TICKET_NO,
+				W.TRK_TRE_WGT 											AS CG_WGT,
+				'' 														AS CBM,
+				'' 														AS QTY,
+				'IO' 													AS JOB_PURP_CD,
+				DBO.F_CM_GET_NAME_TCMCD ('MT', 'JOBPURP', 'IO') 		AS JOB_PURP_NM,
+				B.CATG_CD,
+				DBO.F_CM_GET_NAME_TCMCD ('MT', 'CATGTP', B.CATG_CD) 	AS CATG_NM,
+				B.CG_TP_CD,
+				DBO.F_CM_GET_NAME_TCMCD ('MT', 'CGTP', B.CG_TP_CD) 		AS CG_TP_NM
+			FROM
+				TMT_WEIGHBRIDGE W
+			LEFT OUTER JOIN 
+				TMT_RORO_MST R 
+			ON
+				R.VSL_CALL_ID 			= W.VSL_CALL_ID 
+				AND R.CG_NO 			= W.BL_NO 
+				AND R.GATE_TICKET_NO 	= W.GATE_TICKET_NO
+			INNER JOIN 
+				TMT_BL B
+			ON 
+				W.VSL_CALL_ID 	= B.VSL_CALL_ID
+				AND W.BL_NO 	= B.BL_NO
+			WHERE  
+				ISNULL (W.DO_NO, '') != ''
+				AND ISNULL (UNIT_NO, '') = ''
+				AND ISNULL (W.TRK_NO, '') != ''
+				AND W.GATEOUT_DT IS NOT NULL
+				AND B.CG_TP_CD IN ('RCV')
+				AND R.GATE_TICKET_NO IS NULL
+				AND W.VSL_CALL_ID 	= #{vslCallId}
+				AND W.BL_NO 		= #{blNo}
+			)
+	
+		SELECT /* RoroJobMonitoring.getUnassignedJobItems */
+			* 
+		FROM	
+			UNASSIGNED_TICKET
+		ORDER BY
+			GATE_TICKET_NO, CONFIRMED_DTM
+	</select>
+	
+<!-- 	<select id="selectUnitQtyByGateTicketNo" parameterType="jobMonitoringOfROROImportParm" resultType="CommonResultItem"> -->
+
+<!-- 		SELECT	/* RoroJobMonitoring.selectUnitQtyByGateTicketNo */ -->
+<!-- 				COUNT(1) intResult  -->
+<!-- 		FROM 	TMT_RORO_MST -->
+<!-- 		WHERE 	GATE_TICKET_NO = #{gateTicketNo} -->
+<!-- 	</select> -->
+
+	<update id="updatejobMonitoringOfROROImportItem" parameterType="jobMonitoringOfROROImportItem">
+		UPDATE /* RoroJobMonitoring.updatejobMonitoringOfROROImportItem */
+			TMT_RORO_MST /* JobMonitoringOfROROImport.updatejobMonitoringOfROROImportItem */
+		SET 
+			UPDATE_TIME = SYSDATETIME()
+			, STAFF_CD 	= #{userId}
+			<if test='jobPurpCd == "IO"'>
+				,GATE_OUT_DTM = CASE #{confirmedDate}
+									WHEN '' THEN NULL
+									ELSE CONVERT(DATETIME, #{confirmedDate}, 103)
+								END
+				,CG_WGT = CASE WHEN #{mt} != '' AND #{mt} IS NOT NULL THEN CAST(#{mt} AS NUMERIC(15,3)) ELSE NULL END
+			</if>
+			<if test='jobPurpCd == "WG"'>
+				,OUT_DTM = CASE #{confirmedDate}
+									WHEN '' THEN NULL
+									ELSE CONVERT(DATETIME, #{confirmedDate}, 103)
+								END
+			</if>
+			<if test='jobPurpCd == "OI"'>
+				,GATE_IN_DTM = CASE #{confirmedDate}
+									WHEN '' THEN NULL
+									ELSE CONVERT(DATETIME, #{confirmedDate}, 103)
+								END
+			</if>
+			<if test='jobPurpCd == "AW"'>
+				,IN_DTM = CASE #{confirmedDate}
+									WHEN '' THEN NULL
+									ELSE CONVERT(DATETIME, #{confirmedDate}, 103)
+								END
+				,LOC_ID = #{unitYardLoc}
+        		,WH_ID 	= SUBSTRING(#{unitYardLoc}, 1, CHARINDEX('-', #{unitYardLoc})-1)
+			</if>
+			<if test='jobPurpCd == "VA"'>
+				,DISCHARGING_DTM = CASE #{confirmedDate}
+										WHEN '' THEN NULL
+										ELSE CONVERT(DATETIME, #{confirmedDate}, 103)
+									END
+			</if>
+				
+		WHERE  
+			VSL_CALL_ID 	= #{vslCallId}
+			AND CG_NO 		= #{blNo}
+			AND CHASSIS_NO 	= #{unitNo}
+		        
+	</update>
+	
+	<update id="deletejobMonitoringOfROROImportItem" parameterType="jobMonitoringOfROROImportItem">
+		UPDATE /* RoroJobMonitoring.deletejobMonitoringOfROROImportItem */
+			TMT_RORO_MST /* JobMonitoringOfROROImport.updatejobMonitoringOfROROImportItem */
+		SET 
+			UPDATE_TIME = SYSDATETIME()
+			, STAFF_CD 	= #{userId}
+			<if test='jobPurpCd == "IO"'>
+				,STAT_CD 		= 'DV'
+				,GATE_OUT_DTM 	= NULL
+			</if>
+			<if test='jobPurpCd == "WG"'>
+				,STAT_CD 	= 'ST'
+				,OUT_DTM 	= NULL
+			</if>
+			<if test='jobPurpCd == "AW"'>
+				,STAT_CD 	= 'OD'
+				,IN_DTM 	= NULL
+				,LOC_ID 	= NULL
+				,WH_ID 		= NULL
+			</if>
+			<if test='jobPurpCd == "VA"'>
+				,STAT_CD 			= 'RS'
+				,DISCHARGING_DTM 	= NULL
+				,DELV_TP_CD 		= NULL
+			</if>
+			<if test='jobPurpCd == "OI"'>
+				,STAT_CD 	= 'ST'
+				,OUT_DTM 	= NULL
+			</if>
+				
+		WHERE   
+			VSL_CALL_ID 	= #{vslCallId}
+			AND CG_NO 		= #{blNo}
+			AND CHASSIS_NO 	= #{unitNo}        
+	</update>
+	
+	<delete id="deleteInvLogRoroJobMonitoring" parameterType="jobMonitoringOfROROImportItem">
+		DELETE 	  /* RoroJobMonitoring.deleteInvLogRoroJobMonitoring */
+			TCV_INV_LOG 
+		WHERE 	
+			VSL_CALL_ID 	= #{vslCallId}
+			AND CG_NO 		= #{blNo}
+			AND RORO_SEQ 	= #{roroSeq}
+			<if test='jobPurpCd == "WG"'>
+				AND IO_MODE = 'O'
+			</if>
+			<if test='jobPurpCd == "AW"'>
+				AND IO_MODE = 'I'
+			</if>
+		  		
+	</delete>  
+	
+	<update id="updateRoroJobMonitoringWeightBridge" parameterType="jobMonitoringOfROROImportItem">
+		UPDATE  /* RoroJobMonitoring.updateRoroJobMonitoringWeightBridge */
+			TMT_WEIGHBRIDGE
+		SET 
+			LAST_UPT_DT = SYSDATETIME()
+			,LAST_UPT_BY = CASE WHEN #{userId} IS NULL
+				                      THEN #{loginId}
+				                      ELSE #{userId}
+				                  END
+				
+			<if test='crud == "D"'>
+				<if test="jobPurpCd == 'IO' and truckNo != '' and truckNo != null">
+					,GATEOUT_DT 	= NULL
+					,OUT_PRN_CNT 	= 0
+					,OUT_GATE_POINT = NULL
+					,TRK_NET_WGT 	= NULL
+					,TRK_GRS_WGT 	= NULL
+					,UNIT_NO 		= NULL
+					,OUT_EX_WH_ID 	= NULL
+				</if>
+				
+				<if test="jobPurpCd == 'IO' and (truckNo == '' or truckNo == null)">
+					,GATEOUT_DT 	= NULL
+					,OUT_PRN_CNT	= 0
+					,OUT_GATE_POINT = NULL
+					,TRK_NET_WGT 	= NULL
+					,TRK_GRS_WGT 	= NULL
+					,GATE_TICKET_NO = NULL
+				</if>
+				
+				<if test='jobPurpCd == "WG" and lastVinOfGateTicketYn.toString() == "Y"'>
+					,UNIT_NO 		= NULL
+					,TRK_GRS_WGT 	= NULL
+					,TRK_NET_WGT 	= NULL
+				</if>
+				
+			</if>
+			
+			<if test='crud == "U"'>
+				<if test='jobPurpCd == "IO"'>
+					,GATEOUT_DT = CASE #{confirmedDate}
+										WHEN '' THEN NULL
+										ELSE FORMAT(#{confirmedDate},'dd/MM/yyyy HH:mm')
+									END
+					,TRK_NET_WGT 	= CASE WHEN #{mt} != '' AND #{mt} IS NOT NULL THEN CAST(#{mt} AS NUMERIC(15,3)) ELSE NULL END
+					,RMK2 			= 'UPDATE_JOB_MONITORING'
+				</if>
+				
+				<if test='jobPurpCd == "OI"'>
+					,GATEIN_DT = 	CASE #{confirmedDate}
+										WHEN '' THEN NULL
+										ELSE FORMAT(#{confirmedDate},'dd/MM/yyyy HH:mm')
+									END
+					,RMK2 = 'UPDATE_JOB_MONITORING'
+				</if>
+				
+			</if>
+		WHERE   
+			VSL_CALL_ID = #{vslCallId}
+			AND BL_NO 	= #{blNo}
+			 <choose>	
+				<when test=" jobPurpCd == 'IO' and (truckNo == '' or truckNo == null)">
+					AND GATE_TICKET_NO = #{gateTicketNo}
+				</when>
+
+				<otherwise>
+					AND UNIT_NO = #{unitNo}
+				</otherwise>
+			</choose>
+	</update>
+	
+	<delete id="deleteJobMonitoringWeightBridge" parameterType="jobMonitoringOfROROImportItem">
+		DELETE 	  /* RoroJobMonitoring.deleteJobMonitoringWeightBridge */
+			TMT_WEIGHBRIDGE 
+		WHERE 	
+			VSL_CALL_ID = #{vslCallId}
+			AND BL_NO 	= #{blNo}
+			<choose>	
+				<when test=" jobPurpCd == 'IO' and truckNo != '' and truckNo != null">
+					AND GATE_TICKET_NO = #{gateTicketNo}
+					AND UNIT_NO != #{unitNo}
+				</when>
+
+				<otherwise>
+					AND UNIT_NO = #{unitNo}
+				</otherwise>
+			</choose>
+			
+		  		
+	</delete>
+	
+	<delete id="deleteJobMonitoringCgArrvDelv" parameterType="jobMonitoringOfROROImportItem">
+		DELETE 	  /* RoroJobMonitoring.deleteJobMonitoringCgArrvDelv */
+			TMT_CG_ARRV_DELV
+		WHERE 	
+			VSL_CALL_ID = #{vslCallId}
+			AND CG_NO 	= #{blNo}
+			<choose>	
+				<when test=" jobPurpCd == 'IO' and truckNo != '' and truckNo != null">
+					AND (UNIT_NO != #{unitNo} OR (UNIT_NO = #{unitNo} AND CG_IN_OUT_CD = 'O'))
+				</when>
+				<when test=" jobPurpCd == 'IO' and (truckNo == '' or truckNo == null)">
+					AND CG_IN_OUT_CD = 'O'
+				</when>
+				<otherwise>
+					AND UNIT_NO = #{unitNo}
+					<if test='jobPurpCd == "WG"'>
+						AND CG_IN_OUT_CD = 'I'
+					</if>
+					<if test='jobPurpCd == "IO"'>
+						AND CG_IN_OUT_CD = 'O'
+					</if>
+				</otherwise>
+			</choose>
+	</delete>
+	
+	<update id="updateJobMonitoringCgArrvDelv" parameterType="jobMonitoringOfROROImportItem">
+		UPDATE 	  /* RoroJobMonitoring.updateJobMonitoringCgArrvDelv */
+			TMT_CG_ARRV_DELV
+		SET		
+			UPDATE_TIME = SYSDATETIME()
+			,STAFF_CD 	= CASE WHEN #{userId} IS NULL
+				                      THEN #{loginId}
+				                      ELSE #{userId}
+				                  END
+				                  
+			<choose>	
+				
+				
+				<when test="jobPurpCd == 'IO' and truckNo != ''">
+					,UNIT_NO 	= NULL
+					,CG_WGT 	= NULL
+				</when>
+			</choose>
+			<if test='jobPurpCd == "WG" and lastVinOfGateTicketYn.toString() == "Y"'>
+				,UNIT_NO 	= NULL
+				,CG_WGT 	= NULL
+			</if>
+		WHERE 	
+			VSL_CALL_ID = #{vslCallId}
+			AND CG_NO 	= #{blNo}
+			<choose>	
+				
+				<when test="jobPurpCd == 'IO' and truckNo == ''">
+					
+					AND CG_IN_OUT_CD = 'I'
+				</when>
+				<otherwise>
+					AND UNIT_NO = #{unitNo}
+				</otherwise>
+			</choose>
+			
+			<if test='jobPurpCd == "WG"'>
+				AND CG_IN_OUT_CD = 'I'
+			</if>
+
+	</update>
+	
+	<delete id="deleteRmcInvLocationItems" parameterType="jobMonitoringOfROROImportItem">
+		DELETE 	/* RoroJobMonitoring.deleteRmcInvLocationItems */  
+			TMT_INV_LOC 
+		WHERE
+			VSL_CALL_ID = #{vslCallId}
+			AND CG_NO 	= #{blNo}
+	</delete> 
+	
+	<update id="updateRmcInvLocationItems" parameterType="jobMonitoringOfROROImportItem">
+		UPDATE 	/* RoroJobMonitoring.updateRmcInvLocationItems */  
+			TMT_INV_LOC
+		SET		
+			UPDATE_TIME = SYSDATETIME()
+			,LOC_ID 	=  #{unitYardLoc}
+			,WH_LOC_ID 	= SUBSTRING(#{unitYardLoc}, 1, CHARINDEX('-', #{unitYardLoc})-1)
+			,STAFF_CD 	= #{userId}
+		WHERE
+			VSL_CALL_ID = #{vslCallId}
+			AND CG_NO = #{blNo}
+	</update>  
+	
+	<delete id="deleteRmcJobItems" parameterType="jobMonitoringOfROROImportItem">
+		DELETE 	/* RoroJobMonitoring.deleteRmcJobItems */  
+			TMT_JOB
+		WHERE 	
+			VSL_CALL_ID 	= #{vslCallId}
+			AND CG_NO 		= #{blNo}
+			AND UNIT_NO 	= #{unitNo}
+			AND JOB_PURP_CD = 'AW'
+	</delete>  
+	
+	<update id="updateRmcJobItems" parameterType="jobMonitoringOfROROImportItem">
+		UPDATE 	/* RoroJobMonitoring.updateRmcJobItems */  
+			TMT_JOB
+		SET 	
+			UPDATE_TIME 	= SYSDATETIME()
+			,WORK_ST_DT 	= CONVERT(DATETIME, #{confirmedDate},103)
+			,WORK_END_DT 	= CONVERT(DATETIME, #{confirmedDate},103)
+			,STAFF_CD 		= #{userId}
+		WHERE
+			VSL_CALL_ID 	= #{vslCallId}
+			AND CG_NO 		= #{blNo}
+			<!-- AND UNIT_NO 	= #{unitNo} -->
+			AND JOB_PURP_CD = 'AW' 
+	</update>
+	
+	<delete id="deleteRmcCargoMasterItems" parameterType="jobMonitoringOfROROImportItem">
+		DELETE 	/* RoroJobMonitoring.deleteRmcCargoMasterItems */  
+			TMT_CG_MST
+		WHERE 	
+			VSL_CALL_ID = #{vslCallId}
+			AND CG_NO 	= #{blNo}
+	</delete>  
+	
+	<update id="updateRmcCargoMasterItems" parameterType="jobMonitoringOfROROImportItem">
+		UPDATE 	/* RoroJobMonitoring.updateRmcCargoMasterItems */  
+			TMT_CG_MST
+		SET		
+			HDL_IN_ST_DT 	= CONVERT(DATETIME, #{confirmedDate},103)
+			,HDL_IN_END_DT 	= CONVERT(DATETIME, #{confirmedDate},103)
+			,UPDATE_TIME 	= SYSDATETIME()
+			,STAFF_CD 		= #{userId}
+		WHERE 
+			VSL_CALL_ID = #{vslCallId}
+			AND CG_NO 	= #{blNo}
+	</update>  
+	
+	<!-- Unassigned Job Update/ Delete-->
+<!-- 	<select id="selectUnitNosGateTicketNoRORO" parameterType="jobMonitoringOfROROImportParm" resultType="CommonResultItem"> -->
+<!-- 		SELECT	/* RoroJobMonitoring.selectUnitNosGateTicketNoRORO */ -->
+<!-- 				COUNT(1) intResult  -->
+<!-- 		FROM 	TMT_RORO_MST -->
+<!-- 		WHERE 	GATE_TICKET_NO = #{gateTicketNo} -->
+<!-- 	</select> -->
+	
+	<update id="updateUnassignedRoroJobMonitoringWB" parameterType="jobMonitoringOfROROImportItem">
+		UPDATE  /* RoroJobMonitoring.updateUnassignedRoroJobMonitoringWB */
+			TMT_WEIGHBRIDGE
+		SET 
+			LAST_UPT_DT 	= SYSDATETIME()
+			,LAST_UPT_BY 	= CASE WHEN #{userId} IS NULL
+				                      THEN #{loginId}
+				                      ELSE #{userId}
+				                  END
+			<choose>
+				<when test="jobPurpCd == 'IO'">
+					,GATEOUT_DT = CASE 
+									WHEN #{crud}= 'D' THEN NULL 
+									ELSE  
+										CASE #{confirmedDate}
+											WHEN '' THEN NULL
+											ELSE FORMAT(#{confirmedDate},'dd/MM/yyyy HH:mm')
+										END
+				</when>
+				<otherwise>
+					,GATEIN_DT = CASE #{confirmedDate}
+										WHEN '' THEN NULL
+										ELSE FORMAT(#{confirmedDate},'dd/MM/yyyy HH:mm')
+									END
+				</otherwise>
+			</choose>
+				
+				
+		WHERE  
+			VSL_CALL_ID 		= #{vslCallId}
+			AND GATE_TICKET_NO 	= #{gateTicketNo}
+		         
+	</update>
+	
+	<delete id="deleteUnassignedRoroJobMonitoringWB" parameterType="jobMonitoringOfROROImportItem">
+		DELETE 	  /* RoroJobMonitoring.deleteUnassignedRoroJobMonitoringWB */
+			TMT_WEIGHBRIDGE 
+		WHERE 	
+			VSL_CALL_ID 		= #{vslCallId}
+			AND GATE_TICKET_NO 	= #{gateTicketNo}
+		       
+	</delete>
+	
+	<delete id="deleteUnassignedRoroJobMonitoringCgArrvDelv" parameterType="jobMonitoringOfROROImportItem">
+		DELETE 	  /* RoroJobMonitoring.deleteUnassignedRoroJobMonitoringCgArrvDelv */
+			TMT_CG_ARRV_DELV
+		WHERE 	
+			VSL_CALL_ID 		= #{vslCallId}
+			AND GATE_TICKET_NO 	= #{gateTicketNo}
+				
+	</delete>
+	
+	<update id="updateUnassignedRoroJobMonitoringCgArrvDelv" parameterType="jobMonitoringOfROROImportItem">
+		UPDATE 	  /* RoroJobMonitoring.updateUnassignedRoroJobMonitoringCgArrvDelv */
+			TMT_CG_ARRV_DELV
+		SET		
+			UPDATE_TIME = SYSDATETIME()
+			,STAFF_CD 	= CASE WHEN #{userId} IS NULL
+				                      THEN #{loginId}
+				                      ELSE #{userId}
+				                  END
+			,GATE_IN_DT = FORMAT(#{confirmedDate},'dd/MM/yyyy HH:mm')                  
+				
+		WHERE
+			VSL_CALL_ID 		= #{vslCallId}
+			<!-- AND GATE_TICKET_NO 	= #{gateTicketNo} -->
+			AND CG_IN_OUT_CD 	= 'I'
+	</update>
+</mapper>

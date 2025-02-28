@@ -1,0 +1,444 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="proofsheet">
+	<resultMap type="proofSheetItem" id="GatheredDataItemMap">
+		<result property="rowNum" 			column="NO" />
+		<result property="vslCallId" 		column="VSL_CALL_ID" />
+		<result property="bbtCheck" 		column="BBT_CHECK" />
+		<result property="waiverDescr" 		column="WAIVER_DESCR" />
+		<result property="payer" 			column="PAYER" />
+		<result property="payerName" 		column="PAYER_NAME" />
+		<result property="prefix" 			column="PRE_FIX" />
+		<result property="tariffType" 		column="TARIFF_TYPE" />
+		<result property="tariffTypeName" 	column="TARIFF_TYPE_NAME" />
+		<result property="tariffCode" 		column="TARIFF_CODE" />
+		<result property="subTariffCode" 	column="SUB_TARIFF_CODE" />
+		<result property="tariffDesc" 		column="TARIFF_DESC" />
+		<result property="costCentreCode" 	column="COST_CENTRE_CODE" />
+		<result property="unit1" 			column="UNIT1" />
+		<result property="unit2" 			column="UNIT2" />
+		<result property="unit3" 			column="UNIT3" />
+		<result property="aplyRate" 		column="APLY_RATE" />
+		<result property="aplyAmt" 			column="APLY_AMT" />
+		<result property="aplyAmtUSD" 		column="APLY_AMT_USD" />
+		<result property="stdRate" 			column="STD_RATE" />
+		<result property="ptnrRate" 		column="PTNR_RATE" />
+		<result property="status" 			column="STATUS" />
+		<result property="statusCd" 		column="STATUSCD" />
+		<result property="invoiceNo" 		column="INVOICE_NO" />
+		<result property="refNo" 			column="REF_NO" />
+		<result property="adhocyn" 			column="ADHOC_YN" />
+		<result property="sytmId" 			column="SYTM_ID" />
+		<result property="version" 			column="VERSION" />
+		<result property="costcenter" 		column="COST_CENTRE_CODE" />
+		<result property="gatherNo" 		column="GATHER_NO" />
+		<result property="scrId" 			column="SCR_ID" />
+		<result property="totalAmt" 		column="TOTAL_AMT" />
+		<result property="gstType" 			column="TAX_TYPE" />
+		<result property="gstValue" 		column="TAX_VALUE" />
+		<result property="gstAmt" 			column="TAX_AMT" />
+		<result property="gstRegNo" 		column="GST_REG_NO" />
+		<result property="comRegNo" 		column="COMP_REG_NO" />
+		<result property="tmnlNm" 			column="TMNL_NM" />
+		<result property="gstPercent" 		column="TAX_PERCENT" />
+		<result property="rowNum" 			column="ROWNUM" />
+		<result property="userRefNo" 		column="REF_NO2" />
+		<result property="cgNo" 			column="REF_NO1" />
+		<result property="trfRegNo"			column="TRF_REG_NO" />
+		<result property="aplyDt" 			column="APLY_YMD" />
+		<result property="exprDt" 			column="EXPR_YMD" />
+	</resultMap>
+	
+	<resultMap type="proofSheetItem" id="ExchangeDataItemMap">
+		<result property="exchag" 			column="EXCHG_VAL" />
+		<result property="aplyDate" 		column="ST_YMD" />
+	</resultMap>
+	
+	<resultMap type="proofSheetItem" id="CostCenterDataItemMap">
+		<result property="costCentreCode" 	column="COST_CENTRE_CODE" />
+	</resultMap>
+	
+	<resultMap type="proofSheetItem" id="PayerInfoDataItemMap">
+		<result property="payer" 			column="PAYER" />
+	</resultMap>
+	
+	<resultMap type="proofSheetItem" id="RefNoDataItemMap">
+		<result property="refNo" 			column="REF_NO" />
+	</resultMap>
+	<!-- ********************************************************** -->
+	
+	<select id="selectCostCenterCombo" parameterType="proofSheetParm" resultType="proofSheetItem">
+		SELECT	COST_CENT_CD AS scd,
+				COST_CENT_CD  AS scdNm
+		FROM 	TMT_B_COSTCENT
+		WHERE 	VLD_YN = 'Y' 
+	</select>
+	
+	<!-- ********************************************************** -->
+	
+	<select id="selectProofSheetList" parameterType="proofSheetParm" resultMap="GatheredDataItemMap">
+		<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getGatheredData"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	
+	<select id="selectProofSheetListCount" parameterType="proofSheetParm" resultType="java.lang.String">
+		SELECT COUNT(*)
+        	FROM (<include refid="getGatheredData"/>)
+	</select>
+	
+	<sql id="getGatheredData">
+		SELECT * 
+		FROM ( 
+			SELECT  /*proofsheet.getGatheredData*/
+					ROWNUM AS NO
+					,CASE WHEN STAT_CD='WV' THEN 'true' ELSE 'false' END AS BBT_CHECK
+					,DAT.WAIVER_DESCR AS WAIVER_DESCR
+					,DAT.VSL_CALL_ID AS VSL_CALL_ID
+					,DAT.PAYER AS PAYER
+					,F_GET_PTNR_SNM(DAT.PAYER) AS PAYER_NAME
+					,DAT.IV_PRFX AS PRE_FIX
+					,CD.TRF_TP_CD AS TARIFF_TYPE
+					,(SELECT S_CD_NM FROM TMT_CD_MSTD WHERE L_CD = 'MT' AND M_CD = 'TRFTP' AND S_CD = CD.TRF_TP_CD) AS TARIFF_TYPE_NAME
+					,DAT.TRF_CD AS TARIFF_CODE
+					,CD.SUB_TRF_CD AS SUB_TARIFF_CODE
+					,DAT.TRF_DESCR AS TARIFF_DESC
+					,NVL(DAT.COST_CENT_CD, '') AS COST_CENTRE_CODE
+					,NVL(DAT.UNIT1_VAL, 0) AS UNIT1
+					,NVL(DAT.UNIT2_VAL, 0) AS UNIT2
+					,NVL(DAT.UNIT3_VAL, 0) AS UNIT3
+					,NVL(DAT.APLY_RATE, 0) AS APLY_RATE
+					,NVL(DAT.APLY_AMT,0) AS APLY_AMT
+					,NVL( ROUND(NVL(DAT.APLY_AMT,0) / TO_NUMBER( (SELECT
+						DECODE(CUR.EXCHG_VAL,
+							0 || null, 1,
+							CUR.EXCHG_VAL) FROM TMT_B_CURRENCY CUR WHERE
+						<if test="vslCallId == 'STRG'">
+							TO_DATE(CUR.ST_YMD, 'YYYY/MM/DD')
+							<![CDATA[ <=]]>
+							TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDD'), 'YYYY/MM/DD') AND
+							TO_DATE(CUR.END_YMD, 'YYYY/MM/DD')
+							<![CDATA[ >=]]>
+							TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDD'), 'YYYY/MM/DD')
+						</if>
+						<if test="vslCallId != 'STRG'">
+							TO_DATE(CUR.ST_YMD, 'YYYY/MM/DD')
+							<![CDATA[ <=]]>
+							TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDD'), 'YYYY/MM/DD') AND
+							TO_DATE(CUR.END_YMD, 'YYYY/MM/DD')
+							<![CDATA[ >=]]>
+							TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDD'), 'YYYY/MM/DD')
+						</if>
+						<if test="crcyCd != null and crcyCd != ''">
+			   				AND	CRCY_CD = #{crcyCd}
+						</if>
+						<if test="crcyCd == null or crcyCd == ''">
+			   				AND	CRCY_CD = 'USD'
+						</if>
+						AND rownum = 1 ) ),2),0) AS APLY_AMT_USD
+					,NVL(STD_RATE,0) AS STD_RATE
+					,F_CM_012('MT','IVSTAT',DAT.STAT_CD) AS STATUS
+					,STAT_CD AS STATUSCD
+					,IV_NO AS INVOICE_NO
+					,DECODE (
+						DAT.SCR_ID,
+			            'SSR', NVL(
+			            			NVL(DECODE(DAT.RMK,'-',' ',DAT.RMK), DAT.REF_NO1),
+						            (SELECT REF_NO
+									FROM TMT_B_SSR
+									WHERE VSL_CALL_ID = #{vslCallId}
+									AND DAT.REF_NO2 = SSR_NO
+									AND PAY_TP_CD = 'C'
+									AND ROWNUM = 1)
+							),
+						NVL(DECODE(DAT.RMK,'-',' ',DAT.RMK), DAT.REF_NO1)
+					) AS REF_NO
+					,DAT.ADHOC_YN AS ADHOC_YN
+					,DAT.VERSION AS VERSION
+					,GATHER_NO
+					,DECODE(SCR_ID,
+						'PRF', 'Proforma',
+						'OPE', 'Operation',
+						'SSR', 'SSR/Add Hoc',
+						''
+					) AS SCR_ID
+					,CASE WHEN NVL (TOTAL_AMT, 0) = 0
+				         THEN APLY_AMT
+				         ELSE NVL (TOTAL_AMT, 0)
+				    END AS TOTAL_AMT
+				    ,DAT.REF_NO1
+        			,DAT.REF_NO2
+         			,DAT.TAX_TYPE
+        			,DAT.TAX_VALUE
+        			,DAT.TAX_AMT
+			FROM 	TMT_B_IV_DATA DAT INNER JOIN TMT_B_TRF_CD CD ON DAT.TRF_CD = CD.TRF_CD AND DAT.SUB_TRF_CD = CD.SUB_TRF_CD
+			WHERE 	DAT.VSL_CALL_ID = #{vslCallId} 
+					AND ( DAT.SCR_ID = 'OPE'
+						OR DAT.SCR_ID = 'PRF'
+						OR DAT.SCR_ID = 'STR'
+						OR DAT.SCR_ID = 'WHR'
+						OR DAT.SCR_ID ='FW'
+						OR DAT.SCR_ID IS NULL
+						OR (DAT.SCR_ID = 'SSR'
+							AND REF_NO2 IN (
+								SELECT SSR_NO
+								FROM TMT_B_SSR
+								WHERE VSL_CALL_ID = #{vslCallId})
+							)
+						)
+					AND DAT.STAT_CD != 'IV' 
+					AND DAT.STAT_CD != 'WV'
+					<if test="list != null">
+	    				AND	DAT.GATHER_NO IN
+						<foreach collection="list" open="(" close=")" separator=",">
+								#{item}
+						</foreach>
+					</if>
+					<if test="payer != null and payer != ''">
+		   				AND	DAT.PAYER = #{payer}
+					</if>
+					<if test="userRefNo != null and userRefNo != ''">
+						AND DAT.REF_NO2 = #{userRefNo}
+					</if>
+					<if test="cgNo != null and cgNo != ''">
+						AND DAT.REF_NO1 = #{cgNo}
+					</if>
+					<if test="adhoc != null and adhoc != ''">
+		   				AND	NVL(DAT.ADHOC_YN, 'N') = #{adhoc}
+					</if>
+					<if test="rptSearch != null">
+						<if test="rptSearch == 'Y'">
+							AND DAT.STAT_CD != 'WV'
+						</if>
+					</if>
+					<if test="costCenterCd != null and costCenterCd != ''">
+		   				AND	DAT.COST_CENT_CD = #{costCenterCd}
+					</if>
+					<if test="tariffTypeCd != null and tariffTypeCd != ''">
+		   				AND	CD.TRF_TP_CD = #{tariffTypeCd}
+					</if>
+		)
+		<if test="refNo != null and refNo != ''">
+  			WHERE REF_NO = #{refNo}  
+		</if>
+		ORDER BY PAYER, GATHER_NO
+	</sql>
+	
+	<select id="selectExchangeData" resultMap="ExchangeDataItemMap">
+		SELECT /*proofsheet.selectExchangeData*/
+			TO_CHAR (A.EXCHG_VAL, '999999990.9999') AS EXCHG_VAL,
+			TO_CHAR(SYSDATE, 'DD/MM/YYYY') AS ST_YMD FROM
+		TMT_B_CURRENCY A WHERE
+		<if test="vslCallId == 'STRG'">
+			TO_DATE(A.ST_YMD, 'YYYY/MM/DD')
+			<![CDATA[ <=]]>
+			TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDD'), 'YYYY/MM/DD') AND
+			TO_DATE(A.END_YMD, 'YYYY/MM/DD')
+			<![CDATA[ >=]]>
+			TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDD'), 'YYYY/MM/DD')
+		</if>
+		<if test="vslCallId != 'STRG'">
+			TO_DATE(A.ST_YMD, 'YYYY/MM/DD')
+			<![CDATA[ <=]]>
+			TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDD'), 'YYYY/MM/DD') AND
+			TO_DATE(A.END_YMD, 'YYYY/MM/DD')
+			<![CDATA[ >=]]>
+			TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDD'), 'YYYY/MM/DD')
+		</if>
+		<if test="crcyCd != null and crcyCd != ''">
+  			AND	CRCY_CD = #{crcyCd}
+		</if>
+		<if test="crcyCd == null or crcyCd == ''">
+  			AND	CRCY_CD = 'USD'
+		</if>
+		AND rownum = 1
+	</select>
+	
+	<select id="selectCostCenterData" resultMap="CostCenterDataItemMap">
+		SELECT /*proofsheet.selectExchangeData*/
+			DAT.COST_CENT_CD AS COST_CENTRE_CODE 
+		FROM TMT_B_IV_DATA DAT 
+		WHERE DAT.VSL_CALL_ID = #{vslCallId} 
+		GROUP BY DAT.COST_CENT_CD
+	</select>
+	
+	<select id="selectPartnerRates" parameterType="proofSheetParm" resultMap="GatheredDataItemMap">
+		SELECT /*proofsheet.selectPartnerRates*/
+			TRF_REG_NO 	AS TRF_REG_NO,
+			PTNR_CD		AS PAYER,
+			TRF_CD 		AS TARIFF_CODE,
+			SUB_TRF_CD 	AS SUB_TARIFF_CODE,
+			UNIT_PRC 	AS PTNR_RATE,
+			APLY_YMD 	AS APLY_YMD,
+			EXPR_YMD 	AS EXPR_YMD
+		FROM TMT_B_TRF
+		WHERE PRC_TP_CD = #{prcTpCd}
+		AND SYSDATE <![CDATA[<]]> TO_DATE(EXPR_YMD, 'YYYYMMDD')
+		ORDER BY EXPR_YMD DESC
+	</select>
+	
+	<select id="selectSsrList" parameterType="proofSheetItem" resultMap="GatheredDataItemMap">
+		SELECT /*proofsheet.selectPartnerRates*/
+			VSL_CALL_ID,
+			GATHER_NO,
+			TRF_CD,
+			SUB_TRF_CD,
+			STAT_CD AS STATUSCD,
+			F_CM_012('MT','IVSTAT',STAT_CD) AS STATUS
+		FROM TMT_B_IV_DATA
+		WHERE VSL_CALL_ID = #{vslCallId}
+		AND REF_NO2 = #{userRefNo}
+		AND SCR_ID = 'SSR'
+	</select>
+	
+	<update id="updateGatheredData" parameterType="proofSheetItem">
+		<if test="isUpdateRefNo == null or isUpdateRefNo == ''">
+			BEGIN /*proofSheet.updateGatheredData*/
+				UPDATE 
+				TMT_B_IV_DATA SET 
+					PAYER = #{payer},
+					<if test="statusCd != null">
+						STAT_CD = #{statusCd},
+					</if>
+					REF_NO1 = #{cgNo},
+					REF_NO2 = #{userRefNo},
+					IV_PRFX = #{prefix},
+					COST_CENT_CD = #{costCentreCode},
+					APLY_RATE = #{aplyRate},
+					APLY_AMT = #{aplyAmt},
+					VERSION = #{newVersion},
+					TAX_TYPE = #{gstType},
+					TAX_VALUE = #{gstValue},
+					TAX_AMT = #{gstAmt},
+					TOTAL_AMT = #{totalAmt},
+					STAFF_CD = #{userId},
+					UPDATE_TIME = SYSDATE
+				WHERE VSL_CALL_ID = #{vslCallId} 
+				AND TRF_CD = #{tariffCode} 
+				AND SUB_TRF_CD = #{subTariffCode} 
+				AND GATHER_NO = #{gatherNo}
+				<if test="version != null and version != ''">
+					AND VERSION = #{version}
+				</if>;
+				
+				UPDATE 
+				TMT_B_SSR SET 
+					PAYER_CD = #{payer},
+					STAFF_CD = #{userId},
+					UPDATE_TIME = SYSDATE
+				WHERE 1 = 1 
+				AND SSR_NO = (
+					SELECT MAX(REF_NO2) 
+					FROM TMT_B_IV_DATA
+					WHERE VSL_CALL_ID = #{vslCallId}
+					AND TRF_CD = #{tariffCode}
+					AND SUB_TRF_CD = #{subTariffCode}
+					AND GATHER_NO = #{gatherNo}
+					<if test="version != null and version != ''">
+						AND VERSION = #{version}
+					</if>
+					AND SCR_ID = 'SSR'
+				); 
+			END;
+		</if>
+		<if test="isUpdateRefNo != null and isUpdateRefNo != ''">
+			BEGIN /*proofSheet.updateGatheredData*/
+				UPDATE 
+				TMT_B_IV_DATA SET
+					<if test="refNo == null or refNo == ''">
+						RMK = '-'
+					</if>
+					<if test="refNo != null and refNo != ''">
+						RMK = #{refNo}
+					</if>
+				WHERE VSL_CALL_ID = #{vslCallId}
+				AND TRF_CD = #{tariffCode}
+				AND SUB_TRF_CD = #{subTariffCode}
+				AND GATHER_NO = #{gatherNo}
+				<if test="version != null and version != ''">
+					AND VERSION = #{version}
+				</if>
+				;
+				
+				UPDATE 
+				TMT_B_SSR SET
+					STAFF_CD = #{userId}, 
+					UPDATE_TIME = SYSDATE 
+				WHERE 1 = 1 
+				AND SSR_NO = (
+					SELECT MAX(REF_NO2) 
+					FROM TMT_B_IV_DATA 
+					WHERE VSL_CALL_ID = #{vslCallId}
+					AND TRF_CD = #{tariffCode} 
+					AND SUB_TRF_CD = #{subTariffCode}
+					AND GATHER_NO = #{gatherNo}
+					<if test="version != null and version != ''">
+						AND VERSION = #{version}
+					</if>
+					AND SCR_ID = 'SSR'
+				);
+			END;
+		</if>
+	</update>
+	
+	<update id="updateServiceOrderPayer" parameterType="proofSheetItem">
+		UPDATE 
+		TMT_SVC_ODR SET
+			PAYER = #{payer}, 
+			STAFF_CD = #{userId},
+			UPDATE_TIME = SYSDATE 
+		WHERE 1 = 1 
+		AND ODR_NO = #{refNo}
+		AND VSL_CALL_ID = #{vslCallId}
+	</update>
+	
+	<update id="updateSsrStatus" parameterType="proofSheetItem">
+		UPDATE 
+		TMT_B_SSR SET
+			SSR_STAT_CD = #{statusCd}, 
+			UPDATE_TIME = SYSDATE 
+		WHERE 1 = 1 
+		AND SSR_NO = #{userRefNo}
+	</update>
+	
+	<update id="updateSsrDetail" parameterType="proofSheetItem">
+		UPDATE 
+		TMT_B_SSR_DTL SET
+			TAX_TYPE = #{gstType},
+			TAX_VALUE = #{gstValue},
+			TAX_AMT = #{gstAmt},
+			TOTAL_AMT = #{totalAmt} 
+		WHERE 1 = 1 
+		AND SSR_NO = #{userRefNo}
+		AND SEQ = #{cgNo}
+	</update>
+	
+	<select id="selectComboBoxIvPrefix" parameterType="proofSheetParm" resultType="proofSheetItem">
+		SELECT
+			A.S_CD 		 AS scd, 
+			A.S_CD_NM 	 AS scdNm,
+			A.S_CD_DESC  AS scdDesc
+		FROM TMT_CD_MSTD A, TMT_CD_MSTM B, TMT_CD_MSTL C
+		<where> 
+			A.L_CD = C.L_CD
+			AND B.L_CD = C.L_CD
+			AND	A.M_CD = B.M_CD
+			AND C.L_CD = #{lcd}
+			AND	B.M_CD = #{mcd}
+			AND C.USE_YN='Y'
+			AND B.USE_YN='Y'
+			AND A.S_CD_USE = 'Y'
+			AND A.S_CD NOT IN ('PRF')
+		</where>
+		ORDER BY A.L_CD , A.M_CD , A.S_CD
+	</select>
+</mapper>

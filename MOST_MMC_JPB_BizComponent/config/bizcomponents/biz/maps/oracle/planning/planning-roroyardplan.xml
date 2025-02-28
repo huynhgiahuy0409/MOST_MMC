@@ -1,0 +1,612 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="roroYardPlan">
+	
+    <resultMap type="roroYardPlanItem" id="cargoMap">
+    	<result property="vslCallId"               	column="VSL_CALL_ID"/>
+		<result property="docNo"                  	column="MF_DOC_ID"/>
+		<result property="cgNo"                		column="CG_NO"/>
+		<result property="catgCd"              		column="CATG_CD"/>
+		<result property="catgNm"            		column="CATG_NM"/>
+		<result property="cgTpCd"               	column="CG_TP_CD"/>
+		<result property="cgTpNm"            		column="CG_TP_NM"/>
+		<result property="brandCd"                	column="BRAND_CD"/>
+		<result property="brandNm"              	column="BRAND_NM"/>
+		<result property="modelCd"               	column="MODEL_CD"/>
+		<result property="modelNm"           		column="MODEL_NM"/>
+		<result property="nosOfUnit"               	column="NO_OF_UNIT"/>
+		<result property="remainUnit"               column="REMAINED_UNIT"/>
+		<result property="yardId"               	column="PLAN_WH_ID"/>
+		<result property="ixCd"               		column="IX_CD"/>
+    </resultMap>
+    
+    <resultMap type="roroYardPlanItem" 				id="unitMap">
+    	<result property="vslCd"               		column="VSL_CD"/>
+		<result property="callSeq"                  column="CALL_SEQ"/>
+		<result property="callYear"                	column="CALL_YEAR"/>	
+    	<result property="vslCallId"               	column="VSL_CALL_ID"/>
+		<result property="docNo"                  	column="MF_DOC_ID"/>
+		<result property="cgNo"                		column="CG_NO"/>
+		<result property="doNo"                		column="DO_NO"/>
+		<result property="unitNo"                  	column="CHAS_NO"/>
+		<result property="roroSeq"               	column="RORO_SEQ"/>
+		
+		<result property="catgCd"                  	column="CATG_CD"/>
+		<result property="cgTpCd"                	column="CG_TP_CD"/>
+		<result property="ixCd"                  	column="IX_CD"/>
+		<result property="brandCd"                	column="BRAND_CD"/>
+		<result property="modelCd"               	column="MODEL_CD"/>
+		<result property="docWgt"                	column="DOC_WGT"/>
+		<result property="cbm"               		column="CBM"/>
+		<result property="statCd"               	column="STAT_CD"/>
+		<result property="newYn"               		column="NEW_YN"/>
+		
+		<result property="sdoNo"                    column="SDO_NO"/>
+		<result property="grNo"                     column="GR_NO"/>
+		<result property="yardLoc"                  column="PLAN_LOC_ID"/>
+		<result property="yardId"               	column="PLAN_WH_ID"/>
+		<result property="plannedDtm"               column="PLAN_DT"/>
+		<result property="snNo"               		column="SHIPG_NOTE_NO"/>
+		<result property="bookingNo"                column="BOOKING_NO"/>
+		<result property="blNo"               		column="BL_NO"/>
+		<result property="sdogrNo"               	column="SDO_GR_NO"/>
+		<result property="tsptTpCd"               	column="TSPT_TP_CD"/>
+    </resultMap>
+    
+    <resultMap type="roroYardPlanItem" id="planMap">
+    	<result property="vslCallId"               	column="VSL_CALL_ID"/>
+		<result property="docNo"                  	column="MF_DOC_ID"/>
+		<result property="cgNo"                		column="CG_NO"/>
+		<result property="plannedQty"               column="PLANNED_QTY"/>
+		<result property="yardLoc"                	column="PLAN_LOC_ID"/>
+		<result property="catgCd"              		column="CATG_CD"/>
+		<result property="catgNm"            		column="CATG_NM"/>
+		<result property="cgTpCd"               	column="CG_TP_CD"/>
+		<result property="cgTpNm"            		column="CG_TP_NM"/>
+		<result property="brandCd"                	column="BRAND_CD"/>
+		<result property="brandNm"              	column="BRAND_NM"/>
+		<result property="modelCd"               	column="MODEL_CD"/>
+		<result property="modelNm"           		column="MODEL_NM"/>
+		<result property="nosOfUnit"               	column="NO_OF_UNIT"/>
+    </resultMap>
+
+    <select id="selectRoRoYardPlanCargoList" parameterType="roroYardPlanParm" resultMap="cargoMap">
+	 	<if test="pageNo != 0"> 
+             SELECT /*roroYardPlan.selectRoRoYardPlanCargoList*/
+             	* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getCargoList"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	 
+	<select id="selectRoRoYardPlanCargoListCount" parameterType="roroYardPlanParm" resultType="java.lang.String">
+	 	SELECT COUNT(*) /*roroYardPlan.selectRoRoYardPlanCargoListCount*/
+          FROM (<include refid="getCargoList"/>)
+	</select>
+	 
+	<sql id="getCargoList">
+		WITH PLAN AS
+		(
+		    SELECT DISTINCT
+		    	   VSL_CALL_ID,
+		           MF_DOC_ID,
+		           CG_NO,
+		           PLAN_WH_ID,
+		           COUNT (CHAS_NO)
+		              OVER (PARTITION BY CG_NO, MF_DOC_ID, VSL_CALL_ID)
+		              AS NO_OF_UNIT
+		    FROM    TMT_RORO_MST 
+		    WHERE   VSL_CALL_ID = #{vslCallId}
+		    		AND PLAN_WH_ID IS NOT NULL
+		)
+		<choose>
+			<when test="(blNo != null and blNo != '') and (shipgNoteNo == null or shipgNoteNo == '')">
+				<include refid="getBlItems" />
+			</when>
+			<when test="(blNo == null or blNo == '') and (shipgNoteNo != null and shipgNoteNo != '')">
+				<include refid="getSnItems" />
+			</when>
+			<otherwise>
+				<include refid="getBlItems" />
+				UNION ALL
+				<include refid="getSnItems" />
+			</otherwise>
+		</choose>
+		ORDER BY MF_DOC_ID, CG_NO
+	</sql>
+	
+	<sql id="getBlItems">
+		SELECT DISTINCT
+  			BL.VSL_CALL_ID,
+  			BL.MF_DOC_ID,
+  			BL.BL_NO AS CG_NO,
+  			BL.CATG_CD,
+  			F_CM_001('MT', 'CATGTP', BL.CATG_CD) AS CATG_NM,
+  			COUNT(VIN.CHAS_NO) OVER (PARTITION BY VIN.CG_NO, VIN.MF_DOC_ID, VIN.VSL_CALL_ID) AS NO_OF_UNIT,
+  			NVL(COUNT (VIN.CHAS_NO)
+          		OVER (PARTITION BY VIN.CG_NO, VIN.MF_DOC_ID, VIN.VSL_CALL_ID) - NVL(S.NO_OF_UNIT, 0), '0') AS REMAINED_UNIT,
+  			BR.BRAND_CD,
+  			BR.BRAND_NM,
+  			M.MODEL_CD,
+  			M.MODEL_NM,
+          	BL.DELV_TP_CD,
+          	F_CM_001('MT', 'DELVTP', BL.DELV_TP_CD) AS DELV_TP_NM,
+          	BL.CG_TP_CD,
+          	F_CM_001('MT', 'CGTP', BL.CG_TP_CD) AS CG_TP_NM,
+          	(SELECT LISTAGG(PLAN_WH_ID, ', ') WITHIN GROUP (ORDER BY PLAN_WH_ID) 
+                    FROM (SELECT DISTINCT PLAN_WH_ID FROM PLAN WHERE VSL_CALL_ID = #{vslCallId}  AND CG_NO = BL.BL_NO)) AS PLAN_WH_ID,
+            VIN.IX_CD
+		FROM	TMT_BL BL
+				INNER JOIN TMT_BL_DTL VIN ON BL.VSL_CALL_ID = VIN.VSL_CALL_ID AND BL.BL_NO = VIN.BL_NO
+				LEFT OUTER JOIN TMT_BRAND BR ON	VIN.BRAND_CD = BR.BRAND_CD
+				LEFT OUTER JOIN TMT_BRAND_DTL M ON VIN.MODEL_CD = M.MODEL_CD AND VIN.BRAND_CD = M.BRAND_CD
+				LEFT OUTER JOIN PLAN S ON BL.VSL_CALL_ID = S.VSL_CALL_ID AND BL.BL_NO = S.CG_NO
+		WHERE
+				VIN.IX_CD = 'I'
+				AND BL.CG_TP_CD IN ('RCV')
+				AND VIN.CHAS_NO IS NOT NULL
+		
+				<if test="vslCallId != null and vslCallId != ''">
+					AND BL.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="blNo != null and blNo != ''">
+					AND BL.BL_NO = #{blNo}
+				</if>
+				<if test="unitNo != null and unitNo != ''">
+					AND VIN.CHAS_NO = #{unitNo}
+				</if> 
+	</sql>
+	
+	<sql id="getSnItems">
+		SELECT DISTINCT
+			SN.VSL_CALL_ID,
+			SN.MF_DOC_ID,
+			SN.SHIPG_NOTE_NO AS CG_NO,
+			SN.CATG_CD,
+			F_CM_001('MT', 'CATGTP', SN.CATG_CD) AS CATG_NM,
+			COUNT(VIN.CHAS_NO) OVER (PARTITION BY VIN.CG_NO, VIN.MF_DOC_ID, VIN.VSL_CALL_ID) AS NO_OF_UNIT,
+			NVL (COUNT (VIN.CHAS_NO)
+          		OVER (PARTITION BY VIN.CG_NO, VIN.MF_DOC_ID, VIN.VSL_CALL_ID) - NVL(S.NO_OF_UNIT, 0), '0') AS REMAINED_UNIT,
+			BR.BRAND_CD,
+			BR.BRAND_NM,
+			M.MODEL_CD,
+			M.MODEL_NM,
+	       	SN.DELV_TP_CD,
+	       	F_CM_001('MT', 'DELVTP', SN.DELV_TP_CD) AS DELV_TP_NM,
+	       	SN.CG_TP_CD,
+	       	F_CM_001('MT', 'CGTP', SN.CG_TP_CD) AS CG_TP_NM,
+	       	(SELECT LISTAGG(PLAN_WH_ID, ', ') WITHIN GROUP (ORDER BY PLAN_WH_ID) 
+                    FROM (SELECT DISTINCT PLAN_WH_ID FROM PLAN WHERE VSL_CALL_ID = #{vslCallId}  AND CG_NO = SN.SHIPG_NOTE_NO)) AS PLAN_WH_ID,
+            VIN.IX_CD
+                    
+		FROM	TMT_SHIPG_NOTE SN
+				INNER JOIN TMT_SHIPG_NOTE_DTL VIN ON SN.VSL_CALL_ID = VIN.VSL_CALL_ID AND SN.SHIPG_NOTE_NO = VIN.CG_NO
+				LEFT OUTER JOIN TMT_BRAND BR ON	VIN.BRAND_CD = BR.BRAND_CD
+				LEFT OUTER JOIN TMT_BRAND_DTL M ON VIN.MODEL_CD = M.MODEL_CD AND VIN.BRAND_CD = M.BRAND_CD
+				LEFT OUTER JOIN PLAN S ON SN.VSL_CALL_ID = S.VSL_CALL_ID AND SN.SHIPG_NOTE_NO = S.CG_NO
+		WHERE	
+				VIN.IX_CD = 'X'
+				AND VIN.CHAS_NO IS NOT NULL
+   				AND SN.STAT_CD IN ('AP')
+				AND SN.CG_TP_CD IN ('RCV')
+				<if test="vslCallId != null and vslCallId != ''">
+					AND SN.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="shipgNoteNo != null and shipgNoteNo != ''">
+					AND SN.SHIPG_NOTE_NO = #{shipgNoteNo}
+				</if>
+				<if test="unitNo != null and unitNo != ''">
+					AND VIN.CHAS_NO = #{unitNo}
+				</if> 	
+	</sql>
+	
+	<select id="selectUnitsFromBLList" parameterType="roroYardPlanParm" resultMap="unitMap">
+		SELECT 	DISTINCT /*bl.selectRoRoItems*/
+			R.VSL_CD
+			,R.CALL_YEAR
+			,R.CALL_SEQ
+			,R.VSL_CALL_ID
+			,R.MF_DOC_ID
+			,R.CG_NO
+			,R.CHAS_NO
+			,R.SEQ
+			,R.BRAND_CD
+			,R.MODEL_CD
+			,B.BRAND_NM
+			,M.MODEL_NM
+			,R.DOC_WGT
+			,R.CBM
+			,R.NEW_YN
+		FROM TMT_BL_DTL R 
+			LEFT OUTER JOIN TMT_BRAND B ON R.BRAND_CD = B.BRAND_CD
+			LEFT OUTER JOIN TMT_BRAND_DTL M  ON R.MODEL_CD = M.MODEL_CD AND R.BRAND_CD = M.BRAND_CD
+			 LEFT OUTER JOIN TMT_DO D ON R.VSL_CALL_ID = D.VSL_CALL_ID AND R.BL_NO = D.BL_NO
+			 LEFT OUTER JOIN TMT_DO_DTL DODT
+                      ON     R.VSL_CALL_ID = DODT.VSL_CALL_ID
+                         AND R.CG_NO = DODT.BL_NO
+                         AND D.DO_NO = DODT.DO_NO
+		WHERE 1=1
+		<if test="vslCallId !=null and vslCallId !=''">
+			AND R.VSL_CALL_ID = #{vslCallId}
+		</if>
+		<if test="mfDocId !=null and mfDocId !=''">
+			AND R.MF_DOC_ID = #{mfDocId}
+		</if>
+		<if test="blNo !=null and blNo !=''">
+			AND R.CG_NO = #{blNo}
+		</if>
+		<if test="delvTpCd != null and delvTpCd != ''">
+			AND DODT.DELV_TP_CD = #{delvTpCd}
+		</if>
+		<if test="searchType !=null and searchType !='' and  searchType !='WHIP'">
+			 AND R.CHAS_NO NOT IN (SELECT TRIM (REGEXP_SUBSTR ((SELECT DISTINCT CHAS_NO FROM TMT_JOB 
+					                               where  CG_NO = R.BL_NO
+					                                    AND VSL_CALL_ID = R.VSL_CALL_ID
+					                                    AND JOB_PURP_CD IN ('OI') AND ROWNUM = 1),
+					                                '[^,]+',
+					                                1,
+					                                level)) CHAS_NO
+					      			FROM dual
+								CONNECT BY REGEXP_SUBSTR ((SELECT DISTINCT CHAS_NO FROM TMT_JOB 
+					                               where  CG_NO = R.BL_NO
+					                                    AND VSL_CALL_ID = R.VSL_CALL_ID
+					                                    AND JOB_PURP_CD IN ('OI') AND ROWNUM = 1),
+					                                '[^,]+',
+					                                1,
+					                                level) IS NOT NULL)
+		</if>
+		<if test="searchType !=null and searchType !='' and searchType eq 'WHIP'.toString()">
+			AND R.CHAS_NO IN (SELECT TRIM (REGEXP_SUBSTR ((SELECT DISTINCT CHAS_NO FROM TMT_JOB 
+                                                   where  CG_NO = R.BL_NO
+                                                        AND VSL_CALL_ID = R.VSL_CALL_ID
+                                                        AND JOB_PURP_CD IN ('VA')),
+                                                    '[^,]+',
+                                                    1,
+                                                    level)) CHAS_NO
+                                      FROM dual
+                                CONNECT BY REGEXP_SUBSTR ((SELECT DISTINCT CHAS_NO FROM TMT_JOB 
+                                                   where  CG_NO = R.BL_NO
+                                                        AND VSL_CALL_ID = R.VSL_CALL_ID
+                                                        AND JOB_PURP_CD IN ('VA')),
+                                                    '[^,]+',
+                                                    1,
+                                                    level) IS NOT NULL)
+		</if>
+		ORDER BY R.CHAS_NO ASC
+	</select>
+	
+	<select id="selectRoRoYardPlanUnitList" parameterType="roroYardPlanParm" resultMap="unitMap">
+	 	<choose>
+	 		<when test="catgCd eq 'I'.toString() ">
+	 			SELECT DISTINCT B.VSL_CALL_ID,
+                   B.VSL_CD,
+                   B.CALL_YEAR,
+                   B.CALL_SEQ,
+                   B.MF_DOC_ID,
+                   B.CG_NO AS BL_NO,
+                   B.CG_NO,
+                   B.CHAS_NO,
+                   B.RORO_SEQ,
+                   <!-- NVL (REQ.STAT_CD, B.STAT_CD) AS STAT_CD, -->
+                   B.IX_CD,
+                   DODT.SDO_NO,
+                   DODT.SDO_NO SDO_GR_NO,
+                   DO.DO_NO,
+                   B.BRAND_CD,
+                   B.MODEL_CD,
+                   B.DOC_WGT,
+                   B.CBM,
+                   B.NEW_YN,
+                   B.CATG_CD,
+                   B.CG_TP_CD,
+                   REQ.REQ_POS  PLAN_WH_ID,
+                   REQ.PLAN_LOC_ID,
+                   REQ.REQR PLAN_BY,
+                   REQ.PLAN_DT
+              FROM TMT_RORO_MST B
+                   LEFT OUTER JOIN TMT_DO DO
+                      ON (B.VSL_CALL_ID = DO.VSL_CALL_ID AND B.CG_NO = DO.BL_NO)
+                   LEFT OUTER JOIN TMT_SPC_REQ REQ
+                      ON (B.VSL_CALL_ID = REQ.VSL_CALL_ID AND B.CG_NO = REQ.BL_NO)
+                   LEFT OUTER JOIN TMT_DO_DTL DODT
+                      ON     B.VSL_CALL_ID = DODT.VSL_CALL_ID
+                         AND B.CG_NO = DODT.BL_NO
+                         AND DO.DO_NO = DODT.DO_NO
+                   LEFT OUTER JOIN TMT_BL_DTL BL
+                      ON     B.VSL_CALL_ID = BL.VSL_CALL_ID
+                         AND B.CG_NO = BL.BL_NO
+                         AND B.SDO_NO = DODT.SDO_NO
+             WHERE   B.VSL_CALL_ID = #{vslCallId}
+			             <if test="blNo != null and blNo != ''">
+							AND BL.BL_NO = #{blNo}
+						</if>
+						<if test="sdoNo != null and sdoNo != ''">
+							AND DODT.SDO_NO = #{sdoNo}
+						</if>
+				        <if test="delvTpCd != null and delvTpCd != ''">
+							AND DODT.DELV_TP_CD = #{delvTpCd}
+						</if>
+						<if test="unitNo != null and unitNo != ''">
+							AND B.CHAS_NO IN ${unitNo}
+						</if>
+				        AND B.CHAS_NO IS NOT NULL
+				        ORDER BY B.CHAS_NO ASC
+	 		</when>
+	 		<when test="catgCd eq 'E'.toString() ">
+	 			SELECT DISTINCT B.VSL_CALL_ID,
+                  B.VSL_CD,
+                  B.CALL_YEAR,
+                  B.CALL_SEQ,
+                  B.MF_DOC_ID BOOKING_NO,
+                  B.CG_NO,
+                  B.CG_NO AS SHIPG_NOTE_NO,
+                  B.CHAS_NO,
+                  GR.GR_NO,
+                  GR.GR_NO SDO_GR_NO,
+                  B.RORO_SEQ,
+                  <!-- NVL (R.STAT_CD, B.STAT_CD) AS STAT_CD, -->
+                  B.IX_CD,
+                  B.BRAND_CD,
+                  B.MODEL_CD,
+                  B.DOC_WGT,
+                  B.CBM,
+                  B.NEW_YN,
+                  B.CATG_CD,
+                  B.CG_TP_CD,
+                  REQ.REQ_POS PLAN_WH_ID,
+                  REQ.PLAN_LOC_ID,
+                  REQ.REQR PLAN_BY,
+                  REQ.PLAN_DT
+			    FROM TMT_RORO_MST B
+			         LEFT OUTER JOIN TMT_SPC_REQ REQ
+			            ON (    B.VSL_CALL_ID = REQ.VSL_CALL_ID
+			                AND B.CG_NO = REQ.SHIPG_NOTE_NO)
+			         LEFT OUTER JOIN TMT_GR GR
+			            ON     B.VSL_CALL_ID = GR.VSL_CALL_ID
+			               AND B.CG_NO = GR.SHIPG_NOTE_NO
+			         INNER JOIN TMT_SHIPG_NOTE_DTL R
+			            ON     B.VSL_CALL_ID = R.VSL_CALL_ID
+			               AND B.CG_NO = R.SHIPG_NOTE_NO
+			               AND B.GR_NO = GR.GR_NO
+			         LEFT OUTER JOIN
+			         (  SELECT VSL_CALL_ID,
+			                   REQ_SEQ,
+			                   LISTAGG (LOC_ID, ',') WITHIN GROUP (ORDER BY LOC_ID)
+			                      AS PLAN_LOCS
+			              FROM TMT_SPC_PLAN
+			          GROUP BY VSL_CALL_ID, REQ_SEQ) B
+			            ON (REQ.VSL_CALL_ID = B.VSL_CALL_ID)
+				WHERE   B.VSL_CALL_ID = #{vslCallId}
+						<if test="shipgNoteNo != null and shipgNoteNo != ''">
+							AND R.SHIPG_NOTE_NO = #{shipgNoteNo}
+						</if>
+						<if test="grNo != null and grNo != ''">
+							AND GR.GR_NO = #{grNo}
+						</if>
+				        AND B.CHAS_NO IS NOT NULL
+				        ORDER BY B.CHAS_NO ASC
+	 		</when>
+	 	</choose>
+	</select>
+	
+	 <select id="selectRoRoYardPlanUnitHandlingOutList" parameterType="roroYardPlanParm" resultMap="unitMap">
+	 	SELECT DISTINCT B.VSL_CALL_ID,
+                  B.VSL_CD,
+                  B.CALL_YEAR,
+                  B.CALL_SEQ,
+                  B.MF_DOC_ID,
+                  B.CG_NO AS BL_NO,
+                  B.CG_NO,
+                  B.CHAS_NO,
+                  B.RORO_SEQ,
+                  B.IX_CD,
+                  DODT.SDO_NO,
+                  DODT.SDO_NO SDO_GR_NO,
+                  DO.DO_NO,
+                  B.BRAND_CD,
+                  B.MODEL_CD,
+                  B.DOC_WGT,
+                  B.CBM,
+                  B.NEW_YN,
+                  B.CATG_CD,
+                  B.CG_TP_CD,
+                  NVL(DODT.TSPT_TP_CD, DODT.I_TSPT_TP_CD) TSPT_TP_CD
+             FROM TMT_RORO_MST B
+                  LEFT OUTER JOIN TMT_DO DO
+                     ON B.VSL_CALL_ID = DO.VSL_CALL_ID AND B.CG_NO = DO.BL_NO AND DO.DO_NO = B.DO_NO
+                  LEFT OUTER JOIN TMT_DO_DTL DODT
+                     ON     B.VSL_CALL_ID = DODT.VSL_CALL_ID
+                        AND B.CG_NO = DODT.BL_NO
+                        AND B.SDO_NO = DODT.SDO_NO
+             WHERE   B.VSL_CALL_ID = #{vslCallId}
+             <if test="unitNo !=null and unitNo !=''">
+				AND B.CHAS_NO IN ${unitNo}
+			</if>
+			<if test="unitNo ==null or unitNo ==''">
+				AND B.CHAS_NO IN ('ESC')
+			</if>
+	 </select>
+	 
+	 <select id="selectRoRoYardPlanUnitWHCheckImportList" parameterType="roroYardPlanParm" resultMap="unitMap">
+	 	SELECT 	DISTINCT /*bl.selectRoRoItems*/
+			R.VSL_CD
+			,R.CALL_YEAR
+			,R.CALL_SEQ
+			,R.VSL_CALL_ID
+			,R.MF_DOC_ID
+			,R.CG_NO
+			,R.CG_NO as BL_NO
+            ,DT.SDO_NO
+            ,DT.SDO_NO SDO_GR_NO
+			,R.CHAS_NO
+			,R.SEQ
+			,R.BRAND_CD
+			,R.MODEL_CD
+			,B.BRAND_NM
+			,M.MODEL_NM
+			,R.DOC_WGT
+			,R.CBM
+			,R.NEW_YN
+		FROM TMT_BL_DTL R 
+			LEFT OUTER JOIN TMT_BRAND B ON R.BRAND_CD = B.BRAND_CD
+			LEFT OUTER JOIN TMT_BRAND_DTL M  ON R.MODEL_CD = M.MODEL_CD AND R.BRAND_CD = M.BRAND_CD
+			 LEFT OUTER JOIN TMT_DO D ON R.VSL_CALL_ID = D.VSL_CALL_ID AND R.BL_NO = D.BL_NO
+			 LEFT OUTER JOIN TMT_RORO_MST DT ON  R.VSL_CALL_ID = DT.VSL_CALL_ID AND R.CG_NO = DT.CG_NO AND DT.CHAS_NO = R.CHAS_NO
+		WHERE 1=1
+		<if test="vslCallId !=null and vslCallId !=''">
+			AND R.VSL_CALL_ID = #{vslCallId}
+		</if>
+		<if test="mfDocId !=null and mfDocId !=''">
+			AND R.MF_DOC_ID = #{mfDocId}
+		</if>
+		<if test="blNo !=null and blNo !=''">
+			AND R.CG_NO = #{blNo}
+		</if>
+		<if test="unitNo !=null and unitNo !=''">
+			AND R.CHAS_NO IN ${unitNo}
+		</if>
+		AND R.CHAS_NO IN (SELECT TRIM (REGEXP_SUBSTR (( (SELECT LISTAGG ( CHAS_NO, ', ') WITHIN GROUP (ORDER BY CHAS_NO)
+		                                                 FROM (SELECT DISTINCT CHAS_NO
+		                                                         FROM TMT_JOB
+		                                                        WHERE     VSL_CALL_ID = R.VSL_CALL_ID
+		                                                              AND CG_NO = R.BL_NO
+		                                                              AND JOB_PURP_CD IN ('VA')))),
+			                                            '[^,]+',
+			                                            1,
+			                                            LEVEL))
+			                                         CHAS_NO
+			                                 FROM DUAL
+			                           CONNECT BY REGEXP_SUBSTR (
+			                                         ( (SELECT LISTAGG (
+			                                                      CHAS_NO,
+			                                                      ', ')
+			                                                   WITHIN GROUP (ORDER BY
+			                                                                    CHAS_NO)
+			                                              FROM (SELECT DISTINCT CHAS_NO
+			                                                      FROM TMT_JOB
+			                                                     WHERE     VSL_CALL_ID = R.VSL_CALL_ID
+			                                                           AND CG_NO = R.BL_NO
+			                                                           AND JOB_PURP_CD IN ('VA')))),
+			                                         '[^,]+',
+			                                         1,
+			                                         LEVEL)
+			                                         IS NOT NULL)
+		ORDER BY R.CHAS_NO ASC
+	</select>
+	 
+	 
+	 <select id="selectUnitsFromBLListByMode" parameterType="roroYardPlanParm" resultMap="unitMap">
+	 	SELECT DISTINCT  /* roroYardPlan.selectUnitsFromBLListByMode */                                    
+                R.VSL_CD,
+                 R.CALL_YEAR,
+                 R.CALL_SEQ,
+                 R.VSL_CALL_ID,
+                 R.MF_DOC_ID,
+                 R.CG_NO,
+                 R.CHAS_NO,
+                 R.SEQ,
+                 R.BRAND_CD,
+                 R.MODEL_CD,
+                 B.BRAND_NM,
+                 M.MODEL_NM,
+                 R.DOC_WGT,
+                 R.CBM,
+                 R.NEW_YN,
+                 DT.DELV_TP_CD
+		    FROM TMT_BL_DTL R
+		         LEFT OUTER JOIN TMT_BRAND B ON R.BRAND_CD = B.BRAND_CD
+		         LEFT OUTER JOIN TMT_BRAND_DTL M
+		            ON R.MODEL_CD = M.MODEL_CD AND R.BRAND_CD = M.BRAND_CD
+		         LEFT OUTER JOIN TMT_DO D
+		            ON R.VSL_CALL_ID = D.VSL_CALL_ID AND R.BL_NO = D.BL_NO
+		         LEFT OUTER JOIN TMT_DO_DTL DT
+		            ON     R.VSL_CALL_ID = DT.VSL_CALL_ID
+		               AND R.CG_NO = DT.BL_NO
+		               AND DT.DO_NO = D.DO_NO
+		   WHERE     1 = 1
+		        <if test="vslCallId !=null and vslCallId !=''">
+					AND R.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="mfDocId !=null and mfDocId !=''">
+					AND R.MF_DOC_ID = #{mfDocId}
+				</if>
+				<if test="blNo !=null and blNo !=''">
+					AND R.CG_NO = #{blNo}
+				</if>
+		         AND R.CHAS_NO NOT IN (  SELECT DISTINCT B.CHAS_NO
+		                                   FROM TMT_RORO_MST B
+		                                        LEFT OUTER JOIN TMT_BL_DTL BL
+		                                           ON     B.VSL_CALL_ID = BL.VSL_CALL_ID
+		                                              AND B.CG_NO = BL.BL_NO
+		                                  WHERE    B.VSL_CALL_ID = R.VSL_CALL_ID
+                                        		AND BL.BL_NO = R.CG_NO
+		                                        AND B.CHAS_NO IS NOT NULL)
+		ORDER BY R.CHAS_NO ASC
+	</select>
+	 
+	<select id="selectRoRoYardPlanList" parameterType="roroYardPlanParm" resultMap="planMap">
+		SELECT	/* roroYardPlan.selectYardPlanItems */
+				DISTINCT
+				VSL_CALL_ID,
+		        MF_DOC_ID,
+		        CG_NO,
+		        PLAN_LOC_ID,
+		        COUNT(CHAS_NO) OVER (PARTITION BY CG_NO, MF_DOC_ID, VSL_CALL_ID, PLAN_LOC_ID) AS PLANNED_QTY
+		        
+		FROM    TMT_RORO_MST
+		WHERE   VSL_CALL_ID = #{vslCallId}
+		        AND CG_NO = #{cgNo}
+		        AND PLAN_LOC_ID IS NOT NULL
+		ORDER BY PLAN_LOC_ID
+	</select>
+	 
+	<update id="updateYardPlanOfRoRo" parameterType="roroYardPlanItem">
+		UPDATE /*roroYardPlan.updateYardPlanOfRoRo*/
+		TMT_RORO_MST SET     
+			STAFF_CD =  #{userId}
+	        ,UPDATE_TIME = SYSDATE
+			,PLAN_WH_ID = SUBSTR(#{locId}, 0, INSTR(#{locId}, '-')-1)
+	        ,PLAN_LOC_ID = #{locId}
+	        ,LOC_ID = #{locId}
+			,WH_ID = SUBSTR(#{locId}, 0, INSTR(#{locId}, '-')-1)
+	        ,PLAN_BY = #{userId}
+	        ,PLAN_DTM = SYSDATE
+		WHERE VSL_CALL_ID = #{vslCallId}
+        AND CG_NO = #{cgNo}
+        <if test="unitNo != null and unitNo != ''">
+			AND CHAS_NO = #{unitNo}
+		</if>
+		<if test="roroSeq != null and roroSeq != ''">
+			AND RORO_SEQ = #{roroSeq}
+		</if>
+        <if test="sdoNo != null and sdoNo != ''">
+			AND SDO_NO = #{sdoNo}
+		</if>
+		<if test="grNo != null and grNo != ''">
+			AND GR_NO = #{grNo}
+		</if>
+	</update>
+	
+	<update id="deleteYardPlanOfRoRo" parameterType="roroYardPlanItem">
+		UPDATE /*roroYardPlan.deleteYardPlanOfRoRo*/
+		TMT_RORO_MST SET
+			 STAFF_CD =  #{userId}
+	        ,UPDATE_TIME = SYSDATE
+			,PLAN_WH_ID = null
+	        ,PLAN_LOC_ID = null
+	        ,PLAN_BY = null
+	        ,PLAN_DTM = null
+		WHERE VSL_CALL_ID = #{vslCallId}
+        AND CG_NO = #{cgNo}
+        AND CHAS_NO = #{unitNo}
+        AND RORO_SEQ = #{roroSeq}
+	</update>
+</mapper>

@@ -1,0 +1,40 @@
+Ext.define('MOST.model.codes.DetailCode', {
+	extend: 'MOST.model.foundation.dataitem.DataItem',
+	fields: [{
+		name: 'lcd',
+		type: 'string'
+	}, {
+		name: 'mcd',
+		type: 'string'
+	}, {
+		name: 'scd',
+		type: 'string'
+	}, {
+		name: 'scdNm',
+		type: 'string'
+	}, {
+		name: 'scdDesc',
+		type: 'string'
+	},{
+		name: 'version',
+		type: 'string'
+	},{
+		name: 'lcdNm',
+		type: 'string'
+	},{
+		name: 'mcdNm',
+		type: 'string'
+	}, {
+		name: 'useYn',
+		type: 'string'
+	},{
+		name: 'updUserId',
+		type: 'string'
+	},{
+		name: 'updDtm',
+		type: 'string'	
+	},{
+		name: 'scdLgv',
+		type: 'string'
+	}]
+});

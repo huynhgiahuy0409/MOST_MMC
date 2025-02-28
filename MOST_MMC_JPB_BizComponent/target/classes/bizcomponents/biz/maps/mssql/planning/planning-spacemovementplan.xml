@@ -1,0 +1,1938 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="spaceMovementPlan">
+	
+    <select id="selectSpaceMovementDetail"  parameterType="spaceMovementPlanParm" resultType="spaceMovementPlanItem">
+		<if test="pageNo != 0"> 
+        	SELECT /*spaceMovementPlan.selectSpaceMoveMentPlanDetail*/
+        		*
+			FROM (
+					SELECT
+						inner_query.*, ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num
+					FROM (
+		</if>
+				<include refid="getSelectSpaceMovementDetail"/>
+		<if test="pageNo != 0"> 
+				) inner_query
+			) inner_query
+			WHERE
+				inner_query.row_num <![CDATA[>]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT) - 1) * CAST(#{sizePerPage} AS INT)
+		  		AND inner_query.row_num <![CDATA[<=]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT)) * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	 
+	<select id="selectSpaceMovementDetailCount" parameterType="spaceMovementPlanParm" resultType="java.lang.String">
+		SELECT /*spaceMovementPlan.selectSpaceMoveMentPlanDetailCount*/
+			COUNT(*)
+        FROM
+			(<include refid="getSelectSpaceMovementDetail"/>)
+	</select>
+	
+	<sql id="getSelectSpaceMovementDetail">
+		SELECT /*spaceMovementPlan.getSelectSpaceMovementDetail*/
+			(SELECT
+					VSL_NM
+				FROM
+					TMT_VSL_PART
+				WHERE
+					VSL_CD	= TSR.VSL_CD		
+			)													AS vslNm,
+			TSR.SHIP_CALL_NO									AS scn,
+			TSR.VSL_CALL_ID										AS vslCallId,
+			TSR.VSL_CD											AS vslCd,
+			TSR.CALL_YEAR										AS callYear,
+			TSR.CALL_SEQ										AS callSeq,
+			TSR.MF_DOC_ID										AS mfDocId,
+			TSR.SEQ												AS reqSeq,
+			TSR.REQ_NO											AS reqNo,
+	        CASE TSR.STAT_CD
+	        	WHEN 'CNF' THEN  TSP.LOC_ID
+	        	ELSE TSR.REQ_POS
+	        END 												AS reqPos,
+			TSR.PLAN_LOC_ID										AS reqLocId,
+			TSR.REQ_TP_CD										AS reqTpCd,
+			CASE TSR.REQ_TP_CD
+				WHEN 'MOV' THEN 'Movement'
+				ELSE 'Space'
+			END													AS reqTpNm,
+			TSR.REQR											AS reqr,
+			TSR.REQ_DT											AS reqDt,
+			TSR.PLAN_DT											AS planDt,
+			TSR.CG_REF_NO										AS cgRefNo,
+			TSR.CMDT_GRP_CD										AS cmdtGrpCd,
+			TSR.PTNR_CODE										AS ptnrCd,
+			DBO.F_PTNR_SNM(TSR.PTNR_CODE, 'CNS')				AS cngShp,
+			TSR.POD												AS pod,
+			TSR.PLAN_LOC_ID										AS planLocId,
+			TSR.PREV_LOC_ID										AS prevLocId,
+			TSR.RMK												AS rmk,
+			TSR.REQ_QTY											AS reqQty,
+			TSR.REQ_MSRMT										AS reqMsrmt,
+			TSR.REQ_WGT											AS reqWgt,
+			TSR.STAT_CD											AS statCd,
+			CASE TSR.STAT_CD
+				WHEN 'REQ' THEN 'Requested'
+				WHEN 'CNF' THEN 'Planned'
+				WHEN 'REJ' THEN 'Rejected'
+				ELSE 'Saved'
+			END													AS statNm,
+			TSR.OPE_CLASS_CD									AS catgCd,
+			DBO.F_CM_CODE_NM('MT', 'CATGTP', TSR.OPE_CLASS_CD) 	AS catgNm,
+			TSR.SHIPG_NOTE_NO									AS shipgNoteNo,
+			TSR.BL_NO											AS blNo,
+			CASE
+				WHEN TSR.BL_NO IS NULL OR TSR.BL_NO = ''
+					THEN TSR.SHIPG_NOTE_NO
+				ELSE TSR.BL_NO
+			END													AS blSn,
+			TSR.ETA												AS eta,
+			TSR.SVC_DT											AS svcDt,
+			TSR.REQ_M2											AS reqM2,
+			TSR.REQ_MT											AS reqMt,
+			TSR.PERIOD											AS period,
+			TSR.GR_NO											AS grNo,
+			TSR.PAYER											AS payer,
+			BL.LOT_NO											AS lotNo,
+			BL.DO_NO											AS doNo,
+			CASE
+				WHEN (BL.IMDG_CLASS IS NULL OR BL.IMDG_CLASS = '') 
+					THEN 'N'
+				ELSE 'Y'
+			END													AS dgYn,
+			(SELECT TOP(1)
+				CMDT_DESC
+			FROM
+				TMT_CMDT 		CMDT
+			WHERE
+				CMDT.CMDT_CD 	= BL.CMDT_CD
+			) 													AS cmdtNm,
+			DBO.F_CM_CODE_NM('MT', 'PKGTP', BL.PKG_TP_CD)		AS pkgTpNm,
+			DBO.F_CM_CODE_NM('MT', 'CGTP', BL.CG_TP_CD) 		AS cgTpNm,
+			BL.GDS_RMK											AS pkgMark,
+			BL.MARK_NO                         					AS pkgNo,
+			(SELECT TOP(1)
+        		CMDT_GRP_DESC
+        	FROM
+        		TMT_CMDT
+        	WHERE
+        		CMDT_CD = 	BL.CMDT_CD
+	        ) 													AS cmdtGrpNm,
+	        PLAN_LOC_ID											AS locId
+		FROM
+			TMT_SPC_REQ											TSR
+		INNER JOIN (
+			SELECT
+				SBL.LOT_NO,
+				SBL.CMDT_CD,
+				SBL.CG_TP_CD,
+				SBL.GDS_RMK,
+				SBL.MARK_NO,
+				SBL.IMDG_CLASS,
+				SBL.PKG_TP_CD,
+				SBL.VSL_CD,
+				SBL.CALL_SEQ,
+				SBL.CALL_YEAR,
+				SBL.VSL_CALL_ID,
+				SBL.MF_DOC_ID,
+				SBL.BL_NO,
+				DO.DO_NO
+			FROM
+				TMT_BL											SBL					
+			LEFT JOIN (
+				SELECT 
+					DO_NO,
+					VSL_CD,
+					CALL_SEQ,
+					CALL_YEAR,
+					VSL_CALL_ID,
+					MF_DOC_ID,
+					BL_NO
+				FROM 
+					TMT_DO
+			)													DO
+			ON
+				SBL.VSL_CD 										= DO.VSL_CD
+				AND SBL.CALL_SEQ 								= DO.CALL_SEQ
+				AND SBL.CALL_YEAR 								= DO.CALL_YEAR
+				AND SBL.VSL_CALL_ID 							= DO.VSL_CALL_ID
+				AND SBL.MF_DOC_ID 								= DO.MF_DOC_ID
+				AND SBL.BL_NO 									= DO.BL_NO 
+		)														BL
+		ON
+			BL.VSL_CD 											= TSR.VSL_CD
+			AND BL.CALL_SEQ 									= TSR.CALL_SEQ
+			AND BL.CALL_YEAR 									= TSR.CALL_YEAR
+			AND BL.VSL_CALL_ID 									= TSR.VSL_CALL_ID
+			AND BL.MF_DOC_ID 									= TSR.MF_DOC_ID
+			AND BL.BL_NO 										= TSR.BL_NO 
+		LEFT OUTER JOIN (
+			SELECT 
+				VSL_CD,
+				VSL_CALL_ID,
+				REQ_NO,
+				REQ_SEQ,
+				LOC_ID
+			FROM
+				TMT_SPC_PLAN
+		)														TSP
+		ON
+			TSR.VSL_CD											= TSP.VSL_CD
+			AND TSR.VSL_CALL_ID									= TSP.VSL_CALL_ID
+			AND TSR.REQ_NO										= TSP.REQ_NO
+			AND TSR.SEQ											= TSP.REQ_SEQ
+		WHERE
+			TSR.VSL_CD											= #{vslCd}
+			AND TSR.VSL_CALL_ID									= #{vslCallId}
+			<if test="reqNo != null and reqNo != ''">
+				AND TSR.REQ_NO									= #{reqNo}
+			</if>
+			
+		UNION ALL
+		
+		SELECT
+			(SELECT
+				VSL_NM
+			FROM
+				TMT_VSL_PART
+			WHERE
+				VSL_CD	= TSR.VSL_CD		
+			)													AS vslNm,
+			TSR.SHIP_CALL_NO									AS scn,
+			TSR.VSL_CALL_ID										AS vslCallId,
+			TSR.VSL_CD											AS vslCd,
+			TSR.CALL_YEAR										AS callYear,
+			TSR.CALL_SEQ										AS callSeq,
+			TSR.MF_DOC_ID										AS mfDocId,
+			TSR.SEQ												AS reqSeq,
+			TSR.REQ_NO											AS reqNo,
+			CASE TSR.STAT_CD
+	        	WHEN 'CNF' THEN  TSP.LOC_ID
+	        	ELSE TSR.REQ_POS
+	        END 												AS reqPos,
+			TSR.PLAN_LOC_ID										AS reqLocId,
+			TSR.REQ_TP_CD										AS reqTpCd,
+			CASE TSR.REQ_TP_CD
+				WHEN 'MOV' THEN 'Movement'
+				ELSE 'Space'
+			END													AS reqTpNm,
+			TSR.REQR											AS reqr,
+			TSR.REQ_DT											AS reqDt,
+			TSR.PLAN_DT											AS planDt,
+			TSR.CG_REF_NO										AS cgRefNo,
+			TSR.CMDT_GRP_CD										AS cmdtGrpCd,
+			TSR.PTNR_CODE										AS ptnrCd,
+			DBO.F_PTNR_SNM(TSR.PTNR_CODE, 'CNS')				AS cngShp,
+			TSR.POD												AS pod,
+			TSR.PLAN_LOC_ID										AS planLocId,
+			TSR.PREV_LOC_ID										AS prevLocId,
+			TSR.RMK												AS rmk,
+			TSR.REQ_QTY											AS reqQty,
+			TSR.REQ_MSRMT										AS reqMsrmt,
+			TSR.REQ_WGT											AS reqWgt,
+			TSR.STAT_CD											AS statCd,
+			CASE TSR.STAT_CD
+				WHEN 'REQ' THEN 'Requested'
+				WHEN 'CNF' THEN 'Planned'
+				WHEN 'REJ' THEN 'Rejected'
+				ELSE 'Saved'
+			END													AS statNm,
+			TSR.OPE_CLASS_CD									AS catgCd,
+			DBO.F_CM_CODE_NM('MT', 'CATGTP', TSR.OPE_CLASS_CD) 	AS catgNm,
+			TSR.SHIPG_NOTE_NO									AS shipgNoteNo,
+			TSR.BL_NO											AS blNo,
+			CASE
+				WHEN TSR.BL_NO IS NULL OR TSR.BL_NO = ''
+					THEN TSR.SHIPG_NOTE_NO
+				ELSE TSR.BL_NO
+			END													AS blSn,
+			TSR.ETA												AS eta,
+			TSR.SVC_DT											AS svcDt,
+			TSR.REQ_M2											AS reqM2,
+			TSR.REQ_MT											AS reqMt,
+			TSR.PERIOD											AS period,
+			TSR.GR_NO											AS grNo,
+			TSR.PAYER											AS payer,
+			SN.LOT_NO											AS lotNo,
+			''													AS doNo,
+			CASE
+				WHEN (IMDG IS NULL OR IMDG = '') THEN 'N'
+				ELSE 'Y'
+			END													AS dgYn,
+			(SELECT TOP(1)
+				CMDT_DESC
+			FROM
+				TMT_CMDT 		CMDT
+			WHERE
+				CMDT.CMDT_CD 	= SN.CMDT_CD
+			) 													AS cmdtNm,
+			DBO.F_CM_CODE_NM('MT', 'PKGTP', SN.PKG_TP_CD)		AS pkgTpNm,
+			DBO.F_CM_CODE_NM('MT', 'CGTP', SN.CG_TP_CD) 		AS cgTpNm,
+			SN.GDS_RMK											AS pkgMark,
+			SN.MARK_NO                         					AS pkgNo,
+			(SELECT TOP(1)
+        		CMDT_GRP_DESC
+        	FROM
+        		TMT_CMDT
+        	WHERE
+        		CMDT_CD = 	SN.CMDT_CD
+	        ) 													AS cmdtGrpNm,
+	        PLAN_LOC_ID											AS locId
+		FROM
+			TMT_SPC_REQ											TSR
+		INNER JOIN (
+			SELECT
+				LOT_NO,
+				CMDT_CD,
+				CG_TP_CD,
+				GDS_RMK,
+				MARK_NO,
+				IMDG,
+				PKG_TP_CD,
+				VSL_CD,
+				CALL_SEQ,
+				CALL_YEAR,
+				VSL_CALL_ID,
+				MF_DOC_ID,
+				SHIPG_NOTE_NO
+			FROM
+				TMT_SHIPG_NOTE
+		)														SN
+		ON 
+			SN.VSL_CD 											= TSR.VSL_CD
+			AND SN.CALL_SEQ 									= TSR.CALL_SEQ
+			AND SN.CALL_YEAR 									= TSR.CALL_YEAR
+			AND SN.VSL_CALL_ID 									= TSR.VSL_CALL_ID
+			AND SN.MF_DOC_ID 									= TSR.MF_DOC_ID
+			AND SN.SHIPG_NOTE_NO 								= TSR.SHIPG_NOTE_NO
+		LEFT OUTER JOIN (
+			SELECT 
+				VSL_CD,
+				VSL_CALL_ID,
+				REQ_NO,
+				REQ_SEQ,
+				LOC_ID
+			FROM
+				TMT_SPC_PLAN
+		)														TSP
+		ON
+			TSR.VSL_CD											= TSP.VSL_CD
+			AND TSR.VSL_CALL_ID									= TSP.VSL_CALL_ID
+			AND TSR.REQ_NO										= TSP.REQ_NO
+			AND TSR.SEQ											= TSP.REQ_SEQ
+		WHERE
+			TSR.VSL_CD											= #{vslCd}
+			AND TSR.VSL_CALL_ID									= #{vslCallId}
+			<if test="reqNo != null and reqNo != ''">
+				AND TSR.REQ_NO									= #{reqNo}
+			</if>
+	</sql>
+	
+	<!-- sMantis: 0168012 -->
+	<sql id="getSelectSpaceMoveMentPlanDetail">
+		<if  test="masterBL == null or masterBL == '' ">
+			SELECT DISTINCT /*spaceMovementPlan.getSelectSpaceMoveMentPlanDetail masterBL == null or masterBL == ''*/
+				SN.VSL_CALL_ID						AS VSLCALLID,
+				SN.SHIP_CALL_NO						AS SCN,
+				SN.VSL_CD                          	AS VSLCD,
+				SN.CALL_YEAR                       	AS CALLYEAR,
+				SN.CALL_SEQ                        	AS CALLSEQ,
+				(SELECT
+					VSL_NM
+				FROM
+					TMT_VSL_PART
+				WHERE
+					VSL_CD	= SN.VSL_CD
+				)									AS VSLNM,
+				REQ.REQ_NO 							AS REQNO,
+				REQ.SEQ 							AS SEQ,
+				REQ.SEQ 							AS REQSEQ,
+				SN.MF_DOC_ID                       	AS MFDOCID,
+				NULL							    AS BLNO,
+				NULL							    AS DONO,
+				CASE SN.CG_TP_CD
+					WHEN 'RCV' THEN GR.GR_NO
+					ELSE ''
+				END AS GRNO,
+				CASE SN.CG_TP_CD
+					WHEN 'RCV' THEN GR.GR_NO
+					ELSE ''
+				END AS SDOGRNO,
+				<!-- 
+				GR.GR_NO							AS GRNO,
+				(CASE
+					WHEN SN.CG_TP_CD IS NOT NULL
+						THEN GR.GR_NO
+					ELSE ''
+				END) 								AS SDOGRNO,
+				-->
+				(SELECT
+					COUNT(R.CHASSIS_NO) 									
+		        FROM
+					TMT_RORO_MST R
+		          WHERE
+					R.VSL_CALL_ID 					= SN.VSL_CALL_ID
+		            AND R.CG_NO 					= SN.SHIPG_NOTE_NO
+		            AND R.GR_NO 					= GR.GR_NO
+		            AND R.IX_CD 					= 'X'
+				) 									AS NOOFVIN,
+				SN.SHIPG_NOTE_NO					AS SHIPGNOTENO,
+				SN.SHIPG_NOTE_NO					AS BLSN,
+				REQ_POS								AS REQPOS,
+				PLAN_LOC_ID							AS PLANLOCID,
+				PREV_LOC_ID							AS PREVLOCID,
+				SN.MARK_NO                          AS PKGNO,
+				SN.GDS_RMK                         	AS PKGMARK,
+				CASE SN.CG_TP_CD
+					WHEN 'RCV' THEN GR.CG_WGT
+					ELSE SN.CG_WGT
+				END 								AS REQWGT,
+				CASE SN.CG_TP_CD
+					WHEN 'RCV' THEN GR.CG_VOL
+					ELSE SN.CG_VOL
+				END  								AS REQMSRMT,
+				CASE SN.CG_TP_CD
+					WHEN 'RCV' THEN GR.PKG_QTY
+					ELSE SN.PKG_QTY
+				END   								AS REQQTY,
+				SN.CATG_CD                         	AS CATGCD,
+				(SELECT TOP 1
+					S_CD_NM
+				FROM
+					TMT_CD_MSTD MSTD
+				WHERE
+					L_CD = 'MT'
+					AND M_CD = 'CATGTP'
+					AND SN.CATG_CD = MSTD.S_CD
+				) 									AS CATGNM,
+				SN.CG_TP_CD                        	AS CGTPCD,
+				(SELECT TOP 1
+					S_CD_NM
+				FROM
+					TMT_CD_MSTD
+				WHERE
+					L_CD = 'MT'
+					AND M_CD = 'CGTP'
+					AND S_CD_USE = 'Y'
+					AND  S_CD = SN.CG_TP_CD
+				) 									AS CGTPNM,
+				SN.CMDT_GRP_CD                     	AS CMDTGRPCD,
+				(SELECT TOP 1
+					CMDT_GRP_DESC
+				FROM
+					TMT_CMDT_GRP
+				WHERE 
+					CMDT_GRP_CD = SN.CMDT_GRP_CD) 	AS CMDTGRPNM,
+				SN.CMDT_CD                         	AS CMDTCD,
+				(SELECT TOP 1
+					CMDT_DESC
+				FROM
+					TMT_CMDT CMDT
+				WHERE 
+					CMDT.CMDT_CD 					= SN.CMDT_CD 
+					AND CMDT.CMDT_GRP_CD 			= SN.CMDT_GRP_CD
+				) 									AS CMDTNM,
+				SN.PKG_TP_CD                       	AS PKGTPCD,
+				(SELECT TOP 1
+					S_CD_NM 
+				FROM 
+					TMT_CD_MSTD 
+				WHERE 
+					L_CD 							= 'MT' 
+					AND M_CD 						= 'PKGTP' 
+					AND S_CD_USE 					= 'Y' 
+					AND  S_CD 						= SN.PKG_TP_CD
+				) 									AS PKGTPNM,
+				SN.IMDG                            	AS IMDGCLASS,
+				SN.UNNO                            	AS UNNO,
+				PAYER                              	AS PAYER,
+				REQ_TP_CD                          	AS REQTPCD,
+				MV_TP                              	AS MVTP,
+				(CASE REQ_TP_CD
+					WHEN 'SPA' THEN 'Space'
+					WHEN 'MOV' THEN 'Movement'
+					ELSE 'Space'
+				END)								AS REQTPNM,
+				FORMAT(REQ_DT,'dd/MM/yyyy HH:mm')	AS REQDT,
+				FORMAT(PLAN_DT,'dd/MM/yyyy HH:mm')	AS PLANDT,
+				REQR                               	AS REQR,
+				CG_REF_NO							AS CGREFNO,
+				ISNULL(REQ.RMK,' ')					AS RMK,
+				REQ.STAT_CD							AS STATCD,
+				(CASE REQ.STAT_CD
+					WHEN 'SAV' THEN 'Saved'
+					WHEN 'REQ' THEN 'Requested'
+					WHEN 'CNF' THEN 'Planned'
+					WHEN 'REJ' THEN 'Rejected'
+					ELSE 'Saved'
+				END)								AS STATNM,
+				REQ.OPE_CLASS_CD					AS OPECLASSCD,
+				REQ.REF_NO							AS REFNO,	
+				CASE
+					WHEN REQ.ETA IS NULL OR REQ.ETA = ''
+						THEN CONVERT(DATE, SN.EST_ARRV_DT)
+					ELSE REQ.ETA
+				END 	 							AS ETA,
+				SVC_DT								AS SVCDT,
+				PERIOD								AS PERIOD,
+				REQ_M2								AS REQM2,
+				REQ_MT								AS REQMT,
+				PLAN_LOCS							AS LOCID,
+				SN.FWRD 							AS FWDAGNT,
+				SN.SHIPG_AGNCY 						AS SHIPGAGNT,
+				DBO.F_PTNR_SNM(SN.SHPR, 'CNS')		AS CNGSHP,
+				(CASE
+					WHEN (REQ_NO IS NOT NULL AND REQ_NO <![CDATA[<>]]> '') THEN 'U'
+					ELSE 'C'
+				END)								AS WORKINGSTATUS,
+				SN.LOT_NO							AS LOTNO,
+				SN.POD								AS POD,
+				CASE
+					WHEN (IMDG IS NULL OR IMDG = '') THEN 'N'
+					ELSE 'Y'
+				END								AS DGYN
+			FROM
+				TMT_SHIPG_NOTE SN
+			    LEFT OUTER JOIN TMT_GR GR
+					ON SN.VSL_CALL_ID 				= GR.VSL_CALL_ID
+					AND SN.SHIPG_NOTE_NO 			= GR.SHIPG_NOTE_NO
+			    LEFT OUTER JOIN TMT_SPC_REQ REQ
+					ON (SN.VSL_CALL_ID 				= REQ.VSL_CALL_ID
+					AND SN.SHIPG_NOTE_NO 			= REQ.SHIPG_NOTE_NO
+					AND GR.GR_NO 					= REQ.GR_NO
+					<!-- 
+					<if  test="cgTpCd eq 'RCV'.toString()">
+				    	AND GR.GR_NO 				= REQ.GR_NO
+				    </if>
+					 -->
+				    )
+				INNER JOIN TMT_SHIPG_NOTE_DTL R
+					ON SN.VSL_CALL_ID 				= R.VSL_CALL_ID
+					AND SN.SHIPG_NOTE_NO 			= R.SHIPG_NOTE_NO
+			    LEFT OUTER JOIN (
+			    	SELECT 
+					    VSL_CALL_ID,
+					    TMT_SPC_PLAN.REQ_SEQ,										
+						STRING_AGG(LOC_ID, ',') WITHIN GROUP (ORDER BY LOC_ID) AS PLAN_LOCS
+					FROM
+						TMT_SPC_PLAN
+					GROUP BY
+						VSL_CALL_ID,
+						TMT_SPC_PLAN.REQ_SEQ											
+				) B
+					ON (
+						REQ.VSL_CALL_ID = B.VSL_CALL_ID 
+						AND REQ.SEQ = B.REQ_SEQ
+					)																
+			WHERE
+				1 = 1
+			<if test="vslCallId != null and vslCallId != ''">
+				AND SN.VSL_CALL_ID 					= #{vslCallId}
+			</if>
+			<if test="bookingNo != null and bookingNo != ''">
+				AND	SN.MF_DOC_ID 					= #{bookingNo}
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				AND SN.SHIPG_NOTE_NO 				= #{shipgNoteNo}
+			</if>
+			<if test="cmdtGrpCd != null and cmdtGrpCd != ''">
+				AND SN.CMDT_GRP_CD 					= #{cmdtGrpCd}
+			</if>
+			<if test="cngShp != null and cngShp != ''">
+            	AND SN.SHPR 						= #{cngShp}
+            </if>
+			<if test="pod != null and pod != ''">
+            	AND SN.POD 							= #{pod}
+            </if>
+			<if test="isNotPlanned">
+				AND (REQ_NO IS NULL 				OR REQ_NO = '')
+			</if>
+			<if test=" searchType == 'SpaceMovementSummary' ">
+				AND (REQ_NO IS NOT NULL AND REQ_NO <![CDATA[<>]]> '')
+			</if>
+			<if test="reqTpCd != null and reqTpCd != ''">
+	   			AND REQ_TP_CD 						= #{reqTpCd}
+			</if>
+			<if test="reqStDt != null and reqStDt != ''">
+   				AND
+		 		<![CDATA[
+					REQ_DT >= CONVERT(DATE, #{reqStDt}, 103)
+		 		]]>  
+			</if>
+			<if test="reqEndDt != null and reqEndDt != ''">
+   				AND
+		 		<![CDATA[
+					REQ_DT <= DATEADD(DAY, 1, CONVERT(DATE, #{reqEndDt}, 103))
+		 		]]>  
+			</if>
+			<if test="reqPos != null and reqPos != ''">
+				AND PLAN_LOC_ID LIKE '${reqPos}%'
+			</if>
+			<if test="lotNo != null and lotNo != ''">
+				AND SN.LOT_NO 						= #{lotNo}
+			</if>
+			<if test="grNo != null and grNo != ''">
+				AND GR.GR_NO 						= #{grNo}
+			</if>
+		</if>
+		<if test="bookingNo == null or bookingNo == ''   ">
+			<if test=" masterBL == null or masterBL == '' ">
+		 		UNION
+		 	</if>
+		</if>
+		<if test="bookingNo == null or bookingNo == ''">
+			SELECT DISTINCT /*spaceMovementPlan.getSelectSpaceMoveMentPlanDetail bookingNo == null or bookingNo == ''*/
+				BL.VSL_CALL_ID						AS VSLCALLID,
+				BL.SHIP_CALL_NO						AS SCN,
+				BL.VSL_CD                          	AS VSLCD,
+				BL.CALL_YEAR                       	AS CALLYEAR,
+				BL.CALL_SEQ                        	AS CALLSEQ,
+				(SELECT
+					VSL_NM
+				FROM
+					TMT_VSL_PART
+				WHERE
+					VSL_CD	= BL.VSL_CD
+				)									AS VSLNM,	
+				REQ_NO								AS REQNO,
+				REQ.SEQ								AS SEQ,			
+				REQ.SEQ								AS REQSEQ,		
+				BL.MF_DOC_ID                       	AS MFDOCID,
+				BL.BL_NO							AS BLNO,
+				DO.DO_NO							AS DONO,
+				NULL								AS GRNO,
+				CASE BL.CG_TP_CD
+					WHEN 'RCV'
+						THEN S.SDO_NO
+					ELSE ''
+				END 								AS SDOGRNO,
+				CASE BL.CG_TP_CD
+					WHEN 'RCV' THEN S.TOTAL_VIN
+					ELSE 0
+				END  								AS NOOFVIN, 
+				NULL			 					AS SHIPGNOTENO,
+				BL.BL_NO							AS BLSN,
+				REQ_POS								AS REQPOS,
+				PLAN_LOC_ID							AS PLANLOCID,
+				PREV_LOC_ID							AS PREVLOCID,
+				BL.MARK_NO							AS PKGNO,
+				BL.GDS_RMK							AS PKGMARK,
+				CASE BL.CG_TP_CD
+					WHEN 'RCV'
+						THEN S.CG_WGT
+					ELSE BL.CG_WGT
+				END 								AS REQWGT,
+				CASE BL.CG_TP_CD
+					WHEN 'RCV'
+						THEN S.CG_VOL
+					ELSE 
+						BL.CG_VOL
+				END 								AS REQMSRMT, 
+				CASE BL.CG_TP_CD
+					WHEN 'RCV'
+						THEN S.PKG_QTY
+					ELSE BL.PKG_QTY
+				END  								AS REQQTY, 
+				BL.CATG_CD                         	AS CATGCD,
+				(SELECT TOP 1
+					S_CD_NM
+				FROM
+					TMT_CD_MSTD MSTD
+				WHERE
+					L_CD 							= 'MT'
+					AND M_CD 						= 'CATGTP'
+					AND BL.CATG_CD 					= MSTD.S_CD
+				) 									AS CATGNM,
+				BL.CG_TP_CD                        	AS CGTPCD,
+				(SELECT TOP 1
+					S_CD_NM
+				FROM
+					TMT_CD_MSTD
+				WHERE
+					L_CD 							= 'MT'
+					AND M_CD 						= 'CGTP'
+					AND S_CD_USE 					= 'Y'
+					AND  S_CD 						= BL.CG_TP_CD
+				) 									AS CGTPNM,
+				BL.CMDT_GRP_CD                     	AS CMDTGRPCD,
+				(SELECT TOP 1
+					CMDT_GRP_DESC
+				FROM
+					TMT_CMDT_GRP
+				WHERE 
+					CMDT_GRP_CD = BL.CMDT_GRP_CD) 	AS CMDTGRPNM,
+				BL.CMDT_CD                         	AS CMDTCD,
+				(SELECT TOP 1
+					CMDT_DESC
+				FROM
+					TMT_CMDT
+					CMDT
+				WHERE
+					CMDT.CMDT_CD 					= BL.CMDT_CD
+				) 									AS CMDTNM,
+				BL.PKG_TP_CD                       	AS PKGTPCD,
+				(SELECT TOP 1
+					S_CD_NM
+				FROM
+					TMT_CD_MSTD
+				WHERE
+					L_CD 							= 'MT'
+					AND M_CD 						= 'PKGTP'
+					AND S_CD_USE 					= 'Y'
+					AND  S_CD 						= BL.PKG_TP_CD
+				) 									AS PKGTPNM,
+				BL.IMDG_CLASS                      	AS IMDGCLASS,
+				BL.UNNO                            	AS UNNO,
+				PAYER 								AS PAYER,
+				REQ_TP_CD							AS REQTPCD,
+				MV_TP								AS MVTP,
+				(CASE REQ_TP_CD
+					WHEN 'SPA' THEN 'Space'
+					WHEN 'MOV' THEN 'Movement'
+					ELSE 'Space'
+				END) 								AS REQTPNM,
+				FORMAT(REQ_DT,'dd/MM/yyyy HH:mm')	AS REQDT,
+				FORMAT(PLAN_DT,'dd/MM/yyyy HH:mm')	AS PLANDT,
+				REQR								AS REQR,
+				CG_REF_NO							AS CGREFNO,
+				ISNULL(REQ.RMK,' ')					AS RMK,
+				REQ.STAT_CD							AS STATCD,
+				(CASE REQ.STAT_CD
+					WHEN 'SAV' THEN 'Saved'
+					WHEN 'REQ' THEN 'Requested'
+					WHEN 'CNF' THEN 'Planned'
+					WHEN 'REJ' THEN 'Rejected'
+					ELSE 'Saved'
+				END)								AS STATNM,
+				REQ.OPE_CLASS_CD					AS OPECLASSCD,
+				REQ.REF_NO							AS REFNO,
+				CASE
+					WHEN REQ.ETA IS NULL OR REQ.ETA = ''
+						THEN CONVERT(DATE, S.EST_ARRV_DT)
+					ELSE REQ.ETA
+				END 	 							AS ETA,
+				SVC_DT								AS SVCDT,
+				PERIOD								AS PERIOD,
+				REQ_M2								AS REQM2,
+				REQ_MT								AS REQMT,
+				PLAN_LOCS							AS LOCID,
+				BL.FWRD 							AS FWDAGNT,
+				(SELECT
+					AGENCY_CODE
+				FROM
+					TMT_AGENCY_INFO 	PTNR
+				INNER JOIN 
+					(SELECT 
+						VSL_CALL_ID,
+						ARRV_SA_ID
+					FROM 
+						TMT_VSL_SCH	
+					) 					SCH
+					ON SCH.ARRV_SA_ID 	= PTNR.AGENCY_CODE 
+				WHERE
+					 SCH.VSL_CALL_ID	= BL.VSL_CALL_ID 
+				)									AS SHIPGAGNT,
+				DBO.F_PTNR_SNM(BL.CNSNE, 'CNS')		AS CNGSHP,
+				(CASE
+					WHEN (REQ_NO IS NOT NULL AND REQ_NO <![CDATA[<>]]> '') THEN 'U'
+					ELSE 'C'
+				END)								AS WORKINGSTATUS,
+				BL.LOT_NO							AS LOTNO,
+				BL.POD								AS POD,
+				CASE
+					WHEN (IMDG_CLASS IS NULL OR IMDG_CLASS = '') 
+						THEN 'N'
+					ELSE 'Y'
+				END									AS DGYN
+			FROM
+				TMT_BL BL						
+			    	LEFT OUTER JOIN TMT_DO DO
+						ON (BL.VSL_CALL_ID 			= DO.VSL_CALL_ID
+						AND BL.BL_NO 				= DO.BL_NO)
+			    	LEFT OUTER JOIN
+			    		(SELECT
+							SUM(ISNULL(DODT.I_QTY, 0) + ISNULL(DODT.D_QTY, 0)) 	AS TOTAL_VIN,
+							SUM(ISNULL(DODT.I_QTY, 0) + ISNULL(DODT.D_QTY, 0)) 	AS PKG_QTY,
+							SUM(ISNULL(DODT.I_MT, 0)  + ISNULL(DODT.D_MT, 0)) 	AS CG_WGT,
+							SUM(ISNULL(DODT.I_M3, 0)  + ISNULL(DODT.D_M3, 0)) 	AS CG_VOL,
+                          	DODT.VSL_CALL_ID,
+                       		DODT.BL_NO,
+                       		DODT.DO_NO,
+                          	DODT.SDO_NO,
+                    		DODT.EST_ARRV_DT 							AS EST_ARRV_DT
+                        FROM
+							TMT_DO_DTL DODT
+                    	WHERE
+							DODT.VSL_CALL_ID 							= #{vslCallId}
+                   		GROUP BY
+							DODT.VSL_CALL_ID,
+							DODT.BL_NO,
+							DODT.DO_NO,
+							DODT.SDO_NO,
+							DODT.EST_ARRV_DT
+						) S
+           					ON BL.VSL_CALL_ID 							= S.VSL_CALL_ID
+               				AND BL.BL_NO 								= S.BL_NO
+               				AND DO.DO_NO 								= S.DO_NO
+                 	LEFT OUTER JOIN 
+                 		TMT_SPC_REQ REQ
+							ON (BL.VSL_CALL_ID 			= REQ.VSL_CALL_ID
+							AND BL.BL_NO 				= REQ.BL_NO
+				    <if  test="cgTpCd eq 'RCV'.toString()">
+				    	AND S.SDO_NO 				= REQ.SDO_NO
+				    </if>)
+			     	LEFT OUTER JOIN (
+			    		SELECT
+					    	VSL_CALL_ID,
+					    	TMT_SPC_PLAN.REQ_SEQ,										
+							STRING_AGG(LOC_ID, ',') WITHIN GROUP (ORDER BY LOC_ID) AS PLAN_LOCS
+						FROM
+							TMT_SPC_PLAN
+						GROUP BY
+							VSL_CALL_ID,
+							TMT_SPC_PLAN.REQ_SEQ										
+						) B
+							ON (REQ.VSL_CALL_ID 	= B.VSL_CALL_ID
+							AND REQ.SEQ 			= B.REQ_SEQ)							
+			WHERE
+				1 = 1
+			<if test="vslCallId != null and vslCallId != ''">
+				AND BL.VSL_CALL_ID 					= #{vslCallId}
+			</if>
+			<if test='jpvcTp == "CallId"'>
+				AND BL.VSL_CALL_ID <![CDATA[<>]]> 'STRG'
+			</if>
+			<if test="masterBL != null and masterBL != ''">
+				AND BL.MF_DOC_ID 					= #{masterBL}
+			</if>
+			<if test="blNo != null and blNo != ''">
+				AND BL.BL_NO 						= #{blNo}
+			</if>
+			<if test="cngShp != null and cngShp != ''">
+            	AND BL.CNSNE 						= #{cngShp}
+            </if>
+			<if test="pod != null and pod != ''">
+            	AND BL.POD 							= #{pod}
+            </if>
+			<if test="isNotPlanned">
+				AND (REQ_NO IS NULL OR REQ_NO = '')
+			</if>
+			<if test=" searchType == 'SpaceMovementSummary' ">
+				AND (REQ_NO IS NOT NULL AND REQ_NO <![CDATA[<>]]> '')
+			</if>
+			<if test="reqTpCd != null and reqTpCd != ''">
+   				AND REQ_TP_CD 						= #{reqTpCd}
+			</if>
+			<if test="reqStDt != null and reqStDt != ''">
+   				AND
+		 		<![CDATA[
+					REQ_DT >= CONVERT(DATE, #{reqStDt},103)
+		 		]]>  
+			</if>
+			<if test="reqEndDt != null and reqEndDt != ''">
+   				AND
+		 		<![CDATA[
+					REQ_DT <= DATEADD(DAY, 1, CONVERT(DATE, #{reqEndDt}, 103))
+		 		]]>  
+			</if>
+			<if test="reqPos != null and reqPos != ''">
+				AND PLAN_LOC_ID LIKE '${reqPos}%'
+			</if>
+			<if test="lotNo != null and lotNo != ''">
+				AND BL.LOT_NO 						= #{lotNo}
+			</if>
+			<if test="sdoNo != null and sdoNo != ''">
+				AND S.SDO_NO 						= #{sdoNo}
+			</if>
+		</if>
+	</sql>
+	<!-- eMantis: 0168012 -->
+	
+   	<select id="selectSpaceMovementRequestList" parameterType="spaceMovementPlanParm" resultType="spaceMovementPlanItem">
+		<if test="pageNo != 0"> 
+        	SELECT /*spaceMovementPlan.selectSpaceMovementRequestList*/
+        		*
+			FROM (
+					SELECT
+						inner_query.*, ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num
+					FROM (
+		</if>
+				<include refid="getSpcMovRequestGroupList"/>
+		<if test="pageNo != 0"> 
+				) inner_query
+			) inner_query
+			WHERE
+				inner_query.row_num <![CDATA[>]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT) - 1) * CAST(#{sizePerPage} AS INT)
+		  		AND inner_query.row_num <![CDATA[<=]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT)) * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<select id="selectSpaceMovementRequestListCount" parameterType="spaceMovementPlanParm" resultType="java.lang.String">
+		SELECT /*spaceMovementPlan.selectSpaceMovementRequestListCount*/
+			COUNT(*)
+        FROM
+			(<include refid="getSpcMovRequestGroupList"/>)		AS selectSpaceMovementRequestListCount
+	</select>
+	
+	<sql id="getSpcMovRequestGroupList" >
+		SELECT /*spaceMovementPlan.getSpcMovRequestGroupList*/
+			*
+		FROM
+			(
+			SELECT
+				 VSLCD,
+				 VSLCALLID 										AS VSLCALLID,
+				 SCN											AS SCN,
+				 (SELECT
+					VSL_NM
+				 FROM
+					TMT_VSL_PART
+				 WHERE
+					VSL_CD	= VSLCD
+				 ) 												AS VSLNM,
+				 SPC.REQNO 										AS REQNO,
+				 SPC.PAYER										AS PAYER,
+				 (CASE CHARINDEX('MOV', STATUS)
+					WHEN 0 THEN 'SPC'
+					ELSE (
+						CASE CHARINDEX('SPC', STATUS)
+							WHEN 0 THEN 'MOV'
+							ELSE 'BSM'
+						END)
+				 END)											AS REQTPCD,
+				 SPC.REQDT 										AS REQDT,
+				 SPC.STATNM										AS STATNM,
+				 (CASE CHARINDEX('MOV', STATUS)
+				 	WHEN 0 THEN 'Space'
+				 	ELSE (
+				 		CASE CHARINDEX('SPC', STATUS)
+				 			WHEN 0 THEN 'Movement'
+				 			ELSE 'Both'
+				 		END)
+				 END)  											AS REQTPNM,
+				 SPC.REQR       								AS REQR,
+				 SPC.STATCD     								AS STATCD,
+				 SPC.CGREFNO									AS CGREFNO
+			FROM (
+			    SELECT
+			    	 VSL_CD										AS VSLCD,
+			         VSL_CALL_ID 								AS VSLCALLID,
+			         SHIP_CALL_NO								AS SCN,
+					 REQ_NO 									AS REQNO,
+					 MAX(payer) 								AS PAYER,
+					 FORMAT(MAX(REQ_DT),'dd/MM/yyyy HH:mm')		AS REQDT,
+					 MAX(REQR)									AS REQR,
+					 MIN(STAT_CD)          						AS STATCD,
+					 (CASE MIN(STAT_CD)
+						WHEN 'SAV' THEN 'Saved'
+						WHEN 'REQ' THEN 'Requested'
+						WHEN 'CNF' THEN 'Planned'
+						WHEN 'REJ' THEN 'Rejected'
+						ELSE 'Saved'
+					 END)										AS STATNM,
+					 STRING_AGG(REQ_TP_CD, ',')
+							WITHIN GROUP (ORDER BY REQ_TP_CD)   AS STATUS,
+					 COUNT(SEQ)      							AS CGREFNO
+			    FROM
+					TMT_SPC_REQ
+			    GROUP BY
+			    	SHIP_CALL_NO,
+					VSL_CALL_ID,
+					REQ_NO,
+					VSL_CD
+				) SPC
+			WHERE
+				1 = 1
+			<if test="vslCallId != null and vslCallId != ''">
+   				AND VSLCALLID 									= #{vslCallId}
+			</if>
+			<if test="scn != null and scn != ''">
+   				AND SCN 										= #{scn}
+			</if>
+			<if test="vslCallId == null or vslCallId == ''">
+ 				AND VSLCALLID 									<![CDATA[<>]]> 'STRG'
+			</if> 
+		) 														AS S
+		WHERE
+			1 = 1
+		<if test="reqStDt != null and reqStDt != ''">
+			AND
+	 		<![CDATA[
+				CONVERT(DATETIME, REQDT,103) >= CONVERT(DATETIME, #{reqStDt},103)
+	 		]]>  
+		</if>
+		<if test="reqEndDt != null and reqEndDt != ''">
+  			AND
+	 		<![CDATA[
+				CONVERT(DATETIME, REQDT, 103) <= DATEADD(DAY, 1, CONVERT(DATETIME, #{reqEndDt}, 103))
+	 		]]>  
+		</if>
+		<if test="reqTpCd != null and reqTpCd != ''">
+  			AND REQTPCD 										= #{reqTpCd}
+		</if>
+		<if test="statCd != null and statCd != ''">
+   			AND STATCD 											= #{statCd}
+		</if>
+	</sql>
+	
+	<select id="selectMultipleSearchFilterCombo" parameterType="spaceMovementPlanParm" resultType="spaceMovementPlanItem">
+		SELECT /*spaceMovementPlan.selectMultipleSearchFilterCombo*/
+			BL_NO									AS CGNO,
+		    VSL_CALL_ID 							AS VSLCALLID
+		    <if test="searchType != null and searchType == 'cmdtGrpCombo' ">
+		    	, LOT_NO							AS lotNo
+		    	, CMDT_CD							AS cmdtCd
+		        , CMDT_GRP_CD						AS cmdtGrpCd
+		        , (
+		        	SELECT TOP(1)
+		        		CMDT_GRP_DESC
+		        	FROM
+		        		TMT_CMDT
+		        	WHERE
+		        		CMDT_CD = BL.CMDT_CD
+		        ) 									AS cmdtGrpNm
+		    </if>
+		    <if test="searchType != null and searchType == 'podCombo' ">
+		        ,POD
+		        ,DBO.F_CM_CODE_NM('MT',
+								'PORT',
+								POD) 				AS PODNM
+		    </if>
+		    <if test="searchType != null and searchType == 'cngShpCombo' ">
+		    	,CNSNE	AS	CNGSHP
+		    	,CNSNE
+					+ ' ('
+					+ DBO.F_PTNR_SNM(CNSNE, 'CNS')
+					+ ')' 							AS CNGSHPNM
+		    </if>
+		FROM
+			TMT_BL 									BL
+		WHERE
+			VSL_CALL_ID 							= #{vslCallId}
+		GROUP BY
+			BL_NO,
+			VSL_CALL_ID
+		    <if test="searchType != null and searchType == 'podCombo' ">
+		        ,POD
+		    </if>
+		    <if test="searchType != null and searchType == 'cngShpCombo' ">
+		    	,CNSNE
+		    </if>
+		    <if test="searchType != null and searchType == 'cmdtGrpCombo' ">
+		    	, CMDT_GRP_CD
+		    	, CMDT_CD
+		    	, LOT_NO
+		    </if>
+		UNION
+		
+		SELECT 
+			SHIPG_NOTE_NO							AS CGNO,
+		    VSL_CALL_ID 							AS VSLCALLID
+		    <if test="searchType != null and searchType == 'cmdtGrpCombo' ">
+		    	, LOT_NO							AS lotNo
+		    	, CMDT_CD							AS cmdtCd
+		        , CMDT_GRP_CD						AS cmdtGrpCd
+		        , (
+		        	SELECT TOP(1)
+		        		CMDT_GRP_DESC
+		        	FROM
+		        		TMT_CMDT
+		        	WHERE
+		        		CMDT_CD = SN.CMDT_CD
+		        ) 									AS cmdtGrpNm
+		    </if>
+		    <if test="searchType != null and searchType == 'podCombo' ">
+		        ,POD
+		        ,DBO.F_CM_CODE_NM('MT',
+								'PORT',
+								POD) 				AS PODNM
+		    </if>
+		    <if test="searchType != null and searchType == 'cngShpCombo' ">
+		    	,SHPR AS CNGSHP
+		    	,SHPR
+					+ ' ('
+					+ DBO.F_PTNR_SNM(SHPR, 'CNS')
+					+ ')' 							AS CNGSHPNM
+		    </if>
+		FROM
+			TMT_SHIPG_NOTE 							SN
+		WHERE
+			CATG_CD IN ('E')
+			AND VSL_CALL_ID 						= #{vslCallId}
+		GROUP BY
+			SHIPG_NOTE_NO,
+			VSL_CALL_ID
+	    <if test="searchType != null and searchType == 'podCombo' ">
+	        ,POD
+	    </if>
+	    <if test="searchType != null and searchType == 'cngShpCombo' ">
+	    	,SHPR
+	    </if>
+	    <if test="searchType != null and searchType == 'cmdtGrpCombo' ">
+	    	, CMDT_GRP_CD
+	    	, CMDT_CD
+	    	, LOT_NO
+	    </if>
+	</select>
+	
+	<select id="selectGrList"  parameterType="spaceMovementPlanParm" resultType="spaceMovementPlanItem">
+		SELECT /*spaceMovementPlan.selectGrList*/
+			GR_NO 						AS grNo
+		FROM
+			TMT_GR
+		WHERE
+			SHIPG_NOTE_NO 				= #{shipgNoteNo}
+	</select>
+
+  	<select id="selectBlSnInfo"  parameterType="spaceMovementPlanParm" resultType="spaceMovementPlanItem">
+  		SELECT /*spaceMovementPlan.selectBlSnInfo*/
+  			VSL_CALL_ID				AS VSLCALLID,
+			SHIPG_AGNT 				AS SHIPGAGNT,
+			FWR_AGNT				AS FWDAGNT,
+			(CASE
+				WHEN (B.CNSNE_NM IS NULL OR B.CNSNE_NM = '') THEN ' '
+				ELSE B.CNSNE_NM
+			END) 					AS CNSNE,
+			(CASE
+				WHEN (B.SHPR_NM IS NULL OR B.SHPR_NM = '') THEN ' '
+				ELSE B.SHPR_NM
+			END) 					AS SHPR,
+			CNSNE					AS CNSNE,
+			SHPR					AS SHPR,
+			SHIPG_NOTE_NO			AS SHIPGNOTENO,
+			BL_NO					AS BLNO
+		FROM
+			TMT_CG_MST 				B
+		WHERE
+			1 = 1
+		<if test="vslCallId != null and vslCallId != ''">
+			AND VSL_CALL_ID 		= #{vslCallId}
+		</if>
+		<if test="shipgNoteNo != null and shipgNoteNo != ''">
+			AND SHIPG_NOTE_NO 		= #{shipgNoteNo}
+		</if>
+		<if test="blNo != null and blNo != ''">
+			AND BL_NO 				= #{blNo}
+		</if>
+    </select> 
+    
+ 	<select id="selectSpaceMovementSnInfo"  parameterType="spaceMovementPlanParm" resultType="spaceMovementPlanItem">
+		WITH RecursiveCTE AS (
+					SELECT
+						curr,
+						prev,
+						VSL_CALL_ID,
+						CAST(LOC_ID AS VARCHAR(MAX)) 													AS LOC_ID_Path
+					FROM (
+						SELECT
+							INV.VSL_CALL_ID 															AS VSL_CALL_ID,
+							INV.LOC_ID 																	AS LOC_ID,
+							ROW_NUMBER() OVER (PARTITION BY INV.VSL_CALL_ID ORDER BY INV.LOC_ID)     	AS curr,
+							ROW_NUMBER() OVER (PARTITION BY INV.VSL_CALL_ID ORDER BY INV.LOC_ID) - 1 	AS prev
+						FROM
+							TMT_INV_LOC INV,
+							TMT_GR GR
+						WHERE
+							INV.CG_NO 								= GR.GR_NO
+							AND INV.VSL_CALL_ID = GR.VSL_CALL_ID
+						<if test="shipgNoteNo != null and shipgNoteNo != ''">
+							AND GR.SHIPG_NOTE_NO 					= #{shipgNoteNo}
+						</if>
+						<if test="grNo != null and grNo != ''">
+							AND INV.CG_NO 							= #{grNo}
+						</if>
+					) WH
+					WHERE
+						curr = 1
+
+					UNION ALL
+
+					SELECT
+						T.curr,
+						T.prev,
+						T.VSL_CALL_ID,
+						R.LOC_ID_Path + ',' + CAST(T.LOC_ID AS VARCHAR(MAX)) AS LOC_ID_Path
+					FROM
+						RecursiveCTE R
+					JOIN (
+							SELECT
+								INV.VSL_CALL_ID                                                          AS VSL_CALL_ID,
+								INV.LOC_ID                                                               AS LOC_ID,
+								ROW_NUMBER() OVER (PARTITION BY INV.VSL_CALL_ID ORDER BY INV.LOC_ID)     AS curr,
+								ROW_NUMBER() OVER (PARTITION BY INV.VSL_CALL_ID ORDER BY INV.LOC_ID) - 1 AS prev
+							FROM
+								TMT_INV_LOC INV,
+								TMT_GR GR
+							WHERE
+								INV.CG_NO 							= GR.GR_NO
+								AND INV.VSL_CALL_ID 				= GR.VSL_CALL_ID
+							<if test="shipgNoteNo != null and shipgNoteNo != ''">
+								AND GR.SHIPG_NOTE_NO 				= #{shipgNoteNo}
+							</if>
+							<if test="grNo != null and grNo != ''">
+								AND INV.CG_NO 						= #{grNo}
+							</if>
+						) T
+					ON R.curr 										= T.prev
+					AND R.VSL_CALL_ID 								= T.VSL_CALL_ID
+		)
+
+		SELECT /*spaceMovementPlan.selectSpaceMovementSnInfo*/
+			A.VSL_CALL_ID									AS VSLCALLID,
+			A.CATG_CD										AS CATGCD,
+			A.CATG_CD										AS OPECLASSCD,
+			(CASE
+				WHEN (A.IMDG IS NULL OR A.IMDG = '') THEN 'N'
+				ELSE 'Y'
+			END)											AS DGYN,
+			A.SHIPG_AGNCY	                                AS SHIPGAGNT,
+			A.FWRD											AS FWDAGNT,
+			(SELECT TOP 1
+				E.S_CD_NM
+			FROM
+				TMT_CD_MSTD E
+			WHERE
+				E.L_CD 										= 'MT'
+				AND E.M_CD 									= 'CGTP'
+				AND E.S_CD 									=A.CG_TP_CD
+			) 												AS CGTYPE,
+			A.SHIPG_NOTE_NO									AS SHIPGNOTENO
+			<if test='reqTpCd == "MOV"'>
+				,F.WGT										AS REQWGT
+				,F.MSRMT									AS REQMSRMT
+				,F.PKG_QTY									AS REQQTY
+				,E.LOC_ID									AS PREVLOCID
+        	</if>
+        	<if test='reqTpCd != "MOV"'>
+				<if test="grNo != null and grNo != ''">
+					, CASE
+						WHEN (D.GR_NO IS NOT NULL AND D.GR_NO <![CDATA[<>]]> '') THEN D.WGT
+						ELSE A.CG_WGT
+					END										AS REQWGT
+					, CASE
+					WHEN (D.GR_NO IS NOT NULL AND D.GR_NO <![CDATA[<>]]> '') THEN D.MSRMT
+					ELSE A.CG_MSRMT
+					END										AS REQMSRMT
+					, CASE
+					WHEN (D.GR_NO IS NOT NULL AND D.GR_NO <![CDATA[<>]]> '') THEN D.PKG_QTY
+					ELSE A.PKG_QTY
+					END										AS REQMSRMT
+				</if>
+				<if test="grNo == null or grNo == ''">
+					,A.CG_WGT			 	    			AS REQWGT
+					,A.CG_MSRMT								AS REQMSRMT
+					,A.PKG_QTY								AS REQQTY
+				</if>
+				,''											AS PREVLOCID
+			</if>
+			,B.BL_NO										AS BLNO,
+			D.GR_NO											AS GRNO,
+			A.CNSNE_NM										AS CNSNE,
+			A.SHPR_NM										AS SHPR,
+			ISNULL(
+				DBO.F_CM_CODE_NM('MT', 'PKGTP', ISNULL(D.PKG_TP_CD, A.PKG_TP_CD)),
+					DBO.F_CM_CODE_NM('FZ', 'PKGTP', ISNULL(D.PKG_TP_CD, A.PKG_TP_CD))
+			) 												AS CGPKGTYPE,
+			A.EST_ARRV_DT									AS ETA,
+			(CASE
+					WHEN (A.CNSNE_NM IS NULL OR A.CNSNE_NM = '') AND (A.SHPR_NM IS NULL OR A.SHPR_NM = '') THEN ' '
+					WHEN (A.CNSNE_NM IS NULL OR A.CNSNE_NM = '') THEN A.SHPR_NM
+					WHEN (A.SHPR_NM IS NULL OR A.SHPR_NM = '') THEN A.CNSNE_NM
+					ELSE A.SHPR_NM + '/ ' + A.CNSNE_NM
+			END) 											AS cngShp
+  		FROM
+			TMT_SHIPG_NOTE A
+			LEFT OUTER JOIN TMT_BL B
+				ON A.BL_NO									= B.BL_NO
+			LEFT OUTER JOIN TMT_VSL_SCH C
+				ON A.VSL_CALL_ID							= C.VSL_CALL_ID
+			LEFT OUTER JOIN TMT_GR D
+				ON A.VSL_CALL_ID							= D.VSL_CALL_ID
+				AND A.SHIPG_NOTE_NO							= D.SHIPG_NOTE_NO
+  		<if test='reqTpCd == "MOV"'>
+			,(
+				SELECT
+					STUFF((SELECT ',' + CAST(LOC_ID AS VARCHAR(MAX))
+							FROM TMT_INV_LOC WH
+							FOR XML PATH(''), TYPE).value('.', 'VARCHAR(MAX)'), 1, 1, '') AS LOC_ID,
+					WH.VSL_CALL_ID
+				FROM
+					RecursiveCTE WH
+				GROUP BY
+					WH.VSL_CALL_ID
+			) E
+			,(
+				SELECT
+					CG.VSL_CALL_ID							AS VSL_CALL_ID,
+					SUM(LOC.WGT)							AS WGT,				--NO COLUMN WGT IN TABLE TMT_INV_LOC
+					SUM(LOC.MSRMT)							AS MSRMT,			--NO COLUMN MSRMT IN TABLE TMT_INV_LOC
+					SUM(LOC.PKG_QTY)						AS PKG_QTY
+				FROM
+					TMT_CG_MST CG,
+					TMT_INV_LOC LOC
+				WHERE
+					CG.VSL_CALL_ID 							= LOC.VSL_CALL_ID
+					AND CG.CG_NO		 					= LOC.CG_NO
+				<if test="shipgNoteNo != null and shipgNoteNo != ''">
+     				AND CG.SHIPG_NOTE_NO 					= #{shipgNoteNo}
+				</if>	
+				<if test="grNo != null and grNo != ''">
+     				AND	CG.CG_NO 							= #{grNo}
+				</if>										  
+				GROUP BY
+					CG.VSL_CALL_ID
+			) F
+		</if>
+        WHERE
+			1 = 1
+		<if test='reqTpCd == "MOV"'>
+			AND A.VSL_CALL_ID = E.VSL_CALL_ID
+			AND A.VSL_CALL_ID = F.VSL_CALL_ID
+		</if>            
+		<if test="vslCallId != null and vslCallId != ''">
+			AND A.VSL_CALL_ID = #{vslCallId}
+		</if>
+		<if test="shipgNoteNo != null and shipgNoteNo != ''">
+   			AND A.SHIPG_NOTE_NO = #{shipgNoteNo} 
+		</if>
+		<if test="blNo != null and blNo != ''">
+			AND B.BL_NO = #{blNo} 
+		</if>
+		<if test="grNo != null and grNo != ''">
+			AND	D.GR_NO = #{grNo} 
+		</if>			
+    </select> 
+    
+    <select id="selectSpaceMovementBlInfo"  parameterType="spaceMovementPlanParm" resultType="spaceMovementPlanItem">
+		WITH RecursiveCTE AS (
+			SELECT
+				curr,
+				prev,
+				VSL_CALL_ID,
+				CG_NO,
+				CAST(LOC_ID AS VARCHAR(MAX)) 							AS LOC_ID_Path
+			FROM (
+				SELECT
+					INV.VSL_CALL_ID 									AS VSL_CALL_ID,
+					INV.CG_NO 											AS CG_NO,
+					INV.LOC_ID 											AS LOC_ID,
+					ROW_NUMBER() OVER (PARTITION BY INV.VSL_CALL_ID,
+													INV.CG_NO
+										ORDER BY INV.LOC_ID) 			AS curr,
+					ROW_NUMBER() OVER (PARTITION BY INV.VSL_CALL_ID,
+													INV.CG_NO
+										ORDER BY INV.LOC_ID) - 1 		AS prev
+				FROM
+					TMT_INV_LOC INV
+				) WH
+			WHERE curr = 1
+			
+			UNION ALL
+			
+			SELECT
+				t.curr,
+				t.prev,
+				t.VSL_CALL_ID,
+				t.CG_NO,
+				r.LOC_ID_Path + ',' + CAST(t.LOC_ID AS VARCHAR(MAX)) 	AS LOC_ID_Path
+			FROM
+				RecursiveCTE r
+			JOIN (
+				SELECT
+					INV.VSL_CALL_ID 									AS VSL_CALL_ID,
+					INV.CG_NO 											AS CG_NO,
+					INV.LOC_ID 											AS LOC_ID,
+					ROW_NUMBER() OVER (PARTITION BY INV.VSL_CALL_ID,
+													INV.CG_NO
+										ORDER BY INV.LOC_ID) 			AS curr,
+					ROW_NUMBER() OVER (PARTITION BY INV.VSL_CALL_ID,
+													INV.CG_NO
+										ORDER BY INV.LOC_ID) - 1 		AS prev
+				FROM
+					TMT_INV_LOC INV
+			) t
+			ON r.curr 								= t.prev
+			AND r.VSL_CALL_ID 						= t.VSL_CALL_ID
+			AND r.CG_NO 							= t.CG_NO
+		)
+
+		SELECT /*spaceMovementPlan.selectSpaceMovementBlInfo*/
+			A.VSL_CALL_ID 							AS VSLCALLID,
+			A.ARRV_SA_ID 							AS SHIPGAGNT,
+			B.BL_NO 								AS BLNO,
+			(CASE B.CATG_CD
+				WHEN 'T' THEN 'I'
+				ELSE B.CATG_CD
+			END) 									AS OPECLASSCD,
+			(CASE
+				WHEN (B.IMDG_CLASS IS NULL OR B.IMDG_CLASS = '') THEN 'N'
+				ELSE 'Y'
+			END)									AS DGYN,
+			B.CG_TP_CD 								AS CGTPCD,
+			DBO.F_CM_CODE_NM('MT',
+							'CGTP',
+							B.CG_TP_CD) 			AS CGTYPE,
+			B.PKG_TP_CD,
+			DBO.F_CM_CODE_NM('MT',
+							'PKGTP',
+							B.PKG_TP_CD) 			AS CGPKGTYPE ,
+			B.FWRD AS FWDAGNT,
+			(CASE
+				WHEN (B.CNSNE_NM IS NOT NULL AND B.CNSNE_NM <![CDATA[<>]]> '') THEN B.CNSNE_NM
+				ELSE ' '
+			END) 	 								AS CNSNE,
+			(CASE
+				WHEN (B.SHPR_NM IS NOT NULL AND B.SHPR_NM <![CDATA[<>]]> '') THEN B.SHPR_NM
+				ELSE ' '
+			END)									AS SHPR,
+			(CASE
+					WHEN (ISNULL(B.SHPR_NM, B.POL_NM) IS NOT NULL AND ISNULL(B.SHPR_NM, B.POL_NM) <![CDATA[<>]]> '') AND (ISNULL(B.CNSNE_NM, B.POD_NM) IS NOT NULL AND ISNULL(B.CNSNE_NM, B.POD_NM) <![CDATA[<>]]> '')
+						THEN ISNULL(B.SHPR_NM, B.POL_NM) + '/ ' + ISNULL(B.CNSNE_NM, B.POD_NM)
+					WHEN (ISNULL(B.SHPR_NM, B.POL_NM) IS NOT NULL AND ISNULL(B.SHPR_NM, B.POL_NM) <![CDATA[<>]]> '') THEN ISNULL(B.SHPR_NM, B.POL_NM)
+					WHEN (ISNULL(B.CNSNE_NM, B.POD_NM) IS NOT NULL AND ISNULL(B.CNSNE_NM, B.POD_NM) <![CDATA[<>]]> '') THEN ISNULL(B.CNSNE_NM, B.POD_NM)
+					ELSE ' '
+			END) 									AS cngShp
+			<if test='reqTpCd != "MOV"'>
+				,B.WGT 								AS REQWGT
+				,B.VOL 								AS REQMSRMT
+				,B.PKG_QTY 							AS REQQTY
+				,'' 								AS PREVLOCID
+			</if>
+			<if test='reqTpCd == "MOV"'>
+				,F.WGT 								AS REQWGT
+				,F.MSRMT 							AS REQMSRMT
+				,F.PKG_QTY 							AS REQQTY
+				,E.LOC_ID 							AS PREVLOCID
+			</if>
+		FROM
+			TMT_VSL_SCH A,
+			TMT_BL B
+		<if test='reqTpCd == "MOV"'>
+			,(
+				SELECT
+					STUFF((SELECT ',' + CAST(LOC_ID AS VARCHAR(MAX))
+							FROM TMT_INV_LOC WH
+							FOR XML PATH(''), TYPE).value('.', 'VARCHAR(MAX)'), 1, 1, '') AS LOC_ID,
+					WH.VSL_CALL_ID,
+					WH.CG_NO   
+				FROM
+					RecursiveCTE WH
+				GROUP BY
+					WH.VSL_CALL_ID,
+					WH.CG_NO
+			) E
+			,(
+				SELECT 
+					CG.VSL_CALL_ID			AS VSL_CALL_ID,
+					CG.BL_NO				AS BL_NO,
+					SUM(LOC.WGT)			AS WGT,				--NO COLUMN WGT IN TABLE TMT_INV_LOC
+					SUM(LOC.MSRMT)			AS MSRMT,			--NO COLUMN MSRMT IN TABLE TMT_INV_LOC
+					SUM(LOC.PKG_QTY)		AS PKG_QTY
+				FROM
+					TMT_CG_MST CG,
+					TMT_INV_LOC LOC
+				WHERE
+					CG.VSL_CALL_ID 			= LOC.VSL_CALL_ID
+					AND CG.CG_NO		 	= LOC.CG_NO
+				GROUP BY
+					CG.VSL_CALL_ID,
+					CG.BL_NO
+			) F
+		</if>
+		WHERE
+			1 = 1
+		<if test="vslCallId != null and vslCallId != ''">
+     		AND	A.VSL_CALL_ID 				= #{vslCallId}
+		</if>
+			AND A.VSL_CD 					= B.VSL_CD
+			AND A.CALL_SEQ 					= B.CALL_SEQ
+			AND A.CALL_YEAR 				= B.CALL_YEAR
+		<if test="blNo != null and blNo != ''">
+			AND	B.BL_NO 					= #{blNo}
+		</if>
+    </select> 
+    
+  	<select id="selectNewReqNo"  parameterType="spaceMovementPlanParm" resultType="spaceMovementPlanItem">
+		SELECT /*spaceMovementPlan.selectNewReqNo*/
+			(#{reqTpCd} + FORMAT(SYSDATETIME(),'yyMM')
+				+ (SELECT
+						ISNULL(LTRIM(FORMAT((MAX(CONVERT(INT, SUBSTRING(REQ_NO, LEN(REQ_NO) - 3, 4))) + 1), '0000'), ' '), '0001') AS CNT
+		FROM
+			TMT_SPC_REQ
+		WHERE
+			FORMAT(REQ_DT,'MMyyyy') 			= FORMAT(SYSDATETIME(),'MMyyyy')))			AS REQNO
+    </select> 
+    
+  	<select id="selectRcntReqNo"  parameterType="spaceMovementPlanParm" resultType="spaceMovementPlanItem">
+  		SELECT /*spaceMovementPlan.selectRcntReqNo*/
+  			REQ_NO		AS REQNO
+  		FROM
+			TMT_SPC_REQ
+  		WHERE
+			SEQ 		= (SELECT
+								MAX(SEQ)
+							FROM
+								TMT_SPC_REQ)
+    </select> 
+    
+    <select id="selectReqSeq"  parameterType="spaceMovementPlanItem" resultType="spaceMovementPlanItem">
+  		SELECT /*spaceMovementPlan.selectReqSeq*/
+  			SEQ 						AS SEQ
+  		FROM
+			TMT_SPC_REQ
+  		WHERE
+			VSL_CALL_ID 				= #{vslCallId}
+  		<choose>
+			<when test="blNo != null and blNo != ''">
+				AND BL_NO 				= #{blNo}
+			</when>
+			<when test="shipgNoteNo != null and shipgNoteNo != ''">
+				AND SHIPG_NOTE_NO 		= #{shipgNoteNo}
+			</when>
+		</choose>
+    </select>
+    
+    <select id="selectMaxSeq"  parameterType="spaceMovementPlanParm" resultType="spaceMovementPlanItem">
+  		SELECT /*spaceMovementPlan.selectMaxSeq*/
+  			ISNULL(COUNT(REQ_NO), 0) + 1 	AS SEQ
+  		FROM
+			TMT_SPC_REQ
+    </select>
+    
+    <select id="selectMaxPlanSeq"  parameterType="spaceMovementPlanParm" resultType="spaceMovementPlanItem">
+  		SELECT /*spaceMovementPlan.selectMaxPlanSeq*/
+  			ISNULL(COUNT(REQ_NO), 0) 		AS SEQ
+  		FROM
+			TMT_SPC_PLAN
+    </select>  
+    
+    <insert id="insertSpcMovPlanItems" parameterType="spaceMovementPlanItem">
+		<selectKey order="BEFORE" resultType="String" keyProperty="planSeq">
+			SELECT /*spaceMovementPlan.insertSpcMovPlanItems*/
+				ISNULL(MAX(SEQ), 0) + 1 	AS planSeq
+			FROM
+				TMT_SPC_PLAN
+			WHERE
+				VSL_CALL_ID 				= #{vslCallId}
+		</selectKey>
+		
+		INSERT /*spaceMovementPlan.insertSpcMovPlanItems*/
+		INTO TMT_SPC_PLAN(
+			SHIP_CALL_NO,
+			VSL_CALL_ID,
+			CALL_YEAR,
+			VSL_CD,
+			CALL_SEQ,
+			REQ_NO,
+			REQ_SEQ,
+			SEQ,
+			DIV_CD,
+			LOC_ID,
+			VERSION,
+			UPDATE_TIME,
+			STAFF_CD
+		) VALUES (
+			#{scn},
+			#{vslCallId},
+			#{callYear},
+			#{vslCd},
+			#{callSeq},
+			#{reqNo},
+			#{reqSeq},
+			#{planSeq},
+			#{divCd},
+			CASE
+				WHEN (#{locId} IS NULL OR #{locId} = '') THEN #{reqPos}
+				ELSE #{locId}
+			END,
+			#{newVersion},
+			SYSDATETIME(),
+			ISNULL(#{userId}, 'SYSTEM')
+		)
+    </insert> 
+    
+    <update id="updateSpcMovRequestProcess"  parameterType="spaceMovementPlanItem">
+		UPDATE /*spaceMovementPlan.updateSpcMovRequestProcess*/
+			TMT_SPC_REQ
+		SET
+			STAT_CD 											= 'REQ',
+			REQ_DT 												= SYSDATETIME()
+		WHERE
+			REQ_NO 												= #{reqNo}
+			AND SEQ 											= #{seq}
+    </update>
+    
+    <update id="updateSpcMovPlanConfirm"  parameterType="spaceMovementPlanItem">
+		UPDATE /*spaceMovementPlan.updateSpcMovPlanConfirm*/
+			TMT_SPC_REQ
+		SET
+			STAT_CD 											= 'CNF',
+			PLAN_LOC_ID 										= #{planLocId},
+			REQR 												= #{reqr},
+			PAYER 												= #{payer},
+			<if test="reqM2 != null and reqM2 != ''" >
+				REQ_M2											= CONVERT(FLOAT, #{reqM2}),
+			</if>
+			<if test="reqMt != null and reqMt != ''" >
+				REQ_MT 											= CONVERT(FLOAT, #{reqMt}),
+			</if>	
+			PLAN_DT 											= SYSDATETIME()
+		WHERE
+			REQ_NO 												= #{reqNo}
+			AND SEQ 											= #{reqSeq}
+    </update>
+    
+    <update id="updateSpcMovReject"  parameterType="spaceMovementPlanItem">
+		UPDATE /*spaceMovementPlan.updateSpcMovReject*/
+			TMT_SPC_REQ
+		SET
+			STAT_CD 											= 'REJ',
+			PLAN_LOC_ID 										= '',
+			PLAN_DT 											= NULL
+		WHERE
+			REQ_NO 												= #{reqNo}
+    </update>    
+    
+    <delete id="deleteSpcMovPlanItems"  parameterType="spaceMovementPlanItem">
+		DELETE /*spaceMovementPlan.deleteSpcMovPlanItems*/
+		FROM
+			TMT_SPC_PLAN
+		WHERE
+			VSL_CALL_ID 										= #{vslCallId}
+		<if test="seq != null and seq != ''">
+			AND REQ_SEQ 										= #{reqSeq}
+  		</if>
+    </delete>   
+	
+	<!-- s-PL-012: General Cargo Yard Plan Detail – Additional [ZB No] and attributes. -->
+	<select id="selectCargoInfo" parameterType="spaceMovementPlanParm" resultType="spaceMovementPlanItem">
+		<choose>
+			<when test="blNo != null and blNo !=''">
+				SELECT /*spaceMovementPlan.selectCargoInfo*/
+					VSL_CD										AS vslCd, 
+					BL_NO										AS blNo,
+					CG_WGT										AS reqWgt,
+					CG_VOL										AS reqMsrmt,
+					PKG_QTY										AS reqQty,
+					LOT_NO										AS lotNo,
+					CNSNE										AS cnsne,
+					DBO.F_PTNR_SNM(CNSNE, 'CNS')				AS cngShp,
+					POD 										AS pod,
+					CMDT_GRP_CD									AS cmdtGrpCd,
+					(SELECT TOP(1)
+		        		CMDT_GRP_DESC
+		        	FROM
+		        		TMT_CMDT
+		        	WHERE
+		        		CMDT_CD = CMDT_CD
+			        ) 											AS cmdtGrpNm,
+					CMDT_CD										AS cmdtCd,
+					(SELECT TOP(1)
+						CMDT_DESC
+					FROM
+						TMT_CMDT 		CMDT
+					WHERE
+						CMDT.CMDT_CD 	= CMDT_CD
+					) 											AS cmdtNm,
+					PKG_TP_CD									AS pkgTpCd,
+					DBO.F_CM_CODE_NM('MT', 'PKGTP', PKG_TP_CD)	AS pkgTpNm,
+					CG_TP_CD									AS cgTpCd,
+					DBO.F_CM_CODE_NM('MT', 'CGTP', CG_TP_CD) 	AS cgTpNm,
+					CATG_CD										AS catgCd,
+					DBO.F_CM_CODE_NM('MT', 'CATGTP', CATG_CD) 	AS catgNm,
+					GDS_RMK										AS pkgMark,
+					MARK_NO                         			AS pkgNo,
+					CASE
+						WHEN (IMDG_CLASS IS NULL OR IMDG_CLASS = '') 
+							THEN 'N'
+						ELSE 'Y'
+					END											AS dgYn
+				FROM 
+					TMT_BL
+				WHERE
+					VSL_CD										= #{vslCd}
+					AND VSL_CALL_ID								= #{vslCallId}
+					AND MF_DOC_ID								= #{mfDocId}
+					AND BL_NO									= #{blNo}
+			</when>
+			<otherwise>
+				SELECT /*spaceMovementPlan.selectCargoInfo*/
+					VSL_CD										AS vslCd,
+					SHIPG_NOTE_NO								AS shipgNoteNo,
+					CG_WGT										AS reqWgt,
+					CG_VOL										AS reqMsrmt,
+					PKG_QTY										AS reqQty,
+					LOT_NO										AS lotNo,
+					SHPR										AS shpr, 
+					DBO.F_PTNR_SNM(SHPR, 'CNS')					AS cngShp, 
+					POD 										AS pod,
+					CMDT_GRP_CD									AS cmdtGrpCd,
+					(SELECT TOP(1)
+			        		CMDT_GRP_DESC
+			        	FROM
+			        		TMT_CMDT
+			        	WHERE
+			        		CMDT_CD = 	CMDT_CD
+			        ) 											AS cmdtGrpNm,
+					CMDT_CD										AS cmdtCd,
+					(SELECT TOP(1)
+						CMDT_DESC
+					FROM
+						TMT_CMDT
+						CMDT
+					WHERE
+						CMDT.CMDT_CD 	= CMDT_CD
+					) 											AS cmdtNm,
+					PKG_TP_CD									AS pkgTpCd,
+					DBO.F_CM_CODE_NM('MT', 'PKGTP', PKG_TP_CD)	AS pkgTpNm,
+					CG_TP_CD									AS cgTpCd,
+					DBO.F_CM_CODE_NM('MT', 'CGTP', CG_TP_CD) 	AS cgTpNm,
+					CATG_CD										AS catgCd,
+					DBO.F_CM_CODE_NM('MT', 'CATGTP', CATG_CD) 	AS catgNm,
+					GDS_RMK										AS pkgMark,
+					MARK_NO                         			AS pkgNo,
+					CASE
+						WHEN (IMDG IS NULL OR IMDG = '') THEN 'N'
+						ELSE 'Y'
+					END											AS dgYn
+				FROM 
+					TMT_SHIPG_NOTE
+				WHERE
+					VSL_CD										= #{vslCd}
+					AND VSL_CALL_ID								= #{vslCallId}
+					AND MF_DOC_ID								= #{mfDocId}
+					AND SHIPG_NOTE_NO							= #{shipgNoteNo}
+			</otherwise>
+		</choose>
+
+	</select>
+	
+	<insert id="insertSpcMovRequestItems"  parameterType="spaceMovementPlanItem">
+		<selectKey order="BEFORE" resultType="String" keyProperty="reqSeq" >
+			SELECT /*spaceMovementPlan.insertSpcMovRequestItems*/
+				ISNULL(MAX(SEQ), 0) +1 						AS reqSeq
+			FROM
+				TMT_SPC_REQ
+			WHERE
+				REQ_NO 										= #{reqNo}
+		</selectKey>
+		
+		INSERT /*spaceMovementPlan.insertSpcMovRequestItems*/
+		INTO TMT_SPC_REQ(
+			SHIP_CALL_NO,
+			REQ_NO,
+			SEQ,
+			REQ_TP_CD,
+			REQR,
+			CG_REF_NO,
+			REQ_POS,
+			PLAN_LOC_ID,
+			PREV_LOC_ID,
+			RMK,
+			REQ_QTY,
+			REQ_MSRMT,
+			REQ_WGT,
+			STAT_CD,
+			OPE_CLASS_CD,
+			REF_NO,
+			VSL_CALL_ID,
+			CALL_YEAR,  
+			VSL_CD,  	
+			CALL_SEQ,	
+			SHIPG_NOTE_NO,
+			BL_NO,
+			STRG_NOTE_NO,
+			MF_DOC_ID,
+			<if test="eta != null" >
+				ETA,
+			</if>
+			<if test="svcDt != null" >
+				SVC_DT ,
+			</if>
+			<if test="period != null and period != ''" >
+				PERIOD,
+			</if>
+			<if test="reqM2 != null and reqM2 != ''" >
+				REQ_M2,
+			</if>
+			<if test="reqMt != null and reqMt != ''" >
+				REQ_MT,
+			</if>	
+			<if test="grNo != null and grNo != ''" >
+				GR_NO,
+			</if>		
+			<if test="reqYn != null and reqYn != ''" >
+				REQ_YN,
+			</if>		
+			<if test="mvTp != null and mvTp != ''" >
+				MV_TP,
+			</if>	
+			PAYER,
+			STAFF_CD,
+			UPDATE_TIME,
+			REQ_DT,
+			POD,
+			PTNR_CODE,
+			CMDT_GRP_CD
+		) VALUES (
+			#{scn},
+			#{reqNo},
+			TRY_CONVERT(NUMERIC(4, 0), #{reqSeq}),
+			#{reqTpCd},
+			#{reqr},
+			#{cgRefNo},
+			#{reqPos},
+			#{reqLocId},
+			#{prevLocId},
+			#{rmk},
+			TRY_CONVERT(NUMERIC(10, 0), #{reqQty}),
+			TRY_CONVERT(NUMERIC(15, 3), #{reqMsrmt}),
+			TRY_CONVERT(NUMERIC(15, 3), #{reqWgt}),
+			<choose>
+				<when test=" insertType == 'confirm' ">
+					'CNF',
+				</when>
+				<otherwise>
+					'REQ', 
+				</otherwise>
+			</choose>
+			#{catgCd},
+			#{refNo},
+			#{vslCallId},
+			#{callYear}, 		
+			#{vslCd}, 			
+			#{callSeq}, 		
+			#{shipgNoteNo},
+			#{blNo},
+			#{strgNoteNo},
+			#{mfDocId},
+			<if test="eta != null" >
+				#{eta},
+			</if>
+			<if test="svcDt != null" >
+				#{svcDt},
+			</if>
+			<if test="period != null and period != ''" >
+				TRY_CONVERT(NUMERIC(4, 0), #{period}),
+			</if>
+			<if test="reqM2 != null and reqM2 != ''" >
+				TRY_CONVERT(NUMERIC(15, 3), #{reqM2}),
+			</if>
+			<if test="reqMt != null and reqMt != ''" >
+				TRY_CONVERT(NUMERIC(15, 3), #{reqMt}),
+			</if>		
+			<if test="grNo != null and grNo != ''" >
+				#{grNo},
+			</if>	
+			<if test="reqYn != null and reqYn != ''" >
+				#{reqYn},
+			</if>	
+			<if test="mvTp != null and mvTp != ''" >
+				#{mvTp},
+			</if>				
+			#{payer},
+			#{userId},
+			SYSDATETIME(),
+			SYSDATETIME(),
+			#{pod},
+			CASE
+				WHEN #{shpr} IS NULL OR #{shpr} = ''
+					THEN #{cnsne}
+				ELSE #{shpr}
+			END,
+			#{cmdtGrpCd}
+		)
+    </insert>
+	
+	<update id="updateSpaceMovementRequestItems"  parameterType="spaceMovementPlanItem">
+		UPDATE /*spaceMovementPlan.updateSpaceMovementRequestItems*/
+			TMT_SPC_REQ
+		SET
+			REQ_TP_CD 											= #{reqTpCd},
+			REQR 												= #{reqr},
+			CG_REF_NO 											= #{cgRefNo},
+			REQ_POS 											= #{reqPos},
+			PLAN_LOC_ID 										= #{planLocId},
+			PREV_LOC_ID 										= #{prevLocId},
+			RMK 												= #{rmk},
+			REQ_QTY 											= #{reqQty},
+			REQ_MSRMT 											= #{reqMsrmt},
+			REQ_WGT 											= #{reqWgt},
+			STAT_CD 											= #{statCd},
+			OPE_CLASS_CD 										= #{catgCd},
+			REF_NO 												= #{refNo},
+			VSL_CALL_ID 										= #{vslCallId},
+			SHIPG_NOTE_NO 										= #{shipgNoteNo},
+			BL_NO 												= #{blNo},
+			GR_NO 												= #{grNo},
+			MF_DOC_ID											= #{mfDocId},
+			<if test="eta != null" >
+				ETA												= #{eta},
+			</if>
+			<if test="svcDt != null" >
+				SVC_DT											= #{svcDt},
+			</if>
+			<if test="period != null and period != ''" >
+				PERIOD 											= CONVERT(INT, #{period}),
+			</if>
+			<if test="reqM2 != null and reqM2 != ''" >
+				REQ_M2											= CONVERT(FLOAT, #{reqM2}),
+			</if>
+			<if test="reqMt != null and reqMt != ''" >
+				REQ_MT 											= CONVERT(FLOAT, #{reqMt}),
+			</if>	
+			<if test="mvTp != null and mvTp != ''" >
+				MV_TP 											= #{mvTp},
+			</if>
+			PAYER 												= #{payer},
+			STRG_NOTE_NO 										= #{strgNoteNo}
+		WHERE
+			REQ_NO 												= #{reqNo}
+			AND SEQ 											= #{reqSeq}
+    </update>
+	
+	<delete id="deleteSpcMovRequestItems"  parameterType="spaceMovementPlanItem">
+		DELETE /*spaceMovementPlan.deleteSpcMovRequestItems*/
+		FROM
+			TMT_SPC_REQ
+		WHERE
+			REQ_NO 												= #{reqNo}
+		<if test="seq != null and seq != ''">
+			AND SEQ 											= #{reqSeq}
+		</if>		  	
+		<if test="seq == null or seq == ''">
+			AND	STAT_CD 										= #{statCd}
+		</if>
+    </delete>
+    
+    <select id="selectDuplicatedRequest"							resultType="spaceMovementPlanItem">
+    	SELECT /*spaceMovementPlan.checkDuplicatedRequest*/
+    		REQ_NO												AS reqNo
+    	FROM
+    		TMT_SPC_REQ
+    	WHERE
+    		STAT_CD												= 'REQ'
+    		<if test="vslCd != null and vslCd != ''">
+    			AND VSL_CD										= #{vslCd}
+    		</if>
+    		<if test="vslCallId != null and vslCallId != ''">
+    			AND VSL_CALL_ID									= #{vslCallId}
+    		</if>
+    		<if test="mfDocId != null and mfDocId != ''">
+    			AND MF_DOC_ID									= #{mfDocId}
+    		</if>
+    		<if test="blNo != null and blNo != ''">
+    			AND BL_NO										= #{blNo}
+    		</if>
+    		<if test="shipgNoteNo != null and shipgNoteNo != ''">
+    			AND SHIPG_NOTE_NO								= #{shipgNoteNo}
+    		</if>
+    		<if test="reqTpCd != null and reqTpCd != ''">
+    			AND REQ_TP_CD									= #{reqTpCd}
+    		</if>
+    </select>
+    
+    <!-- e-PL-012: General Cargo Yard Plan Detail – Additional [ZB No] and attributes. -->
+</mapper>

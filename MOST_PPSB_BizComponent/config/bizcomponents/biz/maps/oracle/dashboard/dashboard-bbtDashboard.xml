@@ -1,0 +1,1388 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="bbtDashboard">
+
+    <!-- Start of Vessel Count -->
+    <resultMap id="vesselCountMap" 			type="bbtDashboardItem">
+        <result column="VSL_ANCH_CNT" 		property="vslAnchCnt"/>
+        <result column="VSL_BERTH_CNT" 		property="vslBerthCnt"/>
+    </resultMap>
+     <resultMap id="workshiftdefinitionMap" type="bbtDashboardItem">
+        <result column="VSL_ANCH_CNT" 		property="vslAnchCnt"/>
+        <result column="VSL_BERTH_CNT" 		property="vslBerthCnt"/>
+    </resultMap>
+    <resultMap id="accidentsCountMap" 		type="bbtDashboardItem">
+        <result column="TOTALACDNTCNT" 		property="totalAcdntCnt"/>
+        <result column="OPENACDNTCNT" 		property="openAcdntCnt"/>
+        <result column="CLOSEDACDNTCNT" 	property="closedAcdntCnt"/>
+    </resultMap>
+    <resultMap id="terminalOccupancyMap" 	type="bbtDashboardItem">
+        <result column="CARGOTYPE" 			property="cargoType"/>
+        <result column="BERTHCNT" 			property="berthCnt"/>
+        <result column="CARGOPERCENT" 		property="cargoPercent"/>
+    </resultMap>
+    <resultMap id="bulkSummaryMap" 			type="bbtDashboardItem">
+        <result column="VSLCALLID" 			property="vslCallId"/>
+        <result column="VSLNM" 				property="vslNm"/>
+        <result column="WORKYMD" 			property="workYmd"/>
+        <result column="SHFTID" 			property="shftId"/>
+        <result column="CGOPETP" 			property="cgOpeTp"/>
+        <result column="BERTHCD" 			property="berthCd"/>
+        <result column="CGCMDT" 			property="cgCmdt"/>
+        <result column="CGWGT" 				property="cgWgt"/>
+        <result column="MLAHOSECNT" 		property="mlaHoseCnt"/>
+        <result column="FLXHOSECNT" 		property="flxHoseCnt"/>
+    </resultMap>
+    <resultMap id="cargoOperationMap" 		type="bbtDashboardItem">
+        <result column="CGTP" 				property="cgTp"/>
+        <result column="VSLCNT" 			property="vslCnt"/>
+        <result column="TONNAGE" 			property="tonnage"/>
+        <result column="CGWGTRATE" 			property="cgWgtRate"/>
+    </resultMap>
+    <resultMap id="bulkHandlingBalanceCompareMap" type="bbtDashboardItem">
+        <result column="VSLCALLID" 			property="vslCallId"/>
+        <result column="BERTHCD" 			property="berthCd"/>
+        <result column="HANDLINGWGT" 		property="handlingWgt"/>
+        <result column="TOTALHANDLINGWGT" 	property="totalHandlingWgt"/>
+        <result column="BALANCEWGT" 		property="balanceWgt"/>
+        <result column="TOTALWGT" 			property="totalWgt"/>
+        <result column="EQNM" 				property="eqNm"/>
+    </resultMap>
+    <resultMap id="bulkProductivityMap" type="bbtDashboardItem">
+        <result column="VSL_CALL_ID" 		property="vslCallId"/>
+        <result column="WORK_YMD" 			property="workYmd"/>
+        <result column="SHFT_ID" 			property="shftId"/>
+        <result column="BERTH_CD" 			property="berthCd"/>
+        <result column="ATB" 				property="atb"/>
+        <result column="ATB_WORK_YMD" 		property="atbWorkYmd"/>
+        <result column="ATU" 				property="atu"/>
+        <result column="ATU_WORK_YMD" 		property="atuWorkYmd"/>
+        <result column="HATCH_NO" 			property="hatchNo"/>
+        <result column="EQ_FAC_NO" 			property="eqFacNo"/>
+        <result column="EQ_FAC_NM" 			property="eqFacNm"/>
+        <result column="STAFF_NO" 			property="staffNo"/>
+        <result column="CMDT_GRP" 			property="cmdtGrp"/>
+        <result column="CMDT_GRP_CD" 		property="cmdtGrpCd"/>
+        <result column="WGT" 				property="wgt"/>
+        <result column="KPI_IDX" 			property="kpiIdx"/>
+        <result column="SHFT_ST_HR" 		property="shftStHr"/>
+        <result column="SHFT_END_HR" 		property="shftEndHr"/>
+        <result column="CURR_HR" 			property="currHr"/>
+        <result column="DLY_RSN_CD" 		property="dlyRsnCd"/>
+        <result column="DLY_HRS" 			property="dlyHrs"/>
+        <result column="TOTAL_NET_WRK_HRS" 	property="totalNetWrkHrs"/>
+        <result column="HANDLING_RATE" 		property="handlingRate"/>
+    </resultMap>
+    <resultMap id="lorryTurnaroundMap" 		type="bbtDashboardItem">
+        <result column="BERTHCD" 			property="berthCd"/>
+        <result column="VSLLORRYCNT" 		property="vslLorryCnt"/>
+        <result column="LORRYCOUNT" 		property="lorryCount"/>
+        <result column="LORRYTRIPS" 		property="lorryTripsCount"/>
+    </resultMap>
+    <resultMap id="bulkDelayMap" 			type="bbtDashboardItem">
+        <result column="BERTHCD" 			property="berthCd"/>
+        <result column="WORKYMD" 			property="workYmd"/>
+        <result column="SHFTID" 			property="shftId"/>
+        <result column="BERTHDLYHRS" 		property="berthDlyHrs"/>
+        <result column="BERTHDLYCD" 		property="berthDlyCd"/>
+        <result column="DLYHRS" 			property="dlyHrs"/>
+    </resultMap>
+    <resultMap id="whYdHandlingMap"			type="bbtDashboardItem">
+        <result column="JOBTYPECD" 			property="jobTypeCd"/>
+        <result column="HANDLINGWGT" 		property="handlingWgt"/>
+    </resultMap>
+    
+    <select id="selectVesselCount" parameterType="bbtDashboardParm" resultMap="vesselCountMap">
+        /* BBTDashboard.selectVesselCount */
+        SELECT SUM(VSL_ANCH_CNT) VSL_ANCH_CNT
+             ,  SUM(VSL_BERTH_CNT) VSL_BERTH_CNT
+        FROM (
+            SELECT CASE
+                       WHEN SCH.ATA IS NOT NULL
+                        AND SCH.ATB IS NULL
+                        THEN 1
+                       ELSE 0
+                END VSL_ANCH_CNT
+                 , CASE
+                        WHEN SCH.ATB IS NOT NULL
+                         AND SCH.ATU IS NULL
+                        THEN 1
+                       ELSE 0
+                END VSL_BERTH_CNT
+            FROM TMT_VSL_SCH SCH
+            JOIN (
+                SELECT BERTH_CD
+                FROM TMT_BERTH_LOC
+                WHERE UPPER(LOC_CD) = 'BBT'
+                  AND BERTH_TP IN ('EDJ', 'NDJ', 'WRF')
+                  AND BERTH_CD <![CDATA[<>]]> 'W11N'
+                  AND LENGTH <![CDATA[>]]> 0
+            ) TRM
+            ON SCH.BERTH_LOC = TRM.BERTH_CD
+            WHERE SCH.ATD IS NULL
+              AND SCH.SUMMIT_STAT NOT IN ('CC', 'RC')
+        )
+        
+    </select>
+    
+    <!-- Start of Vessel Operation -->
+	<select id="selectWorkShiftDefinition"  parameterType="bbtDashboardParm" resultMap="workshiftdefinitionMap">
+		SELECT /* BBTDashboard  selectShiftDef (OT0005 : Roster Vessel Operation)*/
+		       SHFT_ID             SHFTID,
+		       SHFT_NM             SHFTNM,
+		       FM_HHMM             FMHHMM,
+		       TO_HHMM             TOHHMM
+		  FROM TMT_SHFT
+		 WHERE VLD_YN = #{useYn}
+		<if test="divCd != null and divCd != ''">
+  			AND	SHFT_DIV_CD = #{divCd}
+		</if>
+ 		 ORDER BY SHFT_IDX, SHFTNM
+	</select>
+	
+	<!-- Start of Accidents/Incidents -->
+	 <select id="selectAccidentsCount" parameterType="bbtDashboardParm" resultMap="accidentsCountMap">
+        /* BBTDashboard.selectAccidents */
+        SELECT NVL(SUM(CNT.TOTAL), 0) TOTALACDNTCNT
+            ,  NVL(SUM(CNT.OPEN), 0) OPENACDNTCNT
+            ,  NVL(SUM(CNT.CLOSE), 0) CLOSEDACDNTCNT
+        FROM (
+            SELECT 1 AS TOTAL
+                ,  CASE
+                        WHEN ACDNT.EVT_STAT_CD = 'O' THEN 1
+                        ELSE 0
+                    END OPEN
+                ,   CASE
+                        WHEN ACDNT.EVT_STAT_CD = 'C' THEN 1
+                        ELSE 0
+                    END CLOSE
+            FROM   TMT_ACDNT_DMG_RPT ACDNT
+            WHERE  ACDNT.EVT_DT BETWEEN LAST_DAY(ADD_MONTHS(TO_DATE(#{workYmd}, 'YYYYMMDD'), -1))+1
+                AND LAST_DAY(TO_DATE(#{workYmd}||'235959', 'YYYYMMDDHH24MISS'))
+        ) CNT
+    </select>
+    
+ 	<!-- Start of Terminal Occupancy Part -->
+    <select id="selectTerminalOccupancy" parameterType="bbtDashboardParm" resultMap="terminalOccupancyMap">
+        /* BBTDashboard.selectTerminalOccupancy */
+        SELECT R3.CARGOTYPE													 AS CARGOTYPE
+             , COUNT(*)                                                      AS BERTHCNT
+             , ROUND((RATIO_TO_REPORT(COUNT(R3.BERTH_CD)) over ()) * 100, 2) AS CARGOPERCENT
+        FROM (
+            SELECT R2.BERTH_CD
+                 , MAX(R2.CARGOTYPE) CARGOTYPE
+                 , 1 AS              NUM
+            FROM (
+                SELECT TRM.BERTH_CD
+                     , R1.VSL_CALL_ID
+                     , CASE
+                           WHEN R1.VSL_CALL_ID IS NULL THEN 'UNOCCUPIED'
+                           ELSE FIRST_VALUE(R1.CARGOTYPE)
+                                            OVER (PARTITION BY TRM.BERTH_CD ORDER BY R1.CG_WGT DESC ROWS UNBOUNDED PRECEDING)
+                    END CARGOTYPE
+                FROM (
+                    SELECT VSL.BERTH_LOC
+                         , VSL.VSL_CALL_ID
+                         , VSL.CARGO_TP_MPTS
+                         , NVL((SELECT SUM(CG_WGT)
+                                FROM TMT_SHIPG_NOTE SN
+                                WHERE SN.VSL_CALL_ID = VSL.VSL_CALL_ID), 0)
+                        + NVL((SELECT SUM(DECODE(BL.CG_WGT_UNIT, 'KGM', BL.CG_WGT / 1000, 'TNE', BL.CG_WGT))
+                               FROM TMT_BL BL
+                               WHERE BL.VSL_CALL_ID = VSL.VSL_CALL_ID),
+                              0) CG_WGT
+                         , CASE
+                               WHEN VSL.CARGO_TP_MPTS = 'BBK' THEN 'BREAK'
+                               WHEN VSL.CARGO_TP_MPTS = 'DBN' OR VSL.CARGO_TP_MPTS = 'DBE' OR VSL.CARGO_TP_MPTS = 'DBK'
+                                   THEN 'DRY'
+                               WHEN VSL.CARGO_TP_MPTS = 'LQE' OR VSL.CARGO_TP_MPTS = 'LQN' THEN 'LIQUID'
+                               WHEN VSL.CARGO_TP_MPTS = 'OIMR' THEN 'OIMR'
+                               ELSE 'OTHERS'
+                        END      CARGOTYPE
+                    FROM TMT_VSL_SCH VSL
+                    WHERE VSL.ATB IS NOT NULL
+                      AND VSL.ATU IS NULL
+                      AND VSL.ATD IS NULL
+                ) R1
+                RIGHT JOIN (
+                    SELECT BERTH_CD
+                    FROM TMT_BERTH_LOC
+                    WHERE UPPER(LOC_CD) = 'BBT'
+                      AND BERTH_TP IN ('EDJ', 'NDJ', 'WRF')
+                      AND BERTH_CD <![CDATA[<>]]> 'W11N'
+                      AND LENGTH <![CDATA[>]]> 0
+                ) TRM
+                ON R1.BERTH_LOC = TRM.BERTH_CD
+            ) R2
+            GROUP BY R2.BERTH_CD
+        ) R3
+        GROUP BY R3.CARGOTYPE
+    </select>
+    <!-- End of Terminal Occupancy Part -->
+    
+    <!-- Start of Bulk Summary Part -->
+    <select id="selectBulkSummary" parameterType="bbtDashboardParm" resultMap="bulkSummaryMap">
+        /* BBTDashboard.selectBulkSummary */
+        SELECT R3.VSLCALLID
+            , MAX(R3.VSLNM) VSLNM
+            , MAX(R3.WORKYMD) WORKYMD
+            , MAX(R3.SHFTID) SHFTID
+            , R3.CGOPETP CGOPETP
+            , MAX(R3.BERTHCD) BERTHCD
+            , LISTAGG(R3.CGCMDT, '/') WITHIN GROUP ( ORDER BY R3.CGCMDT ) CGCMDT
+            , SUM(R3.CGWGT) CGWGT
+        <if test="type != null and type == 'LIQUID'">
+            , SUM(R3.MLAHOSECNT) MLAHOSECNT
+            , SUM(R3.FLXHOSECNT) FLXHOSECNT
+        </if>
+        FROM (
+            SELECT R2.VSL_CALL_ID VSLCALLID
+                , MAX(R2.VSL_NM) VSLNM
+                , MAX(R2.WORK_YMD) WORKYMD
+                , MAX(R2.SHFT_ID) SHFTID
+                , R2.CGOPETP
+                , MAX(R2.BERTH_CD) BERTHCD
+                , R2.CGCMDT
+                , SUM(R2.CG_WGT) CGWGT
+            <if test="type != null and type == 'LIQUID'">
+                , SUM(R2.MLA_HOSE_CNT) MLAHOSECNT
+                , SUM(R2.FLX_HOSE_CNT) FLXHOSECNT
+            </if>
+            FROM (
+                SELECT R1.VSL_CALL_ID
+                , R1.VSL_NM
+                , R1.WORK_YMD
+                , R1.SHFT_ID
+                , R1.BERTH_CD
+                , CASE
+                    WHEN R1.JOB_TP_CD ='LD' THEN 'LD'
+                    WHEN R1.JOB_TP_CD ='DS' THEN 'DS'
+                END CGOPETP
+                , COALESCE(R1.LDCMDT, R1.DSCMDT) CGCMDT
+                , CASE
+                    WHEN R1.JOB_TP_CD ='LD' THEN R1.LDWGT
+                    WHEN R1.JOB_TP_CD ='DS' THEN R1.DSWGT
+                END CG_WGT
+            <if test="type != null and type == 'LIQUID'">
+                , R1.MLA_HOSE_CNT
+                , R1.FLX_HOSE_CNT
+            </if>
+                FROM (
+                    SELECT VOR.VSL_CALL_ID
+                        , PRT.VSL_NM
+                        , VOR.WORK_YMD
+                        , VOR.SHFT_ID
+                        , BT.BERTH_CD
+                    <if test="type != null and type == 'BREAK'">
+                        , NVL(F_GET_CMDT_DESC(LD.CMDT_CD), LD.CMDT_CD) LDCMDT
+                        , CASE
+                            WHEN JB.JOB_TP_CD = 'LD'  /*AND JB.JOB_PURP_CD IN ('WV','GV','AV')*/ THEN JB.CG_WGT
+                            ELSE 0
+                        END LDWGT
+                        , NVL(F_GET_CMDT_DESC(DS.CMDT_CD), LD.CMDT_CD) DSCMDT
+                        , CASE
+                            WHEN JB.JOB_TP_CD = 'DS' /*AND JOB_PURP_CD IN ('VA','VG')*/ THEN JB.CG_WGT
+                            ELSE 0
+                        END DSWGT
+                        , JB.JOB_TP_CD
+                    </if>
+                    <if test="type != null and type == 'LIQUID'">
+                        , CASE
+                            WHEN VOR.JOB_TP_CD = 'LD' THEN NVL(F_GET_CMDT_DESC(VOR.CMDT_CD), VOR.CMDT_CD)
+                            ELSE ''
+                        END AS LDCMDT
+                        , CASE
+                            WHEN VOR.JOB_TP_CD = 'LD' THEN VOR.TON_HDL_AMT
+                            ELSE 0
+                        END AS LDWGT
+                        , CASE
+                            WHEN VOR.JOB_TP_CD = 'DS' THEN NVL(F_GET_CMDT_DESC(VOR.CMDT_CD), VOR.CMDT_CD)
+                            ELSE ''
+                        END AS DSCMDT
+                        , CASE
+                            WHEN VOR.JOB_TP_CD = 'DS' THEN VOR.TON_HDL_AMT
+                            ELSE 0
+                        END AS DSWGT
+                        , VOR.JOB_TP_CD
+                        , CASE WHEN VOR.HOSE_TP_CD = 'MLA' THEN VOR.LINE_NO ELSE 0 END MLA_HOSE_CNT
+                        , CASE WHEN VOR.HOSE_TP_CD = 'FLX' THEN VOR.LINE_NO ELSE 0 END FLX_HOSE_CNT
+                </if>
+                <if test="type != null and type == 'BREAK'">
+                    FROM TMT_VSL_OPE_RPT VOR
+                </if>
+                <if test="type != null and type == 'LIQUID'">
+                    FROM TMT_LQDCG_OPE VOR
+                </if>
+                    JOIN TMT_VSL_SCH VSL
+                    ON VOR.VSL_CALL_ID = VSL.VSL_CALL_ID
+                    JOIN TMT_VSL_PART PRT
+                    ON VSL.VSL_CD = PRT.VSL_CD
+                    JOIN (
+                        SELECT BERTH_CD
+                        FROM TMT_BERTH_LOC TRM
+                        WHERE UPPER(LOC_CD) = 'BBT'
+                        AND BERTH_TP IN ('EDJ', 'NDJ', 'WRF')
+                        <![CDATA[ AND BERTH_CD <> 'W11N' ]]>
+                    ) BT
+                    ON VSL.BERTH_LOC = BT.BERTH_CD
+                    <if test="type != null and type == 'BREAK'">
+                    JOIN TMT_JOB JB
+                    ON JB.VSL_CALL_ID = VSL.VSL_CALL_ID
+                    AND TO_CHAR(F_GET_SHFT_DATE(JB.WORK_ST_DT), 'YYYYMMDD') = VOR.WORK_YMD
+                    AND JB.SHFT_ID = VOR.SHFT_ID
+                    LEFT JOIN TMT_GR LD
+                    ON VOR.VSL_CALL_ID = LD.VSL_CALL_ID
+                    AND JB.CG_NO = LD.GR_NO
+                    LEFT JOIN TMT_BL DS
+                    ON VOR.VSL_CALL_ID = DS.VSL_CALL_ID
+                    AND JB.CG_NO = DS.BL_NO
+                    </if>
+                    WHERE 1=1
+                    <if test="type != null and type == 'BREAK'">
+                      AND VSL.CARGO_TP_MPTS IN ('BBK', 'DBE', 'DBN', 'DBK')
+                      AND (LD.GR_NO IS NOT NULL OR DS.BL_NO IS NOT NULL)
+                      AND (DS.CG_WGT > 0 OR LD.CG_WGT > 0)
+                    </if>
+                    <if test="type != null and type == 'LIQUID'">
+                      AND VSL.CARGO_TP_MPTS IN ('LQN', 'LQE')
+                      AND VOR.JOB_TP_CD IN ('DS', 'LD')
+                      AND VOR.TON_HDL_AMT > 0
+                    </if>
+                      AND VOR.WORK_YMD = #{workYmd}
+                      AND VOR.SHFT_ID = #{shftId}
+                    ) R1
+                ) R2
+            GROUP BY R2.VSL_CALL_ID, R2.CGOPETP, R2.CGCMDT
+            ) R3
+        GROUP BY R3.VSLCALLID, R3.CGOPETP
+    </select>
+    <!-- End of Bulk Summary -->
+    <!-- Start of Cargo Operation -->
+    <select id="selectCargoOperation" parameterType="bbtDashboardParm" resultMap="cargoOperationMap">
+        /* BBTDashboard.selectCargoOperation */
+        WITH VW AS (
+            SELECT DRY.VSL_CALL_ID
+                 , DRY.WORK_YMD
+                 , DRY.SHFT_ID
+                 , JB.CG_WGT
+                 , CASE
+                       WHEN DRY.CG_TP_CD = 'BBK' THEN 'BREAK'
+                       WHEN DRY.CG_TP_CD = 'DBN' OR DRY.CG_TP_CD = 'DBE' OR DRY.CG_TP_CD = 'DBK' THEN 'DRY'
+                END                            CARGOTYPE
+            FROM TMT_VSL_OPE_RPT DRY
+            JOIN TMT_JOB JB
+            	ON   DRY.VSL_CALL_ID = JB.VSL_CALL_ID
+            	AND TO_CHAR(F_GET_SHFT_DATE(JB.WORK_ST_DT), 'YYYYMMDD') = DRY.WORK_YMD
+            	AND JB.SHFT_ID = DRY.SHFT_ID
+            LEFT JOIN TMT_BL DS
+            	ON   DRY.VSL_CALL_ID = DS.VSL_CALL_ID
+            	AND  JB.CG_NO = DS.BL_NO
+            LEFT JOIN TMT_GR LD
+            	ON   DRY.VSL_CALL_ID = LD.VSL_CALL_ID
+            	AND  JB.CG_NO = LD.GR_NO
+            WHERE DRY.WORK_YMD = #{workYmd}
+              AND DRY.SHFT_ID = #{shftId}
+              AND JB.JOB_TP_CD IN ('LD', 'DS')
+              /*AND JB.JOB_PURP_CD IN ('WV','GV','AV', 'VA','VG')*/
+            UNION
+            SELECT LIQ.VSL_CALL_ID
+                 , MAX(LIQ.WORK_YMD)    WORK_YMD
+                 , MAX(LIQ.SHFT_ID)     SHFT_ID
+                 , SUM(LIQ.TON_HDL_AMT) WGT
+                 , 'LIQUID'             CARGOTYPE
+            FROM TMT_LQDCG_OPE LIQ
+            WHERE LIQ.WORK_YMD = #{workYmd}
+              AND LIQ.SHFT_ID = #{shftId}
+              AND LIQ.JOB_TP_CD IN ('DS', 'LD')
+            GROUP BY LIQ.VSL_CALL_ID
+        )
+        SELECT VW.CARGOTYPE                                           CGTP
+             , COUNT(*)                                               VSLCNT
+             , SUM(VW.CG_WGT)                                            TONNAGE
+             , ROUND((RATIO_TO_REPORT(SUM(VW.CG_WGT)) over ()) * 100, 2) CGWGTRATE
+        FROM VW
+        JOIN TMT_VSL_SCH VSL
+        ON VW.VSL_CALL_ID = VSL.VSL_CALL_ID
+            AND VSL.CARGO_TP_MPTS IN ('BBK', 'DBE', 'DBN', 'LQE', 'LQN')
+        JOIN (
+            SELECT BERTH_CD
+            FROM TMT_BERTH_LOC TRM
+            WHERE UPPER(LOC_CD) = 'BBT'
+              AND BERTH_TP IN ('EDJ', 'NDJ', 'WRF')
+              AND <![CDATA[ BERTH_CD <> 'W11N' ]]>
+        ) BT
+        ON VSL.BERTH_LOC = BT.BERTH_CD
+        WHERE VW.CG_WGT > 0
+        GROUP BY VW.CARGOTYPE
+    </select>
+    <!-- End of Cargo Operation -->
+    
+    <!-- Start of Bulk Handling vs Balance -->
+    <select id="selectBulkHandlingBalanceCompare" parameterType="bbtDashboardParm" resultMap="bulkHandlingBalanceCompareMap">
+        /* BBTDashboard.selectBulkHandlingBalanceCompare */
+        WITH WORKDTM AS (
+        SELECT TO_DATE(#{workYmd}||#{fmHhmm}||'00', 'YYYYMMDDHH24MISS') FROM_DT
+        , CASE
+        WHEN TO_DATE(#{workYmd}||#{fmHhmm}||'00', 'YYYYMMDDHH24MISS') > TO_DATE(#{workYmd}||#{toHhmm}||'59',
+        'YYYYMMDDHH24MISS')
+        THEN TO_DATE(#{workYmd}||#{toHhmm}||'59', 'YYYYMMDDHH24MISS') +1
+        ELSE TO_DATE(#{workYmd}||#{toHhmm}||'59', 'YYYYMMDDHH24MISS')
+        END TO_DT
+        FROM DUAL
+        )
+        SELECT R4.VSLCALLID
+             , R4.BERTHCD
+             , R4.HANDLINGWGT
+             , R4.TOTALHANDLINGWGT
+             , R4.EQNM
+             , R4.TOTALWGT
+             , R4.BALANCEWGT
+        FROM (
+            SELECT R3.VSLCALLID
+            , R3.BERTHCD
+            , R3.HANDLINGWGT
+            , R3.TOTALHANDLINGWGT
+            , R3.EQNM
+            <if test="type != null and type == 'BREAK'">, R3.SN_WGT
+                , R3.BL_WGT
+                , (R3.SN_WGT + R3.BL_WGT) TOTALWGT
+                , ((R3.SN_WGT
+                + R3.BL_WGT) - R3.TOTALHANDLINGWGT) BALANCEWGT
+            </if>
+                 <if test="type != null and type == 'LIQUID'">
+                 , R3.TOTALWGT
+                 , R3.TOTALWGT - R3.TOTALHANDLINGWGT BALANCEWGT
+                 </if>
+            FROM (
+                SELECT R2.VSLCALLID
+                     , MAX(R2.BERTHCD) BERTHCD
+                     , MAX(R2.HANDLINGWGT) HANDLINGWGT
+                     , MAX(R2.TOTALHANDLINGWGT) TOTALHANDLINGWGT
+                     , MAX(R2.EQNM) EQNM
+                    <if test="type != null and type == 'BREAK'">
+                     , SUM(NVL(SN.CG_WGT, 0)) SN_WGT
+                     , SUM(NVL(BL.CG_WGT, 0)) BL_WGT
+                    </if>
+                    <if test="type != null and type == 'LIQUID'">
+                     , SUM(NVL(CNF.CG_WGT, 0)) TOTALWGT
+                    </if>
+                FROM (
+                    SELECT R1.VSLCALLID
+                         , R1.BERTHCD
+                         , MAX(R1.HANDLINGWGT) HANDLINGWGT
+                         , MAX(R1.TOTALHANDLINGWGT) TOTALHANDLINGWGT
+                         , MAX(EQ.EQ_FAC_NM) EQNM
+                         , MAX(R1.TOTALWGT) TOTALWGT
+                    FROM (
+                        SELECT VSL.VSL_CALL_ID VSLCALLID, VSL.BERTH_LOC BERTHCD
+                        <if test="type != null and type == 'BREAK'">
+                            , SUM(CASE WHEN JB.WORK_ST_DT BETWEEN WORKDTM.FROM_DT AND WORKDTM.TO_DT THEN JB.CG_WGT ELSE 0 END)
+                                OVER (PARTITION BY JB.VSL_CALL_ID) HANDLINGWGT
+                            , SUM(CASE WHEN JB.WORK_ST_DT &lt;= WORKDTM.TO_DT THEN JB.CG_WGT ELSE 0 END)
+                                OVER (PARTITION BY JB.VSL_CALL_ID) TOTALHANDLINGWGT
+                            , SUM(JB.CG_WGT) OVER (PARTITION BY JB.VSL_CALL_ID) TOTALWGT
+                        </if>
+                        <if test="type != null and type == 'LIQUID'">
+                            , SUM(CASE WHEN LQ.WORK_YMD = #{workYmd} AND LQ.SHFT_ID = #{shftId} THEN LQ.TON_HDL_AMT ELSE 0 END)
+                                OVER (PARTITION BY LQ.VSL_CALL_ID) HANDLINGWGT
+                            , SUM(CASE
+                                    WHEN LQ.WORK_YMD||(SELECT SHFT.SHFT_IDX FROM TMT_SHFT SHFT WHERE SHFT_ID = LQ.SHFT_ID AND SHFT_DIV_CD = 'OT0005')
+                                         &lt;= #{workYmd}||(SELECT SHFT.SHFT_IDX FROM TMT_SHFT SHFT WHERE SHFT.SHFT_ID = #{shftId} AND SHFT_DIV_CD = 'OT0005')
+                                    THEN LQ.TON_HDL_AMT ELSE 0 END)
+                                OVER (PARTITION BY LQ.VSL_CALL_ID) TOTALHANDLINGWGT
+                            , SUM(LQ.TON_HDL_AMT) OVER (PARTITION BY LQ.VSL_CALL_ID) TOTALWGT
+                            , LQ.HOSE_TP_CD
+                        </if>
+                        FROM TMT_VSL_SCH VSL
+                        CROSS JOIN WORKDTM WORKDTM
+                        JOIN (
+                            SELECT BERTH_CD
+                            FROM TMT_BERTH_LOC TRM
+                            WHERE UPPER(LOC_CD) = 'BBT'
+                        <if test="type != null and type == 'BREAK'">
+                            AND BERTH_TP IN ('EDJ', 'NDJ', 'WRF')
+                        </if>
+                        <if test="type != null and type == 'LIQUID'">
+                            AND BERTH_TP IN ('EDJ', 'NDJ')
+                        </if>
+                            AND BERTH_CD &lt;&gt; 'W11N'
+                        ) BT
+                        ON VSL.BERTH_LOC = BT.BERTH_CD
+                        <if test="type != null and type == 'BREAK'">
+                        JOIN (
+                            SELECT A.VSL_CALL_ID, MAX(A.JOB_TP_CD) JOB_TP_CD, MIN(A.WORK_ST_DT) WORK_ST_DT, MAX(A.CG_WGT) CG_WGT
+                            FROM   TMT_JOB A
+                            WHERE A.JOB_TP_CD IN ('LD', 'DS')
+                            GROUP BY A.VSL_CALL_ID, A.CG_NO
+                        ) JB
+                          ON JB.VSL_CALL_ID = VSL.VSL_CALL_ID
+
+                        </if>
+                        <if test="type != null and type == 'LIQUID'">
+                        JOIN TMT_LQDCG_OPE LQ
+                          ON LQ.VSL_CALL_ID = VSL.VSL_CALL_ID
+                        </if>
+                        WHERE VSL.ATW IS NOT NULL
+                        AND (VSL.ATU IS NULL
+                            OR VSL.ATU BETWEEN WORKDTM.FROM_DT AND WORKDTM.TO_DT
+                            OR VSL.ATC BETWEEN WORKDTM.FROM_DT AND WORKDTM.TO_DT
+                            OR VSL.ATU &gt; WORKDTM.FROM_DT)
+                        AND VSL.SUMMIT_STAT NOT IN ('CC', 'RC')
+                    ) R1
+                    <if test="type != null and type == 'BREAK'">
+                    LEFT JOIN (
+                        SELECT DTL.VSL_CALL_ID
+                            , DTL.WORK_YMD
+                            , DTL.SHFT_ID
+                            , LISTAGG(EQ.EQ_FAC_NM, '/') WITHIN GROUP (ORDER BY DTL.SEQ) EQ_FAC_NM
+                        FROM TMT_VSL_OPE_RPT_DTL DTL
+                        LEFT JOIN TMT_EQ_FAC EQ
+                        ON DTL.EQ_FAC_NO = EQ.EQ_FAC_NO
+                        GROUP BY DTL.VSL_CALL_ID, DTL.WORK_YMD, DTL.SHFT_ID
+                    ) EQ
+                    ON R1.VSLCALLID = EQ.VSL_CALL_ID
+                    AND EQ.WORK_YMD = #{workYmd}
+                    AND EQ.SHFT_ID = #{shftId}
+                    </if>
+                    <if test="type != null and type == 'LIQUID'">
+                    LEFT JOIN (
+                        SELECT CD.S_CD EQ_FAC_NO
+                             , CD.S_CD_NM EQ_FAC_NM
+                        FROM TMT_CD_MSTD CD
+                        WHERE CD.M_CD = 'HSTP'
+                    ) EQ
+                    ON R1.HOSE_TP_CD = EQ.EQ_FAC_NO
+                    </if>
+                    WHERE R1.HANDLINGWGT &gt; 0
+                    GROUP BY R1.VSLCALLID, R1.BERTHCD
+                ) R2
+                <if test="type != null and type == 'BREAK'">
+                LEFT JOIN TMT_SHIPG_NOTE SN
+                  ON SN.VSL_CALL_ID = R2.VSLCALLID
+                LEFT JOIN TMT_BL BL
+                  ON BL.VSL_CALL_ID = R2.VSLCALLID
+                </if>
+                <if test="type != null and type == 'LIQUID'">
+                LEFT JOIN TMT_CONFM_SLP_DTL CNF
+                  ON CNF.VSL_CALL_ID = R2.VSLCALLID
+                </if>
+                GROUP BY R2.VSLCALLID
+            ) R3
+        ) R4
+    </select>
+    <!-- End of Bulk Handling vs Balance -->
+    
+    <!-- Start of Break/Dry Bulk Productivity -->
+    <select id="selectBreakDryBulkProductivity" parameterType="bbtDashboardParm" resultMap="bulkProductivityMap">
+        /* BBTDashboard.selectBreakDryBulkProductivity */
+        WITH VORJOB AS (
+            SELECT R1.VSL_CALL_ID
+                 , R1.WORK_YMD
+                 , R1.SHFT_ID
+                 , R1.CMDT_CD
+                 , R1.HATCH_NO
+                 , SUM(R1.CG_WGT) CG_WGT
+            FROM (
+                SELECT VOR.VSL_CALL_ID
+                     , VOR.WORK_YMD
+                     , VOR.SHFT_ID
+                     , JB.JOB_NO
+                     , JB.CG_WGT
+                     , JB.HATCH_NO
+                     , COALESCE(LD.CMDT_CD, DS.CMDT_CD) CMDT_CD
+                FROM TMT_VSL_OPE_RPT VOR
+                JOIN TMT_JOB JB
+                ON JB.VSL_CALL_ID = VOR.VSL_CALL_ID
+                    AND TO_CHAR(F_GET_SHFT_DATE(JB.WORK_ST_DT), 'YYYYMMDD') = VOR.WORK_YMD
+                    AND JB.SHFT_ID = VOR.SHFT_ID
+                LEFT JOIN TMT_GR LD
+                ON VOR.VSL_CALL_ID = LD.VSL_CALL_ID
+                    AND JB.CG_NO = LD.GR_NO
+                LEFT JOIN TMT_BL DS
+                ON VOR.VSL_CALL_ID = DS.VSL_CALL_ID
+                    AND JB.CG_NO = DS.BL_NO
+
+                WHERE JB.JOB_TP_CD IN ('LD', 'DS')
+            ) R1
+            GROUP BY R1.VSL_CALL_ID, R1.WORK_YMD, R1.SHFT_ID, R1.HATCH_NO, R1.CMDT_CD
+        ),
+        DTLEQ AS (
+             SELECT DTL.VSL_CALL_ID
+                  , DTL.WORK_YMD
+                  , DTL.SHFT_ID
+                  , DTL.HATCH_NO
+                  , EQ.EQ_FAC_NO
+                  , EQ.EQ_FAC_NM
+                  , DTL.WORK_ST_DT
+                  , DTL.WORK_END_DT
+             FROM TMT_VSL_OPE_RPT_DTL DTL
+             JOIN TMT_EQ_FAC EQ
+             ON DTL.EQ_FAC_NO = EQ.EQ_FAC_NO
+        ),
+        VSLSCH AS (
+             SELECT VSL.VSL_CALL_ID VSL_CALL_ID
+                  , VSL.ATB
+                  , VSL.ATU
+                  , BT.BERTH_CD
+             FROM TMT_VSL_SCH VSL
+             JOIN (
+                 SELECT BERTH_CD
+                 FROM TMT_BERTH_LOC TRM
+                 WHERE UPPER(LOC_CD) = 'BBT'
+                   AND BERTH_TP IN ('EDJ', 'NDJ', 'WRF')
+             ) BT
+             ON VSL.BERTH_LOC = BT.BERTH_CD
+             WHERE VSL.ATW IS NOT NULL
+               AND VSL.SUMMIT_STAT NOT IN ('CC', 'RC')
+        ),
+        DLYHR AS (
+             SELECT DLY.VSL_CALL_ID
+                  , DLY.WORK_YMD
+                  , DLY.SHFT_ID
+                  , DLY.HATCH_NO
+                  , LISTAGG(DLY.RSN_CD, '/') WITHIN GROUP ( ORDER BY DLY.HATCH_NO ) RSN_CD
+                  , ROUND(SUM(DLY.DLY_HRS), 2)                                      DLY_HRS
+             FROM (
+                 SELECT R2.VSL_CALL_ID
+                      , R2.WORK_YMD
+                      , R2.SHFT_ID
+                      , R2.HATCH_NO
+                      , LISTAGG(R2.RSN_CD, '/') WITHIN GROUP ( ORDER BY R2.HATCH_NO ) RSN_CD
+                      , 24 * (MAX(R2.END_DT) - MIN(R2.ST_DT))                         DLY_HRS
+                      , R2.OVERLAP_SUM
+                 FROM (
+                     SELECT R1.VSL_CALL_ID
+                          , R1.ST_DT
+                          , R1.SHFT_ID
+                          , R1.END_DT
+                          , R1.HATCH_NO
+                          , CASE
+                                WHEN LAG(R1.RSN_CD) OVER (PARTITION BY R1.VSL_CALL_ID, R1.WORK_YMD, R1.SHFT_ID ORDER BY R1.RSN_CD) = R1.RSN_CD THEN
+                                    NULL
+                                ELSE R1.RSN_CD
+                            END as RSN_CD
+                          , R1.WORK_YMD
+                          , SUM(CASE WHEN R1.LAG_END_DT BETWEEN R1.ST_DT AND R1.END_DT THEN 0 ELSE 1 END)
+                                OVER (PARTITION BY R1.VSL_CALL_ID, WORK_YMD, R1.SHFT_ID, R1.HATCH_NO ORDER BY R1.ST_DT) AS OVERLAP_SUM
+                     FROM (
+                         SELECT T.VSL_CALL_ID
+                              , T.ST_DT
+                              , T.END_DT
+                              , T.SHFT_ID
+                              , T.HATCH_NO
+                              , T.RSN_CD
+                              , F_GET_OT_SHFT_DATE(T.ST_DT)                                                                                WORK_YMD
+                              , LAG(T.END_DT)
+                                    OVER (PARTITION BY T.VSL_CALL_ID, F_GET_OT_SHFT_DATE(T.ST_DT), T.SHFT_ID, T.HATCH_NO ORDER BY T.ST_DT) LAG_END_DT
+                         FROM TMT_DLY_BRK T
+                     ) R1
+                 ) R2
+                 GROUP BY R2.VSL_CALL_ID, R2.WORK_YMD, R2.SHFT_ID, R2.HATCH_NO, R2.OVERLAP_SUM
+             ) DLY
+             GROUP BY DLY.VSL_CALL_ID, DLY.WORK_YMD, DLY.SHFT_ID, DLY.HATCH_NO
+        ),
+        WORKDTM AS (
+            SELECT TO_DATE(#{workYmd} || #{fmHhmm} || '00', 'YYYYMMDDHH24MISS') FROM_DT
+                 , CASE
+                       WHEN TO_DATE(#{workYmd} || #{fmHhmm} || '00', 'YYYYMMDDHH24MISS') >
+                            TO_DATE(#{workYmd} || #{toHhmm} || '59', 'YYYYMMDDHH24MISS')
+                           THEN TO_DATE(#{workYmd} || #{toHhmm} || '59', 'YYYYMMDDHH24MISS') + 1
+                       ELSE TO_DATE(#{workYmd} || #{toHhmm} || '59', 'YYYYMMDDHH24MISS')
+                END TO_DT
+            FROM DUAL
+        )
+        <if test="isSeparateCrane == null or isSeparateCrane == false">
+        SELECT R3.VSL_CALL_ID
+             , R3.WORK_YMD
+             , R3.SHFT_ID
+             , MAX(R3.BERTH_CD) BERTH_CD
+             , MAX(R3.ATB) ATB
+             , MAX(R3.ATB_WORK_YMD) ATB_WORK_YMD
+             , MAX(R3.ATU) ATU
+             , MAX(R3.ATU_WORK_YMD) ATU_WORK_YMD
+             , LISTAGG(R3.CMDT_CD, ',') WITHIN GROUP ( ORDER BY R3.EQ_FAC_NO ) CMDT_CD
+             , LISTAGG(R3.HATCH_NO, ',') WITHIN GROUP ( ORDER BY R3.EQ_FAC_NO ) HATCH_NO
+             , LISTAGG(R3.EQ_FAC_NO, ',') WITHIN GROUP ( ORDER BY R3.EQ_FAC_NO ) EQ_FAC_NO
+             , LISTAGG(R3.EQ_FAC_NM, ',') WITHIN GROUP ( ORDER BY R3.EQ_FAC_NO ) EQ_FAC_NM
+             , LISTAGG(R3.STAFF_NO, ', ') WITHIN GROUP ( ORDER BY R3.EQ_FAC_NO ) STAFF_NO
+             , SUM(R3.CG_WGT) WGT
+            <!--   , LISTAGG(R3.CMDT_GRP, ',') WITHIN GROUP ( ORDER BY R3.EQ_FAC_NO ) CMDT_GRP -->
+             , LISTAGG(R3.CMDT_GRP_CD, ',') WITHIN GROUP ( ORDER BY R3.EQ_FAC_NO ) CMDT_GRP_CD
+             , MAX(R3.SHFT_ST_HR) SHFT_ST_HR
+             , MAX(R3.SHFT_END_HR) SHFT_END_HR
+             , ROUND(AVG(R3.KPI_IDX), 2) KPI_IDX
+             , MAX(R3.RSN_CD) RSN_CD
+             , SUM(R3.DLY_HRS) DLY_HRS
+             , SUM(R3.TOTAL_NET_WRK_HRS) TOTAL_NET_WRK_HRS
+             , ROUND(AVG(R3.HANDLING_RATE), 2) HANDLING_RATE
+        FROM (
+        </if>
+            SELECT R2.VSL_CALL_ID
+                 , R2.WORK_YMD
+                 , R2.SHFT_ID
+                 , R2.BERTH_CD
+                 , R2.ATB
+                 , R2.ATB_WORK_YMD
+                 , R2.ATU
+                 , R2.ATU_WORK_YMD
+                 , R2.CMDT_CD
+                 , R2.HATCH_NO
+                 , R2.EQ_FAC_NO
+                 , R2.EQ_FAC_NM
+                 , DEP.STAFF_NO
+                 , R2.CG_WGT
+                 <!-- , R2.CMDT_GRP -->
+                 , R2.CMDT_GRP_CD
+                 , R2.SHFT_ST_HR
+                 , R2.SHFT_END_HR
+                 , R2.KPI_IDX
+                 , R2.RSN_CD
+                 , R2.DLY_HRS
+                 , R2.TOTAL_NET_WRK_HRS
+                 , ROUND(R2.CG_WGT / R2.TOTAL_NET_WRK_HRS) AS HANDLING_RATE
+            FROM (
+                SELECT R1.VSL_CALL_ID
+                     , R1.WORK_YMD
+                     , R1.SHFT_ID
+--                      , R1.CMDT_GRP_CD
+--                      <!-- , R1.CMDT_GRP  -->
+--                      , R1.CMDT_CD
+                   <!--  , CASE
+                         WHEN LAG(R1.CMDT_GRP) OVER (PARTITION BY R1.VSL_CALL_ID, R1.WORK_YMD, R1.SHFT_ID ORDER BY R1.CMDT_GRP) = R1.CMDT_GRP THEN
+                            NULL
+                         ELSE R1.CMDT_GRP
+                       END as CMDT_GRP -->
+                     , CASE
+                         WHEN LAG(R1.CMDT_GRP_CD) OVER (PARTITION BY R1.VSL_CALL_ID, R1.WORK_YMD, R1.SHFT_ID ORDER BY R1.CMDT_GRP_CD) = R1.CMDT_GRP_CD THEN
+                            NULL
+                         ELSE R1.CMDT_GRP_CD
+                       END as CMDT_GRP_CD
+                     , CASE
+                         WHEN LAG(R1.CMDT_CD) OVER (PARTITION BY R1.VSL_CALL_ID, R1.WORK_YMD, R1.SHFT_ID ORDER BY R1.CMDT_CD) = R1.CMDT_CD THEN
+                            NULL
+                         ELSE R1.CMDT_CD
+                       END as CMDT_CD
+                     , R1.HATCH_NO
+                     , R1.CG_WGT
+                     , R1.EQ_FAC_NO
+                     , R1.EQ_FAC_NM
+                     , R1.RSN_CD
+                     , R1.DLY_HRS
+                     , R1.KPI_IDX
+                     , R1.BERTH_CD
+                     , R1.ATB
+                     , R1.ATB_WORK_YMD
+                     , R1.ATB_SHFT_ID
+                     , R1.ATU
+                     , R1.ATU_WORK_YMD
+                     , R1.ATU_SHFT_ID
+                     , R1.SHFT_ST_HR
+                     , R1.SHFT_END_HR
+                     , R1.WORK_ST_DT
+                     , R1.WORK_END_DT
+        --          , CASE
+        --                WHEN R1.ATU IS NOT NULL AND WORK_YMD = ATU_WORK_YMD AND SHFT_ID = ATU_SHFT_ID
+        --                    THEN ROUND(NVL(F_B_INTERVAL_OF_HOUR('NR', R1.ATU, R1.SHFT_ST_HR), 0)*100) / 100
+        --                WHEN R1.ATB IS NOT NULL AND WORK_YMD = ATB_WORK_YMD AND SHFT_ID = ATB_SHFT_ID
+        --                    THEN ROUND(NVL(F_B_INTERVAL_OF_HOUR('NR', R1.ATB, R1.BASE_DTM), 0)*100) / 100
+        --                ELSE ROUND(NVL(F_B_INTERVAL_OF_HOUR('NR', R1.BASE_DTM, R1.SHFT_ST_HR), 0)*100) / 100
+        --         END OPERATION_HRS
+        --          , CASE
+        --                WHEN R1.ATU IS NOT NULL AND WORK_YMD = ATU_WORK_YMD AND SHFT_ID = ATU_SHFT_ID
+        --                    THEN ROUND(NVL(F_B_INTERVAL_OF_HOUR('NR', R1.ATU, R1.SHFT_ST_HR), 0)*100) / 100 - R1.DLY_HRS
+        --                WHEN R1.ATB IS NOT NULL AND WORK_YMD = ATB_WORK_YMD AND SHFT_ID = ATB_SHFT_ID
+        --                    THEN ROUND(NVL(F_B_INTERVAL_OF_HOUR('NR', R1.ATB, R1.BASE_DTM), 0)*100) / 100 - R1.DLY_HRS
+        --                ELSE ROUND(NVL(F_B_INTERVAL_OF_HOUR('NR', R1.BASE_DTM, R1.SHFT_ST_HR), 0)*100) / 100 - R1.DLY_HRS
+        --            END TOTAL_NET_WRK_HRS
+                     , ROUND(NVL(F_B_INTERVAL_OF_HOUR('NR', R1.WORK_END_DT, R1.WORK_ST_DT), 0) * 100) / 100 OPERATION_HRS
+                     , ROUND(NVL(F_B_INTERVAL_OF_HOUR('NR', R1.WORK_END_DT, R1.WORK_ST_DT), 0) * 100) / 100 - R1.DLY_HRS TOTAL_NET_WRK_HRS
+                FROM (
+                    SELECT VJ.VSL_CALL_ID
+                         , VJ.WORK_YMD
+                         , VJ.SHFT_ID
+                         , CMDT.CMDT_GRP_CD
+                        <!--   , CMDT.CMDT_GRP -->
+                         , VJ.CMDT_CD
+                         , VJ.HATCH_NO
+                         , VJ.CG_WGT
+                         , EQ.EQ_FAC_NO
+                         , EQ.EQ_FAC_NM
+                         , DLY.RSN_CD
+                         , NVL(DLY.DLY_HRS, 0) DLY_HRS
+                         , VS.BERTH_CD
+                         , EQ.WORK_ST_DT
+                         , CASE WHEN EQ.WORK_END_DT &gt; SYSDATE THEN SYSDATE ELSE EQ.WORK_END_DT END WORK_END_DT
+                        <!--   , NVL(KPI.KPI_IDX, 0) KPI_IDX-->
+                         , '' AS KPI_IDX
+                         , VS.ATB
+                         , F_GET_OT_SHFT_DATE(VS.ATB) ATB_WORK_YMD
+                         , (SELECT SHFT.SHFT_ID
+                            FROM TMT_SHFT SHFT
+                            WHERE TO_DATE(TO_CHAR(VS.ATB, 'HH24MI'), 'HH24MI')
+                                BETWEEN
+                                CASE
+                                    WHEN TO_NUMBER(FM_HHMM, '9999') > TO_NUMBER(TO_HHMM, '9999')
+                                        THEN TO_DATE(SHFT.FM_HHMM, 'HH24MI') - 1
+                                    ELSE TO_DATE(SHFT.FM_HHMM, 'HH24MI')
+                                    END
+                                AND TO_DATE(SHFT.TO_HHMM, 'HH24MI')
+                              AND SHFT_DIV_CD = 'OT0005') ATB_SHFT_ID
+                         , VS.ATU
+                         , F_GET_OT_SHFT_DATE(VS.ATU) ATU_WORK_YMD
+                         , (SELECT SHFT.SHFT_ID
+                            FROM TMT_SHFT SHFT
+                            WHERE TO_DATE(TO_CHAR(VS.ATU, 'HH24MI'), 'HH24MI')
+                                BETWEEN
+                                CASE
+                                    WHEN TO_NUMBER(FM_HHMM, '9999') > TO_NUMBER(TO_HHMM, '9999')
+                                        THEN TO_DATE(SHFT.FM_HHMM, 'HH24MI') - 1
+                                    ELSE TO_DATE(SHFT.FM_HHMM, 'HH24MI')
+                                    END
+                                AND TO_DATE(SHFT.TO_HHMM, 'HH24MI')
+                              AND SHFT_DIV_CD = 'OT0005') ATU_SHFT_ID
+                         , TO_DATE(VJ.WORK_YMD || SHFT.FM_HHMM, 'YYYYMMDDHH24MI') SHFT_ST_HR
+                         , CASE
+                               WHEN TO_NUMBER(SHFT.FM_HHMM, '9999') > TO_NUMBER(SHFT.TO_HHMM, '9999')
+                                   THEN TO_DATE(VJ.WORK_YMD || SHFT.TO_HHMM, 'YYYYMMDDHH24MI') + 1
+                               ELSE TO_DATE(VJ.WORK_YMD || SHFT.TO_HHMM, 'YYYYMMDDHH24MI')
+                        END SHFT_END_HR
+                         , WORKDTM.TO_DT BASE_DTM
+                    FROM VORJOB VJ
+                    JOIN DTLEQ EQ
+                    ON EQ.VSL_CALL_ID = VJ.VSL_CALL_ID
+                        AND EQ.WORK_YMD = VJ.WORK_YMD
+                        AND EQ.SHFT_ID = VJ.SHFT_ID
+                        AND EQ.HATCH_NO = VJ.HATCH_NO
+                    LEFT JOIN DLYHR DLY
+                    ON DLY.VSL_CALL_ID = VJ.VSL_CALL_ID
+                        AND DLY.WORK_YMD = VJ.WORK_YMD
+                        AND DLY.SHFT_ID = VJ.SHFT_ID
+                        AND DLY.HATCH_NO = VJ.HATCH_NO
+                    JOIN VSLSCH VS
+                    ON VS.VSL_CALL_ID = VJ.VSL_CALL_ID
+                    JOIN TMT_CMDT CMDT
+                    ON VJ.CMDT_CD = CMDT.CMDT_CD
+                    <!-- 
+                    LEFT JOIN TMT_CRN_KPI KPI
+                    ON EQ.EQ_FAC_NO = KPI.EQ_FAC_NO
+                        AND CMDT.CMDT_GRP_CD = KPI.CMDT_GRP_CD -->
+                    JOIN TMT_SHFT SHFT
+                    ON VJ.SHFT_ID = SHFT.SHFT_ID
+                    CROSS JOIN WORKDTM WORKDTM
+                    WHERE VJ.WORK_YMD = #{workYmd}
+                      AND VJ.SHFT_ID = #{shftId}
+                ) R1
+            ) R2
+            JOIN (
+                SELECT VSL_CALL_ID
+                     , WORK_YMD
+                     , SHFT_ID
+                     , EQ_NO
+                     , LISTAGG(DRIVER, ', ') WITHIN GROUP ( ORDER BY SEQ ) STAFF_NO
+                FROM TMT_DEPY
+                GROUP BY VSL_CALL_ID, WORK_YMD, SHFT_ID, EQ_NO
+            ) DEP
+            ON R2.VSL_CALL_ID = DEP.VSL_CALL_ID
+            AND R2.WORK_YMD = DEP.WORK_YMD
+            AND R2.SHFT_ID = DEP.SHFT_ID
+            AND R2.EQ_FAC_NO = DEP.EQ_NO
+            WHERE R2.TOTAL_NET_WRK_HRS > 0
+            ORDER BY R2.VSL_CALL_ID, R2.EQ_FAC_NM
+        <if test="isSeparateCrane == null or isSeparateCrane == false">
+        ) R3
+        GROUP BY R3.VSL_CALL_ID, R3.WORK_YMD, R3.SHFT_ID
+        </if>
+    </select>
+    <!-- End of Break/Dry Bulk Productivity -->
+    
+    <!-- Start of Liquid Bulk Productivity -->
+    <select id="selectLiquidBulkProductivity" parameterType="bbtDashboardParm" resultMap="bulkProductivityMap">
+        /* BBTDashboard.selectLiquidBulkProductivity */
+        WITH VORJOB AS (
+            SELECT R1.VSL_CALL_ID
+                 , R1.WORK_YMD
+                 , R1.SHFT_ID
+                 , R1.CMDT_CD
+                 , SUM(R1.CG_WGT) CG_WGT
+            FROM (
+                SELECT VOR.VSL_CALL_ID
+                     , VOR.WORK_YMD
+                     , VOR.SHFT_ID
+                     , VOR.CMDT_CD
+                     , VOR.TON_HDL_AMT CG_WGT
+                FROM TMT_LQDCG_OPE VOR
+            ) R1
+            GROUP BY R1.VSL_CALL_ID, R1.WORK_YMD, R1.SHFT_ID, R1.CMDT_CD
+        ),
+             DTLEQ AS (
+                 SELECT R1.VSL_CALL_ID
+                      , R1.WORK_YMD
+                      , R1.SHFT_ID
+                      , R1.EQ_FAC_NO
+                      , R1.CMDT_CD
+                      , MIN(R1.EQ_FAC_NM) EQ_FAC_NM
+                      , MIN(R1.WORK_ST_DT) WORK_ST_DT
+                      , MAX(R1.WORK_END_DT) WORK_END_DT
+                 FROM (
+                     SELECT DTL.VSL_CALL_ID
+                          , DTL.WORK_YMD
+                          , DTL.SHFT_ID
+                          , DTL.HOSE_TP_CD EQ_FAC_NO
+                          , EQ.EQ_FAC_NM
+                          , DTL.CMDT_CD
+                          , MIN(DTL.ST_DT) OVER (PARTITION BY DTL.VSL_CALL_ID, DTL.CMDT_CD) WORK_ST_DT
+                          , MAX(DTL.END_DT) OVER (PARTITION BY DTL.VSL_CALL_ID, DTL.CMDT_CD) WORK_END_DT
+                     FROM TMT_LQDCG_OPE DTL
+                     JOIN(SELECT CD.S_CD    EQ_FAC_NO
+                               , CD.S_CD_NM EQ_FAC_NM
+                          FROM TMT_CD_MSTD CD
+                          WHERE CD.M_CD = 'HSTP'
+                     ) EQ
+                     ON DTL.HOSE_TP_CD = EQ.EQ_FAC_NO
+                 ) R1
+                 GROUP BY R1.VSL_CALL_ID, R1.WORK_YMD, R1.SHFT_ID, R1.EQ_FAC_NO, R1.CMDT_CD
+             ),
+             VSLSCH AS (
+                 SELECT VSL.VSL_CALL_ID VSL_CALL_ID
+                      , VSL.ATB
+                      , VSL.ATU
+                      , BT.BERTH_CD
+                 FROM TMT_VSL_SCH VSL
+                 JOIN (
+                     SELECT BERTH_CD
+                     FROM TMT_BERTH_LOC TRM
+                     WHERE UPPER(LOC_CD) = 'BBT'
+                       AND BERTH_TP IN ('EDJ', 'NDJ')
+                 ) BT
+                 ON VSL.BERTH_LOC = BT.BERTH_CD
+                 WHERE VSL.ATW IS NOT NULL
+                   AND   VSL.SUMMIT_STAT NOT IN('CC', 'RC')
+             ),
+             DLYHR AS (
+                 SELECT DLY.VSL_CALL_ID
+                      , DLY.WORK_YMD
+                      , DLY.SHFT_ID
+                      , LISTAGG(DLY.DLY_CD, '/') WITHIN GROUP ( ORDER BY DLY.DLY_CD ) RSN_CD
+                      , ROUND(SUM(DLY.DLY_HRS), 2) DLY_HRS
+                 FROM (
+                     SELECT R2.VSL_CALL_ID
+                          , R2.WORK_YMD
+                          , R2.SHFT_ID
+                          , LISTAGG(R2.DLY_CD, '/') WITHIN GROUP ( ORDER BY R2.DLY_CD ) DLY_CD
+                          , 24 * (MAX(R2.END_DT) - MIN(R2.ST_DT)) DLY_HRS
+                          , R2.OVERLAP_SUM
+                     FROM (
+                         SELECT R1.VSL_CALL_ID
+                              , R1.ST_DT
+                              , R1.SHFT_ID
+                              , R1.END_DT
+                              , R1.DLY_CD
+                              , R1.WORK_YMD
+                              , SUM(CASE WHEN R1.LAG_END_DT BETWEEN R1.ST_DT AND R1.END_DT THEN 0 ELSE 1 END) OVER (PARTITION BY R1.VSL_CALL_ID, WORK_YMD, R1.SHFT_ID ORDER BY R1.ST_DT) AS OVERLAP_SUM
+                         FROM (
+                             SELECT T.VSL_CALL_ID
+                                  , T.ST_DT
+                                  , T.END_DT
+                                  , T.SHFT_ID
+                                  , T.DLY_CD
+                                  , F_GET_OT_SHFT_DATE(T.ST_DT) WORK_YMD
+                                  , LAG(T.END_DT) OVER (PARTITION BY T.VSL_CALL_ID, F_GET_OT_SHFT_DATE(T.ST_DT), T.SHFT_ID ORDER BY T.ST_DT) LAG_END_DT
+                             FROM TMT_DLY_SUM T
+                         ) R1
+                     ) R2
+                     GROUP BY R2.VSL_CALL_ID, R2.WORK_YMD, R2.SHFT_ID, R2.OVERLAP_SUM
+                 ) DLY
+                 GROUP BY DLY.VSL_CALL_ID, DLY.WORK_YMD, DLY.SHFT_ID
+             ),
+             WORKDTM AS (
+                 SELECT TO_DATE(#{workYmd} || #{fmHhmm} || '00', 'YYYYMMDDHH24MISS') FROM_DT
+                      , CASE
+                            WHEN TO_DATE(#{workYmd} || #{fmHhmm} || '00', 'YYYYMMDDHH24MISS') >
+                                 TO_DATE(#{workYmd} || #{toHhmm} || '59', 'YYYYMMDDHH24MISS')
+                                THEN TO_DATE(#{workYmd} || #{toHhmm} || '59', 'YYYYMMDDHH24MISS') + 1
+                            ELSE TO_DATE(#{workYmd} || #{toHhmm} || '59', 'YYYYMMDDHH24MISS')
+                     END TO_DT
+                 FROM DUAL
+             )
+        SELECT R3.VSL_CALL_ID
+             , R3.WORK_YMD
+             , R3.SHFT_ID
+             , MAX(R3.BERTH_CD) BERTH_CD
+             , MAX(R3.ATB) ATB
+             , MAX(R3.ATB_WORK_YMD) ATB_WORK_YMD
+             , MAX(R3.ATU) ATU
+             , MAX(R3.ATU_WORK_YMD) ATU_WORK_YMD
+             , LISTAGG(R3.CMDT_CD, ',') WITHIN GROUP ( ORDER BY R3.EQ_FAC_NO ) CMDT_CD
+             , LISTAGG(R3.EQ_FAC_NO, ',') WITHIN GROUP ( ORDER BY R3.EQ_FAC_NO ) EQ_FAC_NO
+             , LISTAGG(R3.EQ_FAC_NM, ',') WITHIN GROUP ( ORDER BY R3.EQ_FAC_NO ) EQ_FAC_NM
+             , SUM(R3.CG_WGT) CG_WGT
+             <!-- , LISTAGG(R3.CMDT_GRP, ',') WITHIN GROUP ( ORDER BY R3.EQ_FAC_NO ) CMDT_GRP  -->
+             , LISTAGG(R3.CMDT_GRP_CD, ',') WITHIN GROUP ( ORDER BY R3.EQ_FAC_NO ) CMDT_GRP_CD
+             , MAX(R3.SHFT_ST_HR) SHFT_ST_HR
+             , MAX(R3.SHFT_END_HR) SHFT_END_HR
+             , AVG(R3.KPI_IDX) KPI_IDX
+             , MAX(R3.RSN_CD) RSN_CD
+             , SUM(R3.DLY_HRS) DLY_HRS
+             , SUM(R3.TOTAL_NET_WRK_HRS) TOTAL_NET_WRK_HRS
+             , AVG(R3.HANDLING_RATE) HANDLING_RATE
+        FROM (
+            SELECT R2.VSL_CALL_ID
+                 , R2.WORK_YMD
+                 , R2.SHFT_ID
+                 , R2.BERTH_CD
+                 , R2.ATB
+                 , R2.ATB_WORK_YMD
+                 , R2.ATU
+                 , R2.ATU_WORK_YMD
+                 , R2.CMDT_CD
+                 , R2.EQ_FAC_NO
+                 , R2.EQ_FAC_NM
+                 , R2.CG_WGT
+                 <!-- , R2.CMDT_GRP -->
+                 , R2.CMDT_GRP_CD
+                 , R2.SHFT_ST_HR
+                 , R2.SHFT_END_HR
+                 , R2.KPI_IDX
+                 , R2.RSN_CD
+                 , R2.DLY_HRS
+                 , R2.TOTAL_NET_WRK_HRS
+                 , ROUND(R2.CG_WGT / R2.TOTAL_NET_WRK_HRS) AS HANDLING_RATE
+            FROM (
+                SELECT R1.VSL_CALL_ID
+                     , R1.WORK_YMD
+                     , R1.SHFT_ID
+                     , R1.CMDT_GRP_CD
+                    <!--  , R1.CMDT_GRP  -->
+                     , R1.CMDT_CD
+                     , R1.CG_WGT
+                     , R1.EQ_FAC_NO
+                     , R1.EQ_FAC_NM
+                     , R1.RSN_CD
+                     , R1.DLY_HRS
+                     , R1.KPI_IDX
+                     , R1.BERTH_CD
+                     , R1.ATB
+                     , R1.ATB_WORK_YMD
+                     , R1.ATB_SHFT_ID
+                     , R1.ATU
+                     , R1.ATU_WORK_YMD
+                     , R1.ATU_SHFT_ID
+                     , R1.SHFT_ST_HR
+                     , R1.SHFT_END_HR
+                     , R1.WORK_ST_DT
+                     , R1.WORK_END_DT
+                     , ROUND(NVL(F_B_INTERVAL_OF_HOUR('NR', R1.WORK_END_DT, R1.WORK_ST_DT), 0) * 100) / 100 OPERATION_HRS
+                     , ROUND(NVL(F_B_INTERVAL_OF_HOUR('NR', R1.WORK_END_DT, R1.WORK_ST_DT), 0) * 100) / 100 - R1.DLY_HRS TOTAL_NET_WRK_HRS
+                FROM (
+                    SELECT VJ.VSL_CALL_ID
+                         , VJ.WORK_YMD
+                         , VJ.SHFT_ID
+                         , CMDT.CMDT_GRP_CD
+                         <!-- , CMDT.CMDT_GRP  -->
+                         , VJ.CMDT_CD
+                         , VJ.CG_WGT
+                         , EQ.EQ_FAC_NO
+                         , EQ.EQ_FAC_NM
+                         , DLY.RSN_CD
+                         , NVL(DLY.DLY_HRS, 0) DLY_HRS
+                         , VS.BERTH_CD
+                         , CASE
+                                WHEN EQ.WORK_ST_DT IS NULL AND VS.ATB IS NOT NULL AND VS.ATB &gt;= WORKDTM.FROM_DT THEN VS.ATB
+                                WHEN EQ.WORK_ST_DT IS NULL AND VS.ATB IS NOT NULL AND VS.ATB &lt;= WORKDTM.FROM_DT THEN WORKDTM.FROM_DT
+                                WHEN EQ.WORK_ST_DT &lt; WORKDTM.FROM_DT THEN WORKDTM.FROM_DT
+                                ELSE EQ.WORK_ST_DT
+                           END WORK_ST_DT
+                         , CASE
+                                WHEN EQ.WORK_END_DT IS NULL AND SYSDATE &gt;= WORKDTM.TO_DT THEN WORKDTM.TO_DT
+                                WHEN EQ.WORK_END_DT IS NULL AND SYSDATE &lt;= WORKDTM.TO_DT THEN SYSDATE
+                                WHEN EQ.WORK_END_DT IS NULL AND VS.ATU IS NOT NULL AND SYSDATE &lt;= VS.ATU THEN SYSDATE
+                                WHEN EQ.WORK_END_DT IS NULL AND VS.ATU IS NOT NULL AND SYSDATE &gt;= VS.ATU THEN VS.ATU
+                                WHEN EQ.WORK_END_DT &gt; SYSDATE THEN SYSDATE
+                                WHEN EQ.WORK_END_DT &gt; WORKDTM.TO_DT THEN WORKDTM.TO_DT
+                                ELSE EQ.WORK_END_DT
+                           END WORK_END_DT
+                         <!--  , NVL(KPI.KPI_IDX, 0) KPI_IDX -->
+                         , '' AS KPI_IDX 
+                         , VS.ATB
+                         , F_GET_OT_SHFT_DATE(VS.ATB) ATB_WORK_YMD
+                         , (SELECT SHFT.SHFT_ID
+                            FROM TMT_SHFT SHFT
+                            WHERE TO_DATE(TO_CHAR(VS.ATB, 'HH24MI'), 'HH24MI')
+                                BETWEEN
+                                CASE
+                                    WHEN TO_NUMBER(FM_HHMM, '9999') > TO_NUMBER(TO_HHMM, '9999')
+                                        THEN TO_DATE(SHFT.FM_HHMM, 'HH24MI') - 1
+                                    ELSE TO_DATE(SHFT.FM_HHMM, 'HH24MI')
+                                    END
+                                AND TO_DATE(SHFT.TO_HHMM, 'HH24MI')
+                              AND SHFT_DIV_CD = 'OT0005') ATB_SHFT_ID
+                         , VS.ATU
+                         , F_GET_OT_SHFT_DATE(VS.ATU) ATU_WORK_YMD
+                         , (SELECT SHFT.SHFT_ID
+                            FROM TMT_SHFT SHFT
+                            WHERE TO_DATE(TO_CHAR(VS.ATU, 'HH24MI'), 'HH24MI')
+                                BETWEEN
+                                CASE
+                                    WHEN TO_NUMBER(FM_HHMM, '9999') > TO_NUMBER(TO_HHMM, '9999')
+                                        THEN TO_DATE(SHFT.FM_HHMM, 'HH24MI') - 1
+                                    ELSE TO_DATE(SHFT.FM_HHMM, 'HH24MI')
+                                    END
+                                AND TO_DATE(SHFT.TO_HHMM, 'HH24MI')
+                              AND SHFT_DIV_CD = 'OT0005') ATU_SHFT_ID
+                         , TO_DATE(VJ.WORK_YMD || SHFT.FM_HHMM, 'YYYYMMDDHH24MI') SHFT_ST_HR
+                         , CASE
+                               WHEN TO_NUMBER(SHFT.FM_HHMM, '9999') > TO_NUMBER(SHFT.TO_HHMM, '9999')
+                                   THEN TO_DATE(VJ.WORK_YMD || SHFT.TO_HHMM, 'YYYYMMDDHH24MI') + 1
+                               ELSE TO_DATE(VJ.WORK_YMD || SHFT.TO_HHMM, 'YYYYMMDDHH24MI')
+                            END SHFT_END_HR
+                         , WORKDTM.TO_DT BASE_DTM
+                    FROM VORJOB VJ
+                    JOIN DTLEQ EQ
+                      ON EQ.VSL_CALL_ID = VJ.VSL_CALL_ID
+                     AND EQ.WORK_YMD = VJ.WORK_YMD
+                     AND EQ.SHFT_ID = VJ.SHFT_ID
+                     AND EQ.CMDT_CD = VJ.CMDT_CD
+                    LEFT JOIN DLYHR DLY
+                      ON DLY.VSL_CALL_ID = VJ.VSL_CALL_ID
+                     AND DLY.WORK_YMD = VJ.WORK_YMD
+                     AND DLY.SHFT_ID = VJ.SHFT_ID
+                    JOIN VSLSCH VS
+                      ON VS.VSL_CALL_ID = VJ.VSL_CALL_ID
+                    JOIN TMT_CMDT CMDT
+                      ON VJ.CMDT_CD = CMDT.CMDT_CD
+                    <!-- LEFT JOIN TMT_CRN_KPI KPI
+                      ON EQ.EQ_FAC_NO = KPI.EQ_FAC_NO
+                     AND CMDT.CMDT_GRP_CD = KPI.CMDT_GRP_CD -->
+                    JOIN TMT_SHFT SHFT
+                      ON VJ.SHFT_ID = SHFT.SHFT_ID
+                    CROSS JOIN WORKDTM WORKDTM
+                    WHERE VJ.WORK_YMD = #{workYmd}
+                      AND VJ.SHFT_ID = #{shftId}
+                ) R1
+            ) R2
+            WHERE R2.TOTAL_NET_WRK_HRS > 0
+        ) R3
+        GROUP BY R3.VSL_CALL_ID, R3.WORK_YMD, R3.SHFT_ID
+    </select>
+    <!-- End of Liquid Bulk Productivity -->
+    
+    <!-- Start of Lorries Turnaround -->
+    <select id="selectLorriesTurnaround" parameterType="bbtDashboardParm" resultMap="lorryTurnaroundMap">
+        /* BBTDashboard.selectLorriesTurnaround */
+        SELECT R3.BERTHCD
+             , LISTAGG(VSLLORRYCNT, '||') WITHIN GROUP ( ORDER BY R3.BERTHCD ) VSLLORRYCNT
+             , SUM(LORRYCOUNT)                                                 LORRYCOUNT
+             , SUM(LORRYTRIPS)                                                 LORRYTRIPS
+        FROM (
+            SELECT R2.BERTH_LOC                                                      BERTHCD
+                 , R2.VSL_CALL_ID || '^^' || MAX(R2.VSL_NM) || '^^' ||COUNT(*) || '^^' || SUM(R2.LORRY_TRIPS) VSLLORRYCNT
+                 , COUNT(*)                                                          LORRYCOUNT
+                 , SUM(R2.LORRY_TRIPS)                                               LORRYTRIPS
+            FROM (
+                SELECT R1.BERTH_LOC
+                     , R1.VSL_CALL_ID
+                     , MAX(R1.VSL_NM) VSL_NM
+                     , R1.LORRY_NO
+                     , COUNT(R1.COUNT) LORRY_TRIPS
+                FROM (
+                    SELECT LR.VSL_CALL_ID
+                         , VSL.BERTH_LOC
+                         , PRT.VSL_NM
+                         , LR.GATE_PASS_NO
+                         , LR.LORRY_NO
+                         , JB.DELV_TP_CD
+                         , JB.OPE_CLASS_CD
+                         , 1 AS COUNT
+                    FROM TMT_CG_ARRV_DELV LR
+                    JOIN TMT_JOB JB
+                    ON LR.JOB_NO = JB.JOB_NO
+                        AND LR.VSL_CALL_ID = JB.VSL_CALL_ID
+                    JOIN TMT_VSL_SCH VSL
+                    ON VSL.VSL_CALL_ID = LR.VSL_CALL_ID
+                    JOIN TMT_VSL_PART PRT
+                    ON VSL.VSL_CD = PRT.VSL_CD
+                    RIGHT JOIN (
+                        SELECT BERTH_CD
+                        FROM TMT_BERTH_LOC
+                        WHERE UPPER(LOC_CD) = 'BBT'
+                          AND BERTH_TP IN ('EDJ', 'NDJ', 'WRF')
+                          AND BERTH_CD <![CDATA[<>]]> 'W11N'
+                          AND LENGTH <![CDATA[>]]> 0
+                    ) TRM
+                    ON VSL.BERTH_LOC = TRM.BERTH_CD
+                    WHERE JB.DELV_TP_CD = 'D'
+                      AND LR.LORRY_NO IS NOT NULL
+                      AND VSL.SUMMIT_STAT NOT IN('CC', 'RC')
+                      and jb.SHFT_DT = TO_DATE(#{workYmd}, 'YYYYMMDD')
+                      and jb.shft_id = #{shftId}
+                ) R1
+                GROUP BY R1.BERTH_LOC, R1.VSL_CALL_ID, R1.LORRY_NO
+            ) R2
+            GROUP BY R2.BERTH_LOC, R2.VSL_CALL_ID
+        ) R3
+        GROUP BY R3.BERTHCD
+    </select>
+    <!-- End of Lorries Turnaround -->
+    <!-- Start of Bulk Delay -->
+    <select id="selectBulkDelay" parameterType="bbtDashboardParm" resultMap="bulkDelayMap">
+        /* BBTDashboard.selectBulkDelay */
+        SELECT DLY.BERTH_CD BERTHCD
+             , DLY.WORK_YMD WORKYMD
+             , DLY.SHFT_ID SHFTID
+             , LISTAGG(DLY.VSL_DLY_HRS, '||') WITHIN GROUP ( ORDER BY DLY.BERTH_CD ) BERTHDLYHRS
+             , LISTAGG(DLY.DLY_CD, '||') WITHIN GROUP ( ORDER BY DLY.BERTH_CD ) BERTHDLYCD
+             , SUM(DLY_HRS) DLYHRS
+        FROM (
+            SELECT R3.BERTH_CD
+                , R3.VSL_CALL_ID
+                , R3.WORK_YMD
+                , R3.SHFT_ID
+                , R3.VSL_CALL_ID || '^^' || MAX(R3.VSL_NM) || '^^' ||
+                LISTAGG(R3.DLY_CD, ', ') WITHIN GROUP ( ORDER BY R3.DLY_CD ) || '^^' ||
+                ROUND(SUM(R3.DLY_HRS), 2) VSL_DLY_HRS
+                , ROUND(SUM(R3.DLY_HRS), 2) DLY_HRS
+                , LISTAGG(R3.DLY_CD, ', ') WITHIN GROUP ( ORDER BY R3.DLY_CD ) DLY_CD
+            FROM (
+                SELECT R2.BERTH_CD
+                    , R2.VSL_CALL_ID
+                    , MAX(R2.VSL_NM) VSL_NM
+                    , R2.WORK_YMD
+                    , R2.SHFT_ID
+                    , R2.DLY_CD
+                    , 24 * (MAX(R2.END_DT) - MIN(R2.ST_DT)) DLY_HRS
+                    , R2.OVERLAP_SUM
+                FROM (
+                    SELECT R1.BERTH_CD
+                        , R1.VSL_CALL_ID
+                        , R1.VSL_NM
+                        , R1.ST_DT
+                        , R1.SHFT_ID
+                        , R1.END_DT
+--                         , R1.DLY_CD
+                        , CASE
+                            WHEN
+                                LAG(R1.DLY_CD) OVER (PARTITION BY R1.VSL_CALL_ID, R1.WORK_YMD, R1.SHFT_ID ORDER BY R1.DLY_CD) = R1.DLY_CD
+                            THEN NULL
+                            ELSE R1.DLY_CD
+                          END as DLY_CD
+                        , R1.WORK_YMD
+                        , SUM(CASE WHEN R1.LAG_END_DT BETWEEN R1.ST_DT AND R1.END_DT THEN 0 ELSE 1 END)
+                        OVER (PARTITION BY R1.BERTH_CD, R1.VSL_CALL_ID, R1.WORK_YMD, R1.SHFT_ID ORDER BY R1.ST_DT) AS OVERLAP_SUM
+                    FROM (
+                        SELECT TRM.BERTH_CD
+                             , T.VSL_CALL_ID
+                             , PRT.VSL_NM
+                             , T.ST_DT
+                             , T.END_DT
+                             , T.SHFT_ID
+                            <if test="type != null and type == 'BREAK'">
+                             , T.RSN_CD DLY_CD
+                            </if>
+                            <if test="type != null and type == 'LIQUID'">
+                             , T.DLY_CD
+                            </if>
+                            , F_GET_OT_SHFT_DATE(T.ST_DT) WORK_YMD
+                            , LAG(T.END_DT) OVER (PARTITION BY TRM.BERTH_CD, T.VSL_CALL_ID, F_GET_OT_SHFT_DATE(T.ST_DT), T.SHFT_ID ORDER BY T.ST_DT) LAG_END_DT
+                        <if test="type != null and type == 'BREAK'">
+                        FROM TMT_DLY_BRK T
+                        </if>
+                        <if test="type != null and type == 'LIQUID'">
+                        FROM TMT_DLY_SUM T
+                        </if>
+                        JOIN TMT_VSL_SCH VSL
+                          ON VSL.VSL_CALL_ID = T.VSL_CALL_ID
+                        JOIN TMT_VSL_PART PRT
+                          ON VSL.VSL_CD = PRT.VSL_CD
+                        RIGHT JOIN (
+                            SELECT BERTH_CD
+                            FROM   TMT_BERTH_LOC
+                            WHERE UPPER(LOC_CD) = 'BBT'
+                              AND BERTH_TP IN ('EDJ', 'NDJ', 'WRF')
+                              AND BERTH_CD <![CDATA[<>]]> 'W11N'
+                              AND LENGTH <![CDATA[>]]> 0
+                        ) TRM
+                           ON VSL.BERTH_LOC = TRM.BERTH_CD
+                        WHERE T.VSL_CALL_ID IS NOT NULL
+                          AND TO_CHAR(T.ST_DT, 'YYYYMMDD') = #{workYmd}
+                          AND T.SHFT_ID = #{shftId}
+                          AND VSL.SUMMIT_STAT NOT IN ('CC', 'RC')
+                    ) R1
+                ) R2
+                GROUP BY R2.BERTH_CD, R2.VSL_CALL_ID, R2.WORK_YMD, R2.SHFT_ID, R2.DLY_CD, R2.OVERLAP_SUM
+            ) R3
+            GROUP BY R3.BERTH_CD, R3.VSL_CALL_ID, R3.WORK_YMD, R3.SHFT_ID
+        ) DLY
+        GROUP BY DLY.BERTH_CD, DLY.WORK_YMD, DLY.SHFT_ID
+    </select>
+    <!-- End of Bulk Delay -->
+    <!-- Start of Warehouse/Yard Handling -->
+    <select id="selectWhYdHandling" parameterType="bbtDashboardParm" resultMap="whYdHandlingMap">
+        /* BBTDashboard.selectWhYdHandling */
+        WITH VW AS (
+            -- DISCHARGE TO WH
+            SELECT 'DS' AS JOBTYPECD
+                 , WGT
+                 , WORK_ST_DT
+                 , SHFT_ID
+                 , VSL_CALL_ID
+            FROM TMT_JOB
+            WHERE JOB_TP_CD = 'LF'
+              AND DELV_TP_CD = 'I'
+              AND JOB_PURP_CD = 'AW'
+              AND TSPT_TP_CD = 'LR'
+            UNION
+            -- HANDLING OUT
+            SELECT 'HO' AS JOBTYPECD
+                 , WGT
+                 , WORK_ST_DT
+                 , SHFT_ID
+                 , VSL_CALL_ID
+            FROM TMT_JOB
+            WHERE JOB_TP_CD = 'LO'
+              AND DELV_TP_CD = 'I'
+              AND JOB_PURP_CD = 'WG'
+              AND TSPT_TP_CD = 'LR'
+            UNION
+            -- LOAD FROM WH
+            SELECT 'LD' AS JOBTYPECD
+                 , WGT
+                 , WORK_ST_DT
+                 , SHFT_ID
+                 , VSL_CALL_ID
+            FROM TMT_JOB
+            WHERE JOB_TP_CD = 'LD'
+              AND DELV_TP_CD = 'I'
+              AND JOB_PURP_CD = 'WA'
+              AND TSPT_TP_CD = 'LR'
+            UNION
+            -- HANDLING IN
+            SELECT 'HI' AS JOBTYPECD
+                 , WGT
+                 , WORK_ST_DT
+                 , SHFT_ID
+                 , VSL_CALL_ID
+            FROM TMT_JOB
+            WHERE JOB_TP_CD = 'LF'
+              AND DELV_TP_CD = 'I'
+              AND JOB_PURP_CD = 'GW'
+              AND TSPT_TP_CD = 'LR'
+        )
+        SELECT VW.JOBTYPECD
+             , ROUND(SUM(WGT), 2) HANDLINGWGT
+        FROM   VW
+        WHERE  TO_CHAR(F_GET_SHFT_DATE(VW.WORK_ST_DT), 'YYYYMMDD') = #{workYmd}
+          AND    VW.SHFT_ID = #{shftId}
+          AND    VW.VSL_CALL_ID NOT IN ('NonCallId')
+          AND    VW.VSL_CALL_ID IN (
+              SELECT VSL.VSL_CALL_ID
+              FROM TMT_VSL_SCH VSL
+              WHERE VSL.VSL_CALL_ID = VW.VSL_CALL_ID
+              AND   VSL.SUMMIT_STAT NOT IN('CC', 'RC')
+        )
+        GROUP BY VW.JOBTYPECD
+    </select>
+    <!-- End of Warehouse/Yard Handling -->
+</mapper>

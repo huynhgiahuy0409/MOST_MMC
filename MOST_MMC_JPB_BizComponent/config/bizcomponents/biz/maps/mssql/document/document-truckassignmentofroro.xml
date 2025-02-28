@@ -1,0 +1,580 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="truckAssignmentOfRORO">
+	
+	<resultMap 	id="resultBookingNoWithTruckAssignmentMap" 		type="truckAssignmentOfROROItem">
+   		<result property = "vslCallId"							column = "VSL_CALL_ID"/>
+		<result property = "categoryCd" 						column = "CATG_CD"/>
+		<result property = "categoryNm" 						column = "CATG_NM"/>
+		<result property = "bookingNo" 							column = "BOOKING_NO"/>
+		<result property = "shipgNoteNo" 						column = "SHIPG_NOTE_NO"/>
+		<result property = "noOfVin" 							column = "NOS_OF_VIN"/>
+		<result property = "brandCd" 							column = "BRAND_CD"/>
+		<result property = "brandNm" 							column = "BRAND_NM"/>
+		<result property = "modelCd" 							column = "MODEL_CD"/>
+		<result property = "modelNm" 							column = "MODEL_NM"/>
+		<result property = "fwdCd" 								column = "FWRD"/>
+		<result property = "fwdNm" 								column = "FWRD_NM"/>
+		<result property = "noOfDriver" 						column = "DRIVER_CNT"/>
+		<result property = "noOfTruck" 							column = "TRUCK_CNT"/>
+		<result property = "cgTpCd" 							column = "CG_TP_CD"/>
+		<result property = "cgTpNm" 							column = "CG_TP_NM"/>
+		<result property = "exWhId" 							column = "EX_WH_ID"/>
+		<result property = "tsptCompCd" 						column = "TSPT_COMP"/>
+		<result property = "cargoNo" 							column = "CARGO_NO"/>
+		<result property = "dogrNo" 							column = "DOGR_NO"/>
+		<result property = "doNo" 								column = "DO_NO"/>
+		<result property = "blsnNo" 							column = "BL_SN_NO"/>
+		<result property = "estArrvTime" 						column = "EST_ARRV_DT"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultComboList" 							type="truckAssignmentOfROROItem">
+   		<result property = "cd"									column = "CD"/>
+   		<result property = "cdNm"								column = "CD_NM"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultDriversAndTrucksMap" 					type="truckAssignmentOfROROItem">
+   		<result property = "tsptCompCd"							column = "PTNR_CD"/>
+		<result property = "tsptCompNm" 						column = "PTNR_NM"/>
+		<result property = "driverId" 							column = "DRIVER_ID"/>
+		<result property = "driverNm" 							column = "DRIVER_NM"/>
+		<result property = "driverExpLicenseDt" 				column = "LICS_EXPR_YMD"/>
+		<result property = "driverLicenseNo"					column = "LICS_NO"/>
+		<result property = "truckId" 							column = "LORRY_ID"/>
+		<result property = "truckNo"							column = "LORRY_NO"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultAssigningDriversAndTrucksMap" 		type="truckAssignmentOfROROItem">
+   		<result property = "vslCallId"							column = "VSL_CALL_ID"/>
+		<result property = "bookingNo" 							column = "MF_DOC_ID"/>
+		<result property = "shipgNoteNo" 						column = "CG_NO"/>
+		<result property = "assignedSeq" 						column = "SEQ"/>
+   		<result property = "tsptCompCd"							column = "TRANSPORT"/>
+		<result property = "tsptCompNm" 						column = "TRANSPORT_NM"/>
+		<result property = "driverId" 							column = "DRIVER_ID"/>
+		<result property = "driverNm" 							column = "DRIVER_NM"/>
+		<result property = "driverExpLicenseDt" 				column = "DRIVER_EXPIRY"/>
+		<result property = "driverLicenseNo"					column = "LICENSE_NO"/>
+		<result property = "truckId" 							column = "TRUCK_ID"/>
+		<result property = "truckNo"							column = "LORRY_NO"/>
+ 	</resultMap>
+	
+	<select id="selectTruckAssignmentItems" parameterType="truckAssignmentOfROROParm" resultMap="resultBookingNoWithTruckAssignmentMap">
+	 	<if test="pageNo != 0"> 
+			SELECT /* truckAssignmentOfRORO.selectTruckAssignmentItems */
+             	*
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY BL_SN_NO) 		AS ROW_NUM,
+					innerTable.*
+				FROM ( 
+		</if>
+				<include refid="getTruckAssignmentItems"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT)) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<select id="selectTruckAssignmentItemsCount" parameterType="truckAssignmentOfROROParm" resultType="java.lang.String">
+		SELECT /* truckAssignmentOfRORO.selectTruckAssignmentItemsCount */
+			COUNT(*) 
+        FROM 
+			(<include refid="getTruckAssignmentItems"/>) 		AS TEMPTABLE
+	</select>
+	 
+	<sql id="getTruckAssignmentItems">
+		SELECT DISTINCT /* truckAssignmentOfRORO.getTruckAssignmentItems */
+			BL.VSL_CALL_ID,
+			BL.BL_NO 											AS BL_SN_NO,
+			BL.CATG_CD,
+			dbo.F_CM_CODE_NM ('MT', 'CATGTP', BL.CATG_CD) 		AS CATG_NM,
+			CASE 
+				WHEN S.SDO_NO IS NOT NULL 
+					THEN 
+						(SELECT 
+							COUNT (R.CHASSIS_NO) 
+						FROM 
+							TMT_RORO_MST R 
+						WHERE     
+							R.VSL_CALL_ID 	= BL.VSL_CALL_ID
+							AND R.CG_NO 	= BL.BL_NO
+							AND R.SDO_NO 	= S.SDO_NO
+							AND R.IX_CD 	= 'I'
+						)
+				ELSE  
+					(SELECT 
+						COUNT (R.CHAS_NO) 
+					FROM 
+						TMT_BL_DTL R 
+					WHERE     
+						R.VSL_CALL_ID 		= BL.VSL_CALL_ID
+						AND R.CG_NO 		= BL.BL_NO
+						AND R.IX_CD 		= 'I'
+					)
+			END 												AS NOS_OF_VIN,
+			CASE
+				WHEN S.SDO_NO IS NOT NULL
+					THEN
+						(SELECT 
+							COUNT (*)
+						FROM 
+							TMT_ASSIGN_TRANSPORT AST
+						WHERE     
+							AST.VSL_CALL_ID 	= BL.VSL_CALL_ID
+							AND AST.BL_NO 		= BL.BL_NO
+							AND (DRIVER_ID IS NOT NULL AND DRIVER_ID <![CDATA[<>]]> '')
+							AND S.SDO_NO 		= AST.SDO_NO
+						)
+				ELSE
+					(SELECT 
+						COUNT (*)
+					FROM 
+						TMT_ASSIGN_TRANSPORT 	AST
+					WHERE     
+						AST.VSL_CALL_ID 		= BL.VSL_CALL_ID
+						AND AST.BL_NO 			= BL.BL_NO
+						AND (DRIVER_ID IS NOT NULL AND DRIVER_ID <![CDATA[<>]]> '')
+					)
+			END 												AS DRIVER_CNT,
+			CASE
+				WHEN S.SDO_NO IS NOT NULL
+					THEN
+						(SELECT 
+							COUNT (*)
+						FROM 
+							TMT_ASSIGN_TRANSPORT AST
+						WHERE     
+							AST.VSL_CALL_ID 	= BL.VSL_CALL_ID
+							AND AST.BL_NO 		= BL.BL_NO
+							AND S.SDO_NO 		= AST.SDO_NO
+							AND (LORRY_NO IS NOT NULL AND LORRY_NO <![CDATA[<>]]> '')
+						)
+				ELSE
+					(SELECT 
+						COUNT (*)
+					FROM 
+						TMT_ASSIGN_TRANSPORT 	AST
+					WHERE     
+						AST.VSL_CALL_ID 		= BL.VSL_CALL_ID
+						AND AST.BL_NO 			= BL.BL_NO
+						AND (LORRY_NO IS NOT NULL AND LORRY_NO <![CDATA[<>]]> '')
+					)
+			END 												AS TRUCK_CNT,
+			BR.BRAND_CD,
+			BR.BRAND_NM,
+			M.MODEL_CD,
+			M.MODEL_NM,
+			BL.FWRD 											AS FWRD,
+			DO.DO_NO 											AS DO_NO,
+			S.TSPT_COMP  										AS TSPT_COMP,
+			S.EST_ARRV_DT,
+			S.SDO_NO 											AS DOGR_NO
+		FROM 
+			TMT_BL 												BL
+		LEFT OUTER JOIN 
+			TMT_DO DO
+				ON  BL.VSL_CALL_ID 								= DO.VSL_CALL_ID
+				AND BL.MF_DOC_ID 								= DO.MF_DOC_ID
+				AND BL.BL_NO 									= DO.BL_NO
+		LEFT OUTER JOIN 
+			TMT_RORO_MST VIN
+				ON BL.VSL_CALL_ID 								= VIN.VSL_CALL_ID
+				AND BL.BL_NO 									= VIN.CG_NO
+		LEFT OUTER JOIN 
+			TMT_BRAND BR
+				ON VIN.BRAND_CD 								= BR.BRAND_CD
+		LEFT OUTER JOIN 
+			TMT_BRAND_DTL M
+				ON 	VIN.MODEL_CD 								= M.MODEL_CD
+				AND VIN.BRAND_CD 								= M.BRAND_CD
+		LEFT OUTER JOIN
+			(SELECT 
+				SUM (ISNULL(DO.I_QTY, 0)) 	AS TOTAL_VIN,
+				DO.VSL_CALL_ID,
+				DO.BL_NO,
+				DO.DO_NO,
+				DO.SDO_NO,
+				DO.TSPT_COMP,
+				FORMAT(
+					DO.EST_ARRV_DT,
+					'dd/MM/yyyy HH:mm'
+				) 							AS EST_ARRV_DT
+			FROM 
+				TMT_DO_DTL DO
+			WHERE 
+				DO.VSL_CALL_ID 				= #{vslCallId}
+			GROUP BY 
+				DO.VSL_CALL_ID, 
+				DO.BL_NO, 
+				DO.DO_NO,
+				DO.SDO_NO,
+				DO.EST_ARRV_DT, 
+				DO.TSPT_COMP
+			) 													S
+				ON 	BL.VSL_CALL_ID 								= S.VSL_CALL_ID
+				AND BL.BL_NO 									= S.BL_NO
+				AND DO.DO_NO 									= S.DO_NO
+		WHERE 
+			BL.VSL_CALL_ID 										= #{vslCallId} 
+			AND BL.CG_TP_CD 									= 'RCV'
+			AND S.SDO_NO 										IS NOT NULL
+			<if test="mfDocId != null and mfDocId != ''">
+				AND BL.MF_DOC_ID 								= #{mfDocId}
+			</if>
+			<if test="blNo != null and blNo != ''">
+				AND BL.BL_NO 									= #{blNo}
+			</if>
+			<if test="catgCd != null and catgCd != ''">
+				AND BL.CATG_CD 									= #{catgCd}
+			</if>
+
+ 		UNION ALL
+
+		SELECT DISTINCT
+            S.VSL_CALL_ID,
+            S.SHIPG_NOTE_NO 									AS BL_SN_NO,
+            S.CATG_CD,
+            dbo.F_CM_CODE_NM('MT', 'CATGTP', S.CATG_CD) 		AS CATG_NM,
+            (SELECT 
+				COUNT (R.CHASSIS_NO)
+			FROM 
+				TMT_RORO_MST 				R
+			WHERE     
+				R.VSL_CALL_ID 				= S.VSL_CALL_ID
+				AND R.CG_NO 				= S.SHIPG_NOTE_NO
+				AND R.GR_NO 				= GR.GR_NO
+				AND R.IX_CD 				= 'X'
+			) 													AS NOOFVIN,
+	       	(SELECT 
+		   		COUNT (*)
+			FROM 
+				TMT_ASSIGN_TRANSPORT 		AST
+			WHERE     
+				AST.VSL_CALL_ID 			= S.VSL_CALL_ID
+				AND S.SHIPG_NOTE_NO 		= AST.SHIPG_NOTE_NO
+				AND (DRIVER_ID IS NOT NULL AND DRIVER_ID <![CDATA[<>]]> '')
+				AND GR.GR_NO 				= AST.GR_NO
+			) 													AS DRIVER_CNT,
+	       	(SELECT 
+		   		COUNT (*)
+			FROM 
+				TMT_ASSIGN_TRANSPORT 		AST
+			WHERE     
+				AST.VSL_CALL_ID 			= S.VSL_CALL_ID
+				AND S.SHIPG_NOTE_NO 		= AST.SHIPG_NOTE_NO
+				AND GR.GR_NO 				= AST.GR_NO
+				AND (LORRY_NO IS NOT NULL AND LORRY_NO <![CDATA[<>]]> '')
+			) 													AS TRUCK_CNT,
+            B.BRAND_CD,
+            B.BRAND_NM,
+            M.MODEL_CD,
+            M.MODEL_NM,
+            S.FWRD 												AS FWRD,
+            '' 													AS DO_NO,
+            GR.TSPT_COMP 										AS TSPT_COMP,
+			FORMAT(GR.EST_ARRV_DT, 'dd/MM/yyyy HH:mm') 			AS EST_ARRV_DT,
+            GR.GR_NO 											AS DOGR_NO
+        FROM 
+			TMT_SHIPG_NOTE 										S
+		LEFT OUTER JOIN 
+			TMT_RORO_MST 										R 
+            	ON S.VSL_CALL_ID 								= R.VSL_CALL_ID
+        		AND S.SHIPG_NOTE_NO 							= R.CG_NO
+        LEFT OUTER JOIN 
+			TMT_GR 												GR
+				ON S.VSL_CALL_ID 								= GR.VSL_CALL_ID 
+				AND S.SHIPG_NOTE_NO 							= GR.SHIPG_NOTE_NO
+        LEFT OUTER JOIN 
+			TMT_BRAND 											B
+            	ON R.BRAND_CD 									= B.BRAND_CD
+        LEFT OUTER JOIN 
+			TMT_BRAND_DTL 										M
+            	ON R.MODEL_CD 									= M.MODEL_CD
+        		AND R.BRAND_CD 									= M.BRAND_CD
+        LEFT OUTER JOIN 
+			(SELECT DISTINCT
+                T.VSL_CALL_ID,
+                T.SHIPG_NOTE_NO,
+                (SELECT 
+					COUNT(A.DRIVER_ID) 
+				FROM 
+					TMT_ASSIGN_TRANSPORT A 
+				WHERE 
+					A.VSL_CALL_ID 			= T.VSL_CALL_ID 
+					AND A.SHIPG_NOTE_NO 	= T.SHIPG_NOTE_NO 
+					AND (DRIVER_ID IS NOT NULL AND DRIVER_ID <![CDATA[<>]]> '')
+				) 												AS DRIVER_CNT,
+                (SELECT 
+					COUNT(A.LORRY_NO) 
+				FROM 
+					TMT_ASSIGN_TRANSPORT A 
+				WHERE 
+					A.VSL_CALL_ID 			= T.VSL_CALL_ID 
+					AND A.SHIPG_NOTE_NO 	= T.SHIPG_NOTE_NO 
+					AND (LORRY_NO IS NOT NULL AND LORRY_NO <![CDATA[<>]]> '')
+				) 												AS TRUCK_CNT
+            FROM 
+				TMT_ASSIGN_TRANSPORT 							T
+            WHERE 
+				T.VSL_CALL_ID 									= #{vslCallId}
+			) 													A
+				ON S.VSL_CALL_ID 								= A.VSL_CALL_ID
+				AND S.SHIPG_NOTE_NO 							= A.SHIPG_NOTE_NO
+        WHERE 
+			S.VSL_CALL_ID 										= #{vslCallId}
+			AND S.STAT_CD 										= 'AP'
+			AND GR.GR_NO 										IS NOT NULL
+			<if test="mfDocId != null and mfDocId != ''">
+				AND S.MF_DOC_ID 								= #{mfDocId}
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				AND S.SHIPG_NOTE_NO 							= #{shipgNoteNo}
+			</if>
+			<if test="cgTpCd != null and cgTpCd != ''">
+				AND S.CG_TP_CD 									= #{cgTpCd}
+			</if>
+			<if test="cgTpCd == null or cgTpCd == ''">
+				AND S.CG_TP_CD 									IN ('RCV', 'RMC','RVC')
+			</if>
+			<if test="catgCd != null and catgCd != ''">
+				AND S.CATG_CD 									= #{catgCd}
+			</if>
+	</sql>
+
+	<select id="selectAssignedDriversAndTrucksForVehicleItems" parameterType="truckAssignmentOfROROParm" resultMap="resultAssigningDriversAndTrucksMap">
+	 	<if test="pageNo != 0"> 
+			SELECT /* truckAssignmentOfRORO.selectAssignedDriversAndTrucksForVehicleItems */
+             	*
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY VSLCALLID) 		AS ROW_NUM,
+					innerTable.*
+				FROM (
+		</if>
+				<include refid="getAssignedDriversAndTrucksForVehicleItems"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT)) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	 
+	<select id="selectAssignedDriversAndTrucksForVehicleItemsCount" parameterType="truckAssignmentOfROROParm" resultType="java.lang.String">
+		SELECT /* truckAssignmentOfRORO.selectAssignedDriversAndTrucksForVehicleItemsCount */
+			COUNT(*) 
+        FROM 
+			(<include refid="getAssignedDriversAndTrucksForVehicleItems"/>)	AS TEMPTABLE
+	</select>
+	
+	<sql id="getAssignedDriversAndTrucksForVehicleItems">
+		SELECT /* truckAssignmentOfRORO.getAssignedDriversAndTrucksForVehicleItems */
+			TRANSPORT,
+			AST.DRIVER_ID,
+			DR.DRIVER_NM,
+			AST.LORRY_NO
+		FROM 
+			TMT_ASSIGN_TRANSPORT 								AST 
+		LEFT OUTER JOIN 
+			TMT_DRIVER_MST 										DR 
+				ON AST.DRIVER_ID 								= DR.DRIVER_ID
+		WHERE 
+			1 = 1
+			<if test="blsnNo != null and blsnNo != ''">
+				AND SHIPG_NOTE_NO 								= #{blsnNo}
+			</if>
+			<if test="dogrNo != null and dogrNo != ''">
+				AND GR_NO 										= #{dogrNo}
+			</if>
+			AND VSL_CALL_ID 									= #{vslCallId}
+
+		UNION ALL
+
+		SELECT 
+			TRANSPORT,
+			AST.DRIVER_ID,
+			DR.DRIVER_NM,
+			AST.LORRY_NO
+		FROM 
+			TMT_ASSIGN_TRANSPORT 								AST
+		LEFT OUTER JOIN 
+			TMT_DRIVER_MST DR 
+				ON AST.DRIVER_ID 								= DR.DRIVER_ID
+		WHERE 
+			1 = 1
+			<if test="blsnNo != null and blsnNo != ''">
+				AND BL_NO 										= #{blsnNo}
+			</if>
+			<if test="dogrNo != null and dogrNo != ''">
+				AND SDO_NO 										= #{dogrNo}
+			</if>
+				AND VSL_CALL_ID 								= #{vslCallId}
+			</sql>
+	
+	<select id="selectAssigningDriversForVehicleItems" parameterType="truckAssignmentOfROROParm" resultMap="resultDriversAndTrucksMap">
+	 	<if test="pageNo != 0"> 
+			SELECT /* truckAssignmentOfRORO.selectAssigningDriversForVehicleItems */
+             	*
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY VSLCALLID) 		AS ROW_NUM,
+					innerTable.*
+				FROM ( 
+		</if>
+				<include refid="getAssigningDriversForVehicleItems"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT)) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<select id="selectAssigningDriversForVehicleItemsCount" parameterType="truckAssignmentOfROROParm" resultType="java.lang.String">
+		SELECT /* truckAssignmentOfRORO.selectAssigningDriversForVehicleItemsCount */
+			COUNT(*) 
+        FROM 
+			(<include refid="getAssigningDriversForVehicleItems"/>)	AS TEMPTABLE
+	</select>
+	 
+	<sql id="getAssigningDriversForVehicleItems">
+		SELECT 
+			PTNR_CD,
+			DRIVER_ID,
+			DRIVER_NM,
+			LICS_NO,
+			LICS_EXPR_YMD 
+		FROM 
+			TMT_DRIVER_MST 
+		WHERE 
+			1 = 1
+		<if test="tsptr != null and tsptr != ''">
+			AND PTNR_CD 									IN (${tsptr})
+		</if>
+		<if test="driverNm != null and driverNm != ''">
+			AND DRIVER_NM  									LIKE CONCAT (#{driverNm}, '%')
+		</if>
+	</sql>
+	
+	<select id="selectAssigningTrucksForVehicleItems" parameterType="truckAssignmentOfROROParm" resultMap="resultDriversAndTrucksMap">
+	 	<if test="pageNo != 0"> 
+			SELECT /* truckAssignmentOfRORO.selectAssigningTrucksForVehicleItems */
+             	*
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY VSLCALLID) 		AS ROW_NUM,
+					innerTable.*
+				FROM ( 
+
+		</if>
+				<include refid="getAssigningTrucksForVehicleItems"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT)) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	 
+	<select id="selectAssigningTrucksForVehicleItemsCount" parameterType="truckAssignmentOfROROParm" resultType="java.lang.String">
+	 	SELECT COUNT(*) /* truckAssignmentOfRORO.selectAssigningTrucksForVehicleItemsCount */
+          FROM (<include refid="getAssigningTrucksForVehicleItems"/>)
+	</select>
+	
+	<sql id="getAssigningTrucksForVehicleItems">
+		SELECT /* truckAssignmentOfRORO.getAssigningTrucksForVehicleItems */
+			LORRY_NO,
+			LORRY_ID,
+			PTNR_CD
+		FROM 
+			TMT_TRUCK_MST 
+		WHERE 
+			1 = 1  
+			<if test="tsptr != null and tsptr != ''">
+				AND PTNR_CD 									IN (${tsptr})
+			</if>
+			<if test="truckNo != null and truckNo != ''">
+				AND LORRY_NO  									LIKE CONCAT (#{truckNo}, '%')
+			</if>
+	</sql>
+	
+	<insert id="insertDriversAndTrucksItems" parameterType="truckAssignmentOfROROItem">
+		INSERT /* truckAssignmentOfRORO.insertDriversAndTrucksItems */
+		INTO TMT_ASSIGN_TRANSPORT (
+			VSL_CD,
+			CALL_SEQ,
+			CALL_YEAR,
+			VSL_CALL_ID,
+			SEQ,
+			TRANSPORT,
+			LORRY_NO,
+			DRIVER_ID,
+			SHIPG_NOTE_NO,
+			BL_NO,
+			DO_NO,
+			SDO_NO,
+			GR_NO,
+			QR_CD,
+			UPDATE_TIME,
+			STAFF_CD
+		) VALUES (
+			#{vslCd},
+			#{callSeq},
+			#{callYear},
+			#{vslCallId},
+			(SELECT 
+				ISNULL(MAX(SEQ), 0) + 1
+			FROM 
+				TMT_ASSIGN_TRANSPORT 
+			WHERE 
+				VSL_CALL_ID = #{vslCallId} ),
+			#{tsptCompCd},
+			#{truckNo},
+			#{driverId},
+			#{shipgNoteNo},
+			#{blNo},
+			#{doNo},
+			#{subDoNo},
+			#{grNo},
+			<if test="grNo != null and grNo != ''">
+				#{grNo},
+			</if>
+			<if test="subDoNo != null and subDoNo != ''">
+				#{subDoNo},
+			</if>
+			SYSDATETIME(),
+			#{userId}
+		)
+	</insert>
+	
+	<delete id="deleteAssignedDriversAndTrucksForVehicleItems" parameterType="truckAssignmentOfROROItem">
+		DELETE	/* truckAssignmentOfRORO.deleteAssignedDriversAndTrucksForVehicleItems */
+		FROM
+			TMT_ASSIGN_TRANSPORT 
+		WHERE	 
+			<if test="driverId != null and driverId != ''">
+				DRIVER_ID 										= #{driverId}
+			</if>
+			<if test="truckNo != null and truckNo != ''">
+				LORRY_NO 										= #{truckNo}
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				AND SHIPG_NOTE_NO 								= #{shipgNoteNo}
+				AND GR_NO										= #{grNo}
+			</if>
+			<if test="blNo != null and blNo != ''">
+				AND BL_NO 										= #{blNo}
+				AND SDO_NO										= #{subDoNo}
+			</if>
+				AND VSL_CALL_ID 								= #{vslCallId}
+	</delete>
+	
+</mapper>

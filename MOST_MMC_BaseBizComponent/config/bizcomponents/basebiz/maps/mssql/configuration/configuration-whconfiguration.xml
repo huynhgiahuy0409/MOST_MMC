@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="whConfiguration">
+	<select id="selectHOInvLocs"  parameterType="whConfigurationParm" resultType="whConfigurationItem">
+		SELECT /*whconfiguration.selectHOInvLocs*/
+			LC.VSL_CALL_ID				AS VSLCALLID,
+		    LC.LOC_ID      				AS LOCID,
+			LC.CG_NO       				AS CGNO,
+			LC.WH_TP_CD	  				AS WHTPCD,
+			SUM(LC.PKG_QTY)    			AS PKGQTY,
+			SUM(LC.CG_VOL)       		AS MSRMT,
+			SUM(LC.CG_WGT)     			AS WGT
+		FROM 	
+			TMT_INV_LOC LC, TMT_JOB J
+		WHERE 	
+			LC.JOB_NO 					= J.JOB_NO 
+			AND LC.VSL_CALL_ID 			= J.VSL_CALL_ID
+			AND	LC.CG_NO 				= J.CG_NO
+			AND LC.CG_NO 				= #{cgNo}
+			AND LC.VSL_CALL_ID 			= #{vslCallId}
+			AND LC.WH_TP_CD 			= #{whTpCd}
+		GROUP BY 
+			LC.VSL_CALL_ID, 
+			LC.LOC_ID, 
+			LC.CG_NO, 
+			LC.WH_TP_CD
+		HAVING 
+			SUM(LC.CG_WGT) > 0 OR SUM(LC.CG_VOL) > 0 OR SUM(LC.PKG_QTY) > 0
+	</select>
+	
+	<select id="selectInvLocs"  parameterType="whConfigurationParm" resultType="whConfigurationItem">
+		SELECT /*whconfiguration.selectInvLocs*/   
+			LC.VSL_CALL_ID				AS VSLCALLID,
+		    LC.LOC_ID      				AS LOCID,
+			LC.CG_NO       				AS CGNO,
+			LC.WH_TP_CD	  				AS WHTPCD,
+			SUM(LC.PKG_QTY)    			AS PKGQTY,
+			SUM(LC.CG_VOL)       		AS MSRMT,
+			SUM(LC.CG_WGT)     			AS WGT
+		FROM
+			TMT_INV_LOC LC, TMT_JOB J
+		WHERE 	
+			LC.JOB_NO					= J.JOB_NO 
+			AND LC.VSL_CALL_ID 			= J.VSL_CALL_ID
+			AND	LC.CG_NO 				= J.CG_NO
+			AND LC.CG_NO 				= #{cgNo}
+			AND LC.VSL_CALL_ID 			= #{vslCallId}
+			AND LC.WH_TP_CD 			= 'G'
+			AND (J.SP_CA_CO_CD IS NULL OR J.SP_CA_CO_CD ='N')
+		GROUP BY 
+			LC.VSL_CALL_ID, 
+			LC.LOC_ID, 
+			LC.CG_NO, 
+			LC.WH_TP_CD
+		HAVING 
+			SUM(LC.CG_WGT) 				<![CDATA[>]]> 0 
+			OR SUM(LC.CG_VOL) 			<![CDATA[>]]> 0 
+			OR SUM(LC.PKG_QTY) 			<![CDATA[>]]> 0
+	</select>
+	
+	<select id="selectDmgInvLocs"  parameterType="whConfigurationParm" resultType="whConfigurationItem">
+		SELECT /*whconfiguration.selectDmgInvLocs*/  
+			LC.VSL_CALL_ID				AS VSLCALLID,
+		    LC.LOC_ID      				AS LOCID,
+			LC.CG_NO       				AS CGNO,
+			LC.WH_TP_CD	  				AS WHTPCD,
+			SUM(LC.PKG_QTY)    			AS PKGQTY,
+			SUM(LC.CG_VOL)       		AS MSRMT,
+			SUM(LC.CG_WGT)     			AS WGT
+		FROM 	
+			TMT_INV_LOC LC, TMT_JOB J
+		WHERE 	
+			LC.JOB_NO 					= J.JOB_NO 
+			AND LC.VSL_CALL_ID 			= J.VSL_CALL_ID
+			AND	LC.CG_NO 				= J.CG_NO
+			AND LC.WH_TP_CD 			= 'D'
+			AND J.DELV_TP_CD  			= 'I'
+			AND (J.SP_CA_CO_CD IS NULL OR J.SP_CA_CO_CD ='N')
+			AND LC.CG_NO 				= #{cgNo}
+			AND LC.VSL_CALL_ID 			= #{vslCallId}
+			AND	(J.RHDL_MODE IS NULL OR J.RHDL_MODE ='' OR J.RHDL_MODE = 'N')
+		GROUP BY 
+			LC.VSL_CALL_ID, 
+			LC.LOC_ID, 
+			LC.CG_NO, 
+			LC.WH_TP_CD
+		HAVING 
+			SUM(LC.CG_WGT) 				<![CDATA[>]]> 0 
+			OR SUM(LC.CG_VOL) 			<![CDATA[>]]> 0 
+			OR SUM(LC.PKG_QTY) 			<![CDATA[>]]> 0
+	</select>
+	
+	<select id="selectSprInvLocs"  parameterType="whConfigurationParm" resultType="whConfigurationItem">
+		SELECT /*whconfiguration.selectSprInvLocs*/  
+			LC.VSL_CALL_ID				AS VSLCALLID,
+		    LC.LOC_ID					AS LOCID,
+			LC.CG_NO					AS CGNO,
+			LC.WH_TP_CD	  				AS WHTPCD,
+			SUM(LC.PKG_QTY)    			AS PKGQTY,
+			SUM(LC.CG_VOL)       		AS MSRMT,
+			SUM(LC.CG_WGT)     			AS WGT
+		FROM 	
+			TMT_INV_LOC LC, TMT_JOB J, TMT_GR G
+		WHERE 	
+			LC.JOB_NO 					= J.JOB_NO 
+			AND LC.VSL_CALL_ID 			= J.VSL_CALL_ID
+			AND	LC.CG_NO 				= J.CG_NO
+			AND J.VSL_CALL_ID 			= G.VSL_CALL_ID
+			AND J.CG_NO 				= G.GR_NO
+			AND LC.WH_TP_CD 			= 'G'
+			AND J.SP_CA_CO_CD 			= 'S'
+			AND G.SHIPG_NOTE_NO 		= #{shipgNoteNo}
+			AND LC.VSL_CALL_ID 			= #{vslCallId}
+			AND	(J.RHDL_MODE IS NULL OR J.RHDL_MODE ='' OR J.RHDL_MODE = 'N')
+		GROUP BY 
+			LC.VSL_CALL_ID, 
+			LC.LOC_ID, 
+			LC.CG_NO,
+			LC.WH_TP_CD
+		HAVING 
+			SUM(LC.CG_WGT) 				<![CDATA[>]]> 0 
+			OR SUM(LC.CG_VOL) 			<![CDATA[>]]> 0 
+			OR SUM(LC.PKG_QTY) 			<![CDATA[>]]> 0
+	</select>
+	
+	<select id="selectWhConfiguration"  parameterType="whConfigurationParm" resultType="whConfigurationItem">
+		SELECT /*+ FIRST_ROWS(10)*/ 		   
+			LOC_ID			AS LOCID,
+			LOC_NM			AS LOCNM,
+			LOC_DIV_CD		AS LOCDIVCD,
+			(CASE LOC_DIV_CD
+				WHEN 'ARE' THEN 'Area'
+				WHEN 'WHO' THEN 'Warehouse'
+				WHEN 'BAY' THEN 'Bay'
+				WHEN 'ROW' THEN 'Row'
+				WHEN 'CEL' THEN 'Cell'
+				WHEN 'TIE' THEN 'Tier'
+				WHEN 'BIT' THEN 'Bit Bollad'
+				WHEN 'WHF' THEN 'Wharf'
+				ELSE 'WHO'
+			END) AS LOCDIVNM,
+			LEFT_X			AS LEFTX,
+			TOP_Y			AS TOPY,
+			LEN				AS LEN,
+			WTH				AS WTH,
+			<!-- TIER			AS TIER, -->
+			(CASE
+		  		WHEN TOT_DIMS IS NULL
+		  			THEN LEN * WTH
+		  		ELSE TOT_DIMS
+			END) 			AS TOTDIMS,
+			BAY_QTY			AS BAYQTY,
+			ROWW_QTY		AS ROWWQTY,
+			BAY_LEN			AS BAYLEN,
+			ROWW_LEN		AS ROWWLEN,
+			AREA_P_BLK		AS AREAPBLK,
+			FB_CAPA			AS FBCAPA,
+			LOC_TP_CD		AS LOCTPCD,
+			RCNT_RENT_NO	AS RCNTRENTNO,
+			WH_ID			AS WHID,
+			LCK_YN			AS LCKYN,
+			RENT_YN			AS RENTYN,
+			LOC_USE_YN		AS LOCUSEYN,
+			VLD_YN			AS VLDYN,
+			USE_CD			AS USECD,
+			ED_YN			AS EDYN,
+			NON_ED_YN		AS NONEDYN,
+			DG_YN			AS DGYN,
+			FORE_COLR		AS FORECOLR,
+			BK_COLR			AS BKCOLR,
+			AREA_ID			AS AREAID,
+			BAY_ID			AS BAYID,
+			ROW_ID			AS ROWWID,
+			TIER_ID			AS TIERID,
+			TIER_IDX		AS TIERIDX,
+			ROWW_IDX		AS ROWWIDX,
+			BAY_IDX			AS BAYIDX,
+			RMK				AS RMK, 
+            (CASE
+            	WHEN (dbo.F_GET_STORED_CARGO(A.LOC_ID))> 0
+            		THEN 'Y'
+            	ELSE 'N'
+         	END) 			AS ISEXISTEDCARGO,
+			(SELECT
+				RENT_TP_CD
+			FROM
+				TMT_RENT
+			WHERE
+			    CONTT_NO = RCNT_RENT_NO) 	AS RENTTPCD,
+			(SELECT
+				(CASE TNNT
+					WHEN 'SHT' THEN 'Short term'
+					WHEN 'LOT' THEN 'Long term'
+					WHEN 'LME' THEN 'LME'
+					ELSE 'Short term'
+			 	END)
+			FROM
+				TMT_RENT
+			WHERE
+			    CONTT_NO = RCNT_RENT_NO) 	AS TNNT
+		FROM
+			TMT_LOC_DEF A
+		WHERE
+			LOC_ID IS NOT NULL
+			<if test="locId != null and locId != ''">
+   				AND LOC_ID LIKE #{locId}
+			</if>
+			<if test="whId != null and whId != ''">
+   				AND WH_ID = #{whId}
+			</if>
+			<if test="locNm != null and locNm != ''">
+   				AND LOC_NM = #{locNm}
+			</if>
+			<if test="locDivCd != null and locDivCd != ''">
+   				AND LOC_DIV_CD IN ( #{locDivCd} )
+			</if>
+			<if test="locTpCd != null and locTpCd != ''">
+   				AND LOC_TP_CD = #{locTpCd}
+			</if>
+			<if test="areaId != null and areaId != ''">
+   				AND AREA_ID = #{areaId}
+			</if>
+			<if test="locUseYn != null and locUseYn != ''">
+   				AND LOC_USE_YN = #{locUseYn}
+			</if>
+			<if test="cargoType != null and cargoType != ''">
+   				AND
+					<if test="cargoType == 'edYn'">
+						ED_YN = 'Y'
+					</if>
+					<if test="cargoType == 'nonEdYn'">
+						NON_ED_YN = 'Y'
+					</if>
+					<if test="cargoType == 'dgYn'">
+						DG_YN = 'Y'
+					</if>
+			</if>
+			<if test="locDivCd != null and locDivCd != ''">
+				<if test="locDivCd == 'WHO'">
+					ORDER BY LOC_ID
+				</if>		
+				<if test="locDivCd == 'ARE'">
+					ORDER BY LOC_ID
+				</if>
+				<if test="locDivCd == 'BAY'">
+					ORDER BY BAY_IDX
+				</if>
+				<if test="locDivCd == 'ROW'">
+					ORDER BY ROWW_IDX
+				</if>
+				<if test="locDivCd == 'CEL'">
+					ORDER BY ROWW_IDX, BAY_IDX
+				</if>
+			</if>
+	</select>
+</mapper>

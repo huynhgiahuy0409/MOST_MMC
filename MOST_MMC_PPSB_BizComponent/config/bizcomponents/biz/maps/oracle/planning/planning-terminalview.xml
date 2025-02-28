@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="terminalView">
+
+    <select id="selectMasterBlList" parameterType="blParm" resultType="blItem">
+		SELECT /*terminalView.selectMasterBlList*/
+			MF_DOC_ID mfDocId
+		FROM TMT_BL
+		WHERE VSL_CALL_ID = #{vslCallId}
+		GROUP BY MF_DOC_ID
+	</select>
+	
+	<select id="selectSubBlList" parameterType="blParm" resultType="blItem">
+		SELECT /*terminalView.selectSubBlList*/
+			BL_NO blNo
+		FROM TMT_BL 
+		WHERE VSL_CALL_ID = #{vslCallId}
+		AND MF_DOC_ID = #{mfDocId}
+	</select>
+	
+	<select id="selectBookingNoList" parameterType="shippingNoteParm" resultType="shippingNoteItem">
+		SELECT /*terminalView.selectBookingNoList*/
+			MF_DOC_ID mfDocId
+		FROM TMT_SHIPG_NOTE WHERE VSL_CALL_ID = #{vslCallId}
+		GROUP BY MF_DOC_ID
+	</select>
+	
+	<select id="selectShippingNoteList" parameterType="shippingNoteParm" resultType="shippingNoteItem">
+		SELECT /*terminalView.selectShippingNoteList*/
+			SHIPG_NOTE_NO shipgNoteNo
+		FROM TMT_SHIPG_NOTE 
+		WHERE VSL_CALL_ID = #{vslCallId}
+		AND MF_DOC_ID = #{mfDocId}
+	</select>
+	
+</mapper>

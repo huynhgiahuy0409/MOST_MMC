@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>map</title>
+  <link rel="stylesheet" media="all" href="../jquery-jvectormap.css"/>
+  <script src="assets/jquery-1.8.2.js"></script>
+  <script src="../jquery-jvectormap.js"></script>
+  <script src="../lib/jquery-mousewheel.js"></script>
+
+  <script src="../src/jvectormap.js"></script>
+
+  <script src="../src/abstract-element.js"></script>
+  <script src="../src/abstract-canvas-element.js"></script>
+  <script src="../src/abstract-shape-element.js"></script>
+
+  <script src="../src/svg-element.js"></script>
+  <script src="../src/svg-group-element.js"></script>
+  <script src="../src/svg-canvas-element.js"></script>
+  <script src="../src/svg-shape-element.js"></script>
+  <script src="../src/svg-path-element.js"></script>
+  <script src="../src/svg-circle-element.js"></script>
+  <script src="../src/svg-image-element.js"></script>
+  <script src="../src/svg-text-element.js"></script>
+
+  <script src="../src/vml-element.js"></script>
+  <script src="../src/vml-group-element.js"></script>
+  <script src="../src/vml-canvas-element.js"></script>
+  <script src="../src/vml-shape-element.js"></script>
+  <script src="../src/vml-path-element.js"></script>
+  <script src="../src/vml-circle-element.js"></script>
+  <script src="../src/vml-image-element.js"></script>
+
+  <script src="../src/map-object.js"></script>
+  <script src="../src/region.js"></script>
+  <script src="../src/marker.js"></script>
+
+  <script src="../src/vector-canvas.js"></script>
+  <script src="../src/simple-scale.js"></script>
+  <script src="../src/ordinal-scale.js"></script>
+  <script src="../src/numeric-scale.js"></script>
+  <script src="../src/color-scale.js"></script>
+  <script src="../src/legend.js"></script>
+  <script src="../src/data-series.js"></script>
+  <script src="../src/proj.js"></script>
+  <script src="../src/map.js"></script>
+
+  <script src="assets/jquery-jvectormap-continents-mill-mijin.js"></script>
+
+  <script>
+    //jQuery.noConflict();
+
+    $(document).ready(function(){
+
+		/* 珥덇린媛� 遺덈윭�삤�뒗 蹂��닔 */
+
+		var valueSrc = [ 
+			{ name:'0', count:'4', comment:'This is Europe'}, 
+			{ name:'1', count:'0', comment:'This is Middle East'}, 
+			{ name:'2', count:'9', comment:'This is Africa'}, 
+			{ name:'3', count:'5', comment:'This is Asia'}, 
+			{ name:'4', count:'3', comment:'This is North America'}, 
+			{ name:'5', count:'2', comment:'This is Central America'}, 
+			{ name:'6', count:'9', comment:'This is South America'}, 
+		];
+
+		// 媛� ��瑜숈닚�꽌 Europe(0), Middle East(1), Africa, Asia(2), North America(3), Central America(4), South America(5)
+
+		var labelInfo = [
+			{name: 'Europe', coords: [60, 50], status: '1' , offsets: [0, 0]},
+			{name: '0', coords: [68, 31], status: '0' , offsets: [-42, -5]}, // count marker
+
+			{name: 'Middle East', coords: [38, 0], status: '1' , offsets: [0, 0]},
+			{name: '1', coords: [40, 60], status: '0' , offsets: [-42, -5]}, // count marker
+
+			{name: 'Africa', coords: [-6, 17], status: '1' , offsets: [0, 0]},
+			{name: '2', coords: [10, 30], status: '0' , offsets: [-42, -5]}, // count marker
+
+			{name: 'Asia', coords: [36, 97], status: '1', offsets: [0, 0]},
+			{name: '3', coords: [16, 120], status: '0', offsets: [-42, -5]}, // count marker
+
+			{name: 'North America', coords: [60, -154], status: '1' , offsets: [0, 0]},
+			{name: '4', coords: [71, -130], status: '0' , offsets: [-42, -5]}, // count marker
+			
+			{name: 'Central America', coords: [25, -132], status: '1', offsets: [0, 0]},
+			{name: '5', coords: [40, -102], status: '0', offsets: [-42, -5]}, // count marker
+
+			{name: 'South America', coords: [-20, -98], status: '1' , offsets: [0, 0]},
+			{name: '6', coords: [-5, -65], status: '0' , offsets: [-42, -5]}, // count marker	
+
+			
+		];
+		
+		var continent_map = new jvm.Map({	  
+			map: 'mijinmap_mill',
+			container: $("#map1"),
+			backgroundColor:'#505050',			
+			markers: labelInfo.map(function(h){ return {name: h.name, latLng: h.coords} }),
+			markerLabelStyle: {
+				initial: {
+					'font-family': 'Arial',
+					'font-size' : '24',
+					'font-weight': 'bold',
+					'letter-spacing': '0px',
+					fill: '#eee'
+				}
+			},
+			labels: {
+				markers: {
+					render: function(index){
+						if($.isNumeric(labelInfo[index].name))
+							return valueSrc[labelInfo[index].name].count;
+						else
+							return labelInfo[index].name;
+					},
+					offsets: function(index){
+						var offset = labelInfo[index]['offsets'] || [0, 0];
+						return [offset[0], offset[1]];
+					}
+				}
+			},
+			
+			series: {
+				regions: [{
+					values: {
+						/* Europe */
+						id55:'#CB4C75',id56:'#CB4C75',id57:'#CB4C75',id58:'#CB4C75',id59:'#CB4C75',id60:'#CB4C75',
+						id61:'#CB4C75',id62:'#CB4C75',
+
+						/* Middle East */
+						id1:'#8C97CB',
+
+						/* Africa */
+						id2:'#7BA56C',id3:'#7BA56C',
+						
+						/* Asia */
+						id4:'#F39800',id5:'#F39800',id6:'#F39800',id7:'#F39800',id8:'#F39800',id9:'#F39800',
+						id10:'#F39800',id11:'#F39800',id12:'#F39800',id13:'#F39800',id14:'#F39800',id15:'#F39800',
+						id16:'#F39800',id17:'#F39800',id18:'#F39800',id19:'#F39800',id20:'#F39800',id21:'#F39800',
+						id22:'#F39800',id23:'#F39800',id24:'#F39800',
+
+						/* North America */
+						id25:'#A6937C',id26:'#A6937C',id27:'#A6937C',id28:'#A6937C',id29:'#A6937C',id30:'#A6937C',
+						id31:'#A6937C',id32:'#A6937C',id33:'#A6937C',id34:'#A6937C',id35:'#A6937C',id36:'#A6937C',
+						id37:'#A6937C',id38:'#A6937C',id39:'#A6937C',id40:'#A6937C',id41:'#A6937C',id42:'#A6937C',
+						id43:'#A6937C',id44:'#A6937C',id46:'#A6937C',
+
+						/* Central America */
+						id45:'#6A97CE',
+
+						/* South America */
+						id0:'#5EC8AB',
+												
+				}}],
+				
+				markers: [{
+					attribute: 'image',
+					scale: {
+						0: 'marker.png',	
+						1: 'tp.png'
+					},
+					values: labelInfo.reduce(function(p, c, i){ p[i] = c.status; return p }, {}),
+					
+				}]
+			},
+			zoomOnScroll: false,
+			zoomButtons: false,
+			regionStyle: {
+				hover: {
+					"fill-opacity": 1
+				}
+			},
+			onRegionLabelShow: function (e, el, code) {
+				e.preventDefault();
+			},
+			onRegionTipShow: function (e, label, code) {
+				e.preventDefault();
+			},
+			onMarkerTipShow: function (e, label, code) {
+				e.preventDefault();
+			},
+			onMarkerClick: function (e, index) {
+				
+				if($.isNumeric(labelInfo[index].name)){
+					var map = $('#map1').vectorMap('get', 'mapObject'); 
+					var customTip=$('#customTip');
+					customTip.css({
+						left: left,
+						top: top,
+					})
+					customTip.html(valueSrc[labelInfo[index].name].comment+"<p/>");  
+					customTip.show();
+					customTip.append("<button>Close</button>");
+					customTip.children("button").click(function(){
+						map.clearSelectedRegions();
+						customTip.hide(); 
+					}) 
+				}
+			},
+			onRegionOver: function (e, label, code) {
+				e.preventDefault();
+			}
+		});// end of vectorMap
+		
+		var left,top;
+		$('#map1').vectorMap('get', 'mapObject').container.mousemove(function(e){
+			left = e.pageX - 40;
+			top = e.pageY - 60;
+		});
+
+    }); // end of jquery(function)
+  </script>
+</head>
+
+	<style type="text/css">
+		html, body {
+			width: 100%; height: 100%; margin:0; padding:0;
+		}
+	</style>
+
+<body>
+	<div id="map1" style="height: 100%"></div>
+	<div id="customTip" style='padding:10px' class="jvectormap-tip"></div>
+</body>
+</html>

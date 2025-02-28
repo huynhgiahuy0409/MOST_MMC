@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="roroCargoInYard">
+	
+ 	<resultMap 	id="resultRoRoCargoInYardMap" type="roroCargoInYardItem">
+   		<result property = "vslCallId"		column = "VSL_CALL_ID"/>
+		<result property = "docNo" 			column = "DOC_NO"/>
+		<result property = "cgNo" 			column = "CG_NO"/>
+		<result property = "catgCd" 		column = "CATG_CD"/>
+		<result property = "catgNm" 		column = "CATG_NM"/>
+		<result property = "yardId" 		column = "WH_ID"/>
+		<result property = "yardLoc" 		column = "AREA"/>
+		<result property = "brandCd" 		column = "BRAND_CD"/>
+		<result property = "brandNm" 		column = "BRAND_NM"/>
+		<result property = "modelCd" 		column = "MODEL_CD"/>
+		<result property = "modelNm" 		column = "MODEL_NM"/>
+		<result property = "cgTpCd" 		column = "CG_TP_CD"/>
+		<result property = "cgTpNm" 		column = "CG_TP_NM"/>
+		
+		<result property = "shaCd" 			column = "SHIPG_AGENT"/>
+		<result property = "shaNm" 			column = "SHA_NM"/>
+		<result property = "fwdCd" 			column = "FWRD"/>
+		<result property = "fwdNm" 			column = "FWD_NM"/>
+		
+		<result property = "nosOfUnit" 		column = "NOS_OF_VIN"/>
+		<result property = "actualQty" 		column = "ACT_QTY"/>
+		<result property = "remainUnit" 	column = "REMAIN_QTY"/>
+ 	</resultMap>
+	
+	<sql id="selectBlItems">
+		SELECT    /* RoRoCargoInYard.getRoRoCargoInYardItems (BL) */
+                DISTINCT
+                RR.VSL_CALL_ID,
+                <!-- RR.DOC_NO, -->
+                RR.CG_NO,
+                RR.WH_ID,
+                RR.LOC_ID,
+                BR.BRAND_CD,
+                BR.BRAND_NM,
+                M.MODEL_CD,
+                M.MODEL_NM,
+                BL.CG_TP_CD,
+                F_CM_001('MT', 'CGTP', BL.CG_TP_CD) AS CG_TP_NM,
+                RR.CATG_CD,
+                F_CM_001('MT', 'CATGTP', BL.CATG_CD) AS CATG_NM,
+<!--              	BL.SHIPG_AGENT AS SHA_CD, -->
+                <!-- F_GET_PARTNET_INFO(BL.SHIPG_AGENT, 'SHA') AS SHA_NM, -->
+<!--             	BL.FWRD, -->
+                <!-- F_GET_PARTNET_INFO(BL.FWRD, 'FWD') AS FWD_NM, -->
+                NVL(ACT_HI.CNT_HI, 0) AS ACT_QTY,
+                (SELECT COUNT(*) FROM TMT_RORO_MST R1 WHERE R1.VSL_CALL_ID = RR.VSL_CALL_ID AND R1.CG_NO = RR.CG_NO) AS NOS_OF_VIN,
+                NVL(ACT_HI.CNT_HI, 0) - NVL(ACT_HO.CNT_HO, 0) AS REMAIN_QTY
+        FROM    TMT_RORO_MST RR
+                INNER JOIN TMT_BL BL ON RR.VSL_CALL_ID = BL.VSL_CALL_ID AND RR.CG_NO = BL.BL_NO
+                LEFT OUTER JOIN TMT_BRAND BR ON    RR.BRAND_CD = BR.BRAND_CD
+                LEFT OUTER JOIN TMT_BRAND_DTL M ON    RR.MODEL_CD = M.MODEL_CD AND RR.BRAND_CD = M.BRAND_CD
+                LEFT OUTER JOIN 
+                  (SELECT VSL_CALL_ID, 
+                          <!-- DOC_NO, --> 
+                          CG_NO,
+                          LOC_ID,
+                          count(CHAS_NO) as CNT_HO
+                  FROM  TMT_RORO_MST
+                  WHERE VSL_CALL_ID = #{vslCallId}
+                        AND NVL(OUT_DTM, '') != ''
+                  GROUP BY  VSL_CALL_ID, 
+                            <!-- DOC_NO,  -->
+                            CG_NO,
+                            LOC_ID
+                  ) ACT_HO ON RR.VSL_CALL_ID = ACT_HO.VSL_CALL_ID <!-- AND RR.DOC_NO = ACT_HO.DOC_NO --> AND RR.CG_NO = ACT_HO.CG_NO AND RR.LOC_ID = ACT_HO.LOC_ID
+                  
+                LEFT OUTER JOIN 
+                  (SELECT VSL_CALL_ID, 
+                          <!-- DOC_NO,  -->
+                          CG_NO,
+                          LOC_ID,
+                          count(CHAS_NO) as CNT_HI
+                  FROM  TMT_RORO_MST
+                  WHERE VSL_CALL_ID = #{vslCallId}
+                        AND NVL(IN_DTM, '') != ''
+                  GROUP BY  VSL_CALL_ID, 
+                            <!-- DOC_NO,  -->
+                            CG_NO,
+                            LOC_ID
+                  ) ACT_HI ON RR.VSL_CALL_ID = ACT_HI.VSL_CALL_ID <!-- AND RR.DOC_NO = ACT_HI.DOC_NO --> AND RR.CG_NO = ACT_HI.CG_NO AND RR.LOC_ID = ACT_HI.LOC_ID
+        WHERE   RR.VSL_CALL_ID = #{vslCallId}
+				<if test="blNo != null and blNo != ''">
+					AND RR.CG_NO = #{blNo}
+				</if>
+		        
+		        AND RR.LOC_ID IS NOT NULL
+	</sql>
+	
+	<sql id="selectSnItems">
+		SELECT    /* RoRoCargoInYard.getRoRoCargoInYardItems (SN) */
+                DISTINCT
+                RR.VSL_CALL_ID,
+                <!-- RR.DOC_NO, -->
+                RR.CG_NO,
+                RR.WH_ID,
+                RR.LOC_ID,
+                BR.BRAND_CD,
+                BR.BRAND_NM,
+                M.MODEL_CD,
+                M.MODEL_NM,
+                SN.CG_TP_CD,
+                F_CM_001('MT', 'CGTP', SN.CG_TP_CD) AS CG_TP_NM,
+                SN.CATG_CD,
+                F_CM_001('MT', 'CATGTP', SN.CATG_CD) AS CATG_NM,
+                SN.SHIPG_AGNCY AS SHA_CD,
+                <!-- F_GET_PARTNET_INFO(SN.SHIPG_AGNCY, 'SHA') AS SHA_NM, -->
+                SN.FWRD,
+                <!-- F_GET_PARTNET_INFO(SN.FWRD, 'FWD') AS FWD_NM, -->
+                NVL(ACT_HI.CNT_HI, 0) AS ACT_QTY,
+                (SELECT COUNT(*) FROM TMT_RORO_MST R1 WHERE R1.VSL_CALL_ID = RR.VSL_CALL_ID AND R1.CG_NO = RR.CG_NO) AS NOS_OF_VIN,
+                NVL(ACT_HI.CNT_HI, 0) - NVL(ACT_HO.CNT_HO, 0) AS REMAIN_QTY
+        FROM    TMT_RORO_MST RR
+                INNER JOIN TMT_SHIPG_NOTE SN ON RR.VSL_CALL_ID = SN.VSL_CALL_ID AND RR.CG_NO = SN.SHIPG_NOTE_NO
+                LEFT OUTER JOIN TMT_BRAND BR ON    RR.BRAND_CD = BR.BRAND_CD
+                LEFT OUTER JOIN TMT_BRAND_DTL M ON    RR.MODEL_CD = M.MODEL_CD AND RR.BRAND_CD = M.BRAND_CD
+                LEFT OUTER JOIN 
+                  (SELECT VSL_CALL_ID, 
+                          <!-- DOC_NO,  -->
+                          CG_NO,
+                          LOC_ID,
+                          count(CHAS_NO) as CNT_HO
+                  FROM  TMT_RORO_MST
+                  WHERE VSL_CALL_ID = #{vslCallId}
+                        AND NVL(OUT_DTM, '') != ''
+                  GROUP BY  VSL_CALL_ID, 
+                            <!-- DOC_NO,  -->
+                            CG_NO,
+                            LOC_ID
+                  ) ACT_HO ON RR.VSL_CALL_ID = ACT_HO.VSL_CALL_ID <!-- AND RR.DOC_NO = ACT_HO.DOC_NO --> AND RR.CG_NO = ACT_HO.CG_NO AND RR.LOC_ID = ACT_HO.LOC_ID
+                  
+                LEFT OUTER JOIN 
+                  (SELECT VSL_CALL_ID, 
+                          <!-- DOC_NO,  -->
+                          CG_NO,
+                          LOC_ID,
+                          count(CHAS_NO) as CNT_HI
+                  FROM  TMT_RORO_MST
+                  WHERE VSL_CALL_ID = #{vslCallId}
+                        AND NVL(IN_DTM, '') != ''
+                  GROUP BY  VSL_CALL_ID, 
+                            <!-- DOC_NO,  -->
+                            CG_NO,
+                            LOC_ID
+                  ) ACT_HI ON RR.VSL_CALL_ID = ACT_HI.VSL_CALL_ID <!-- AND RR.DOC_NO = ACT_HI.DOC_NO --> AND RR.CG_NO = ACT_HI.CG_NO AND RR.LOC_ID = ACT_HI.LOC_ID
+        WHERE   RR.VSL_CALL_ID = #{vslCallId}
+                AND RR.LOC_ID IS NOT NULL
+				<if test="shipgNoteNo != null and shipgNoteNo != ''">
+					AND RR.CG_NO = #{shipgNoteNo}
+				</if>
+	</sql>
+	<select id="selectRoRoCargoInYardItems" parameterType="roroCargoInYardParm" resultMap="resultRoRoCargoInYardMap">
+	 	<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getRoRoCargoInYardItems"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	 </select>
+	 <select id="selectRoRoCargoInYardItemsCount" parameterType="roroCargoInYardParm" resultType="java.lang.String">
+	 	SELECT COUNT(*)
+          FROM (<include refid="getRoRoCargoInYardItems"/>)
+	 </select>
+	<sql id="getRoRoCargoInYardItems">
+		<choose>
+			<when test="((blNo != null and blNo != '') and (shipgNoteNo == null or shipgNoteNo == ''))">
+				<include refid="selectBlItems" />
+			</when>
+			<when test="((blNo == null or blNo == '')  or (shipgNoteNo != null and shipgNoteNo != ''))">
+				<include refid="selectSnItems" />
+			</when>
+			<otherwise>
+				<include refid="selectBlItems" />
+				UNION ALL
+				<include refid="selectSnItems" />
+			</otherwise>
+		</choose>
+	</sql>
+	
+
+</mapper>

@@ -1,0 +1,555 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Port">
+    <resultMap id="portList" type="portItem">
+       <result property = "routeCode"          column="CD_ROUTE" />
+       <result property = "portCode"           column="CD_PORT" />
+       <result property = "portSeq"            column="NO_SEQ" />
+       <result property = "portName"           column="NM_PORT" />
+       <result property = "timeZone"           column="TIME_ZONE" />           
+       <result property = "areaCode"           column="CD_AREA" />             
+       <result property = "longitude"          column="LNGT" />
+       <result property = "latitude"           column="LTUD" /> 
+    </resultMap>
+    
+    <resultMap id="vesselscheduleofport" type="portItem">
+       <result property = "portCode"            column="CD_PORT" />
+       <result property = "portName"            column="NM_PORT" />
+       <result property = "portSeq"             column="NO_SEQ" />
+       <result property = "portVesselCode"      column="CD_VESSEL" />
+       <result property = "portVesselName"      column="NM_VESSEL" />
+       <result property = "portVesselVoy"       column="VOY" />
+       <result property = "portVesselQty"       column="QTY" />
+       <result property = "portCargoCode"       column="CD_CARGO" />
+       <result property = "portCargoName"       column="NM_CARGO" />
+       <result property = "pidCode"             column="CD_PID" />
+       <result property = "codeName"            column="NM_CODE" />
+       <result property = "etaDtm"              column="DTM_ETA" />
+       <result property = "etbDtm"              column="DTM_ETB" />
+       <result property = "etdDtm"              column="DTM_ETD" /> 
+       <result property = "longitude"           column="LNGT" />
+       <result property = "latitude"            column="LTUD" />
+       <result property = "bunkerport"          column="DIV_BUNKERPORT" />
+       <result property = "tag"              	column="TAG" /> 
+       <result property = "portDate"           	column="PORT_DATE"  javaType="java.util.Date"/>
+       <result property = "status"            	column="STATUS" /> 
+       <result property = "winDayQty"            	column="W_IN" /> 
+    </resultMap>
+    
+    <select id="selectPortList"  parameterType="portParm" resultMap="portList">
+          <!-- test -->
+          SELECT /* Port.selectPortList */
+            DISTINCT R.CD_ROUTE AS CD_ROUTE, 
+                     R.CD_PORT AS CD_PORT, 
+                     R.NO_SEQ AS NO_SEQ, 
+                     P.NM_PORT1 AS NM_PORT,  
+                     P.CD_AREA AS CD_AREA, 
+                     G.LON AS LNGT, 
+                     G.LAT AS LTUD 
+        FROM IF_MOST_VMS.MAR_COM_ROUTEPORT@VMT_LINK R INNER JOIN IF_MOST_VMS.GIS_PORT@VMT_LINK G ON R.CD_PORT = G.CD_PORT 
+                                 INNER JOIN IF_MOST_VMS.MAR_PORT@VMT_LINK P ON R.CD_PORT = P.CD_PORT
+        WHERE P.PORT_X IS NOT NULL AND P.PORT_Y IS NOT NULL
+        ORDER BY R.CD_ROUTE ASC , R.NO_SEQ ASC
+        
+        
+        <!-- real -->
+        <!--  
+        WITH
+        PORT_LIST AS (
+            SELECT DISTINCT R.CD_ROUTE, R.CD_PORT, R.NO_SEQ, P.NM_PORT1 AS NM_PORT,  P.TIME_ZONE, P.CD_AREA, G.LON AS LNGT, G.LAT AS LTUD 
+            FROM MAR_COM_ROUTEPORT R INNER JOIN GIS_PORT G ON R.CD_PORT = G.CD_PORT 
+                                                            INNER JOIN MAR_PORT P ON R.CD_PORT = P.CD_PORT
+            WHERE P.PORT_X IS NOT NULL AND P.PORT_Y IS NOT NULL
+            ORDER BY R.CD_ROUTE ASC , R.NO_SEQ ASC
+        ),
+        ROUTE_LIST AS (
+            SELECT DISTINCT B.CD_ROUTE
+            FROM IF_MOST_VMS.MAR_VOY@VMT_LINK A INNER JOIN MAR_CB B ON A.CD_VESSEL = B.CD_VESSEL AND A.VOY = B.VOY
+                                        INNER JOIN MAR_VESSEL C ON A.CD_VESSEL=C.CD_VESSEL
+                                        INNER JOIN GIS_SHIP RD ON C.CALLSIGN=RD.CALL_SIGN
+            WHERE A.DIV_VSLKND = 'BK' 
+                AND B.SEQ_CB = 0
+                AND TO_CHAR(NVL(A.ATM_START_GMT, A.DTM_START_GMT),'YYYYMMDD') <= '20170718' AND TO_CHAR(NVL(A.ATM_END_GMT, A.DTM_END_GMT),'YYYYMMDD') >=  '20170718'
+                AND B.WG_CD IN (SELECT CD_CODE FROM CM_CODE_DTL WHERE CD_CLSS = 'SLWGC' AND CD_CODE  <>  'METAL')
+        )
+        SELECT P.CD_ROUTE, P.CD_PORT, P.NO_SEQ, P.NM_PORT, P.TIME_ZONE, P.CD_AREA, P.LNGT, P.LTUD
+        FROM ROUTE_LIST R INNER JOIN PORT_LIST P ON R.CD_ROUTE = P.CD_ROUTE
+        ORDER BY P.CD_ROUTE ASC, P.NO_SEQ
+        -->
+        
+    </select>
+    
+    
+    <!-- Port Detail Information -->
+    <select id="selectVesselScheduleOfPort"  parameterType="portParm" resultMap="vesselscheduleofport">
+        
+				 SELECT   /* Port.selectVesselScheduleOfPort */
+		              CD_VESSEL 
+		            , (SELECT X.NM_VESSEL1 FROM IF_MOST_VMS.MAR_VESSEL@VMT_LINK X WHERE A.CD_VESSEL =X.CD_VESSEL) AS NM_VESSEL 
+		            , VOY
+		            , CD_PID 
+		            , DIV_BUNKERPORT
+		            , CD_PORT
+		            , (SELECT X.NM_PORT1 FROM IF_MOST_VMS.MAR_PORT@VMT_LINK X WHERE A.CD_PORT = X.CD_PORT) AS NM_PORT
+		            , TAG
+		            , PORT_DATE
+		            , (CASE WHEN CD_PID = 'BK' THEN DECODE(TAG, 'ETA', 
+		                                                                                DECODE(IF_MOST_VMS.FN_GET_LADBAL@VMT_LINK(CD_VESSEL, VOY), 'B', 'BALLAST', 'LADEN'), 'BUNKER')
+		               WHEN CD_PID = 'LL' THEN (CASE WHEN TAG = 'ETA' THEN DECODE(IF_MOST_VMS.FN_GET_LADBAL@VMT_LINK(CD_VESSEL, VOY), 'B', 'BALLAST', 'LADEN')
+		                                             WHEN TAG = 'ETB' THEN 'WAITING'
+		                                             WHEN TAG = 'ETD' THEN 'LOADING' END)
+		               WHEN CD_PID = 'DD' THEN (CASE WHEN TAG = 'ETA' THEN DECODE(IF_MOST_VMS.FN_GET_LADBAL@VMT_LINK(CD_VESSEL, VOY), 'B', 'BALLAST', 'LADEN')
+		                                             WHEN TAG = 'ETB' THEN 'WAITING'
+		                                             WHEN TAG = 'ETD' THEN 'DISCHARGING' END) 
+		                END ) AS STATUS
+		             , (CASE WHEN CD_PID = 'BK' OR DIV_BUNKERPORT = 'Y' THEN (SELECT SUM(HFO) 
+		                                                                                                            FROM IF_MOST_VMS.OP_BUNKPLAN@VMT_LINK X 
+		                                                                                                            WHERE X.CD_VESSEL = A.CD_VESSEL 
+		                                                                                                            AND X.VOY = A.VOY 
+		                                                                                                            AND X.SEQ_CALL = A.SEQ_CALL 
+		                                                                                                            AND X.CD_PORT = A.CD_PORT 
+		                                                                                                            AND X.PORT_REMARK = 'Supply')
+		               ELSE (SELECT SUM(QTY)  FROM IF_MOST_VMS.MAR_CB_REVENUE@VMT_LINK X WHERE SEQ_CB = 0 AND A.CD_VESSEL = X.CD_VESSEL AND A.VOY = X.VOY) 
+		               END ) AS QTY      
+		             , DECODE(CD_PID, 'BK', 'BUNKER', (SELECT MAX(CD_CARGO)  
+		                                                                FROM IF_MOST_VMS.MAR_CB_REVENUE@VMT_LINK X 
+		                                                                WHERE SEQ_CB = 0 AND A.CD_VESSEL = X.CD_VESSEL AND A.VOY = X.VOY)) AS CD_CARGO
+		  FROM (
+		              SELECT LVL
+		                     , DECODE(LVL, '1', CD_VESSEL, CD_VESSEL) AS  CD_VESSEL
+		                     , DECODE(LVL, '1', VOY, VOY) AS VOY
+		                     , DECODE(LVL, '1', CD_PORT, CD_PORT) AS CD_PORT
+		                     , DECODE(LVL, '1', CD_PID, 'BK') CD_PID
+		                     , SEQ_CALL
+		                     , DECODE(LVL, '1', 'N', 'Y') AS DIV_BUNKERPORT
+		                     , DECODE(LVL, '1', PORT_DATE, PORT_DATE) AS PORT_DATE
+		                     , TAG
+		                     , DECODE(LVL, '1', 'Y', DECODE(DIV_BUNKERPORT, 'Y', 'Y', 'N')) AS DIV_TAG
+		                FROM (
+		                            SELECT A.CD_VESSEL, A.VOY, A.CD_PORT, A.CD_PID, A.SEQ_CALL,
+		                                       DECODE(A.CD_PID, 'BK', 'N', A.DIV_BUNKERPORT) DIV_BUNKERPORT,
+		                                       NVL(DTM_ATA, DTM_ETA) AS PORT_DATE, 'ETA' AS TAG
+		                              FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK A, IF_MOST_VMS.MAR_VOY@VMT_LINK B
+		                             WHERE A.CD_VESSEL = B.CD_VESSEL
+		                               AND A.VOY = B.VOY
+		                               AND B.DIV_VSLKND = 'BK'
+		                               AND B.DIV_VOY_TYPE = 'DO'
+		                               AND A.CD_PID IN ('LL', 'DD', 'BK')
+		                               AND NVL(DTM_ATA, DTM_ETA) > TO_DATE('20171101','YYYYMMDD')
+		                            UNION ALL
+		                            SELECT A.CD_VESSEL, A.VOY, A.CD_PORT, A.CD_PID, A.SEQ_CALL,
+		                                       DECODE(A.CD_PID, 'BK', 'N', A.DIV_BUNKERPORT) DIV_BUNKERPORT,
+		                                       NVL(DTM_ATB, DTM_ETB) AS PORT_DATE, 'ETB' AS TAG
+		                              FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK A, IF_MOST_VMS.MAR_VOY@VMT_LINK B
+		                             WHERE A.CD_VESSEL = B.CD_VESSEL
+		                               AND A.VOY = B.VOY
+		                               AND B.DIV_VSLKND = 'BK'
+		                               AND B.DIV_VOY_TYPE = 'DO'
+		                               AND A.CD_PID IN ('LL', 'DD', 'BK')
+		                               AND NVL(DTM_ATA, DTM_ETA) <![CDATA[ <= ]]> TO_DATE('20171101','YYYYMMDD')  AND NVL(DTM_ATB, DTM_ETB) > TO_DATE('20171101','YYYYMMDD')
+		                            UNION ALL
+		                            SELECT A.CD_VESSEL, A.VOY, A.CD_PORT, A.CD_PID, A.SEQ_CALL,
+		                                       DECODE(A.CD_PID, 'BK', 'N', A.DIV_BUNKERPORT) DIV_BUNKERPORT,
+		                                       NVL(DTM_ATD, DTM_ETD) AS PORT_DATE, 'ETD' AS TAG
+		                              FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK A, IF_MOST_VMS.MAR_VOY@VMT_LINK B
+		                             WHERE A.CD_VESSEL = B.CD_VESSEL
+		                               AND A.VOY = B.VOY
+		                               AND B.DIV_VSLKND = 'BK'
+		                               AND B.DIV_VOY_TYPE = 'DO'
+		                               AND A.CD_PID IN ('LL', 'DD', 'BK')
+		                               AND NVL(DTM_ATB, DTM_ETB) <![CDATA[ <= ]]> TO_DATE('20171101','YYYYMMDD')  
+		                               AND NVL(DTM_ATD, DTM_ETD) > TO_DATE('20171101','YYYYMMDD')
+ 		                ) A, (SELECT LEVEL AS LVL FROM DUAL CONNECT BY LEVEL <![CDATA[ < ]]> 3)
+		                <!-- ) A, (WITH RECURSIVE A AS ( SELECT 1 AS LEVEL UNION ALL SELECT 1+A.LEVEL FROM A WHERE A.LEVEL <![CDATA[ < ]]> 3) SELECT LEVEL LVL FROM A ) B -->
+		               WHERE 1 = 1
+		                 <if test="portCode != null and portCode != ''">
+			                AND A.CD_PORT = #{portCode}
+			            </if>
+		  ) A
+		 WHERE DIV_TAG = 'Y'
+		ORDER BY PORT_DATE    
+        
+        <!-- 
+        SELECT  /* Port.selectVesselScheduleOfPort */
+            A.CD_PORT CD_PORT,
+            G.NM_PORT1 NM_PORT,
+            A.NO_SEQ NO_SEQ,
+            B.CD_VESSEL CD_VESSEL,
+			C.NM_VESSEL1 NM_VESSEL,
+			B.VOY VOY,
+			D.QTY QTY,
+			D.CD_CARGO CD_CARGO,
+			E.NM_CARGO1 NM_CARGO,
+			A.CD_PID CD_PID,
+			F.NM_CODE NM_CODE,
+			TO_CHAR(A.DTM_ETA,'yyyy-mm-dd hh24') DTM_ETA,
+			TO_CHAR(A.DTM_ETB,'yyyy-mm-dd hh24') DTM_ETB,
+			TO_CHAR(A.DTM_ETD,'yyyy-mm-dd hh24') DTM_ETD,
+			H.LAT LNGT,
+			H.LON LTUD,
+			B.CD_ROUTE CD_ROUTE,
+			G.TIME_ZONE TIME_ZONE
+        FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK A, IF_MOST_VMS.MAR_VOY@VMT_LINK B, IF_MOST_VMS.MAR_VESSEL C, IF_MOST_VMS.MAR_CB_REVENUE@VMT_LINK D, MAR_CARGO E, CM_CODE_DTL F, MAR_PORT G, GIS_PORT H
+        WHERE 1=1
+			AND A.CD_PORT=H.CD_PORT
+			AND A.CD_PORT=G.CD_PORT
+			AND F.CD_CODE=A.CD_PID
+			AND D.NO_SEQ=A.NO_SEQ
+			AND D.CD_CARGO=E.CD_CARGO
+			AND A.CD_VESSEL=D.CD_VESSEL
+			AND A.VOY=D.VOY
+			AND A.CD_VESSEL=B.CD_VESSEL
+			AND A.VOY=B.VOY
+			AND B.CD_VESSEL=D.CD_VESSEL
+			AND B.VOY=D.VOY
+			AND C.CD_VESSEL=D.CD_VESSEL
+			AND D.SEQ_CB=0
+			AND F.CD_CLSS='SLPID'
+			AND A.DTM_ETA > TO_DATE('20171101','YYYYMMDD') - 365
+			AND A.DTM_ATD <![CDATA[ < ]]> TO_DATE('20171101','YYYYMMDD')-7
+            AND A.DTM_ETA <![CDATA[ > ]]> TO_DATE('20171101','YYYYMMDD')+7
+     -->        
+     
+    </select>
+    
+    <select id="selectVesselScheduleOfPortSum"  parameterType="portParm" resultMap="vesselscheduleofport">
+        
+		 SELECT   /* Port.selectVesselScheduleOfPortSum */
+		            ('W/IN  7 DAY '|| SUM(QTY)|| ' MT') as W_IN
+			  FROM
+			  (
+			  SELECT LVL, CD_VESSEL, VOY, CD_PORT, CD_PID, SEQ_CALL, DIV_BUNKERPORT, TAG, 
+			PORT_DATE, DIV_TAG         , (CASE WHEN CD_PID = 'BK' OR DIV_BUNKERPORT = 'Y' THEN 
+			(SELECT SUM(HFO) 
+			FROM IF_MOST_VMS.OP_BUNKPLAN@VMT_LINK X WHERE X.CD_VESSEL = A.CD_VESSEL AND X.VOY = A.VOY AND X.SEQ_CALL 
+			=A.SEQ_CALL AND X.CD_PORT = A.CD_PORT AND X.PORT_REMARK = 'Supply')
+			                 ELSE (SELECT SUM(QTY)  FROM IF_MOST_VMS.MAR_CB_REVENUE@VMT_LINK X WHERE SEQ_CB = 0 AND 
+			A.CD_VESSEL = X.CD_VESSEL AND A.VOY = X.VOY) END) AS QTY         
+			                 , DECODE(CD_PID, 'BK', 'BUNKER', (SELECT MAX(CD_CARGO)  FROM 
+			IF_MOST_VMS.MAR_CB_REVENUE@VMT_LINK X WHERE SEQ_CB = 0 AND A.CD_VESSEL = X.CD_VESSEL AND A.VOY = X.VOY)) 
+			AS CD_CARGOGO
+			    FROM (
+			    SELECT LVL
+			           , DECODE(LVL, '1', CD_VESSEL, CD_VESSEL) AS  CD_VESSEL
+			           , DECODE(LVL, '1', VOY, VOY) AS VOY
+			           , DECODE(LVL, '1', CD_PORT, CD_PORT) AS CD_PORT
+			           , DECODE(LVL, '1', CD_PID, 'BK') CD_PID
+			           , SEQ_CALL
+			           , DECODE(LVL, '1', 'N', 'Y') AS DIV_BUNKERPORT
+			           , DECODE(LVL, '1', PORT_DATE, PORT_DATE) AS PORT_DATE
+			           , TAG
+			           , DECODE(LVL, '1', 'Y', DECODE(DIV_BUNKERPORT, 'Y', 'Y', 'N')) AS DIV_TAG
+			      FROM (
+			      SELECT A.CD_VESSEL, A.VOY, A.CD_PORT, A.CD_PID, A.SEQ_CALL,
+			             DECODE(A.CD_PID, 'BK', 'N', A.DIV_BUNKERPORT) DIV_BUNKERPORT,
+			             NVL(DTM_ATA, DTM_ETA) AS PORT_DATE, 'ETA' AS TAG
+			        FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK A, IF_MOST_VMS.MAR_VOY@VMT_LINK B
+			       WHERE A.CD_VESSEL = B.CD_VESSEL
+			         AND A.VOY = B.VOY
+			         AND B.DIV_VSLKND = 'BK'
+			         AND B.DIV_VOY_TYPE = 'DO'
+			         AND A.CD_PID IN ('LL', 'DD', 'BK')
+			         AND NVL(DTM_ATA, DTM_ETA) > TO_DATE('20171101','YYYYMMDD')
+			      UNION ALL
+			      SELECT A.CD_VESSEL, A.VOY, A.CD_PORT, A.CD_PID, A.SEQ_CALL,
+			             DECODE(A.CD_PID, 'BK', 'N', A.DIV_BUNKERPORT) DIV_BUNKERPORT,
+			             NVL(DTM_ATB, DTM_ETB) AS PORT_DATE, 'ETB' AS TAG
+			        FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK A, IF_MOST_VMS.MAR_VOY@VMT_LINK B
+			       WHERE A.CD_VESSEL = B.CD_VESSEL
+			         AND A.VOY = B.VOY
+			         AND B.DIV_VSLKND = 'BK'
+			         AND B.DIV_VOY_TYPE = 'DO'
+			         AND A.CD_PID IN ('LL', 'DD', 'BK')
+			         AND NVL(DTM_ATA, DTM_ETA) <![CDATA[ <= ]]> TO_DATE('20171101','YYYYMMDD')  AND NVL(DTM_ATB, DTM_ETB) > TO_DATE('20171101','YYYYMMDD')
+			      UNION ALL
+			      SELECT A.CD_VESSEL, A.VOY, A.CD_PORT, A.CD_PID, A.SEQ_CALL,
+			             DECODE(A.CD_PID, 'BK', 'N', A.DIV_BUNKERPORT) DIV_BUNKERPORT,
+			             NVL(DTM_ATD, DTM_ETD) AS PORT_DATE, 'ETD' AS TAG
+			        FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK A, IF_MOST_VMS.MAR_VOY@VMT_LINK B
+			       WHERE A.CD_VESSEL = B.CD_VESSEL
+			         AND A.VOY = B.VOY
+			         AND B.DIV_VSLKND = 'BK'
+			         AND B.DIV_VOY_TYPE = 'DO'
+			         AND A.CD_PID IN ('LL', 'DD', 'BK')
+			         AND NVL(DTM_ATB, DTM_ETB) <![CDATA[ <= ]]> TO_DATE('20171101','YYYYMMDD')  AND NVL(DTM_ATD, DTM_ETD) > TO_DATE('20171101','YYYYMMDD')
+			         ) A, (SELECT LEVEL AS LVL FROM DUAL CONNECT BY LEVEL <![CDATA[ < ]]> 3)
+			    <!--   ) A, (WITH RECURSIVE A AS ( SELECT 1 AS LEVEL UNION ALL SELECT 1+A.LEVEL FROM A WHERE A.LEVEL <![CDATA[ < ]]> 3) SELECT LEVEL LVL FROM A ) B--> 
+			     	WHERE 1 = 1
+			       AND CD_PORT = #{portCode}
+			    ) A
+			   WHERE DIV_TAG = 'Y' ) B 
+			 WHERE PORT_DATE BETWEEN TO_DATE('20171101','YYYYMMDD') AND TO_DATE('20171101','YYYYMMDD') + 7
+			UNION ALL
+			SELECT ('W/IN 15 DAY '|| SUM(QTY)|| ' MT') 
+			  FROM
+			  (
+			  SELECT LVL, CD_VESSEL, VOY, CD_PORT, CD_PID, SEQ_CALL, DIV_BUNKERPORT, TAG, 
+			PORT_DATE, DIV_TAG
+			         , (CASE WHEN CD_PID = 'BK' OR DIV_BUNKERPORT = 'Y' THEN (SELECT SUM(HFO) 
+			FROM IF_MOST_VMS.OP_BUNKPLAN@VMT_LINK X WHERE X.CD_VESSEL = A.CD_VESSEL AND X.VOY = A.VOY AND X.SEQ_CALL = 
+			A.SEQ_CALL AND X.CD_PORT = A.CD_PORT AND X.PORT_REMARK = 'Supply')
+			                 ELSE (SELECT SUM(QTY)  FROM IF_MOST_VMS.MAR_CB_REVENUE@VMT_LINK X WHERE SEQ_CB = 0 AND 
+			A.CD_VESSEL = X.CD_VESSEL AND A.VOY = X.VOY) END) AS QTY       
+			, DECODE(CD_PID, 'BK', 'BUNKER', (SELECT MAX(CD_CARGO)  FROM IF_MOST_VMS.MAR_CB_REVENUE@VMT_LINK 
+			X WHERE SEQ_CB = 0 AND A.CD_VESSEL = X.CD_VESSEL AND A.VOY = X.VOY)) AS CD_CARGOGO    
+			FROM (
+			    SELECT LVL
+			           , DECODE(LVL, '1', CD_VESSEL, CD_VESSEL) AS  CD_VESSEL
+			           , DECODE(LVL, '1', VOY, VOY) AS VOY
+			           , DECODE(LVL, '1', CD_PORT, CD_PORT) AS CD_PORT
+			           , DECODE(LVL, '1', CD_PID, 'BK') CD_PID
+			           , SEQ_CALL
+			           , DECODE(LVL, '1', 'N', 'Y') AS DIV_BUNKERPORT
+			           , DECODE(LVL, '1', PORT_DATE, PORT_DATE) AS PORT_DATE
+			           , TAG
+			           , DECODE(LVL, '1', 'Y', DECODE(DIV_BUNKERPORT, 'Y', 'Y', 'N')) AS DIV_TAG
+			      FROM (
+			      SELECT A.CD_VESSEL, A.VOY, A.CD_PORT, A.CD_PID, A.SEQ_CALL,
+			             DECODE(A.CD_PID, 'BK', 'N', A.DIV_BUNKERPORT) DIV_BUNKERPORT,
+			             NVL(DTM_ATA, DTM_ETA) AS PORT_DATE, 'ETA' AS TAG
+			        FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK A, IF_MOST_VMS.MAR_VOY@VMT_LINK B
+			       WHERE A.CD_VESSEL = B.CD_VESSEL
+			         AND A.VOY = B.VOY
+			         AND B.DIV_VSLKND = 'BK'
+			         AND B.DIV_VOY_TYPE = 'DO'
+			         AND A.CD_PID IN ('LL', 'DD', 'BK')
+			         AND NVL(DTM_ATA, DTM_ETA) > TO_DATE('20171101','YYYYMMDD')
+			      UNION ALL
+			      SELECT A.CD_VESSEL, A.VOY, A.CD_PORT, A.CD_PID, A.SEQ_CALL,
+			             DECODE(A.CD_PID, 'BK', 'N', A.DIV_BUNKERPORT) DIV_BUNKERPORT,
+			             NVL(DTM_ATB, DTM_ETB) AS PORT_DATE, 'ETB' AS TAG
+			        FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK A, IF_MOST_VMS.MAR_VOY@VMT_LINK B
+			       WHERE A.CD_VESSEL = B.CD_VESSEL
+			         AND A.VOY = B.VOY
+			         AND B.DIV_VSLKND = 'BK'
+			         AND B.DIV_VOY_TYPE = 'DO'
+			         AND A.CD_PID IN ('LL', 'DD', 'BK')
+			         AND NVL(DTM_ATA, DTM_ETA) <![CDATA[ <= ]]> TO_DATE('20171101','YYYYMMDD')  AND NVL(DTM_ATB, DTM_ETB) > TO_DATE('20171101','YYYYMMDD')
+			      UNION ALL
+			      SELECT A.CD_VESSEL, A.VOY, A.CD_PORT, A.CD_PID, A.SEQ_CALL,
+			             DECODE(A.CD_PID, 'BK', 'N', A.DIV_BUNKERPORT) DIV_BUNKERPORT,
+			             NVL(DTM_ATD, DTM_ETD) AS PORT_DATE, 'ETD' AS TAG
+			        FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK A, IF_MOST_VMS.MAR_VOY@VMT_LINK B
+			       WHERE A.CD_VESSEL = B.CD_VESSEL
+			         AND A.VOY = B.VOY
+			         AND B.DIV_VSLKND = 'BK'
+			         AND B.DIV_VOY_TYPE = 'DO'
+			         AND A.CD_PID IN ('LL', 'DD', 'BK')
+			         AND NVL(DTM_ATB, DTM_ETB) <![CDATA[ <= ]]> TO_DATE('20171101','YYYYMMDD')  AND NVL(DTM_ATD, DTM_ETD) > TO_DATE('20171101','YYYYMMDD')
+			          ) A, (SELECT LEVEL AS LVL FROM DUAL CONNECT BY LEVEL <![CDATA[ < ]]> 3)
+			      <!-- ) A, (WITH RECURSIVE A AS ( SELECT 1 AS LEVEL UNION ALL SELECT 1+A.LEVEL FROM A WHERE A.LEVEL <![CDATA[ < ]]> 3) SELECT LEVEL LVL FROM A ) B -->
+			     WHERE 1 = 1
+			       AND CD_PORT = #{portCode}
+			    ) A
+			   WHERE DIV_TAG = 'Y' ) B 
+			 WHERE PORT_DATE BETWEEN TO_DATE('20171101','YYYYMMDD') AND TO_DATE('20171101','YYYYMMDD') + 15
+			UNION ALL
+			SELECT ('W/IN 30 DAY '|| SUM(QTY)|| ' MT') 
+			  FROM
+			  (
+			  SELECT LVL, CD_VESSEL, VOY, CD_PORT, CD_PID, SEQ_CALL, DIV_BUNKERPORT, TAG, 
+			PORT_DATE, DIV_TAG
+			         , (CASE WHEN CD_PID = 'BK' OR DIV_BUNKERPORT = 'Y' THEN (SELECT SUM(HFO) 
+			FROM IF_MOST_VMS.OP_BUNKPLAN@VMT_LINK X WHERE X.CD_VESSEL = A.CD_VESSEL AND X.VOY = A.VOY AND X.SEQ_CALL = 
+			A.SEQ_CALL AND X.CD_PORT = A.CD_PORT AND X.PORT_REMARK = 'Supply')
+			                 ELSE (SELECT SUM(QTY)  FROM IF_MOST_VMS.MAR_CB_REVENUE@VMT_LINK X WHERE SEQ_CB = 0 AND 
+			A.CD_VESSEL = X.CD_VESSEL AND A.VOY = X.VOY) END) AS QTY
+			         , DECODE(CD_PID, 'BK', 'BUNKER', (SELECT MAX(CD_CARGO)  FROM IF_MOST_VMS.MAR_CB_REVENUE@VMT_LINK 
+			X WHERE SEQ_CB = 0 AND A.CD_VESSEL = X.CD_VESSEL AND A.VOY = X.VOY)) AS CD_CARGOGO
+			    FROM (
+			    SELECT LVL
+			           , DECODE(LVL, '1', CD_VESSEL, CD_VESSEL) AS  CD_VESSEL
+			           , DECODE(LVL, '1', VOY, VOY) AS VOY
+			           , DECODE(LVL, '1', CD_PORT, CD_PORT) AS CD_PORT
+			           , DECODE(LVL, '1', CD_PID, 'BK') CD_PID
+			           , SEQ_CALL
+			           , DECODE(LVL, '1', 'N', 'Y') AS DIV_BUNKERPORT
+			           , DECODE(LVL, '1', PORT_DATE, PORT_DATE) AS PORT_DATE
+			           , TAG
+			           , DECODE(LVL, '1', 'Y', DECODE(DIV_BUNKERPORT, 'Y', 'Y', 'N')) AS DIV_TAG
+			      FROM (
+			      SELECT A.CD_VESSEL, A.VOY, A.CD_PORT, A.CD_PID, A.SEQ_CALL,
+			             DECODE(A.CD_PID, 'BK', 'N', A.DIV_BUNKERPORT) DIV_BUNKERPORT,
+			             NVL(DTM_ATA, DTM_ETA) AS PORT_DATE, 'ETA' AS TAG
+			        FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK A, IF_MOST_VMS.MAR_VOY@VMT_LINK B
+			       WHERE A.CD_VESSEL = B.CD_VESSEL
+			         AND A.VOY = B.VOY
+			         AND B.DIV_VSLKND = 'BK'
+			         AND B.DIV_VOY_TYPE = 'DO'
+			         AND A.CD_PID IN ('LL', 'DD', 'BK')
+			         AND NVL(DTM_ATA, DTM_ETA) > TO_DATE('20171101','YYYYMMDD')
+			      UNION ALL
+			      SELECT A.CD_VESSEL, A.VOY, A.CD_PORT, A.CD_PID, A.SEQ_CALL,
+			             DECODE(A.CD_PID, 'BK', 'N', A.DIV_BUNKERPORT) DIV_BUNKERPORT,
+			             NVL(DTM_ATB, DTM_ETB) AS PORT_DATE, 'ETB' AS TAG
+			        FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK A, IF_MOST_VMS.MAR_VOY@VMT_LINK B
+			       WHERE A.CD_VESSEL = B.CD_VESSEL
+			         AND A.VOY = B.VOY
+			         AND B.DIV_VSLKND = 'BK'
+			         AND B.DIV_VOY_TYPE = 'DO'
+			         AND A.CD_PID IN ('LL', 'DD', 'BK')
+			         AND NVL(DTM_ATA, DTM_ETA) <![CDATA[ <= ]]> TO_DATE('20171101','YYYYMMDD')  AND NVL(DTM_ATB, DTM_ETB) > TO_DATE('20171101','YYYYMMDD')
+			      UNION ALL
+			      SELECT A.CD_VESSEL, A.VOY, A.CD_PORT, A.CD_PID, A.SEQ_CALL,
+			             DECODE(A.CD_PID, 'BK', 'N', A.DIV_BUNKERPORT) DIV_BUNKERPORT,
+			             NVL(DTM_ATD, DTM_ETD) AS PORT_DATE, 'ETD' AS TAG
+			        FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK A, IF_MOST_VMS.MAR_VOY@VMT_LINK B
+			       WHERE A.CD_VESSEL = B.CD_VESSEL
+			         AND A.VOY = B.VOY
+			         AND B.DIV_VSLKND = 'BK'
+			         AND B.DIV_VOY_TYPE = 'DO'
+			         AND A.CD_PID IN ('LL', 'DD', 'BK')
+			         AND NVL(DTM_ATB, DTM_ETB) <![CDATA[ <= ]]> TO_DATE('20171101','YYYYMMDD')  AND NVL(DTM_ATD, DTM_ETD) > TO_DATE('20171101','YYYYMMDD')
+			          ) A, (SELECT LEVEL AS LVL FROM DUAL CONNECT BY LEVEL <![CDATA[ < ]]> 3)
+			      <!-- ) A, (WITH RECURSIVE A AS ( SELECT 1 AS LEVEL UNION ALL SELECT 1+A.LEVEL FROM A WHERE A.LEVEL <![CDATA[ < ]]> 3) SELECT LEVEL LVL FROM A ) B --> 
+			     WHERE 1 = 1
+			       AND CD_PORT = #{portCode}
+			    ) A
+			   WHERE DIV_TAG = 'Y' ) B
+			 WHERE PORT_DATE BETWEEN TO_DATE('20171101','YYYYMMDD') AND TO_DATE('20171101','YYYYMMDD') + 30
+        
+    </select>
+    
+    
+    
+    
+    <!-- NetPas Simulation -->
+    <resultMap id="timeZone" type="portSimulationItem">
+       <result property = "timeZone"            column="TIME_ZONE" />
+    </resultMap>
+
+    <resultMap id="netpasPort" type="portItem">
+       <result property = "portName"            column="PORT_NAME" />
+       <result property = "portCode"            column="UN_LOCODE" />
+    </resultMap>    
+    
+    <select id="selectTimeZone"  parameterType="netPasParm" resultMap="timeZone">
+        SELECT  /* Port.selectTimeZone */
+				TIME_ZONE 
+		FROM MAR_PORT
+        WHERE 1=1
+		AND CD_PORT = #{cdPort}
+
+    </select>    
+    
+    <select id="selectNetpasPort"  parameterType="netPasParm" resultMap="netpasPort">
+        SELECT  /* Port.selectNetpasPort */
+            B.PORT_NAME as PORT_NAME, 
+            B.UN_LOCODE as UN_LOCODE 
+            FROM GIS_PORT A, NETPAS_PORT B
+        WHERE A.CD_PORT = B.UN_LOCODE
+        AND B.PTYPE = 'P'
+        ORDER BY 1
+
+    </select>      
+    
+    <insert id="insertNetpasInfo" parameterType="portSimulationItem">
+		INSERT /* Port.insertNetpasInfo */
+			INTO GIS_NETPAS_INFO (
+					   FROM_PORT, 
+					   TO_PORT, 
+					   ROUTES
+		)VALUES ( 
+				 #{fromPort},
+				 #{toPort},
+				 #{routes}
+				 )		 
+    </insert>	    
+    
+    <!-- User Zone SQL -->    
+    <resultMap id="userZoneList" type="userZoneItem">
+       <result property = "userId"		column="USER_ID" />
+       <result property = "zoneCode"    column="CD_ZONE" />
+       <result property = "zoneDiv"     column="DIV_ZONE" />
+       <result property = "zoneName"    column="NM_ZONE" />
+       <result property = "zoneAuto"    column="AUTO_ZONE" />
+       <result property = "checkAuto"   column="AUTO_CHECK" />
+       <result property = "moveTime"    column="MOVE_TIME" />
+       <result property = "area"        column="AREA" />
+       <result property = "flag"        column="FLAG" />
+       <result property = "points"      column="POINTS" />
+    </resultMap>    
+    
+    <select id="selectUserZoneList"  parameterType="userZoneParm" resultMap="userZoneList">
+        SELECT /* Port.selectUserZoneList */
+	            A.USER_ID, 
+	            A.CD_ZONE, 
+	            A.MOVE_TIME, 
+	            A.AUTO_ZONE, 
+	            A.AUTO_CHECK,
+	            B.DIV_ZONE,
+	            B.NM_ZONE,
+	            B.AREA,
+	            B.FLAG
+	            <!-- ,B.POINTS  -->
+        FROM IF_MOST_VMS.GIS_USE_ZONE@VMT_LINK A, IF_MOST_VMS.GIS_ZONE@VMT_LINK B
+        WHERE A.CD_ZONE = B.CD_ZONE
+    </select>    
+    
+    <select id="selectCdZoneCnt"  parameterType="userZoneParm" resultMap="userZoneList">
+        SELECT /* Port.selectUserZoneList */
+	            MAX(CD_ZONE) +1 CD_ZONE
+        FROM IF_MOST_VMS.GIS_ZONE@VMT_LINK
+    </select>          
+
+    <insert id="insertZone" parameterType="userZoneItem">
+		INSERT /* Port.insertZone */
+			INTO IF_MOST_VMS.GIS_ZONE@VMT_LINK (
+   							CD_ZONE, 
+   							DIV_ZONE, 
+   							NM_ZONE, 
+   							AREA, 
+   							FLAG 
+   							<!-- ,POINTS -->
+ 			)VALUES( 
+ 					 #{zoneCode},
+					 'URZONE',
+					 #{zoneName},
+					 '0',
+					 'Y'
+					 <!-- ,#{points}  -->
+					)  		 
+    </insert>
+                
+    <insert id="insertUserZone" parameterType="userZoneItem">
+		INSERT /* Port.insertUserZone */
+			INTO IF_MOST_VMS.GIS_USE_ZONE@VMT_LINK (
+					   USER_ID, 
+					   CD_ZONE, 
+					   MOVE_TIME
+		)VALUES ( 
+				 #{userId},
+				 #{zoneCode},
+				 '5'
+				 )		 
+    </insert>	
+    
+    <update id="updateZone" parameterType="userZoneItem">
+		UPDATE /* Port.updateZone */
+			 IF_MOST_VMS.GIS_ZONE@VMT_LINK 
+		SET    NM_ZONE  = {zoneName}
+		WHERE  CD_ZONE  = #{zoneCode}
+    </update>		    
+  
+    
+    <delete id="deleteZone" parameterType="userZoneItem">
+		
+		DELETE /* Port.deleteZone */
+			FROM IF_MOST_VMS.GIS_ZONE@VMT_LINK
+		WHERE  CD_ZONE  = #{zoneCode}
+		 
+    </delete>
+    
+    <delete id="deleteUserZone" parameterType="userZoneItem">
+		
+		DELETE /* Port.deleteUserZone */
+			FROM IF_MOST_VMS.GIS_USE_ZONE@VMT_LINK
+		WHERE  CD_ZONE  = #{zoneCode}
+		 
+    </delete>	            
+                	            
+            
+            
+            
+</mapper>

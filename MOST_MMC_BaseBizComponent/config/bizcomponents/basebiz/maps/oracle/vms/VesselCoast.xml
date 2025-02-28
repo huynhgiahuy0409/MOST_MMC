@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="VesselCoast">
+    <resultMap id="veselList" type="vesselItem">
+        <result property = "teamCode"           column="CD_DEPT" />
+        <result property = "teamName"           column="NM_DEPT" />
+        <result property = "operatorId"         column="OPERATOR_ID" />
+        <result property = "operatorName"       column="OPERATOR_NM" />
+        <result property = "vesselCode"         column="CD_VESSEL" />
+        <result property = "vesselName"         column="NM_VESSEL1" />
+        <result property = "voyageNo"           column="VOY" />             
+        <result property = "callSign"           column="CALL_SIGN" />           
+        <result property = "vesselKind"         column="CD_VSLKND" />       <!-- 벌크, 자동차 -->
+        <result property = "vesselGroupCode"    column="WG_CD" />           <!-- 선형 -->
+        <result property = "vesselGroupName"    column="WG_NM" />           <!-- 선형 -->
+        <result property = "vesselType"         column="DIV_VOY_TYPE" />    <!-- 용선, 사선 -->
+        <result property = "vesselTypeName"     column="DIV_VOY_TYPE_NM" /> <!-- 용선, 사선 -->
+        <result property = "latitude"           column="LAT" />
+        <result property = "longitude"          column="LON" />
+        <result property = "heading"            column="ANGLE" />
+        <result property = "speed"              column="SPEED" />
+        <result property = "vesselStatus"       column="CD_PID" />
+        <result property = "vesselStatusName"   column="NM_PID" />
+        <result property = "routeCode"          column="CD_ROUTE" /> 
+        <result property = "flag"               column="COUNCODE" /> 
+        <result property = "flagName"           column="COUNTRY_NM" /> 
+        <result property = "buildYear"          column="DT_BUILD" /> 
+        <result property = "loa"                column="LOA" /> 
+        <result property = "width"              column="VSL_BEAM" /> 
+        <result property = "draft"              column="VSL_DRAFT" /> 
+        <result property = "speedLaden"         column="SPEED_LDN" /> 
+        <result property = "speedBallast"       column="SPEED_BST" /> 
+        <result property = "dwt"                column="DWT" /> 
+        <result property = "grt"                column="GRT" /> 
+        <result property = "imoNo"              column="NO_IMD" /> 
+        <result property = "arrivalTime"        column="ARR_DT"    javaType="java.util.Date"/>
+        <result property = "departureTime"      column="DEP_DT"    javaType="java.util.Date"/>
+        <result property = "speedContract"      column="CONTRACT_SPEED" />
+        <result property = "distance"           column="DIST" />
+        <result property = "progress"           column="PROGRESS" />
+        <result property = "continentName"      column="CONTINENT" />
+	</resultMap>
+	
+	<resultMap id="vesselMoveList" type="vesselItem">
+       <result property = "vesselCode"   column="CD_VESSEL" />
+       <result property = "imoNo"        column="MDT_ID" />
+		<result property = "operatorId"           column="OPERATOR_ID" />
+        <result property = "latitude"           column="LAT" />
+        <result property = "longitude"          column="LON" />
+        <result property = "speed"              column="SPEED" />
+	</resultMap>	
+	
+	<resultMap id="routeList" type="vesselItem">
+	   <result property = "routeCode"    column="CD_ROUTE" /> 
+	</resultMap>
+	
+	<resultMap id="vesselImageList" type="vesselImageItem">
+	   <result property = "vesselCode"    	column="CD_VESSEL" /> 
+	   <result property = "atchFileName"    column="ORG_FILE_NM" /> 
+	   <result property = "maskedFileName"  column="NEW_FILE_NM" /> 
+	   <result property = "mainImage"    	column="MAIN_YN" /> 
+	</resultMap>	
+
+	<!-- Vessel List -->
+	<select id="selectVesselList" parameterType="vesselParm" resultMap="veselList">
+           SELECT  /* VesselCoast.selectCoastVesselList */
+                   A.CD_VESSEL, 
+                   C.NM_VESSEL1, 
+                   C.DT_BUILD, <!-- 건조연도 -->
+                   C.LOA,
+                   C.VSL_BEAM,
+                   C.VSL_DRAFT,
+                   C.SPEED_LDN,
+                   C.SPEED_BST,
+                   C.DWT,
+                   C.GRT,
+                   C.COUNCODE,     <!-- 국가코드 -->
+                   (SELECT CNTRYNAME FROM IF_MOST_VMS.ST_COUNTRY@VMT_LINK WHERE COUNCODE=C.COUNCODE) AS COUNTRY_NM,
+                   C.NO_IMD,
+                   C.CALLSIGN,
+                   C.CD_VSLKND,
+                   A.VOY,
+                   <!-- NVL(FNC_GET_VSL_STATUS(A.CD_VESSEL, A.VOY, TO_DATE('20171101','YYYYMMDD')), 'LADEN') CD_PID, -->
+                   'LADEN' CD_PID,
+                   A.CD_ROUTE, 
+                   A.CD_DEPT,
+                   <!--   FNC_GET_NMDEPT(A.CD_DEPT) AS NM_DEPT, -->
+                   '' NM_DEPT,
+                   RD.LAT, 
+                   RD.LON, 
+                   RD.ANGLE,
+                   RD.SPEED, 
+                   F.DESC_1    AS CONTINENT,
+                   A.WG_CD AS WG_CD,
+                   A.DIV_VOY_TYPE AS DIV_VOY_TYPE,
+                   C.CD_VSLKND AS CD_VSLKND
+					<!--  최종 수신일시 처리시 A.DTM_END  -->
+        FROM IF_MOST_VMS.MAR_VOY@VMT_LINK A LEFT OUTER JOIN (SELECT * FROM IF_MOST_VMS.CM_CODE_DTL@VMT_LINK WHERE CD_CLSS = 'CONT' ) F ON A.CD_ROUTE = F.CD_CODE, 
+        		 IF_MOST_VMS.MAR_VESSEL@VMT_LINK C,
+                 IF_MOST_VMS.MDT_MASTER@VMT_LINK B, 
+                 IF_MOST_VMS.GIS_SHIP@VMT_LINK RD
+        WHERE 1=1
+                AND A.CD_VESSEL = B.CD_VESSEL
+                AND A.CD_VESSEL = C.CD_VESSEL
+                AND A.CD_VESSEL = RD.CD_VESSEL   
+                AND A.VOY = (SELECT MAX(VOY) FROM  IF_MOST_VMS.MAR_VOY@VMT_LINK WHERE CD_VESSEL = B.CD_VESSEL)
+                AND A.DIV_VSLKND NOT IN ( 'BK','CR')      
+
+
+	</select>
+	
+	<!-- Vessel Duplicate Remove Route Code List -->
+	<select id="selectVesselRouteCodeList"  parameterType="vesselParm" resultMap="routeList">
+		SELECT /* VesselCoast.selectVesselRouteCodeList */
+		    distinct(t1.CD_ROUTE) CD_ROUTE
+		FROM
+			(
+			select 
+				B.CD_ROUTE CD_ROUTE
+			FROM IF_MOST_VMS.MAR_VOY@VMT_LINK A, IF_MOST_VMS.MAR_CB@VMT_LINK B, IF_MOST_VMS.MAR_VESSEL@VMT_LINK C, IF_MOST_VMS.GIS_SHIP@VMT_LINK RD  <!-- IF_MOST_VMS.MAR_VESSEL_SKD E -->
+		 	WHERE 1=1
+			 	AND TO_CHAR(NVL(A.ATM_START_GMT, A.DTM_START_GMT),'YYYYMMDD') <![CDATA[ <= ]]> '20170718' AND TO_CHAR(NVL(A.ATM_END_GMT, A.DTM_END_GMT),'YYYYMMDD') <![CDATA[ >= ]]> '20170718'
+                    AND A.CD_VESSEL = B.CD_VESSEL
+                    AND A.VOY = B.VOY
+                    <if test="vesselKind != null and vesselKind != ''">
+                    AND A.DIV_VSLKND =  #{vesselKind}
+                    </if>
+                    AND B.SEQ_CB = 0
+                    and A.CD_VESSEL=C.CD_VESSEL
+                    and C.CALLSIGN=RD.CALL_SIGN
+                    AND B.WG_CD IN (SELECT CD_CODE FROM CM_CODE_DTL WHERE CD_CLSS = 'SLWGC' AND CD_CODE <![CDATA[ <> ]]> 'METAL')
+                    AND B.CD_ROUTE IS NOT NULL
+		) t1                       
+	</select>
+	
+    <!-- VESSEL KIND LIST -->
+    <select id="selectVesselKindList"  parameterType="vesselParm" resultMap="veselList">
+       select /* VesselCoast.selectVesselKindList */
+            t1.CD_VSLKND,
+            t1.WG_CD,
+            t1.OPERATOR_ID,
+            t1.NM_VESSEL1,
+            t1.CD_VESSEL,
+            t1.VOY,
+            t1.CALLSIGN,
+            t1.CD_VSLKND,
+            t1.DIV_VOY_TYPE,
+            t1.LAT,
+            t1.LON,
+            t1.SPEED,
+            t1.ANGLE,
+            t1.CD_PID,
+            <!-- 
+                PO: Ballast Start (Bulk only)
+                DL: Delivery Port (Bulk only)
+                LL: Loading Port
+                CN: Canal Transit
+                PS: Passing (Bulk only)
+                LD: Loading & Discharging
+                DD: Discharging Port
+                BK: Bunkering Port
+                RD: Redelivery Port (Bulk only)
+                RP: Reposition Port (Bulk only)
+                DR: Dry Docking
+                XX: Ballast Back (PCC only)
+             -->
+            t1.CD_ROUTE
+        from
+            (
+            select 
+                <!-- 선박종류 -->
+                 A.DIV_VSLKND CD_VSLKND            
+                <!-- 선형 -->
+                B.WG_CD WG_CD, 
+                <!-- 선형명 -->   
+                <!-- 선박코드 -->
+                B.CD_VESSEL CD_VESSEL, 
+                <!-- 선박명 -->
+                C.NM_VESSEL1 NM_VESSEL1,
+                <!-- 항차 -->
+                B.VOY VOY,
+                <!-- IMO번호 -->
+                <!-- 호출부호(Call Sign) -->
+                C.CALLSIGN CALLSIGN,
+                <!-- 자동차/벌크 구분 -->
+                C.CD_VSLKND CD_VSLKND,
+                <!-- 용선/사선  -->
+                A.DIV_VOY_TYPE DIV_VOY_TYPE,
+                <!-- 위도 -->
+                RD.LAT LAT,
+                <!-- 경도 -->
+                RD.LON LON,
+                <!-- 속도  -->
+                RD.SPEED SPEED,
+                <!-- 진행방향 -->
+                RD.ANGLE ANGLE,
+                <!-- 선박상태 -->
+                (SELECT NVL(MAX(CD_PID),'OP')   FROM IF_MOST_VMS.MAR_VESSEL_SKD@VMT_LINK WHERE CD_VESSEL=A.CD_VESSEL AND VOY=A.VOY AND TO_DATE('20171101','YYYYMMDD')  BETWEEN NVL(DTM_ATA,DTM_ETA) AND NVL(DTM_ATD,DTM_ETD) ) CD_PID,
+                <!-- 팀코드 -->
+                a.CD_DEPT,
+                <!-- 팀명 -->
+                <!-- 담당자 -->
+                NVL(B.ID_UPT, B.ID_REG) AS OPERATOR_ID,
+                <!-- 서비스 Lane(Route) -->
+                B.CD_ROUTE CD_ROUTE
+                                           
+            FROM IF_MOST_VMS.MAR_VOY@VMT_LINK A, IF_MOST_VMS.MAR_CB@VMT_LINK B, IF_MOST_VMS.MAR_VESSEL@VMT_LINK C, IF_MOST_VMS.GIS_SHIP@VMT_LINK RD  <!-- IF_MOST_VMS.MAR_VESSEL_SKD E -->
+            WHERE 1=1
+                AND TO_CHAR(NVL(A.ATM_START_GMT, A.DTM_START_GMT),'YYYYMMDD') <![CDATA[ <= ]]> '20170718' AND TO_CHAR(NVL(A.ATM_END_GMT, A.DTM_END_GMT),'YYYYMMDD') <![CDATA[ >= ]]> '20170718'
+                    AND A.CD_VESSEL = B.CD_VESSEL
+                    AND A.VOY = B.VOY
+                    <if test="vesselKind != null and vesselKind != ''">
+                    AND A.DIV_VSLKND =  #{vesselKind}
+                    </if>
+                    AND B.SEQ_CB = 0
+                    and A.CD_VESSEL=C.CD_VESSEL
+                    and C.CALLSIGN=RD.CALL_SIGN
+                    AND B.WG_CD IN (SELECT CD_CODE FROM CM_CODE_DTL WHERE CD_CLSS = 'SLWGC' AND CD_CODE <![CDATA[ <> ]]> 'METAL')
+        ) t1
+    </select>
+    
+    <!-- <select id="selectVesselParticularList" parameterType="vesselParm" resultMap="veselList">
+    	SELECT 
+             자동차/벌크 구분
+             C.CD_VSLKND            
+             선형
+             C.CD_VSLKND_SUB WG_CD, 
+             선박코드
+             C.CD_VESSEL, 
+             선박명
+             C.NM_VESSEL1,
+             IMO번호
+             C.NO_IMD
+             호출부호(Call Sign)
+             C.CALLSIGN,
+             용선/사선 
+             C.CD_FLEET DIV_VOY_TYPE,
+             C.COUNCODE, 	국가코드
+             (SELECT CNTRYNAME FROM ST_COUNTRY WHERE COUNCODE=C.COUNCODE) AS COUNTRY_NM
+             C.DT_BUILD,	건조연도
+             C.LOA,
+             C.VSL_BEAM,
+             C.VSL_DRAFT,
+             C.SPEED_LDN,
+             C.SPEED_BST,
+             C.DWT,
+             C.GRT
+         FROM IF_MOST_VMS.MAR_VESSEL@VMT_LINK C
+         WHERE C.CD_VESSEL = #{vesselCode}
+    </select> -->
+
+	<select id="selectVesselMovements"  parameterType="vesselParm" resultMap="vesselMoveList">
+        SELECT a.MDT_ID,   
+                    b.CD_VESSEL,
+                    a.POS_TIME as OPERATOR_ID,
+                    a.LAT,
+                    a.LON,
+                    a.SPEED
+        FROM IF_MOST_VMS.MDT_POSITION_INFO@VMT_LINK a, 
+                (SELECT a.mdt_id, b.cd_vessel, to_date(MAX(a.pos_time),'YYYYMMDDHH24MISS') as max_dt
+                FROM IF_MOST_VMS.MDT_POSITION_INFO@VMT_LINK a, IF_MOST_VMS.MDT_MASTER@VMT_LINK b
+                WHERE a.mdt_id = b.mdt_id
+		        <if test="vesselCode != null and vesselCode != ''">
+		           AND b.cd_vessel = #{vesselCode}    
+			    </if>
+                GROUP BY a.mdt_id, b.cd_vessel ) b
+        WHERE a.mdt_id = b.mdt_id
+        AND a.pos_time BETWEEN to_char(b.max_dt-2,'YYYYMMDDHH24MISS') AND to_char(TO_DATE('20171101','YYYYMMDD'), 'YYYYMMDDHH24MISS')
+        ORDER BY a.pos_time              
+	</select>	
+
+	
+	<select id="selectVesselImage"  parameterType="vesselParm" resultMap="vesselImageList">
+		SELECT /* VesselCoast.selectVesselImage */
+                CD_VESSEL, 
+                MAIN_YN, 
+                ORG_FILE_NM, 
+                NEW_FILE_NM
+        FROM IF_MOST_VMS.GIS_VESSEL_IMAGE@VMT_LINK
+		WHERE REG_DATE = (SELECT MAX(REG_DATE) FROM  IF_MOST_VMS.GIS_VESSEL_IMAGE@VMT_LINK WHERE CD_VESSEL = #{vesselCode})
+		  AND  CD_VESSEL = #{vesselCode}
+	</select>		    
+    
+    <insert id="insertVesselImage" parameterType="vesselImageItem">
+		INSERT /* VesselCoast.insertVesselImage */
+			INTO IF_MOST_VMS.GIS_VESSEL_IMAGE@VMT_LINK (
+            CD_VESSEL, MAIN_YN, ORG_FILE_NM, NEW_FILE_NM, REG_DATE     
+        ) VALUES (
+            #{vesselCode}, #{mainImage}, #{atchFileName}, #{maskedFileName}, SYSDATE
+        )  
+		 
+    </insert>	
+    
+    <update id="updateVesselImage" parameterType="vesselImageItem">
+		
+		UPDATE /* VesselCoast.updateVesselImage */
+			IF_MOST_VMS.GIS_VESSEL_IMAGE@VMT_LINK 
+			SET  MAIN_YN = #{mainImage}
+         WHERE CD_VESSEL = #{vesselCode}
+		   AND NEW_FILE_NM = #{maskedFileName}
+		 
+    </update>	   
+    
+    <delete id="deleteVesselImage" parameterType="vesselImageItem">
+		
+		DELETE /* VesselCoast.deleteVesselImage */
+			IF_MOST_VMS.GIS_VESSEL_IMAGE@VMT_LINK 
+		 WHERE CD_VESSEL = #{vesselCode}
+		   AND NEW_FILE_NM = #{maskedFileName}
+		 
+    </delete>
+    	        
+    <update id="updateVesselGps" parameterType="vesselItem">
+		
+		UPDATE /* VesselCoast.updateVesselGps */
+		    IF_MOST_VMS.GIS_SHIP@VMT_LINK 
+	  	SET LAT = TO_NUMBER(#{latitude}),
+            LON = TO_NUMBER(#{longitude}),
+            ANGLE = TO_NUMBER(#{heading}) ,
+            LAST_DATE = TO_CHAR(TO_DATE('20171101','YYYYMMDD'),'YYYYMMDDHH24')
+        WHERE CD_VESSEL = #{vesselCode}
+        AND CALL_SIGN = #{callSign}
+	 
+    </update>	   
+    
+    
+</mapper>

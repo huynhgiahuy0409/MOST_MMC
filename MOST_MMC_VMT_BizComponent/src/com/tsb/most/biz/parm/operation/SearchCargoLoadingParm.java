@@ -1,0 +1,454 @@
+package com.tsb.most.biz.parm.operation;
+
+import com.tsb.most.framework.bizparm.BaseBizParm;
+
+public class SearchCargoLoadingParm extends BaseBizParm {
+    
+	private String mfDocId;
+    private String cgNo;
+    private String grNo;
+    private String vslCallId;
+    private String delvTpCd;
+    private String shipgNoteNo;
+    private String stat;
+    private String searchType;
+    private String cgTpCd;
+    private String shftDt;
+    private String shftId;
+    private String jobTpCd;
+    private String jobPurpCd;
+    private String opDelvTpCd;
+    private String dmgYn;
+    private String shuYn;
+    private String rhdlMode;
+    private String locArea;
+    private String jobGroup;
+    private int loadQty;
+    private double loadM3;
+    private double loadMt;
+    private String catgCd;
+    private String opeClassCd;
+    private String jobCoCd;
+    private String spCaCoCd;
+    private String rhdlNo;
+    private String orgVslCallId;
+    private String orgCgNo;
+    private String orgBlSn;
+    private String hhtFlag;
+    private String rhdlGroupNo;
+    private String orgrefno;
+    private String lorryNo;
+    private String gateTxnNo;
+    private String grNoPlStr;
+    
+    
+    public String getMfDocId() {
+		return mfDocId;
+	}
+
+	public void setMfDocId(String mfDocId) {
+		this.mfDocId = mfDocId;
+	}
+
+	/**
+    * Function set a cgNo value
+    * @param cgNo. 
+    * @return void.
+    */        
+    public void setCgNo(String cgNo)
+    {
+        this.cgNo       = cgNo;
+    }
+
+    /**
+    * Return a cgNo Value
+    * @param void. 
+    * @return String.
+    */  
+    public String getCgNo()
+    {
+        return cgNo;
+    }
+
+    /**
+    * Function set a grNo value
+    * @param grNo. 
+    * @return void.
+    */        
+    public void setGrNo(String grNo)
+    {
+        this.grNo       = grNo;
+    }
+
+    /**
+    * Return a grNo Value
+    * @param void. 
+    * @return String.
+    */  
+    public String getGrNo()
+    {
+        return grNo;
+    }
+
+    /**
+    * Function set a vslCallId value
+    * @param vslCallId. 
+    * @return void.
+    */        
+    public void setVslCallId(String vslCallId)
+    {
+        this.vslCallId       = vslCallId;
+    }
+
+    /**
+    * Return a vslCallId Value
+    * @param void. 
+    * @return String.
+    */  
+    public String getVslCallId()
+    {
+        return vslCallId;
+    }
+
+    /**
+    * Function set a delvTpCd value
+    * @param delvTpCd. 
+    * @return void.
+    */        
+    public void setDelvTpCd(String delvTpCd)
+    {
+        this.delvTpCd       = delvTpCd;
+    }
+
+    /**
+    * Return a delvTpCd Value
+    * @param void. 
+    * @return String.
+    */  
+    public String getDelvTpCd()
+    {
+        return delvTpCd;
+    }
+
+
+
+    public String getShipgNoteNo() {
+        return shipgNoteNo;
+    }
+    public void setShipgNoteNo(String shipgNoteNo) {
+        this.shipgNoteNo = shipgNoteNo;
+    }
+    public String getSearchType() {
+        return searchType;
+    }
+    public void setSearchType(String searchType) {
+        this.searchType = searchType;
+    }
+    public String getStat() {
+        return stat;
+    }
+    public void setStat(String stat) {
+        this.stat = stat;
+    }
+    public String getCgTpCd() {
+        return cgTpCd;
+    }
+    public void setCgTpCd(String cgTpCd) {
+        this.cgTpCd = cgTpCd;
+    }
+    public String getShftDt() {
+        return shftDt;
+    }
+    public void setShftDt(String shftDt) {
+        this.shftDt = shftDt;
+    }
+    public String getShftId() {
+        return shftId;
+    }
+    public void setShftId(String shftId) {
+        this.shftId = shftId;
+    }
+    /**
+     * @return Returns the dmgYn.
+     */
+    public String getDmgYn() {
+        return dmgYn;
+    }
+    /**
+     * @param dmgYn The dmgYn to set.
+     */
+    public void setDmgYn(String dmgYn) {
+        this.dmgYn = dmgYn;
+    }
+    /**
+     * @return Returns the jobGroup.
+     */
+    public String getJobGroup() {
+        return jobGroup;
+    }
+    /**
+     * @param jobGroup The jobGroup to set.
+     */
+    public void setJobGroup(String jobGroup) {
+        this.jobGroup = jobGroup;
+    }
+    /**
+     * @return Returns the jobPurpCd.
+     */
+    public String getJobPurpCd() {
+        return jobPurpCd;
+    }
+    /**
+     * @param jobPurpCd The jobPurpCd to set.
+     */
+    public void setJobPurpCd(String jobPurpCd) {
+        this.jobPurpCd = jobPurpCd;
+    }
+    /**
+     * @return Returns the jobTpCd.
+     */
+    public String getJobTpCd() {
+        return jobTpCd;
+    }
+    /**
+     * @param jobTpCd The jobTpCd to set.
+     */
+    public void setJobTpCd(String jobTpCd) {
+        this.jobTpCd = jobTpCd;
+    }
+    /**
+     * @return Returns the loadM3.
+     */
+    public double getLoadM3() {
+        return loadM3;
+    }
+    /**
+     * @param loadM3 The loadM3 to set.
+     */
+    public void setLoadM3(double loadM3) {
+        this.loadM3 = loadM3;
+    }
+    /**
+     * @return Returns the loadMt.
+     */
+    public double getLoadMt() {
+        return loadMt;
+    }
+    /**
+     * @param loadMt The loadMt to set.
+     */
+    public void setLoadMt(double loadMt) {
+        this.loadMt = loadMt;
+    }
+    /**
+     * @return Returns the loadQty.
+     */
+    public int getLoadQty() {
+        return loadQty;
+    }
+    /**
+     * @param loadQty The loadQty to set.
+     */
+    public void setLoadQty(int loadQty) {
+        this.loadQty = loadQty;
+    }
+    /**
+     * @return Returns the locArea.
+     */
+    public String getLocArea() {
+        return locArea;
+    }
+    /**
+     * @param locArea The locArea to set.
+     */
+    public void setLocArea(String locArea) {
+        this.locArea = locArea;
+    }
+    /**
+     * @return Returns the opDelvTpCd.
+     */
+    public String getOpDelvTpCd() {
+        return opDelvTpCd;
+    }
+    /**
+     * @param opDelvTpCd The opDelvTpCd to set.
+     */
+    public void setOpDelvTpCd(String opDelvTpCd) {
+        this.opDelvTpCd = opDelvTpCd;
+    }
+    /**
+     * @return Returns the rhdlMode.
+     */
+    public String getRhdlMode() {
+        return rhdlMode;
+    }
+    /**
+     * @param rhdlMode The rhdlMode to set.
+     */
+    public void setRhdlMode(String rhdlMode) {
+        this.rhdlMode = rhdlMode;
+    }
+    /**
+     * @return Returns the shuYn.
+     */
+    public String getShuYn() {
+        return shuYn;
+    }
+    /**
+     * @param shuYn The shuYn to set.
+     */
+    public void setShuYn(String shuYn) {
+        this.shuYn = shuYn;
+    }
+    /**
+     * @return Returns the catgCd.
+     */
+    public String getCatgCd() {
+        return catgCd;
+    }
+    /**
+     * @param catgCd The catgCd to set.
+     */
+    public void setCatgCd(String catgCd) {
+        this.catgCd = catgCd;
+    }
+    /**
+     * @return Returns the jobCoCd.
+     */
+    public String getJobCoCd() {
+        return jobCoCd;
+    }
+    /**
+     * @param jobCoCd The jobCoCd to set.
+     */
+    public void setJobCoCd(String jobCoCd) {
+        this.jobCoCd = jobCoCd;
+    }
+    /**
+     * @return Returns the spCaCoCd.
+     */
+    public String getSpCaCoCd() {
+        return spCaCoCd;
+    }
+    /**
+     * @param spCaCoCd The spCaCoCd to set.
+     */
+    public void setSpCaCoCd(String spCaCoCd) {
+        this.spCaCoCd = spCaCoCd;
+    }
+    /**
+     * @return Returns the opeClassCd.
+     */
+    public String getOpeClassCd() {
+        return opeClassCd;
+    }
+    /**
+     * @param opeClassCd The opeClassCd to set.
+     */
+    public void setOpeClassCd(String opeClassCd) {
+        this.opeClassCd = opeClassCd;
+    }
+    /**
+     * @return Returns the rhdlNo.
+     */
+    public String getRhdlNo() {
+        return rhdlNo;
+    }
+    /**
+     * @param rhdlNo The rhdlNo to set.
+     */
+    public void setRhdlNo(String rhdlNo) {
+        this.rhdlNo = rhdlNo;
+    }
+    /**
+     * @return Returns the orgCgNo.
+     */
+    public String getOrgCgNo() {
+        return orgCgNo;
+    }
+    /**
+     * @param orgCgNo The orgCgNo to set.
+     */
+    public void setOrgCgNo(String orgCgNo) {
+        this.orgCgNo = orgCgNo;
+    }
+    /**
+     * @return Returns the orgVslCallId.
+     */
+    public String getOrgVslCallId() {
+        return orgVslCallId;
+    }
+    /**
+     * @param orgVslCallId The orgVslCallId to set.
+     */
+    public void setOrgVslCallId(String orgVslCallId) {
+        this.orgVslCallId = orgVslCallId;
+    }
+    /**
+     * @return Returns the hhtFlag.
+     */
+    public String getHhtFlag() {
+        return hhtFlag;
+    }
+    /**
+     * @param hhtFlag The hhtFlag to set.
+     */
+    public void setHhtFlag(String hhtFlag) {
+        this.hhtFlag = hhtFlag;
+    }
+    /**
+     * @return Returns the rhdlGroupNo.
+     */
+    public String getRhdlGroupNo() {
+        return rhdlGroupNo;
+    }
+    /**
+     * @param rhdlGroupNo The rhdlGroupNo to set.
+     */
+    public void setRhdlGroupNo(String rhdlGroupNo) {
+        this.rhdlGroupNo = rhdlGroupNo;
+    }
+    /**
+     * @return Returns the orgBlSn.
+     */
+    public String getOrgBlSn() {
+        return orgBlSn;
+    }
+    /**
+     * @param orgBlSn The orgBlSn to set.
+     */
+    public void setOrgBlSn(String orgBlSn) {
+        this.orgBlSn = orgBlSn;
+    }
+    
+    public String getOrgrefno() {
+        return orgrefno;
+    }
+    public void setOrgrefno(String orgrefno) {
+        this.orgrefno = orgrefno;
+    }
+
+	public String getLorryNo() {
+		return lorryNo;
+	}
+
+	public void setLorryNo(String lorryNo) {
+		this.lorryNo = lorryNo;
+	}
+
+	public String getGateTxnNo() {
+		return gateTxnNo;
+	}
+
+	public void setGateTxnNo(String gateTxnNo) {
+		this.gateTxnNo = gateTxnNo;
+	}
+
+	public String getGrNoPlStr() {
+		return grNoPlStr;
+	}
+
+	public void setGrNoPlStr(String grNoPlStr) {
+		this.grNoPlStr = grNoPlStr;
+	}
+}

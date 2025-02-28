@@ -1,0 +1,407 @@
+Ext.define("MOST.view.planning.MegaForContractorModel", {
+    extend: "Ext.app.ViewModel",
+
+    alias: "viewmodel.megaforcontractor",
+
+    requires: ["Ext.data.proxy.Rest", "MOST.model.planning.Mega"],
+
+    data: {
+        selectedColumn: null,
+    },
+
+    formulas: {
+        shipClewYnChecked: {
+            bind: {
+                bindTo: "{theCrew.shipClewYn}",
+            },
+            get: function (value) {
+                var me = this;
+                if (value === "Y") {
+                    return true;
+                } else {
+                    return false;
+                }
+            },
+            set: function (value) {
+                var me = this;
+                var stringValue = "N";
+
+                if (value == true) {
+                    stringValue = "Y";
+                }
+
+                var detailItem = me.getView().getViewModel().get("theCrew");
+                detailItem.set("shipClewYn", stringValue);
+            },
+        },
+        whApprYnChecked: {
+            bind: {
+                bindTo: "{theMain.whApprYn}",
+            },
+            get: function (value) {
+                var me = this;
+                if (value === "Y") {
+                    return true;
+                } else {
+                    return false;
+                }
+            },
+            set: function (value) {
+                var me = this;
+                var stringValue = "N";
+
+                if (value == true) {
+                    stringValue = "Y";
+                }
+
+                var detailItem = me.getView().getViewModel().get("theMain");
+                detailItem.set("whApprYn", stringValue);
+            },
+        },
+    },
+
+    stores: {
+        megaContractor: {
+            model: "MOST.model.planning.Mega",
+            storeId: "megaContractorStore",
+            proxy: {
+                type: "rest",
+                url: MOST.config.Locale.getRestApiDestUrl() + "/v1/megaContractor/list",
+            },
+        },
+
+        megaRequisitionForInsertData: {
+            model: "MOST.model.planning.Mega",
+            storeId: "megaRequisitionStore",
+            proxy: {
+                type: "rest",
+                showProgressBar: false,
+                url: MOST.config.Locale.getRestApiDestUrl() + "/v1/mega/list",
+            },
+        },
+
+        megaRequisitionCombo: {
+            model: "MOST.model.planning.Mega",
+            storeId: "megaRequisitionComboStore",
+            proxy: {
+                type: "rest",
+                showProgressBar: false,
+                url: MOST.config.Locale.getRestApiDestUrl() + "/v1/mega/comboList",
+            },
+        },
+
+        megaRequisitionShiftCombo: {
+			model: 'MOST.model.combobox.ComboBoxService',
+			storeId: 'megaRequisitionShiftComboStore',
+			proxy: {
+				type: 'rest',
+				showProgressBar : false,
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/combobox/codeMaster',
+				extraParams:{
+					searchType: ComboboxServiceConstants.COMBO_SHFTTP,
+					shftMethCd : ComboboxServiceConstants.COMBO_STANDARD
+				}
+			},
+			listeners: {
+				load: function(store, records) {
+			          store.insert(0, [{
+			        	  shftNm: 'Select',
+			        	  shftId: ''
+			          }]);
+			     }
+			}
+		},
+
+        megaRequisitionDeploymentCombo: {
+            fields: ["scdNm", "scd"],
+            data: [
+                { scd: "", scdNm: "All" },
+                { scd: "Y", scdNm: "Y" },
+                { scd: "N", scdNm: "N" },
+            ],
+        },
+
+        megaRequisitionPurposeCombo: {
+			model: 'MOST.model.combobox.ComboBoxService',
+			storeId: 'megaRequisitionComboStore',
+			proxy: {
+				type: 'rest',
+				showProgressBar : false,
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/combobox/codeMaster',
+				extraParams:{
+					lcd: CodeConstants.LCD_MOST,
+					mcd: CodeConstants.MCD_MT_MGPURP,
+					scdUse: 'Y'
+				}
+			},
+			listeners: {
+				load: function(store, records) {
+			          store.insert(0, [{
+			        	  scdNm: 'Select',
+			        	  scd: ''
+			          }]);
+			     }
+			}
+		},
+
+        megaRequisitionMegaStatusCombo: {
+			model: 'MOST.model.combobox.ComboBoxService',
+			storeId: 'megaRequisitionMegaStatusComboStore',
+			proxy: {
+				type: 'rest',
+				showProgressBar : false,
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/combobox/codeMaster',
+				extraParams:{
+					lcd: CodeConstants.LCD_MOST,
+					mcd: CodeConstants.MCD_MT_MEGASTAT,
+					scdUse: 'Y'
+				}
+			},
+			listeners: {
+				load: function(store, records) {
+			          store.insert(0, [{
+			        	  scdNm: 'Select',
+			        	  scd: ''
+			          }]);
+			     }
+			}
+		},
+
+        megaDetailYNCombo: {
+            fields: ["comName", "comCode"],
+            storeId: "megaDetailYNComboStore",
+            data: [
+                { comCode: "", comName: "" },
+                { comCode: "Y", comName: "Y" },
+                { comCode: "N", comName: "N" },
+            ],
+        },
+
+        // ======================================================
+        // Mega Detail Start
+        megaDetailVesselScheduleWarehouse: {
+            model: "MOST.model.planning.Mega",
+            storeId: "megaDetailVesselScheduleWarehouseStore",
+            proxy: {
+                type: "rest",
+                showProgressBar: false,
+                url: MOST.config.Locale.getRestApiDestUrl() + "/v1/mega/warehouseSnDoList",
+            },
+        },
+
+        megaDetailVesselScheduleSn: {
+            fields: ["shipgNoteNo", "shipgNoteNo"],
+        },
+
+        megaDetailVesselScheduleDo: {
+            fields: ["dono", "dono"],
+        },
+
+        megaDetailValidationCode: {
+            fields: ["isValidated"],
+            storeId: "megaDetailValidationCodeStore",
+            proxy: {
+                type: "rest",
+                showProgressBar: false,
+                url: MOST.config.Locale.getRestApiDestUrl() + "/v1/commonCode/validationCode",
+            },
+        },
+
+        megaDetailPenalty: {
+            model: "MOST.model.planning.Mega",
+            storeId: "megaDetailPenaltyStore",
+            proxy: {
+                type: "rest",
+                showProgressBar: false,
+                url: MOST.config.Locale.getRestApiDestUrl() + "/v1/mega/penalty",
+            },
+        },
+
+        megaDetailEqTypeComboForMechanical: {
+            fields: ["scdNm", "scd"],
+        },
+
+        megaDetailMechanicalCapacityCombo: {
+            fields: ["capaDescr", "capaCd"],
+            storeId: "megaRequisitionCapacityComboStore",
+            proxy: {
+                showProgressBar: false,
+                type: "rest",
+                url: MOST.config.Locale.getRestApiDestUrl() + "/v1/commonCode/equipmentCodeList",
+            },
+        },
+
+        megaDetailEqTypeComboForPortCrane: {
+            fields: ["scdNm", "scd"],
+        },
+
+        megaDetailPortCraneCapacityCombo: {
+            fields: ["capaDescr", "capaCd"],
+            storeId: "megaRequisitionPortCraneCapacityComboStore",
+            proxy: {
+                type: "rest",
+                showProgressBar: false,
+                url: MOST.config.Locale.getRestApiDestUrl() + "/v1/commonCode/equipmentCodeList",
+            },
+        },
+
+        megaDetailGearsCapacityCombo: {
+            fields: ["capaDescr", "capaCd"],
+        },
+
+        megaDetailForkliftCapacityCombo: {
+            fields: ["capaDescr", "capaCd"],
+        },
+
+        megaDetailTrailerCapacityCombo: {
+            fields: ["capaDescr", "capaCd"],
+        },
+
+        megaDetailCompanyCombo: {
+            fields: ["engPtyNm", "ptyCd"],
+        },
+
+        megaDetailCompanyAddJpbiCombo: {
+            fields: ["engPtyNm", "ptyCd"],
+        },
+
+        megaDetailCompanyCombo: {
+            fields: ["scdNm", "scd"],
+        },
+
+        megaDetailCategoryCombo: {
+            fields: ["scdNm", "scd"],
+        },
+
+        megaDetailCommodityCombo: {
+            fields: ["scdNm", "scd"],
+        },
+
+        megaDetailCommodityCombo: {
+            fields: ["scdNm", "scd"],
+        },
+
+        megaDetailPackageCombo: {
+            fields: ["scdNm", "scd"],
+        },
+
+        megaDetailShiftCombo: {
+            fields: ["shftNm", "shftId"],
+        },
+
+        megaDetailPurposeCombo: {
+            fields: ["scdNm", "scd"],
+        },
+
+        megaDetailPurposeTypeCombo: {
+            fields: ["scdNm", "scd"],
+        },
+
+        megaDetailCargoTypeCombo: {
+            fields: ["scdNm", "scd"],
+        },
+
+        megaDetailJpvcDetail: {
+            model: "MOST.model.planning.Mega",
+        },
+
+        megaDetailMegaDetail: {
+            model: "MOST.model.planning.Mega",
+        },
+
+        megaDetailGears: {
+            model: "MOST.model.planning.Mega",
+        },
+
+        megaDetailTabGearsCompany: {
+            model: "MOST.model.planning.OperInfo",
+        },
+
+        megaDetailWorkingAreaComboForGears: {
+            fields: ["cdNm", "cd"],
+        },
+
+        megaDetailForklift: {
+            model: "MOST.model.planning.Mega",
+        },
+
+        megaDetailTabForkliftCompany: {
+            model: "MOST.model.planning.OperInfo",
+        },
+
+        megaDetailWorkingAreaComboForForklift: {
+            fields: ["cdNm", "cd"],
+        },
+
+        megaDetailTrailer: {
+            model: "MOST.model.planning.Mega",
+        },
+
+        megaDetailTabTrailerCompany: {
+            model: "MOST.model.planning.OperInfo",
+        },
+
+        megaDetailWorkingAreaComboForTrailer: {
+            fields: ["cdNm", "cd"],
+        },
+
+        megaDetailMechanical: {
+            model: "MOST.model.planning.Mega",
+        },
+
+        megaDetailTabMechanicalCompany: {
+            model: "MOST.model.planning.OperInfo",
+        },
+
+        megaDetailWorkingAreaComboForMechanical: {
+            fields: ["cdNm", "cd"],
+        },
+
+        megaDetailPortCrane: {
+            model: "MOST.model.planning.Mega",
+        },
+
+        megaDetailTabPortCraneCompany: {
+            model: "MOST.model.planning.OperInfo",
+        },
+
+        megaDetailWorkingAreaComboForPortCrane: {
+            fields: ["cdNm", "cd"],
+        },
+
+        megaDetailCargoDetail: {
+            model: "MOST.model.planning.Mega",
+        },
+        megaDetailCargoDetailInfo: {
+            model: "MOST.model.planning.MegaCargoDetail",
+        },
+
+        megaDetailCargoDetailCode: {
+            model: "MOST.model.planning.Mega",
+        },
+
+        generatePDF: {
+            model: "MOST.model.planning.Mega",
+            storeId: "generatePDFStore",
+            proxy: {
+                type: "rest",
+                url:
+                    MOST.config.Locale.getRestApiDestUrl() +
+                    "/v1/megaContractor/previewpdf",
+            },
+        },
+
+        ptnrList: {
+            model: "MOST.model.authority.PtnrInfo",
+            storeId: "ptnrList",
+            proxy: {
+                type: "rest",
+                url:
+                    MOST.config.Locale.getRestApiDestUrl() +
+                    "/v1/ptnr/ptnrList",
+            },
+        },
+        // Mega Detail End
+        // ======================================================
+    },
+});

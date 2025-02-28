@@ -1,0 +1,603 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+<mapper namespace="gatePassList">
+	<sql id="sqlGatepass">
+		SELECT * FROM (
+			SELECT ROWNUM AS RNUM, A.* FROM  (
+				SELECT 
+	  				M.CG_NO									AS CGNO,
+			       	M.OPE_CLASS_CD							AS CATGCD,
+				   	(SELECT TCM.S_CD_NM 
+					  FROM TMT_CD_MSTD TCM 
+					 WHERE TCM.L_CD = 'MT' 
+					   AND TCM.M_CD = 'CATGTP' 
+					   AND TCM.S_CD = M.OPE_CLASS_CD)		AS CATGNM,
+			       	NVL(G.SEQ,0)							AS SEQ,
+			      	G.CG_IN_OUT_CD							AS CGINOUTCD,
+			       	NVL(J.CG_WGT,0)							AS WGT,
+			       	''										AS WGTUNIT,
+			        NVL(J.CG_VOL,0)							AS MSRMT,
+			        ''										AS MSRMTUNIT,
+			        NVL(J.PKG_QTY,0)						AS PKGQTY,
+			        G.PKG_TP_CD								AS PKGTPCD,
+			        G.CMDT_CD								AS CMDTCD,
+			        G.CG_TP_CD								AS CGTPCD,
+			        ''										AS DGCGIDT,
+			        G.GATE_IN_DT							AS GATEINDT,
+			        G.GATE_OUT_DT							AS GATEOUTDT,
+			        G.TSPT_TP_CD							AS TSPTTPCD,
+	                ''										AS DELVSTAT,
+			        G.GR_NO									AS GRNO,
+			        DECODE(M.OPE_CLASS_CD, 
+			       		  'I',
+			       		  (SELECT A.TSPTR AS TSPTR
+							 FROM TMT_BL A
+							WHERE A.VSL_CALL_ID = M.VSL_CALL_ID
+							  AND A.BL_NO = M.CG_NO
+							  AND ROWNUM = 1),
+			       		  'E',
+			       		  (SELECT A.TSPT_COMP AS TSPTR
+							 FROM TMT_SHIPG_NOTE A, TMT_GR C
+							WHERE A.VSL_CALL_ID = C.VSL_CALL_ID
+							  AND A.SHIPG_NOTE_NO = C.SHIPG_NOTE_NO
+							  AND M.VSL_CALL_ID = C.VSL_CALL_ID
+							  AND M.CG_NO = C.GR_NO
+							  AND A.VSL_CALL_ID = M.VSL_CALL_ID
+							  AND ROWNUM = 1), 
+			       		  NULL)								AS TSPTR,
+			        G.LOC_ID								AS LOCID,
+			        G.RMK									AS RMK,
+					G.LORRY_NO								AS LORRYNO,
+			        G.GATE_PASS_NO							AS GATEPASSNO,
+			        TO_CHAR(G.GATE_PASS_ISSUE_DT, 'DD/MM/YYYY HH24:MI') AS GATEPASSISSUEDT,
+			        DECODE(G.ISSUE_CNT,NULL,'N',0,'N','Y')	AS ISSUED,
+			        G.UPDATE_TIME							AS UPDDT,
+			        G.STAFF_CD								AS UPDUSERID,
+			        G.VERSION								AS VERSION,
+			        M.VSL_CALL_ID							AS VSLCALLID,
+				    NVL(G.ACTL_WGT,0)						AS ACTLWGT,
+				    DECODE(M.RHDL_MODE,NULL,'N','N','N','Y') AS REHANDLE,
+				    ' '										AS HDLOUTDT,
+				    '' 										AS DELVTPNM,
+				    '' 										AS TSPTTPNM,
+				    ''					 					AS NOTRIPS,
+				    ROW_NUMBER() OVER(ORDER BY G.GATE_PASS_NO) AS RN,
+				    TO_CHAR (J.SHFT_DT, 'DD/MM/YYYY') 		AS SHFTDT,
+	                J.SHFT_ID 								AS SHFTID,
+					(SELECT SHFT_NM
+		                   FROM TMT_SHFT
+		                  WHERE SHFT_ID = J.SHFT_ID)        AS SHFTNM,
+		            G.STAFF_CD 								AS CONFIRMBY,
+	                TO_CHAR(G.UPDATE_TIME, 'DD/MM/YYYY HH24:MI') AS DATETIME
+	</sql>
+	
+	<sql id="jpvc_gatepass">
+		FROM 	TMT_CG_ARRV_DELV G, 
+				TMT_CG_MST M, 
+				TMT_JOB J
+		WHERE 	G.CG_NO = M.CG_NO
+		   		AND G.VSL_CALL_ID(+) = M.VSL_CALL_ID
+		   		AND G.JOB_NO = J.JOB_NO(+)
+		   		AND G.GATE_PASS_NO IS NOT NULL
+		   		<if test="gatePassNo == null or gatePassNo == ''">
+		  			<if test="startDt != null and startDt != ''">
+						AND
+			 			G.GATE_PASS_ISSUE_DT  BETWEEN TO_DATE(DECODE(INSTR(#{startDt}, ':'), 0, #{startDt} || '00:00', #{startDt}), 'DD/MM/YYYY HH24:MI') 
+									    AND TO_DATE(DECODE(INSTR(#{endDt}, ':'),0 , #{endDt} || '23:59', #{endDt}), 'DD/MM/YYYY HH24:MI')
+		  			</if>
+		  		</if>
+			  	<if test="vslCallId != null and vslCallId != ''">
+	    			AND M.VSL_CALL_ID = #{vslCallId}
+			 	 </if>
+		  		<if test="cgNo != null and cgNo != ''">
+    				AND M.CG_NO = #{cgNo}
+		  		</if>
+		 		<if test="shipgNoteNo != null and shipgNoteNo != ''">
+    				AND M.SHIPG_NOTE_NO = #{shipgNoteNo}
+		  		</if>
+		  		<if test="blNo != null and blNo != ''">
+    				AND M.BL_NO = #{blNo}
+		  		</if>
+		  		<if test="gatePassNo != null and gatePassNo != ''">
+    				AND G.GATE_PASS_NO LIKE '%' || #{gatePassNo} || '%'
+		  		</if>
+		  		<if test="lorryNo != null and lorryNo != ''">
+    				AND G.LORRY_NO = #{lorryNo}
+		  		</if>
+		   		<if test="delvTpNm != null and delvTpNm != ''">
+     				AND M.DELV_TP_CD = #{delvTpNm}
+	  			</if>
+		  		<if test="shftId != null and shftId != ''">
+    				AND J.SHFT_ID = #{shftId}
+		  		</if>
+		   		<if test="shftDt != null and shftDt != ''">
+     				AND TO_CHAR (J.SHFT_DT, 'DD/MM/YYYY') = #{shftDt}
+		  		</if>
+		  		<if test='issued == "Y"'>
+    				AND G.ISSUE_CNT <![CDATA[ >= ]]> 1
+		  		</if>
+	</sql>
+	<sql id="nonjpvc_gatepass">
+		FROM 	TMT_CG_ARRV_DELV G, 
+				TMT_CG_MST M, 
+				TMT_SHIPG_NOTE A, 
+				TMT_GR R, 
+				TMT_JOB J
+		WHERE 	A.VSL_CALL_ID = R.VSL_CALL_ID
+				AND A.SHIPG_NOTE_NO = R.SHIPG_NOTE_NO
+				AND R.VSL_CALL_ID = M.VSL_CALL_ID
+				AND R.GR_NO = M.CG_NO
+				AND G.CG_NO(+) = M.CG_NO
+				AND G.VSL_CALL_ID(+) = M.VSL_CALL_ID
+				AND G.JOB_NO = J.JOB_NO(+)
+		  		AND G.GATE_PASS_NO IS NOT NULL
+		   		AND M.VSL_CALL_ID = 'NonCallId'
+			 	<if test="startDt != null and startDt != ''">
+	   				AND
+				 	G.GATE_PASS_ISSUE_DT  BETWEEN TO_DATE(DECODE(INSTR(#{startDt}, ':'), 0, #{startDt} || '00:00', #{startDt}), 'DD/MM/YYYY HH24:MI') 
+										    AND TO_DATE(DECODE(INSTR(#{endDt}, ':'),0 , #{endDt} || '23:59', #{endDt}), 'DD/MM/YYYY HH24:MI')
+			  	</if>
+		  		<if test="shipgNoteNo != null and shipgNoteNo != ''">
+    				AND M.SHIPG_NOTE_NO = #{shipgNoteNo}
+		  		</if>
+		  		<if test="cgNo != null and cgNo != ''">
+    				AND M.CG_NO = #{cgNo}
+		  		</if>
+		  		<if test="gatePassNo != null and gatePassNo != ''">
+    				AND G.GATE_PASS_NO LIKE '%' || #{gatePassNo} || '%'
+		  		</if>
+		  		<if test="arrvDtFm != null and arrvDtFm != ''">
+    				AND
+			   		(
+			   		(A.EST_ARRV_DT BETWEEN TO_DATE (#{arrvDtFm}||' 00:00','DD/MM/YYYY HH24:MI') 
+									   AND TO_DATE (#{arrvDtTo}||' 23:59','DD/MM/YYYY HH24:MI')) 
+			   		OR
+			   		(M.HDL_OUT_ST_DT <![CDATA[ <= ]]> TO_DATE(#{arrvDtFm}||' 00:00','DD/MM/YYYY HH24:MI') 
+						AND NVL(M.HDL_OUT_END_DT,M.HDL_OUT_ST_DT) <![CDATA[ >= ]]> TO_DATE(#{arrvDtTo}||' 23:59','DD/MM/YYYY HH24:MI'))
+			   		)
+		 		</if>
+	</sql>
+	
+	<sql id="sqlGatepassAuth">
+		<if test='userType == "E"'>
+  			AND
+				(
+					EXISTS (SELECT	'1' 
+							FROM 	TMT_SHIPG_NOTE SN
+							WHERE 	SN.VSL_CALL_ID = M.VSL_CALL_ID 
+							   		AND SN.SHIPG_NOTE_NO = M.SHIPG_NOTE_NO 
+								   	<if test='authority == "FWD"'>
+	          							AND SN.FWRD = #{ptnrCode}
+								   	</if>
+							   		<if test='authority == "BH"'>
+										AND (SN.FWRD = #{ptnrCode} OR SN.SHIPG_AGNCY = #{ptnrCode})
+							   		</if>
+							   )
+				 	OR EXISTS (SELECT 	'1' 
+				 				FROM 	TMT_BL BL
+                            	WHERE 	BL.VSL_CALL_ID = M.VSL_CALL_ID
+                               			AND BL.BL_NO = M.BL_NO
+							   			AND BL.FWRD = #{ptnrCode})
+					OR EXISTS (SELECT 	'1' 
+				 				FROM 	TMT_BL BL
+                            	WHERE 	BL.VSL_CALL_ID = M.VSL_CALL_ID
+                               			AND BL.BL_NO = M.BL_NO
+							   			AND BL.CNSNE = #{ptnrCode})
+					OR EXISTS (SELECT	'1' 
+								FROM 	TMT_BL BL
+							 	WHERE 	BL.VSL_CALL_ID = M.VSL_CALL_ID 
+							   			AND BL.BL_NO = M.CG_NO 
+							   			AND BL.TSPTR = #{ptnrCode})
+				 	OR EXISTS (SELECT	'1' 
+				 				FROM 	TMT_SHIPG_NOTE SN, TMT_GR GR 
+							 	WHERE 	SN.TSPT_COMP = #{ptnrCode}
+							   			AND SN.VSL_CALL_ID = GR.VSL_CALL_ID 
+							   			AND SN.SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO
+							   			AND GR.VSL_CALL_ID = M.VSL_CALL_ID
+							   			AND GR.GR_NO = M.CG_NO)
+				)
+		</if>
+	</sql>
+	
+	<sql id="sqlGatepassPaging">
+		ORDER BY GATEPASSNO ) A
+		<if test="pagingSearchType != null and pagingSearchType != ''">
+    	  WHERE ROWNUM <![CDATA[<=]]> ${test2}
+			) WHERE RNUM >= ${test1}
+		</if>
+		<if test="pagingSearchType == null or pagingSearchType == ''">
+			) WHERE ROWNUM <![CDATA[ <= ]]> 15000
+		</if>
+	</sql>
+	
+	<sql id="getCargoGatePassList">
+		<if test='searchType == "gpNonCgMst"'>
+			<include refid="sqlGatepass"/>
+			<include refid="nonjpvc_gatepass"/>
+			<include refid="sqlGatepassAuth"/>
+			<include refid="sqlGatepassPaging"/>
+		</if>
+		<if test='searchType != "gpNonCgMst"'>
+			 <include refid="sqlGatepass"/>
+			<include refid="jpvc_gatepass"/>
+			<include refid="sqlGatepassAuth"/>
+			<include refid="sqlGatepassPaging"/>
+			</if>
+	</sql>
+	
+	<select id="selectCargoGatePassList" parameterType="gatePassListParm" resultType="gatePassListItem">
+	 	<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getCargoGatePassList"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	
+	<select id="selectCargoGatePassListCount" parameterType="gatePassListParm" resultType="java.lang.String" >
+        SELECT COUNT(*)
+          FROM (<include refid="getCargoGatePassList"/>)
+	</select>
+	
+	<!-- ***********DETAIL SCREEN *********************** -->
+	<sql id="gpVessel">
+		SELECT	/* GatePassImport.getGatePassImport CT118 */
+	   	  	   	VS.VSL_CALL_ID 				AS vslCallId
+			   	,JOB.HATCH_NO			    AS HATCHNO
+			   	,VS.VSL_CD					AS VSLCD
+			   	,(SELECT  	VSPART.VSL_NM 
+			    	FROM 	TMT_VSL_PART VSPART 
+					WHERE 	VSPART.VSL_CD=VS.VSL_CD) AS VSLNAME
+			   	,VS.ARRV_SA_ID				AS SHIPGAGNT
+			   	,VS.ETA						AS ETA
+			   	,IMP.BL_NO				    AS BLNO
+			   	,DO.DO_NO				   	AS DONO
+               	,DECODE(IMP.BL_NO, NULL, CM.CG_NO) AS GRNO
+               	,CM.CG_NO 					AS CGNO
+			   	,DL.GATE_PASS_NO			AS GATEPASSNO
+			   	,DECODE(CM.OPE_CLASS_CD,
+			   		'I', '',
+			   		'E', (SELECT SN.SHPR FROM TMT_SHIPG_NOTE SN WHERE ROWNUM = 1 AND SN.VSL_CALL_ID = CM.VSL_CALL_ID AND SN.SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO),
+			   		CM.SHPR)				AS SHPR
+			   	,DECODE(CM.OPE_CLASS_CD,
+			   		'I', '',
+			   		'E', (SELECT SN.SHPR_NM FROM TMT_SHIPG_NOTE SN WHERE ROWNUM = 1 AND SN.VSL_CALL_ID = CM.VSL_CALL_ID AND SN.SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO),
+			   		CM.SHPR_NM)	 			AS SHPRNM
+			   	,DECODE(CM.OPE_CLASS_CD,
+			   		'I', '',
+			   		'E', (SELECT ADDR FROM TMT_PTNR WHERE ROWNUM = 1 AND PTNR_CODE = (SELECT SN.SHPR FROM TMT_SHIPG_NOTE SN WHERE ROWNUM = 1 AND SN.VSL_CALL_ID = CM.VSL_CALL_ID AND SN.SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO)),
+			   		CM.SHPR_ADDR)			AS SHPRADDR
+			   	,DECODE(CM.OPE_CLASS_CD, 
+					'I', IMP.CNSNE,
+					'E', (SELECT SN.CNSNE FROM TMT_SHIPG_NOTE SN WHERE ROWNUM = 1 AND SN.VSL_CALL_ID = CM.VSL_CALL_ID AND SN.SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO), 
+					CM.CNSNE) 				AS CNSNE
+			   	,DECODE(CM.OPE_CLASS_CD, 
+					'I', F_GET_PARTNER_INFO (IMP.CNSNE, 'ENG_SNM'),
+					'E', (SELECT SN.CNSNE_NM FROM TMT_SHIPG_NOTE SN WHERE ROWNUM = 1 AND SN.VSL_CALL_ID = CM.VSL_CALL_ID AND SN.SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO), 
+					CM.CNSNE_NM) 			AS CNSNENM
+			   	,DECODE(CM.OPE_CLASS_CD, 
+					'I', F_GET_PARTNER_INFO (IMP.CNSNE, 'ADDR'), 
+					'E', (SELECT ADDR FROM TMT_PTNR WHERE ROWNUM = 1 AND PTNR_CODE = (SELECT SN.CNSNE FROM TMT_SHIPG_NOTE SN WHERE ROWNUM = 1 AND SN.VSL_CALL_ID = CM.VSL_CALL_ID AND SN.SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO)),
+                    CM.CNSNE_ADDR) AS CNSNEADDR
+			   	,CM.FWR_AGNT				AS FWRAGNT
+			   	,CM.SHIPG_NOTE_NO			AS SN
+			   	,CM.PORT_OF_LOAD			AS PORTOFLOAD
+			   	,CM.PORT_OF_DIS				AS PORTOFDIS
+			   	,NVL(CM.FDEST, IMP.FDEST)	AS FINALDEST
+               	,JOB.TO_LOC_ID              AS WHLOC
+			   	,VS.BERTH_LOC				AS WHARF
+			   	,JOB.TSPT_TP_CD				AS TSPTTPCD
+		   		,(SELECT CMDT_DESC FROM TMT_CMDT WHERE CMDT_CD = CM.CMDT_CD) AS COMMODITY
+			   	,CM.CG_TP_CD				AS CGTPCD
+			   	,CM.PKG_TP_CD				AS PKGTPCD
+			   	,IMP.IMDG_CLASS				AS IMDG
+			   	,IMP.UNNO					AS UNNO
+			   	,DECODE(CM.DMG_YN, 'Y',DECODE(CM.RHDL_MODE,'Y','Damage/Shut-out','Damage'), 
+			   					  	  DECODE(CM.RHDL_MODE,'Y','Shut-out','Normal')) AS STATCD 
+               	,F_CM_012('MT', 'SPCACOCD', JOB.SP_CA_CO_CD) SPCACOCD
+			   	,NVL(DL.CG_WGT,0)			AS WGT
+			   	,DL.CG_WGT_UNIT				AS WGTUNIT
+			   	,NVL(DL.CG_VOL,0)			AS MSRMT
+			   	,DL.CG_VOL_UNIT				AS MSRMTUNIT
+			   	,NVL(DL.PKG_QTY,0)			AS PKGQTY
+               	,F_GET_DL_AMNT('MT', VS.VSL_CALL_ID, CM.CG_NO, DL.SEQ) AS DLWGT
+               	,F_GET_DL_AMNT('M3', VS.VSL_CALL_ID, CM.CG_NO, DL.SEQ) AS DLMSRMT
+               	,F_GET_DL_AMNT('QTY', VS.VSL_CALL_ID, CM.CG_NO, DL.SEQ) AS DLPKGQTY
+			   	,DO.DO_MARK					AS CARGOMARKING
+			   	,''							AS NILMARKS
+			   	,DL.LORRY_NO				AS LORRYNO
+			   	,JOB.TSPT_TP_CD 			AS TSPTR
+			    ,JOB.TSPT_TP_CD 			AS TRANSPORTER
+			   	,DL.RMK						AS RMK
+			   	,DECODE(CM.OPE_CLASS_CD, 'I', NVL(IMP.CG_WGT,'0'), 'E', NVL(GR.CG_WGT,'0'), NVL(CM.CG_WGT,'0')) AS GROSSTOT
+               	,DECODE(CM.OPE_CLASS_CD, 'I', NVL(IMP.CG_VOL,'0'), 'E', NVL(GR.CG_VOL,'0'), NVL(CM.CG_VOL,'0')) AS CUMULTOT 
+               	,DECODE(CM.OPE_CLASS_CD, 'I', NVL(IMP.PKG_QTY,'0'), 'E', NVL(GR.PKG_QTY,'0'), NVL(CM.PKG_QTY,'0')) AS OUTQTY
+			   	,DL.CG_WGT					AS AMOUNTLORRY
+			   	,DL.ISSUE_CNT				AS NOSGPISSUE
+			   	,''							AS REMAINED	
+			   	,(SELECT 
+                       CASE
+                          WHEN CUS.DOC_NO IS NULL
+                          THEN
+                             'HOLD'
+                          WHEN CUS.DOC_NO IS NOT NULL AND CUS.RELEASE_MT IS NULL
+                          THEN
+                             'RELEASE' <!--RELEASSE FULL MF_DOC_ID -->
+                          ELSE
+                             'RELEASE' <!--RELEASSE by BL -->
+                       END
+                          AS STATUS
+						FROM TMT_BL BL
+							LEFT OUTER JOIN (  SELECT DOC_NO,
+                                                 VSL_CALL_ID,
+                                                 SUM (RELEASE_MT) AS RELEASE_MT,
+                                                 SUM (RELEASE_QTY) AS RELEASE_QTY
+                                            FROM TMT_CUSTOMS_RELEASE
+                                        GROUP BY DOC_NO, VSL_CALL_ID) CUS
+                          ON CUS.VSL_CALL_ID = BL.VSL_CALL_ID
+                          AND CUS.DOC_NO = BL.MF_DOC_ID
+                	WHERE BL.VSL_CALL_ID = CM.VSL_CALL_ID  AND BL_NO = CM.BL_NO ) AS CUSTAPPR
+               	,(SELECT 
+                       GC.CUSTOMS_REF_NO
+                   FROM TMT_CUSTOMS_RELEASE GC
+                   WHERE 1=1 
+                       AND GC.DOC_NO = CM.MF_DOC_ID 
+                       AND ROWNUM = 1
+                  ) AS RELEASENO
+				,DECODE(DG.STAT_CD,'N','SUBMIT',
+			   		'Y','APPROVE','C','CANCEL')	AS DGAPPROVAL 
+				,JOB.PKG_NO					AS PACKINGNO
+			   	,''						 	AS NOTRIPS		
+				,CM.OPE_CLASS_CD AS CATGCD
+            	,DECODE(CM.OPE_CLASS_CD, 
+                    'I', IMP.DELV_TP_CD,
+					'E', (SELECT S.DELV_TP_CD FROM TMT_SHIPG_NOTE S WHERE S.SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO AND S.VSL_CALL_ID = GR.VSL_CALL_ID),
+					'') 					AS DELVTPCD
+            	,NVL((SELECT SUM(DA1.CG_WGT) FROM TMT_CG_ARRV_DELV DA1 WHERE CM.VSL_CALL_ID = DA1.VSL_CALL_ID AND CM.CG_NO =  DA1.CG_NO AND DA1.GATE_PASS_NO IS NOT NULL AND DA1.SEQ <![CDATA[ <= ]]> DL.SEQ),0)	AS TOTDELVMT
+            	,NVL((SELECT SUM(DA1.CG_VOL) FROM TMT_CG_ARRV_DELV DA1 WHERE CM.VSL_CALL_ID = DA1.VSL_CALL_ID AND CM.CG_NO =  DA1.CG_NO AND DA1.GATE_PASS_NO IS NOT NULL AND DA1.SEQ <![CDATA[ <= ]]> DL.SEQ),0)    AS TOTDELVM3
+            	,NVL((SELECT SUM(DA1.PKG_QTY) FROM TMT_CG_ARRV_DELV DA1 WHERE CM.VSL_CALL_ID = DA1.VSL_CALL_ID AND CM.CG_NO =  DA1.CG_NO AND DA1.GATE_PASS_NO IS NOT NULL AND DA1.SEQ <![CDATA[ <= ]]> DL.SEQ),0)	AS TOTDELVQTY
+				,DECODE(CM.OPE_CLASS_CD, 
+						'I', DECODE(CM.TMNL_IN_DT, NULL, NVL(CM.PKG_QTY, 0) + F_GET_RC_PKG_QTY(CM.VSL_CALL_ID, CM.CG_NO), 0), 
+						'E', NVL(CM.PKG_QTY, 0) + F_GET_RC_PKG_QTY(CM.VSL_CALL_ID, CM.CG_NO), 
+						NVL(CM.PKG_QTY, 0)) AS ACTQTY
+				,DECODE(CM.OPE_CLASS_CD, 
+						'I', DECODE(CM.TMNL_IN_DT, NULL, NVL(CM.CG_WGT, 0) + F_GET_RC_WGT(CM.VSL_CALL_ID, CM.CG_NO), 0), 
+						'E', NVL(CM.CG_WGT, 0) + F_GET_RC_WGT(CM.VSL_CALL_ID, CM.CG_NO), 
+						NVL(CM.CG_WGT, 0)) 	AS ACTMT
+				,DECODE(CM.OPE_CLASS_CD, 
+						'I', DECODE(CM.TMNL_IN_DT, NULL, NVL(CM.CG_VOL, 0) + F_GET_RC_MSRMT(CM.VSL_CALL_ID, CM.CG_NO), 0), 
+						'E', NVL(CM.CG_VOL, 0) + F_GET_RC_MSRMT(CM.VSL_CALL_ID, CM.CG_NO), 
+						NVL(CM.CG_VOL, 0)) 	AS ACTM3
+        		,DECODE(CM.OPE_CLASS_CD, 
+                        'I', DECODE(CM.TMNL_IN_DT, NULL, NVL(CM.CG_WGT, 0) + F_GET_RC_WGT(CM.VSL_CALL_ID, CM.CG_NO), 0), 
+                        'E', NVL(CM.CG_WGT, 0) + F_GET_RC_WGT(CM.VSL_CALL_ID, CM.CG_NO), 
+                        NVL(CM.CG_WGT, 0)) -  NVL((SELECT SUM(DA1.CG_WGT) 
+                                                  FROM TMT_CG_ARRV_DELV DA1 
+                                                 WHERE CM.VSL_CALL_ID = DA1.VSL_CALL_ID 
+                                                   AND CM.CG_NO =  DA1.CG_NO 
+                                                   AND DA1.GATE_PASS_NO IS NOT NULL 
+                                                   AND DA1.SEQ  <![CDATA[ <= ]]>  DL.SEQ),0)  AS BALMT
+            	,DECODE(CM.OPE_CLASS_CD, 
+                        'I', DECODE(CM.TMNL_IN_DT, NULL, NVL(CM.CG_VOL, 0) + F_GET_RC_MSRMT(CM.VSL_CALL_ID, CM.CG_NO), 0), 
+                        'E', NVL(CM.CG_VOL, 0) + F_GET_RC_MSRMT(CM.VSL_CALL_ID, CM.CG_NO), 
+                        NVL(CM.CG_VOL, 0)) - NVL((SELECT SUM(DA1.CG_VOL) 
+                                                   FROM TMT_CG_ARRV_DELV DA1 
+                                                  WHERE CM.VSL_CALL_ID = DA1.VSL_CALL_ID 
+                                                    AND CM.CG_NO =  DA1.CG_NO 
+                                                    AND DA1.GATE_PASS_NO IS NOT NULL 
+                                                    AND DA1.SEQ  <![CDATA[ <= ]]>  DL.SEQ),0) AS BALM3                                                   
+            	,DECODE(CM.OPE_CLASS_CD, 
+                        'I', DECODE(CM.TMNL_IN_DT, NULL, NVL(CM.PKG_QTY, 0) + F_GET_RC_PKG_QTY(CM.VSL_CALL_ID, CM.CG_NO), 0), 
+                        'E', NVL(CM.PKG_QTY, 0) + F_GET_RC_PKG_QTY(CM.VSL_CALL_ID, CM.CG_NO), 
+                        NVL(CM.PKG_QTY, 0)) - NVL((SELECT SUM(DA1.PKG_QTY) 
+                                                     FROM TMT_CG_ARRV_DELV DA1 
+                                                    WHERE CM.VSL_CALL_ID = DA1.VSL_CALL_ID 
+                                                      AND CM.CG_NO =  DA1.CG_NO 
+                                                      AND DA1.GATE_PASS_NO IS NOT NULL 
+                                                      AND DA1.SEQ  <![CDATA[ <= ]]>  DL.SEQ),0) AS BALQTY  
+				,JOB.DELV_TP_CD 			AS ACTDELVTPCD
+				,CM.LOAD_ST_DT 				AS LOADINDT
+				,CM.DIS_ST_DT				AS DISINDT
+				,JOB.STAFF_CD AS UPDUSERID
+				,NVL(TO_CHAR(JOB.UPDATE_TIME, 'DD/MM/YYYY HH24:MI'), ' ') AS UPDDT
+				,DL.GATE_IN_DT				AS GATEINDT
+				,DL.GATE_OUT_DT				AS GATEOUTDT
+				,NVL(TO_CHAR(DO.EST_ARRV_DT + 30, 'DD/MM/YYYY HH24:MI'), '') AS EXPDT
+				,IV.IV_NO					AS INVOICENO
+		FROM 	TMT_VSL_SCH VS, 
+				TMT_CG_MST CM, 
+				TMT_CG_ARRV_DELV DL,
+				TMT_JOB JOB, 
+				TMT_DG DG, 
+				TMT_BL IMP, 
+				TMT_GR GR, 
+				TMT_DO DO,
+				TMT_B_IV IV
+		WHERE 	1=1	
+				<if test="vslCallId != null and vslCallId != ''">
+					AND VS.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="blNo != null and blNo != ''">
+   					AND CM.CG_NO = #{blNo}
+				</if>
+				<if test="doNo != null and doNo != ''">
+   					AND DO.DO_NO(+)= #{doNo}
+				</if>	
+				<if test="gatePassNo != null and gatePassNo != ''">
+   					AND DL.GATE_PASS_NO	 = #{gatePassNo}
+				</if>
+				<if test="cgNo != null and cgNo != ''">
+   					AND DL.CG_NO = #{cgNo}
+				</if>
+				<if test="cgInOutCd != null and cgInOutCd != ''">
+   					AND DL.CG_IN_OUT_CD = #{cgInOutCd}
+				</if>
+				<if test="seq != null and seq != ''">
+   					AND DL.SEQ = #{seq}
+				</if>
+		   		AND CM.VSL_CALL_ID = IMP.VSL_CALL_ID(+)
+		   		AND CM.CG_NO = IMP.BL_NO(+)
+				AND CM.CG_NO = DL.CG_NO(+)
+				AND CM.BL_NO = DO.BL_NO (+)
+				AND CM.VSL_CALL_ID = DO.VSL_CALL_ID (+)
+				AND CM.VSL_CALL_ID = DL.VSL_CALL_ID
+				AND CM.VSL_CALL_ID = VS.VSL_CALL_ID
+				AND CM.VSL_CALL_ID = IV.VSL_CALL_ID (+)
+				AND DL.JOB_NO = JOB.JOB_NO(+)
+				AND IMP.DG_SEQ = DG.SEQ(+)
+				AND CM.VSL_CALL_ID = GR.VSL_CALL_ID(+)
+				AND CM.CG_NO = GR.GR_NO(+)
+	</sql>
+
+	<sql id="gpNonVessel">
+		SELECT	/* GatePassImport.xml  getGatePassImport CT118 */               
+	   	  	   	'NonCallId' 			AS vslCallId
+               	,CM.CG_NO 				AS GRNO
+               	,DL.GATE_PASS_NO 		AS GATEPASSNO 
+               	,CM.SHPR_NM 			AS SHPRNM
+               	,(SELECT ADDR FROM TMT_PTNR WHERE PTNR_CODE = CM.SHIPG_AGNT AND ROWNUM = 1) AS SHPRADDR
+               	,CM.CNSNE_NM 			AS CNSNENM
+               	,(SELECT ADDR FROM TMT_PTNR WHERE PTNR_CODE = CM.CNSNE AND ROWNUM = 1) AS CNSNEADDR
+               	,CM.FWR_AGNT 			AS FWRAGNT
+               	,CM.SHIPG_NOTE_NO 		AS SN
+               	,CM.PORT_OF_LOAD 		AS PORTOFLOAD
+               	,CM.PORT_OF_DIS 		AS PORTOFDIS
+               	,CM.FDEST 				AS FINALDEST
+               	,JOB.TO_LOC_ID 			AS WHLOC
+               	,JOB.TSPT_TP_CD 		AS TSPTTPCD
+               	,(SELECT CMDT_DESC FROM TMT_CMDT WHERE CMDT_CD = CM.CMDT_CD) AS COMMODITY
+               	,CM.CG_TP_CD 			AS CGTPCD
+               	,CM.PKG_TP_CD 			AS PKGTPCD
+               	,DECODE(CM.DMG_YN, 'Y',DECODE(CM.RHDL_MODE,'Y','Damage/Shut-out','Damage'), 
+                                           DECODE(CM.RHDL_MODE,'Y','Shut-out','Normal')) AS STATCD 
+               	,DL.PKG_QTY 			AS PKGQTY
+               	,DL.CG_WGT 				AS WGT
+               	,DL.CG_VOL				AS MSRMT
+               	,NVL(CM.PKG_QTY,0) 		AS OUTQTY
+               	,DL.LORRY_NO			AS LORRYNO
+               	,DL.RMK					AS RMK
+               	,NVL(CM.CG_WGT,'0')		AS GROSSTOT
+               	,NVL(CM.CG_VOL,'0')		AS CUMULTOT
+               	,DL.CG_WGT					AS AMOUNTLORRY
+               	,DL.ISSUE_CNT			AS NOSGPISSUE
+               	,(SELECT 
+                       CASE
+                          WHEN CUS.DOC_NO IS NULL
+                          THEN
+                             'HOLD'
+                          WHEN CUS.DOC_NO IS NOT NULL AND CUS.RELEASE_MT IS NULL
+                          THEN
+                             'RELEASE' <!--RELEASSE FULL MF_DOC_ID -->
+                          ELSE
+                             'RELEASE' <!--RELEASSE by BL -->
+                       END
+                          AS status
+                  	FROM TMT_BL BL
+                       LEFT OUTER JOIN (  SELECT DOC_NO,
+                                                 VSL_CALL_ID,
+                                                 SUM (RELEASE_MT) AS RELEASE_MT,
+                                                 SUM (RELEASE_QTY) AS RELEASE_QTY
+                                            FROM TMT_CUSTOMS_RELEASE
+                                        GROUP BY DOC_NO, VSL_CALL_ID) CUS
+                          ON     CUS.VSL_CALL_OD = BL.VSL_CALL_ID
+                             AND CUS.DOC_NO = BL.MF_DOC_ID
+                	WHERE BL.VSL_CALL_ID = CM.VSL_CALL_ID  AND BL_NO = CM.BL_NO ) AS CUSTAPPR
+				,(SELECT
+                       GC.CUSTOMS_REF_NO
+                   FROM TMT_CUSTOMS_RELEASE GC
+                   WHERE 1=1 
+                       AND GC.DOC_NO = CM.MF_DOC_ID
+                       AND ROWNUM = 1
+                  ) AS RELEASENO
+               	,DECODE(DG.STAT_CD,'N','SUBMIT',
+                       'Y','APPROVE','C','CANCEL') AS DGAPPROVAL 
+                ,JOB.PKG_NO				AS PACKINGNO
+			   	,DG.IMDG				AS IMDG
+			   	,DG.UNNO				AS UNNO
+				,CM.OPE_CLASS_CD 		AS CATGCD
+            	,NVL((SELECT SUM(DA1.CG_WGT) FROM TMT_CG_ARRV_DELV DA1 WHERE CM.VSL_CALL_ID = DA1.VSL_CALL_ID AND CM.CG_NO =  DA1.CG_NO AND DA1.GATE_PASS_NO IS NOT NULL AND DA1.SEQ <![CDATA[ <= ]]> DL.SEQ),0)		AS TOTDELVMT
+            	,NVL((SELECT SUM(DA1.CG_VOL) FROM TMT_CG_ARRV_DELV DA1 WHERE CM.VSL_CALL_ID = DA1.VSL_CALL_ID AND CM.CG_NO =  DA1.CG_NO AND DA1.GATE_PASS_NO IS NOT NULL AND DA1.SEQ <![CDATA[ <= ]]> DL.SEQ),0)    AS TOTDELVM3
+            	,NVL((SELECT SUM(DA1.PKG_QTY) FROM TMT_CG_ARRV_DELV DA1 WHERE CM.VSL_CALL_ID = DA1.VSL_CALL_ID AND CM.CG_NO =  DA1.CG_NO AND DA1.GATE_PASS_NO IS NOT NULL AND DA1.SEQ <![CDATA[ <= ]]> DL.SEQ),0)	AS TOTDELVQTY
+				,DECODE(CM.OPE_CLASS_CD, 
+						'I', DECODE(CM.TMNL_IN_DT, NULL, NVL(CM.PKG_QTY, 0) + F_GET_RC_PKG_QTY(CM.VSL_CALL_ID, CM.CG_NO), 0), 
+						'E', NVL(CM.PKG_QTY, 0) + F_GET_RC_PKG_QTY(CM.VSL_CALL_ID, CM.CG_NO), 
+						NVL(CM.PKG_QTY, 0)) AS ACTQTY
+				,DECODE(CM.OPE_CLASS_CD, 
+						'I', DECODE(CM.TMNL_IN_DT, NULL, NVL(CM.CG_WGT, 0) + F_GET_RC_WGT(CM.VSL_CALL_ID, CM.CG_NO), 0), 
+						'E', NVL(CM.CG_WGT, 0) + F_GET_RC_WGT(CM.VSL_CALL_ID, CM.CG_NO), 
+						NVL(CM.CG_WGT, 0)) AS ACTMT
+				,DECODE(CM.OPE_CLASS_CD, 
+						'I', DECODE(CM.TMNL_IN_DT, NULL, NVL(CM.CG_VOL, 0) + F_GET_RC_MSRMT(CM.VSL_CALL_ID, CM.CG_NO), 0), 
+						'E', NVL(CM.CG_VOL, 0) + F_GET_RC_MSRMT(CM.VSL_CALL_ID, CM.CG_NO), 
+						NVL(CM.CG_VOL, 0)) AS ACTM3
+        		,DECODE(CM.OPE_CLASS_CD, 
+                        'I', DECODE(CM.TMNL_IN_DT, NULL, NVL(CM.CG_WGT, 0) + F_GET_RC_WGT(CM.VSL_CALL_ID, CM.CG_NO), 0), 
+                        'E', NVL(CM.CG_WGT, 0) + F_GET_RC_WGT(CM.VSL_CALL_ID, CM.CG_NO), 
+                        NVL(CM.CG_WGT, 0)) - NVL((SELECT SUM(DA1.CG_WGT) 
+                                                 FROM TMT_CG_ARRV_DELV DA1 
+                                                WHERE CM.VSL_CALL_ID = DA1.VSL_CALL_ID 
+                                                  AND CM.CG_NO =  DA1.CG_NO 
+                                                  AND DA1.GATE_PASS_NO IS NOT NULL 
+                                                  AND DA1.SEQ  <![CDATA[ <= ]]>  DL.SEQ),0)  AS BALMT
+            	,DECODE(CM.OPE_CLASS_CD, 
+                        'I', DECODE(CM.TMNL_IN_DT, NULL, NVL(CM.CG_VOL, 0) + F_GET_RC_MSRMT(CM.VSL_CALL_ID, CM.CG_NO), 0), 
+                        'E', NVL(CM.CG_VOL, 0) + F_GET_RC_MSRMT(CM.VSL_CALL_ID, CM.CG_NO), 
+                        NVL(CM.CG_VOL, 0)) - NVL((SELECT SUM(DA1.CG_VOL) 
+                                                   FROM TMT_CG_ARRV_DELV DA1 
+                                                  WHERE CM.VSL_CALL_ID = DA1.VSL_CALL_ID 
+                                                    AND CM.CG_NO =  DA1.CG_NO 
+                                                    AND DA1.GATE_PASS_NO IS NOT NULL 
+                                                    AND DA1.SEQ  <![CDATA[ <= ]]>  DL.SEQ),0) AS BALM3
+            	,DECODE(CM.OPE_CLASS_CD, 
+                        'I', DECODE(CM.TMNL_IN_DT, NULL, NVL(CM.PKG_QTY, 0) + F_GET_RC_PKG_QTY(CM.VSL_CALL_ID, CM.CG_NO), 0), 
+                        'E', NVL(CM.PKG_QTY, 0) + F_GET_RC_PKG_QTY(CM.VSL_CALL_ID, CM.CG_NO), 
+                        NVL(CM.PKG_QTY, 0)) - NVL((SELECT SUM(DA1.PKG_QTY) 
+                                                     FROM TMT_CG_ARRV_DELV DA1 
+                                                    WHERE CM.VSL_CALL_ID = DA1.VSL_CALL_ID 
+                                                      AND CM.CG_NO =  DA1.CG_NO 
+                                                      AND DA1.GATE_PASS_NO IS NOT NULL 
+                                                      AND DA1.SEQ  <![CDATA[ <= ]]> DL.SEQ),0)  AS BALQTY
+				,JOB.DELV_TP_CD AS ACTDELVTPCD
+				,JOB.STAFF_CD AS UPDUSERID
+				,NVL(TO_CHAR(JOB.UPDATE_TIME, 'DD/MM/YYYY HH24:MM'), ' ') AS UPDDT
+          FROM 	TMT_CG_MST CM, 
+          		TMT_CG_ARRV_DELV DL,
+          		TMT_JOB JOB,
+          		TMT_DG DG
+         WHERE
+           		CM.CG_NO = DL.CG_NO(+)
+           		AND CM.CG_NO = DG.CG_NO(+)
+           		AND DL.VSL_CALL_ID = 'NonCallId'
+           		AND CM.VSL_CALL_ID = DL.VSL_CALL_ID
+           		AND DL.JOB_NO=JOB.JOB_NO(+)
+				<if test="gatePassNo != null and gatePassNo != ''">
+	   				AND DL.GATE_PASS_NO	 = #{gatePassNo}
+				</if>
+				<if test="cgNo != null and cgNo != ''">
+	   				AND DL.CG_NO = #{cgNo}
+				</if>
+				<if test="cgInOutCd != null and cgInOutCd != ''">
+	   				AND DL.CG_IN_OUT_CD = #{cgInOutCd}
+				</if>
+				<if test="seq != null and seq != ''">
+	   				AND DL.SEQ = #{seq}
+				</if>
+	</sql>
+	
+	
+	<select id="selectGatePassImportList"  parameterType="gatePassImportParm" resultType="gatePassImportItem">
+		<if test="vslCallId == 'STRG'">
+			<include refid="gpNonVessel"/>
+		</if>
+		<if test="vslCallId != 'STRG'">
+			<include refid="gpVessel"/>
+		</if>
+	</select>
+</mapper>

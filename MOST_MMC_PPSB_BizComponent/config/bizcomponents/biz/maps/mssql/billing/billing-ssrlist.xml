@@ -1,0 +1,1095 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ssrList">
+	
+    <select id="selectSSRList"  parameterType="SSRListParm" resultType="SSRListItem">
+	 	<if test="pageNo != 0"> 
+			SELECT /*ssrList.selectSSRList*/
+				*
+			FROM 
+				(SELECT 
+					inner_querry.*, ROW_NUMBER() OVER(ORDER BY 			
+														vslCallId, payerCd,
+														ssrNo, FORMAT(CONVERT(DATE, issueDt, 103), 'yyyyMMdd')) row_num
+				FROM ( 
+		</if>
+				<include refid="getSSRList"/>
+		<if test="pageNo != 0"> 
+				)inner_querry 
+			)inner_querry 
+			WHERE
+				inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	 
+	<select id="selectSSRListCount" parameterType="SSRListParm" resultType="java.lang.String">
+	 	SELECT /*ssrList.selectSSRListCount*/
+			COUNT(*)
+		FROM 
+			(<include refid="getSSRList"/>) AS getSSRList
+	</select>
+	 
+ 	<sql id="getSSRList">
+		SELECT /*ssrList.getSSRList*/
+			* 
+		FROM (
+			SELECT	
+				DTLSTAT.SSR_NO 														AS ssrNo,
+				DTLSTAT.VSL_CALL_ID 												AS vslCallId,
+				FORMAT(CONVERT(DATE, DTLSTAT.ISSUE_DT, 103), 'dd/MM/yyyy') 			AS issueDt,
+				DTLSTAT.BERTH_NO 													AS berthNo,
+				DTLSTAT.WH_ID 														AS whId,
+				DTLSTAT.PAYER_CD 													AS payerCd,
+				CASE 
+					WHEN (SELECT TOP(1)
+							PTNR_CODE 
+						FROM	
+							TMT_PTNR 
+						WHERE
+							PTNR_CODE = DTLSTAT.PAYER_CD ) IS NULL 
+							THEN (SELECT TOP(1)
+									CUST_CD 
+								FROM
+									TMT_AGENCY_INFO 
+								WHERE 
+									AGENCY_CODE = DTLSTAT.PAYER_CD )
+					ELSE (SELECT TOP(1)
+							CUST_CD 
+						FROM
+							TMT_PTNR 
+						WHERE 
+							PTNR_CODE = DTLSTAT.PAYER_CD)
+				END 																AS ACCOUNTNO,
+				DTLSTAT.PAY_TP_CD 													AS paymentType,
+				DTLSTAT.IV_PRFX 													AS ivPrfx,
+				DTLSTAT.refNo,
+				DTLSTAT.RMK 														AS rmk,
+				DBO.F_CM_CODE_NM('MT', 'IVSTAT', DTLSTAT.STAT_CD) 					AS ssrStatCd,
+				DTLSTAT.IV_NO 														AS ivNo,
+				DTLSTAT.STAFF_CD 													AS userId,
+				DTLSTAT.VERSION 													AS version,
+				DTLSTAT.UPDATE_TIME 												AS updateTime,
+				(SELECT 
+					SUM (ROUND(
+							CASE TAX_AMT
+								WHEN NULL + 0 THEN 0
+								ELSE TAX_AMT
+							END, 
+						2)) 
+				FROM
+					TMT_B_SSR_DTL 
+				WHERE
+					SSR_NO = DTLSTAT.SSR_NO) 										AS gstAmount,
+				(SELECT 	
+					SUM(ISNULL(
+						ROUND (
+						   ISNULL(
+								(
+									CASE 
+										WHEN UNIT1_QTY IS NULL THEN 1
+										WHEN UNIT1_QTY = 0 THEN 1
+										ELSE UNIT1_QTY
+									END
+									*
+									CASE 
+										WHEN UNIT2_QTY IS NULL THEN 1
+										WHEN UNIT2_QTY = 0 THEN 1
+										ELSE UNIT2_QTY
+									END
+									*
+									CASE 
+										WHEN UNIT3_QTY IS NULL THEN 1
+										WHEN UNIT3_QTY = 0 THEN 1
+										ELSE UNIT3_QTY
+									END
+								)
+							  * APLY_UNIT_PRC
+							  + ISNULL(DIS_AMT, 0),
+							  0),
+						   2),
+					  0))
+				FROM 
+					TMT_B_SSR_DTL
+				WHERE 
+					SSR_NO = DTLSTAT.SSR_NO) 										AS totalAmount,
+				ROWNUM 																AS RN, 
+				ISNULL((SELECT 
+							SUM (ROUND(TOTAL_AMT, 2)) 
+						FROM 
+							TMT_B_SSR_DTL 
+						WHERE 
+							SSR_NO = DTLSTAT.SSR_NO)
+				, ISNULL(DBO.F_CALC_AMOUNT_SSR (DTLSTAT.SSR_NO), 0)) 				AS payableAmount,
+				FORMAT(CONVERT(DATE, DTLSTAT.DUE_DT, 103), 'dd/MM/yyyy') 			AS dueDt
+			FROM (
+				SELECT 	
+					ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) 						AS ROWNUM,
+					MST.VSL_CALL_ID,
+					MST.SSR_NO,
+					MST.VERSION,
+					MST.ISSUE_DT,
+					MST.BERTH_NO,
+					MST.WH_ID,
+					MST.PAY_TP_CD,
+					MST.IV_PRFX,
+					MST.RMK,
+					MST.STAFF_CD,
+					MST.UPDATE_TIME,
+					MST.PAYER_CD,
+					MST.SSR_STAT_CD,
+					MAX(MST.SSR_STAT_CD) 											AS STAT_CD,
+					MAX(IVDT.IV_NO) 												AS IV_NO,
+					ISNULL(MST.REF_NO, MAX (IVDT.IV_NO)) 							REFNO,
+					MST.DUE_DT
+				FROM	
+					TMT_B_SSR MST, TMT_B_SSR_DTL DTL, TMT_B_IV_DATA IVDT
+				WHERE
+					MST.SSR_NO 				= DTL.SSR_NO
+					AND MST.ISSUE_DT BETWEEN CONVERT(DATE, #{dateFrom},103)
+						AND CONVERT(DATE, #{dateTo},103)
+					AND MST.SSR_NO 			= DTL.SSR_NO
+					AND IVDT.VSL_CALL_ID 	= MST.VSL_CALL_ID
+					AND IVDT.REF_NO2 		= MST.SSR_NO
+			
+					<if test="dateFrom != null and dateFrom != ''">
+						<if test="dateTo != null and dateTo != ''">
+							AND MST.ISSUE_DT BETWEEN CONVERT(date, #{dateFrom},103)
+								AND CONVERT(date, #{dateTo},103)
+						</if>
+					</if>
+					<if test="vslCallId != null and vslCallId != ''">
+						AND MST.VSL_CALL_ID = #{vslCallId}
+					</if>
+					<if test="payerCd != null and payerCd != ''">
+						AND MST.PAYER_CD 	= #{payerCd}
+					</if>
+					<if test="whId != null and whId != ''">
+						AND MST.WH_ID 		= #{whId}
+					</if>
+					<if test="berthNo != null and berthNo != ''">
+						AND MST.BERTH_NO 	= #{berthNo}
+					</if>
+					<if test="ssrStatCd != null and ssrStatCd != ''">
+						AND IVDT.STAT_CD 	= #{ssrStatCd}
+					</if>
+					<if test="checkRole != null and checkRole != ''">
+						<if test="checkRole == 'true'">
+							AND MST.IV_PRFX = 'LME'
+						</if>
+					</if>
+					<if test="ssrType != null and ssrType != ''">
+						AND DTL.SSR_TP_CD 	= #{ssrType}
+					</if>
+					<if test="ssrNo != null and ssrNo != ''">
+						AND MST.SSR_NO  	= #{ssrNo}
+					</if>
+				GROUP BY	
+					MST.VSL_CALL_ID,
+					MST.SSR_NO,
+					MST.VERSION,
+					MST.ISSUE_DT,
+					MST.BERTH_NO,
+					MST.WH_ID,
+					MST.PAY_TP_CD,
+					MST.IV_PRFX,
+					MST.RMK,
+					MST.STAFF_CD,
+					MST.UPDATE_TIME,
+					MST.PAYER_CD,
+					MST.SSR_STAT_CD,
+					MST.REF_NO,
+					MST.DUE_DT
+			) DTLSTAT
+		) AS sub_query
+		WHERE 
+			RN >= #{startRow}
+	</sql> 
+	
+	<select id="selectSSRDetail"  parameterType="SSRListParm" resultType="SSRListItem">
+		SELECT  /*ssrList.selectSSRDetail*/
+			DISTINCT 
+		   (SELECT DISTINCT TOP(1) 
+				VSL_NM AS VSL_NM
+			FROM
+				TMT_VSL_SCH SCH, TMT_VSL_PART PART
+			WHERE
+				SCH.VSL_CD 			= PART.VSL_CD
+			   AND SCH.VSL_CALL_ID 	= DTLSTAT.VSL_CALL_ID)	 	AS VSLCALLID,
+		   FORMAT (DTLSTAT.ISSUE_DT, 'dd/MM/yyyy') 				AS ISSUEDT,
+		   DTLSTAT.BERTH_NO 									AS BERTHNO,
+		   DTLSTAT.WH_ID 										AS WHID,
+		   DTLSTAT.PAYER_CD 									AS PAYERCD,
+		   DBO.F_GET_PARTNER_INFO (DTLSTAT.PAYER_CD, 'ENG_SNM') AS ENGSNM,
+		   DBO.F_GET_PARTNER_INFO (DTLSTAT.PAYER_CD, 'ADDR') 	AS ADDR,
+		   DTLSTAT.PAY_TP_CD 									AS PAYMENTTYPE,
+		   DTLSTAT.RMK 											AS RMK,
+		   DTLSTAT.IV_NO 										AS IVNO,
+		   DTLSTAT.SSR_NO 										AS SSRNO,
+		   DTLSTAT.TRF_CD 										AS TRFCD,
+		   ISNULL(DTLSTAT.COST_CENT_CD, C.COST_CENT_CD) 		AS COSTCENTER,
+		   COALESCE (DTLSTAT.TRF_IN_DESCR, C.DESCR, 'EMPTY') 	AS TRFDESCR,
+
+		   (SELECT TOP(1)
+				UNITPRC
+			FROM(  
+				SELECT TOP (1) 
+					B1.UNIT_PRC 					AS UNITPRC,
+					B1.SUB_TRF_CD 					AS SUBTRFCD,
+					CONVERT(DATE, B1.APLY_YMD,112) 	AS APLYYMD,
+					CASE 
+						WHEN B1.EXPR_YMD IS NOT NULL THEN B1.EXPR_YMD
+						ELSE 'N/A'
+					END 							AS EXPRYMD,
+					B1.TRF_CD 						AS TRFCD
+				FROM
+					TMT_B_TRF B1
+			   WHERE 
+					B1.PRC_TP_CD = 'S'
+				ORDER BY 
+					APLYYMD) C1
+			 WHERE     
+				C1.TRFCD 		= DTLSTAT.TRF_CD
+				AND C1.SUBTRFCD = DTLSTAT.SUB_TRF_CD
+				AND (C1.EXPRYMD = 'N/A'
+					OR (C1.EXPRYMD <![CDATA[<>]]> 'N/A'
+						AND CONVERT (DATE,C1.EXPRYMD, 112) > SYSDATETIME()))) AS STDRATE,
+		   DTLSTAT.SUB_TRF_CD 						AS SUBTRFCD,
+		   DTLSTAT.SSR_TP_CD 						AS SSRTPCD,
+		   ISNULL(DTLSTAT.UNIT1_QTY, 0) 			AS UNITQTY1,
+		   ISNULL(DTLSTAT.UNIT2_QTY, 0) 			AS UNITQTY2,
+		   ISNULL(DTLSTAT.UNIT3_QTY, 0) 			AS UNITQTY3,
+		   ISNULL(DTLSTAT.APLY_UNIT_PRC, 0) 		AS APLYUNITPRC,
+		   ISNULL(
+				CASE 
+					WHEN DTLSTAT.UNIT1_QTY IS NULL THEN 1
+					WHEN DTLSTAT.UNIT1_QTY = 0 THEN 1
+					ELSE DTLSTAT.UNIT1_QTY
+				END
+				*
+				CASE 
+					WHEN DTLSTAT.UNIT2_QTY IS NULL THEN 1
+					WHEN DTLSTAT.UNIT2_QTY = 0 THEN 1
+					ELSE DTLSTAT.UNIT2_QTY
+				END
+				*
+				CASE 
+					WHEN DTLSTAT.UNIT3_QTY IS NULL THEN 1
+					WHEN DTLSTAT.UNIT3_QTY = 0 THEN 1
+					ELSE DTLSTAT.UNIT3_QTY
+				END
+			, 0) 									AS AMOUNT,
+
+		   ISNULL(
+				ROUND (
+				   ISNULL(
+						(	CASE 
+								WHEN DTLSTAT.UNIT1_QTY IS NULL THEN 1
+								WHEN DTLSTAT.UNIT1_QTY = 0 THEN 1
+								ELSE DTLSTAT.UNIT1_QTY
+							END
+							*
+							CASE 
+								WHEN DTLSTAT.UNIT2_QTY IS NULL THEN 1
+								WHEN DTLSTAT.UNIT2_QTY = 0 THEN 1
+								ELSE DTLSTAT.UNIT2_QTY
+							END
+							*
+							CASE 
+								WHEN DTLSTAT.UNIT3_QTY IS NULL THEN 1
+								WHEN DTLSTAT.UNIT3_QTY = 0 THEN 1
+								ELSE DTLSTAT.UNIT3_QTY
+							END
+							* DTLSTAT.APLY_UNIT_PRC
+						)
+						+ ISNULL(DTLSTAT.DIS_AMT, 0) ,
+					  0),
+				   2),
+			  0) 									AS TOTALAMOUNT,
+		   DTLSTAT.UPDATE_TIME 						AS UPDATETIME,
+		   DTLSTAT.STAFF_CD 						AS USERID,
+		   DTLSTAT.VERSION 							AS VERSION,
+		   CONVERT(VARCHAR, DTLSTAT.SEQ) 			AS SEQ,
+		   DTLSTAT.STAT_CD 							AS SUBSTATUS,
+		   DTLSTAT.GATHER_NO 						AS GATHERNO,
+		   DTLSTAT.TAX_TYPE 						AS GSTTPCD,
+		   DTLSTAT.GSTAMOUNT 						AS GSTAMOUNT,
+		   DTLSTAT.TAX_VALUE 						AS GSTVALUE,
+		   DTLSTAT.WTH_VALUE 						AS WTHVALUE,
+		   DTLSTAT.WTH_AMT 							AS WTHAMOUNT,
+		   DTLSTAT.DIS_RATE							AS DISSURRATE,
+		   DTLSTAT.DIS_AMT 							AS DISSURAMOUNT,
+		   DTLSTAT.PAYABLEAMOUNT 					AS PAYABLEAMOUNT,
+		   FORMAT(DTLSTAT.DUE_DT, 'dd/MM/yyyy') 	AS DUEDT,
+		   DTLSTAT.IV_UNIT1 						AS IVUNIT1,
+		   DTLSTAT.IV_UNIT2 						AS IVUNIT2,
+		   DTLSTAT.IV_UNIT3 						AS IVUNIT3,
+		   DTLSTAT.ERP_COST_CENT 					AS FINANCIALCODE
+		FROM (
+			SELECT 
+			   MST.VSL_CALL_ID,
+			   DTL.SSR_NO,
+			   DTL.SEQ,
+			   MST.VERSION,
+			   MST.ISSUE_DT,
+			   MST.BERTH_NO,
+			   MST.WH_ID,
+			   MST.PAY_TP_CD,
+			   MST.IV_PRFX,
+			   MST.RMK,
+			   MST.STAFF_CD,
+			   MST.UPDATE_TIME,
+			   MST.PAYER_CD,
+			   MST.SSR_STAT_CD,
+			   DTL.TRF_CD,
+			   DTL.SUB_TRF_CD,
+			   DTL.COST_CENT_CD,
+			   DTL.SSR_TP_CD,
+			   DTL.TRF_IN_DESCR,
+			   DTL.UNIT1_QTY,
+			   DTL.UNIT2_QTY,
+			   DTL.UNIT3_QTY,
+			   DTL.APLY_UNIT_PRC,
+			   MAX(IVDT.IV_NO) 						AS IV_NO,
+			   MAX(IVDT.STAT_CD) 					AS STAT_CD,
+			   IVDT.GATHER_NO,
+			   ISNULL(MST.REF_NO, MAX (IVDT.IV_NO)) REFNO,
+			   ISNULL(DTL.TAX_AMT, 0) 				AS GSTAMOUNT,
+			   DTL.TAX_TYPE,
+			   DTL.TAX_VALUE,
+			   DTL.WTH_VALUE,
+			   DTL.WTH_AMT WTH_AMT,
+			   DTL.DIS_AMT,
+			   DTL.DIS_RATE,
+			   ISNULL(DTL.TOTAL_AMT, 0) 			AS PAYABLEAMOUNT,
+			   MST.DUE_DT,
+			   TRF.IV_UNIT1,
+			   TRF.IV_UNIT2,
+			   TRF.IV_UNIT3,
+			   TRF.ERP_COST_CENT
+			FROM
+				TMT_B_SSR MST, TMT_B_SSR_DTL DTL, TMT_B_IV_DATA IVDT, TMT_B_TRF_CD TRF
+			WHERE
+				1=1 
+			<if test="dateFrom != null and dateFrom != ''">
+				AND MST.ISSUE_DT BETWEEN CONVERT(DATE, #{dateFrom},105) AND CONVERT(DATE, #{dateTo},105)
+			</if> 
+			<if test="vslCallId != null and vslCallId != ''">
+				AND MST.VSL_CALL_ID 	= #{vslCallId}
+			</if> 
+				AND MST.SSR_NO 			= DTL.SSR_NO
+				AND IVDT.VSL_CALL_ID 	= MST.VSL_CALL_ID
+				AND DTL.TRF_CD 			= IVDT.TRF_CD
+				AND DTL.SUB_TRF_CD 		= IVDT.SUB_TRF_CD
+				AND IVDT.REF_NO2 		= MST.SSR_NO
+				AND DTL.TRF_CD 			= TRF.TRF_CD
+				AND DTL.SUB_TRF_CD 		= TRF.SUB_TRF_CD
+				AND ISNULL(DTL.UNIT1_QTY, 0) = ISNULL(IVDT.UNIT1_VAL,0)
+				AND ISNULL(DTL.UNIT2_QTY, 0) = ISNULL(IVDT.UNIT2_VAL,0)
+				AND ISNULL(DTL.UNIT3_QTY, 0) = ISNULL(IVDT.UNIT3_VAL,0)
+				<if test="ssrNo != null and ssrNo != ''">
+					AND DTL.SSR_NO  	= '${ssrNo}'
+				</if>
+				<if test="trfCd != null and trfCd != ''">
+					AND	DTL.TRF_CD  	= '${trfCd}'
+				</if>
+				<if test="ssrTpCd != null and ssrTpCd != ''">
+					AND MST.SSR_TP_CD  	= '${ssrTpCd}'
+				</if>		
+				<if test="payerCd != null and payerCd != ''">
+					AND	MST.PAYER_CD 	= '${payerCd}'
+				</if>
+				<if test="whId != null and whId != ''">
+					AND	MST.WH_ID 		= '${whId}'
+				</if>
+				<if test="berthNo != null and berthNo != ''">
+					AND	MST.BERTH_NO 	= '${berthNo}'
+				</if>
+				<if test="ssrStatCd != null and ssrStatCd != ''">
+					AND	MST.SSR_STAT_CD = '${ssrStatCd}'
+				</if>
+			GROUP BY 
+				MST.VSL_CALL_ID,
+				DTL.SSR_NO,
+				DTL.SEQ,
+				MST.VERSION,
+				MST.ISSUE_DT,
+				MST.BERTH_NO,
+				MST.WH_ID,
+				MST.PAY_TP_CD,
+				MST.IV_PRFX,
+				MST.RMK,
+				MST.STAFF_CD,
+				MST.UPDATE_TIME,
+				MST.PAYER_CD,
+				MST.SSR_STAT_CD,
+				DTL.TRF_CD,
+				DTL.SUB_TRF_CD,
+				DTL.COST_CENT_CD,
+				DTL.SSR_TP_CD,
+				DTL.TRF_IN_DESCR,
+				DTL.UNIT1_QTY,
+				DTL.UNIT2_QTY,
+				DTL.UNIT3_QTY,
+				DTL.APLY_UNIT_PRC,
+				IVDT.GATHER_NO,
+				MST.REF_NO, 
+				ISNULL(DTL.TOTAL_AMT, 0),
+				DTL.TAX_AMT,
+				DTL.TAX_VALUE,
+				DTL.WTH_AMT,
+				DTL.WTH_VALUE,
+				DTL.DIS_AMT,
+				DTL.DIS_RATE,
+				MST.DUE_DT,
+				TRF.IV_UNIT1,
+				TRF.IV_UNIT2,
+				TRF.IV_UNIT3,
+				DTL.TAX_TYPE,
+				TRF.ERP_COST_CENT
+		) DTLSTAT, 
+		TMT_B_TRF_CD C
+	  
+	WHERE 
+		C.TRF_CD 			= DTLSTAT.TRF_CD
+		AND C.SUB_TRF_CD 	= DTLSTAT.SUB_TRF_CD 
+    </select>
+    
+    <select id="selectSSRAfterSaving"  parameterType="SSRListParm" resultType="SSRListItem">
+		SELECT DISTINCT	/*ssrList.selectSSRAfterSaving*/
+			(
+				SELECT DISTINCT TOP(1) 
+					VSL_NM AS VSL_NM 
+				FROM 
+					TMT_VSL_SCH SCH, TMT_VSL_PART PART
+				WHERE
+					SCH.VSL_CD 			= PART.VSL_CD 
+					AND SCH.VSL_CALL_ID = B.VSL_CALL_ID ) 			AS VSLCALLID,
+		    FORMAT(B.ISSUE_DT,'dd/MM/yyyy')							AS ISSUEDT,	
+		    B.BERTH_NO												AS BERTHNO,
+		    B.WH_ID													AS WHID,
+	      	B.PAYER_CD												AS PAYERCD,
+	      	DBO.F_GET_PARTNER_INFO(B.PAYER_CD, 'ENG_SNM') 			AS ENGSNM,
+			DBO.F_GET_PARTNER_INFO(B.PAYER_CD, 'ADDR') 				AS ADDR,
+		    B.PAY_TP_CD												AS PAYERTPCD,
+			CASE B.PAY_TP_CD
+				WHEN 'M' THEN 'Cash'
+				WHEN 'C' THEN 'Credit'
+				ELSE 'NIL'
+			END 													AS PAYMENTTYPE,
+		    B.RMK													AS RMK,
+		    <!-- (
+		    	SELECT F.IV_NO 
+		    	FROM TMT_B_IV_DATA F 
+		    	WHERE F.REF_NO1 = A.SSR_NO 
+		    	AND F.REF_NO2 = A.SEQ AND ROWNUM = 1) 				AS IVNO, -->
+       		A.SSR_NO												AS SSRNO,
+			A.TRF_CD												AS TRFCD,
+			A.COST_CENT_CD 											AS COSTCENTER,
+			A.TRF_IN_DESCR 											AS TRFDESCR,
+			(SELECT TOP(1)
+				UNITPRC 
+			  FROM 
+				(SELECT TOP (1)
+					B1.UNIT_PRC 						AS UNITPRC,
+					B1.SUB_TRF_CD 						AS SUBTRFCD, 
+					CONVERT(DATE, B1.APLY_YMD,112) 		AS APLYYMD,
+					CASE 
+						WHEN B1.EXPR_YMD IS NOT NULL THEN B1.EXPR_YMD
+						ELSE 'N/A'
+					END 								AS EXPRYMD,
+					B1.TRF_CD 							AS TRFCD 
+				FROM 
+					TMT_B_TRF B1 
+				WHERE 
+					B1.PRC_TP_CD = 'S' 
+				ORDER BY 
+					APLYYMD) C1
+			  WHERE 
+				C1.TRFCD 		= A.TRF_CD 
+				AND C1.subTrfCd = A.SUB_TRF_CD 
+				AND (C1.EXPRYMD = 'N/A' 
+					OR 
+					(C1.EXPRYMD <![CDATA[<>]]> 'N/A' 
+					AND CONVERT(DATE ,C1.EXPRYMD,112) > SYSDATETIME())
+				)
+			)														AS STDRATE,
+       		A.SUB_TRF_CD											AS SUBTRFCD,
+			A.SSR_TP_CD												AS SSRTPCD,
+			ISNULL(A.UNIT1_QTY,0)									AS UNITQTY1,
+			ISNULL(A.UNIT2_QTY,0)									AS UNITQTY2,
+			ISNULL(A.UNIT3_QTY,0)									AS UNITQTY3,
+			ISNULL(A.APLY_UNIT_PRC,0)								AS APLYUNITPRC,
+			ISNULL(
+				CASE 
+					WHEN A.UNIT1_QTY IS NULL THEN 1
+					WHEN A.UNIT1_QTY = 0 THEN 1
+					ELSE A.UNIT1_QTY
+				END
+				*
+				CASE 
+					WHEN A.UNIT2_QTY IS NULL THEN 1
+					WHEN A.UNIT2_QTY = 0 THEN 1
+					ELSE A.UNIT2_QTY
+				END
+				*
+				CASE 
+					WHEN A.UNIT3_QTY IS NULL THEN 1
+					WHEN A.UNIT3_QTY = 0 THEN 1
+					ELSE A.UNIT3_QTY
+				END
+			, 0) AS AMOUNT,
+			ISNULL(
+				ROUND(
+					ISNULL(
+						CASE 
+							WHEN A.UNIT1_QTY IS NULL THEN 1
+							WHEN A.UNIT1_QTY = 0 THEN 1
+							ELSE A.UNIT1_QTY
+						END
+						*
+						CASE 
+							WHEN A.UNIT2_QTY IS NULL THEN 1
+							WHEN A.UNIT2_QTY = 0 THEN 1
+							ELSE A.UNIT2_QTY
+						END
+						*
+						CASE 
+							WHEN A.UNIT3_QTY IS NULL THEN 1
+							WHEN A.UNIT3_QTY = 0 THEN 1
+							ELSE A.UNIT3_QTY
+						END
+						*
+						ISNULL(A.APLY_UNIT_PRC, 0)
+					, 0)
+				, 2)
+			, 0) AS TOTALAMOUNT,
+
+			A.UPDATE_TIME											AS UPDATETIME,
+			A.STAFF_CD												AS USERID,
+			A.VERSION												AS VERSION,
+			CONVERT(VARCHAR, A.SEQ)									AS SEQ,
+			<!-- (SELECT F.STAT_CD FROM TMT_B_IV_DATA F WHERE F.REF_NO1 = A.SSR_NO AND F.REF_NO2 = A.SEQ AND ROWNUM = 1) 	AS SUBSTATUS, -->
+   			(SELECT TOP(1)
+				F.GATHER_NO 
+			FROM
+				TMT_B_IV_DATA F 
+			WHERE
+				F.REF_NO1 			= CONVERT(VARCHAR ,A.SEQ) 
+				AND F.REF_NO2 		= A.SSR_NO 
+				AND F.TRF_CD 		= A.TRF_CD 
+				AND F.SUB_TRF_CD 	= A.SUB_TRF_CD ) 				AS GATHERNO,
+            'U' 													AS WORKINGSTATUS,
+			CASE 
+				WHEN (ISNULL(A.TOTAL_AMT,0) = 0) THEN
+		        ISNULL(
+					ROUND (
+						ISNULL(
+							CASE 
+								WHEN A.UNIT1_QTY IS NULL THEN 1
+								WHEN A.UNIT1_QTY = 0 THEN 1
+								ELSE A.UNIT1_QTY
+							END
+							*
+							CASE 
+								WHEN A.UNIT2_QTY IS NULL THEN 1
+								WHEN A.UNIT2_QTY = 0 THEN 1
+								ELSE A.UNIT2_QTY
+							END
+							*
+							CASE 
+								WHEN A.UNIT3_QTY IS NULL THEN 1
+								WHEN A.UNIT3_QTY = 0 THEN 1
+								ELSE A.UNIT3_QTY
+							END
+							*
+							ISNULL(A.APLY_UNIT_PRC, 0)
+						, 0),
+					2),
+				0)
+				ELSE ISNULL(A.TOTAL_AMT, 0)
+			END 														AS PAYABLEAMOUNT,
+			A.TAX_TYPE													AS GSTTPCD,
+			ISNULL(A.TAX_AMT, 0)										AS GSTAMOUNT,
+			ISNULL(A.TAX_VALUE, 0)										AS GSTVALUE,
+			A.SEQ														AS SEQ
+		FROM 	
+			TMT_B_SSR_DTL A
+		INNER JOIN 
+			TMT_B_SSR B 
+		ON
+			A.SSR_NO = B.SSR_NO
+		WHERE 	1=1
+			<if test="ssrNo != null and ssrNo != ''">
+				AND A.SSR_NO  = #{ssrNo}
+			</if>	
+			<if test="trfCd != null and trfCd != ''">
+				AND A.TRF_CD  = #{trfCd}
+			</if>
+			<if test="ssrTpCd != null and ssrTpCd != ''">
+				AND A.SSR_TP_CD  = #{ssrTpCd}
+			</if>		
+			<if test="dateFrom != null and dateFrom != ''">
+				AND <![CDATA[ B.ISSUE_DT >= CONVERT(DATE ,#{dateFrom},105) ]]>
+			</if>
+			<if test="dateTo != null and dateTo != ''">
+				AND <![CDATA[  B.ISSUE_DT <= CONVERT(DATE, #{dateTo},105) ]]>
+			</if>
+			<if test="payerCd != null and payerCd != ''">
+				AND B.PAYER_CD = #{payerCd}
+			</if>
+			<if test="whId != null and whId != ''">
+				AND B.WH_ID = #{whId}
+			</if>
+			<if test="berthNo != null and berthNo != ''">
+				AND
+				B.BERTH_NO = #{berthNo}
+			</if>
+			<if test="ssrStatCd != null and ssrStatCd != ''">
+				AND B.SSR_STAT_CD = #{ssrStatCd}
+			</if>	
+		 ORDER BY
+			A.SEQ ASC             
+    </select>
+     
+  	<select id="selectInvoicedSSR"  parameterType="SSRListParm" resultType="SSRListItem">
+	  	<if test="ssrNo != null and ssrNo != ''">
+	  		SELECT 	/*ssrList.selectInvoicedSSR*/
+				DTL.SSR_NO 		AS SSRNO ,
+				IVDT.IV_NO 		AS IVNO
+			FROM 
+				TMT_B_SSR_DTL DTL , TMT_B_IV_DATA IVDT
+			WHERE
+				IVDT.SCR_ID 		='SSR' 
+			   	AND IVDT.REF_NO2 	= DTL.SSR_NO
+			   	AND DTL.SSR_NO		= #{ssrNo}
+			   	AND IVDT.STAT_CD 	= 'IV'
+			GROUP BY 
+				DTL.SSR_NO,IVDT.IV_NO 
+	  	</if>
+	  	<if test="ssrNo == null or ssrNo == ''">	  	
+			SELECT  /*ssrList.selectInvoicedSSR*/
+				DISTINCT A.VSL_CALL_ID	AS SSRNO,
+				''						AS IVNO
+			FROM 
+				TMT_B_IV A
+			WHERE
+				A.STAT_CD 				= 'ABCD'
+				AND A.VSL_CALL_ID 		= #{vslCallId}
+		</if>
+	</select>
+	<select id="selectSsrNo"  resultType="java.lang.String">
+    	SELECT  /*ssrList.selectSsrNo*/
+			CONCAT(
+				FORMAT(SYSDATETIME(), 'yyMM'),
+				RIGHT('0000' + ISNULL(LTRIM(CONVERT(VARCHAR, ISNULL(MAX(CAST(SUBSTRING(A.SSR_NO, 5, 4) AS INT)), 0)) + 1), '0001'), 4)
+			) AS SSRNO
+
+		FROM
+			TMT_B_SSR A
+		WHERE 
+			A.SSR_NO like (FORMAT(SYSDATETIME(),'yyMM')+'%')
+	</select>
+	<select id="selectSSRDtlNo" parameterType="SSRListParm" resultType="SSRListItem">
+		SELECT 	/*ssrList.selectSSRDtlNo*/
+			SSR_NO AS SSRNO, 
+			SEQ 
+		FROM
+			MT_B_SSR_DTL 
+		WHERE
+			1=1 
+			AND 	SSR_NO = #{ssrNo}
+	</select>
+	<select id="selectVesselInfo" parameterType="SSRListParm" resultType="SSRListItem">
+	    SELECT  /*ssrList.selectVesselInfo*/
+			D.VSL_CD        					AS VESSELCD,
+			D.VSL_CALL_ID       				AS VSLCALLID,
+			E.VSL_NM        					AS VESSELNAME,
+			D.ARRV_SA_ID    					AS SA,
+			(SELECT TOP(1)
+				ENG_SNM 
+			FROM
+				TMT_AGENCY_INFO 
+			WHERE
+				PTNR_TYPE = 'SHA' 
+				AND AGENCY_CODE = D.ARRV_SA_ID )AS SANM,
+			E.SHIPPING_LINE_CD 					AS SHIPLINECD,
+			DBO.F_GET_PARTNER_INFO (E.SHIPPING_LINE_CD, 'ENG_SNM') AS SHIPLINENM,
+			D.INB_VOY+'/' +D.OUTB_VOY 			AS VOYAGE,
+			D.BERTH_LOC                			AS BERTHLOC,
+			FORMAT(D.ETA,'dd/MM/yyyy HH:mm:ss') AS ETA,
+			FORMAT(D.ETD,'dd/MM/yyyy HH:mm:ss') AS ETD,
+			FORMAT(D.ATB,'dd/MM/yyyy HH:mm:ss') AS ATB,
+			FORMAT(D.ATW,'dd/MM/yyyy HH:mm:ss') AS ATW,
+			FORMAT(D.ATC,'dd/MM/yyyy HH:mm:ss') AS ATC,
+			FORMAT(D.ATU,'dd/MM/yyyy HH:mm:ss') AS ATU,
+			E.LOA,
+			E.GRT
+		FROM 
+			TMT_VSL_SCH D 
+		LEFT JOIN
+			TMT_VSL_PART E 
+		ON
+			D.VSL_CD = E.VSL_CD
+		WHERE
+			1=1 AND
+			<if test="vslCallId == 'Non-Vessel'"> 
+				D.VSL_CALL_ID = 'STRG'
+			</if>
+			<if test="vslCallId != 'Non-Vessel'"> 
+				D.VSL_CALL_ID = #{vslCallId}
+			</if>
+    </select>
+	<select id="selectSsrPayer"  parameterType="SSRListParm" resultType="SSRListItem">
+		SELECT  TOP(1)/*ssrList.selectSsrPayer*/
+			C.CODE 						AS payerCd,
+			ISNULL(C.ACCNO,'')			AS accountNo,
+			CASE 
+				WHEN C.ACCNO IS NOT NULL THEN 'ALL'
+				ELSE 'CASH'
+			END AS accountType
+
+		FROM (
+			SELECT	
+				A.AGENCY_CODE 	AS CODE ,
+				A.ACC_NO      	AS ACCNO ,
+				A.ENG_SNM     	AS NAME
+		 	FROM 
+				TMT_AGENCY_INFO A
+			WHERE
+				/*(A.ACC_NO IS NOT NULL) AND*/
+				A.AGENCY_CODE = #{payerCd}
+		 	UNION 
+		  	SELECT 
+				B.PTNR_CODE 	AS CODE ,
+				B.ACC_NO    	AS ACCNO,
+				B.ENG_SNM     	AS NAME
+		  	FROM
+				TMT_PTNR B
+		   	WHERE
+				/*(B.ACC_NO IS NOT NULL) AND */
+				B.PTNR_CODE =#{payerCd}
+		) C
+	</select>
+	
+    <select id="selectSSRSummary"  parameterType="SSRListParm" resultType="SSRListItem">
+		SELECT 	/*ssrList.selectSSRSummary*/
+			C.PAYERCD 		AS PAYERCD, 
+			C.PAYERTPCD 	AS PAYERTPCD, 
+			C.SSRTPCD 		AS SSRTPCD, 
+			C.TOTALAMOUNT 	AS TOTALAMOUNT,
+			F.ACC			AS ACCOUNTNO,
+			F.NAME 			AS PAYERNAME, 
+			C.TOTALAMOUNT 	AS PAYABLEAMOUNT
+		FROM (
+			SELECT 	
+				A.PAYER_CD	AS PAYERCD,
+				A.PAY_TP_CD	AS PAYERTPCD,	 
+				B.SSR_TP_CD	AS SSRTPCD, 
+				SUM(
+					ISNULL(
+						ROUND(
+							ISNULL(
+								CASE 
+									WHEN B.UNIT1_QTY IS NULL THEN 1
+									WHEN B.UNIT1_QTY = 0 THEN 1
+									ELSE B.UNIT1_QTY
+								END
+								*
+								CASE 
+									WHEN B.UNIT2_QTY IS NULL THEN 1
+									WHEN B.UNIT2_QTY = 0 THEN 1
+									ELSE B.UNIT2_QTY
+								END
+								*
+								CASE 
+									WHEN B.UNIT3_QTY IS NULL THEN 1
+									WHEN B.UNIT3_QTY = 0 THEN 1
+									ELSE B.UNIT3_QTY
+								END
+								* 
+								B.APLY_UNIT_PRC, 0)
+						, 2)
+					, 0)
+				) AS totalAmount
+
+			FROM 	
+				TMT_B_SSR_DTL B , TMT_B_SSR A
+			WHERE
+				B.SSR_NO 		= A.SSR_NO			
+			<if test="ssrType != null and ssrType != ''">
+    			AND	B.SSR_TP_CD = #{ssrType}
+			</if>
+			<if test="dateFrom != null and dateFrom != ''">
+				AND A.ISSUE_DT BETWEEN CONVERT(DATETIME, #{dateFrom},103)
+					AND CONVERT(DATETIME, #{dateTo},103)
+			</if>
+			<if test="payerCd != null and payerCd != ''">
+    			AND	A.PAYER_CD = #{payerCd}
+			</if>
+			<if test="whId != null and whId != ''">
+    			AND	A.WH_ID = #{whId}
+			</if>
+			<if test="berthNo != null and berthNo != ''">
+    			AND	A.BERTH_NO = #{berthNo}
+			</if>
+			<if test="ssrStatCd != null and ssrStatCd != ''">
+     			AND	A.SSR_STAT_CD = #{ssrStatCd}
+			</if>			
+			GROUP BY 
+				A.PAYER_CD,A.PAY_TP_CD,  B.SSR_TP_CD
+		) C
+		LEFT JOIN
+		(
+			SELECT	
+				F1.CODE 		AS CODE, 
+				MAX(F1.ACC) 	AS ACC, 
+				MAX(F1.NAME) 	AS NAME 
+			FROM (
+				SELECT	
+					D.PTNR_CODE AS CODE ,
+					D.ACC_NO 	AS ACC ,
+					D.ENG_SNM 	AS NAME 
+				FROM
+					TB_PTNR D 
+				UNION 
+		 		SELECT 	
+					E.AGENCY_CODE AS CODE, 
+					E.ACC_NO 	AS ACC, 
+					E.ENG_SNM 	AS NAME 
+		 		FROM 
+					TB_AGENCY_INFO E
+		 	) F1
+			GROUP BY 
+				F1.CODE 
+		) F
+		ON 
+			C.PAYERCD = F.CODE
+    </select> 
+    
+    <insert id="insertItems"  parameterType="SSRListItem">
+		INSERT /*ssrList.insertItems*/
+		INTO TMT_B_SSR(
+			SSR_NO,
+			VSL_CALL_ID,
+			ISSUE_DT,
+			DUE_DT,
+			PAYMENT_TERM,
+			BERTH_NO,
+			WH_ID,
+			PAYER_CD,
+			PAY_TP_CD,
+			IV_PRFX,
+			REF_NO,
+			RMK,
+			SSR_STAT_CD,
+			IV_NO,
+			UPDATE_TIME,
+			STAFF_CD,
+			VERSION,
+			PAYER_TP_CD
+		) VALUES (
+			#{ssrNo},
+			#{vslCallId},
+			CONVERT(DATETIME , #{issueDt},103),	
+			CONVERT(DATETIME , #{dueDt},103),
+			#{paymentTerm},
+			#{berthNo},
+			#{whId},
+			#{payerCd},
+			#{paymentType},
+			#{ivPrfx},
+			#{refNo},
+			#{rmk},
+			#{ssrStatCd},
+			#{ivNo},
+			SYSDATETIME(),
+			#{userId},
+		 	#{newVersion},
+		 	#{payerTpCd}
+		 )
+    </insert>
+    
+    <insert id="insertDetailItems"  parameterType="SSRListItem">
+		INSERT /*ssrList.insertDetailItems*/
+		INTO TMT_B_SSR_DTL(
+			SSR_NO,
+			SEQ,
+			TRF_CD,
+			SUB_TRF_CD,
+			SSR_TP_CD,
+			UNIT1_QTY,
+			UNIT2_QTY,
+			UNIT3_QTY,
+			APLY_UNIT_PRC,
+			UPDATE_TIME,
+			STAFF_CD,
+			VERSION,
+			COST_CENT_CD,
+			ERP_COST_CENT,
+			TRF_IN_DESCR, 
+			TRF_USER_DESCR,
+			TAX_AMT,
+			TOTAL_AMT,
+			TAX_TYPE, 
+			TAX_VALUE,
+			WTH_VALUE,
+			WTH_AMT, 
+			DIS_RATE,
+			DIS_AMT,
+			TAX_PERCENT
+		) VALUES (
+			#{ssrNo},
+			(SELECT 
+				ISNULL(MAX(SEQ),0)+1 
+			FROM
+				TMT_B_SSR_DTL 
+			WHERE 
+				SSR_NO=#{ssrNo}),
+			#{trfCd},
+			#{subTrfCd},
+			#{ssrTpCd},
+			TRY_CONVERT(NUMERIC(15,3), #{unitQty1}),
+			TRY_CONVERT(NUMERIC(15,3), #{unitQty2}),
+			TRY_CONVERT(NUMERIC(15,3), #{unitQty3}),
+			TRY_CONVERT(NUMERIC(10,3), #{aplyUnitPrc}),
+			SYSDATETIME(),
+			#{userId},
+			#{newVersion},
+			#{costCenter},
+			#{financialCode},
+			#{trfDescr},
+			#{trfDescr},
+			TRY_CONVERT(NUMERIC(11,3), #{gstAmount}),
+			TRY_CONVERT(NUMERIC(20,2), #{payableAmount}),
+			#{gstTpCd},
+			#{gstValue},
+			#{wthValue},
+			TRY_CONVERT(NUMERIC(20,2), #{wthAmount}),
+			TRY_CONVERT(NUMERIC(15,3), #{disSurRate}),
+			TRY_CONVERT(NUMERIC(20,3), #{disSurAmount}),
+			TRY_CONVERT(NUMERIC(18,0), (SELECT 
+				SUBSTRING(#{gstPercent}, 1,LEN(#{gstPercent})-1)))
+		)
+    </insert>
+    
+    <update id="updateItems"  parameterType="SSRListItem">
+		UPDATE	/*ssrList.updateItems*/
+			TMT_B_SSR
+	 	SET 
+			VSL_CALL_ID = #{vslCallId},							
+			ISSUE_DT 	= CONVERT(DATETIME, #{issueDt},103),	
+			WH_ID 		= #{whId},				
+			BERTH_NO 	= #{berthNo},				
+			PAYER_CD 	= #{payerCd},	
+			PAYER_TP_CD = #{payerTpCd},			
+			REF_NO 		= #{refNo},				
+			IV_PRFX 	= #{ivPrfx},				
+			IV_NO 		= #{ivNo},	
+			PAY_TP_CD 	= #{paymentType},
+			SSR_STAT_CD	= CASE 
+							WHEN #{ssrStatCd} = 'INVOICED' THEN 'IV'
+							WHEN #{ssrStatCd} = 'VERIFIED' THEN 'VF'
+							ELSE 'CR'
+						END,
+			RMK 		= #{rmk},				
+			VERSION 	= #{newVersion},
+			UPDATE_TIME = SYSDATETIME() 
+		WHERE 
+			SSR_NO	= #{ssrNo}
+			<if test="version != null and version != ''">
+				AND	VERSION = #{version} 
+			</if>
+    </update>
+    
+    <update id="updateDetailItems"  parameterType="SSRListItem">
+		UPDATE	/*ssrList.updateDetailItems*/
+			TMT_B_SSR_DTL
+	 	SET 	
+			UNIT1_QTY 		= TRY_CONVERT(NUMERIC(15,3), #{unitQty1}) ,
+			UNIT2_QTY 		= TRY_CONVERT(NUMERIC(15,3), #{unitQty2}) ,
+			UNIT3_QTY 		= TRY_CONVERT(NUMERIC(15,3), #{unitQty3}),
+			APLY_UNIT_PRC 	= TRY_CONVERT(NUMERIC(10,3),#{aplyUnitPrc}) ,
+			UPDATE_TIME		= SYSDATETIME() ,
+			VERSION 		= #{newVersion},
+			STAFF_CD 		= #{userId},
+			COST_CENT_CD 	= #{costCenter},
+			TRF_IN_DESCR 	= #{trfDescr},
+			TRF_USER_DESCR 	= #{trfDescr},
+			TRF_CD 			= #{trfCd},
+			SUB_TRF_CD 		= #{subTrfCd},
+			TAX_AMT 		= TRY_CONVERT(NUMERIC(11, 3), #{gstAmount}),
+			WTH_AMT 		= TRY_CONVERT(NUMERIC(20, 2), #{wthAmount}),
+			TAX_TYPE 		= #{gstTpCd},
+			TAX_VALUE 		= #{gstValue},
+			DIS_AMT 		= TRY_CONVERT(NUMERIC(20, 3), #{disSurAmount}),
+			TAX_PERCENT 	= (SELECT 
+								SUBSTRING(#{gstPercent}, 1,LEN(#{gstPercent})-1)  ),
+			TOTAL_AMT 		= TRY_CONVERT(NUMERIC(20, 2), #{payableAmount})
+		WHERE 
+			SSR_NO 			= #{ssrNo} 
+			AND SEQ 		= TRY_CONVERT(INT, #{seq})
+    </update>
+    
+    <delete id="deleteItems"  parameterType="SSRListItem">
+    	BEGIN /*ssrList.deleteItems*/
+			DELETE 
+			FROM 
+				TMT_B_SSR_DTL
+			WHERE	
+				SSR_NO = #{ssrNo};
+			DELETE
+			FROM 
+				TMT_B_SSR
+			WHERE	
+				SSR_NO = #{ssrNo};
+			DELETE
+				FROM 
+			TMT_B_IV 
+				WHERE IV_NO IN (SELECT 
+									DISTINCT IV_NO
+								FROM 
+									TMT_B_IV_DATA 
+								WHERE	
+									REF_NO1 = #{ssrNo});
+									
+			DELETE
+			FROM
+				TMT_B_IV_DATA 
+			WHERE
+				REF_NO1 = #{ssrNo};
+		END;
+    </delete>
+    
+    <delete id="deleteDetailItems"  parameterType="SSRListItem">
+	    BEGIN /*ssrList.deleteDetailItems*/
+			DELETE 	
+				FROM TMT_B_SSR_DTL
+			WHERE
+				SSR_NO 	= #{ssrNo} 
+				AND SEQ = CAST(#{seq} AS INT) ;
+			
+			DELETE 
+			FROM
+				TMT_B_IV_DATA
+			WHERE
+				GATHER_NO 		= #{gatherNo} 
+				AND REF_NO2 	= #{ssrNo} 
+				AND TRF_CD 		= #{trfCd}
+				AND SUB_TRF_CD 	= #{subTrfCd};
+		END;
+    </delete> 
+    
+    <delete id="deleteInvoiceDataItem"  parameterType="invoiceDataItem">
+		DELETE 	/*ssrList.deleteInvoiceDataItem*/
+		FROM 
+			TMT_B_IV_DATA
+		WHERE
+			TRF_CD 			= #{trfCd}
+			AND	SUB_TRF_CD 	= #{subTrfCd}	
+			AND	REF_NO2 	= #{refNo2} 
+    </delete> 
+</mapper>

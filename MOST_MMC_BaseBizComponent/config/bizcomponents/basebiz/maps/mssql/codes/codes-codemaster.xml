@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="codeMaster">
+
+	<!-- LargeCodeCombo -->
+	<resultMap 	id="codeMasterLargeCodeCombo" type="CodeMasterItem">
+		<result property = "lcd"				column = "L_CD"/>
+		<result property = "lcdNm"				column = "L_CD_NM"/>
+		<result property = "useYn"				column = "USE_YN"/>
+	</resultMap>
+	
+	<!-- MiddleCodeCombo -->
+	<resultMap 	id="codeMasterMiddleCodeCombo" type="CodeMasterItem">
+		<result property = "mcd"				column = "M_CD"/>
+		<result property = "mcdNm"				column = "M_CD_NM"/>
+		<result property = "useYn"				column = "USE_YN"/>
+		<!--  
+		<result property = "updateTime"			column = "UPDATE_TIME"/>
+		<result property = "userId"				column = "STAFF_CD"/>
+		-->
+	</resultMap>
+	
+	<!-- SmallCodeList -->
+ 	<resultMap 	id="codeMasterSmallCodeList" type="CodeMasterItem">
+		<result property = "lcd"				column = "L_CD"/>
+		<result property = "lcdNm"				column = "L_CD_NM"/>
+		<result property = "mcd"				column = "M_CD"/>
+		<result property = "mcdNm"				column = "M_CD_NM"/>
+		<result property = "scd"				column = "S_CD"/>
+		<result property = "scdNm"				column = "S_CD_NM"/>
+		<result property = "scdDesc"			column = "S_CD_DESC"/>
+		<!-- 
+		<result property = "updDtm"				column = "UPDATE_TIME"/>
+		<result property = "userId"				column = "STAFF_CD"/>
+		 -->
+		<result property = "useYn"				column = "S_CD_USE"/>
+		<result property = "extendCd"			column = "S_CD_LGV"/>
+	</resultMap>
+	
+	<resultMap id="CodeMasterList" type="CodeMasterItem">
+        <result property = "mcd"	 			column = "M_CD"/>
+        <result property = "scd"	 			column = "S_CD"/>
+        <result property = "scdNm"		 		column = "S_CD_NM"/>    
+        <result property = "scdLgv"		 		column = "S_CD_LGV"/> 
+        <result property = "scdVal"		 		column = "S_CD_VAL"/>
+        <result property = "scdDesc"		 	column = "S_CD_DESC"/>
+        <result property = "cgTp"		 		column = "CG_TP"/>
+    </resultMap>
+	
+	<resultMap id="IMDGList" type="commodityCodeItem">
+        <result property = "unno"	 			column = "UNNO"/>
+        <result property = "classes"	 		column = "CLASS"/>
+        <result property = "imdgDiv"	 		column = "IMDG_DIV"/>
+        <result property = "substance" 			column = "SUBSTANCE"/>
+   </resultMap>
+	
+	<select id="selectCodeMasterLargeCode"  parameterType="codeMasterParm" resultMap="codeMasterLargeCodeCombo">
+		SELECT /*codeMaster.selectCodeMasterLargeCode*/
+			L_CD,
+			L_CD_NM,
+			USE_YN
+		FROM 
+			TMT_CD_MSTL
+		WHERE 
+			USE_YN = 'Y'
+	</select>
+
+	<select id="selectCodeMasterSmallCodeList" parameterType="codeMasterParm" resultMap="codeMasterSmallCodeList">
+	 	<if test="pageNo != 0"> 
+            SELECT /*codeMaster.selectCodeMasterSmallCodeList*/
+             	* 
+			FROM 
+				(SELECT inner_querry.*, ROW_NUMBER() OVER(ORDER BY L_CD , M_CD , S_CD) row_num FROM ( 
+		</if>
+				<include refid="getSmallCodeList"/>
+		<if test="pageNo != 0"> 
+				)inner_querry 
+			)inner_querry 
+			WHERE 
+				inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+
+	<sql id="getSmallCodeList">
+		SELECT /*codeMaster.getSmallCodeList*/
+			A.L_CD, 
+			A.M_CD, 
+			A.S_CD, 
+			A.S_CD_NM, 
+			A.S_CD_DESC,  
+			B.M_CD_NM,  
+			A.STAFF_CD, 
+			A.UPDATE_TIME, 
+			A.S_CD_USE, 
+			A.S_CD_LGV
+		FROM 
+			TMT_CD_MSTD A, TMT_CD_MSTM B, TMT_CD_MSTL C
+		<where> 
+			A.L_CD 					= C.L_CD
+			AND B.L_CD 				= C.L_CD
+			AND	A.M_CD 				= B.M_CD
+		<if test="lcd != null and lcd != ''">
+			AND C.L_CD 				= #{lcd}
+		</if>
+		<if test="mcd != null and mcd != ''">
+			AND	 B.M_CD 			= #{mcd}
+		</if>
+		<if test="scd !=null and scd != ''">
+			AND	 A.S_CD like '%' + #{scd} + '%'
+		</if>
+		<if test="scdNm !=null and scdNm != ''">
+			AND	 A.S_CD_NM like '%' + #{scdNm} + '%'
+		</if>
+			AND C.USE_YN			='Y'
+			AND B.USE_YN			='Y'
+		</where>
+		<!-- ORDER BY 
+			A.L_CD , A.M_CD , A.S_CD
+		OFFSET 
+			(CASE WHEN #{pageNo} = '0' THEN 0 ELSE CAST(#{pageNo} AS INT) - 1 END) * CAST(#{sizePerPage} AS INT) ROWS
+		FETCH 
+			NEXT CAST(#{sizePerPage} AS INT) ROWS ONLY -->
+	</sql> 
+	
+	<select id="selectCodeMasterSmallCodeListCount" parameterType="codeMasterParm" resultType="java.lang.String" >
+        SELECT /*codeMaster.selectCodeMasterSmallCodeListCount*/
+			COUNT(*)
+        FROM 
+			(<include refid="getSmallCodeList"/>) AS getSmallCodeList
+	</select>
+	
+	<select id="selectCodeMasterSmallCode" parameterType="codeMasterParm" resultMap="codeMasterSmallCodeList">
+		SELECT /*codeMaster.selectCodeMasterSmallCode*/
+			S_CD,
+			S_CD_NM
+		FROM 
+			TMT_CD_MSTD 
+		WHERE 
+			1 = 1
+			<if test="lcd != null and lcd != ''">
+      			AND L_CD 										= #{lcd}
+    		</if>
+    		<if test="mcd != null and mcd != ''">
+      			AND M_CD 										= #{mcd}
+    		</if>
+    		<if test="scdUse != null and scdUse != ''">
+     			AND S_CD_USE 									= #{scdUse}
+    		</if>	
+	</select>
+	
+	<select id="selectCodeMasterList"  parameterType="codeMasterParm" resultMap="CodeMasterList">
+		SELECT /*codeMaster.selectCodeMasterList*/
+			M_CD,
+		 	S_CD, 
+			S_CD_NM,
+		    S_CD_DESC
+		FROM 
+			TMT_CD_MSTD
+		WHERE 1=1 
+    	<if test="lcd != null and lcd != ''">
+      		AND L_CD 				= #{lcd}
+    	</if>
+    	<if test="mcd != null and mcd != ''">
+			AND M_CD 				= #{mcd}
+    	</if>
+    	<if test="scdUse != null and scdUse != ''">
+			AND S_CD_USE 			= #{scdUse}
+    	</if>
+			AND S_CD NOT IN ('SC1','SC2','SC3','SR1','SR2','SR3')
+        ORDER BY 
+			S_CD_NM ASC
+	</select>
+	
+	<select id="selectLorryAssignmentConfigurationList" parameterType="codeMasterParm" resultMap="CodeMasterList">
+		SELECT /*codeMaster.selectLorryAssignmentConfigurationList*/
+			S_CD,
+			S_CD_VAL
+		FROM 
+			TMT_CD_MSTD
+		WHERE L_CD = 'MT' 
+		AND M_CD = 'LRLEGEND'
+	</select>
+	
+	<insert id="insertCodeMasterItem"  parameterType="CodeMasterItem">
+		INSERT /*codeMaster.insertCodeMasterItem*/  
+		INTO TMT_CD_MSTD (
+			L_CD,
+			M_CD,
+			S_CD,
+			S_CD_NM,
+			S_CD_DESC,
+			UPDATE_TIME,
+			STAFF_CD,
+			S_CD_USE,
+			S_CD_LGV
+		) VALUES (
+			#{lcd},
+			#{mcd},
+			#{scd},
+			#{scdNm},
+			#{scdDesc},
+			SYSDATETIME(),
+			#{userId},
+			#{useYn},
+			#{extendCd}
+		)
+	</insert>
+	
+	<update id="updateCodeMasterItem"  parameterType="CodeMasterItem">
+		UPDATE /*codeMaster.updateCodeMasterItem*/
+			TMT_CD_MSTD 
+		SET
+		<if test="scdNm != null">
+			S_CD_NM 				= #{scdNm},
+		</if>
+		<if test="scdDesc != null">
+			S_CD_DESC 				= #{scdDesc},
+		</if>
+			STAFF_CD				= #{userId},
+			UPDATE_TIME 			= SYSDATETIME(),
+			S_CD_USE				= #{useYn},
+			s_CD_LGV 				= #{extendCd}
+		WHERE 
+			L_CD 					= #{lcd}
+			AND M_CD 				= #{mcd}
+			AND S_CD 				= #{scd}
+	</update>
+	
+	<update id="updateLorryAssignmentConfigurationItems" parameterType="CodeMasterItem">
+		UPDATE /*codeMaster.updateLorryAssignmentConfigurationItems*/
+			TMT_CD_MSTD
+		SET
+			S_CD_VAL = #{scdVal}
+		WHERE L_CD = 'MT'
+		AND M_CD = 'LRLEGEND'
+		AND S_CD = #{scd}
+	</update>
+	
+	<delete id="deleteCodeMasterItem"  parameterType="CodeMasterItem">
+		DELETE /*codeMaster.deleteCodeMasterItem*/
+		FROM 
+			TMT_CD_MSTD
+		WHERE 
+			L_CD 					= #{lcd}
+			AND	M_CD 				= #{mcd}
+			AND	S_CD 				= #{scd}
+	</delete>
+	
+	<select id="checkDupCodeMaster" parameterType="codeMasterParm" resultMap="CodeMasterList">
+		SELECT /*codeMaster.checkDupCodeMaster*/
+			*
+		FROM
+			TMT_CD_MSTD
+		WHERE
+			S_CD 					= #{scd}
+			AND L_CD 				= #{lcd}
+			AND	M_CD 				= #{mcd}
+	</select>
+</mapper>

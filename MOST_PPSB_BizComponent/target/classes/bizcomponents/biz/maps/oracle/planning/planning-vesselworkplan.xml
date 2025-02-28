@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="vesselWorkPlan">
+	
+	<sql id="getVesseWorkPlanList">
+		SELECT DISTINCT 
+			W.VESSEL_SEQ VSLSEQ,
+			W.CRANE_NO CRANENO,
+			W.VSL_CALL_ID VSLCALLID,
+			CASE
+				WHEN W.CATG_CD = 'I' OR W.CATG_CD = 'T' THEN B.BL_NO
+				WHEN W.CATG_CD = 'E' THEN N.SHIPG_NOTE_NO
+			END AS BTN_NO,
+			H.BTN_SEQ BTNSEQ,
+			W.HATCH_NO HATCHNO,
+			W.DECK_LOC DECKLOC,
+			W.HATCH_SEQ HATCHSEQ,
+			CASE
+				WHEN W.CATG_CD = 'I' OR W.CATG_CD = 'T' THEN B.BL_NO
+				WHEN W.CATG_CD = 'E' THEN N.SHIPG_NOTE_NO
+			END AS BLSNNO,
+			CASE
+				WHEN W.CATG_CD = 'I' OR W.CATG_CD = 'T' THEN B.POD
+				WHEN W.CATG_CD = 'E' THEN N.POD
+			END AS POD,
+			CASE
+				WHEN W.CATG_CD = 'I' OR W.CATG_CD = 'T' THEN B.CMDT_CD
+				WHEN W.CATG_CD = 'E' THEN N.CMDT_CD
+			END AS COMMODITY,
+			CASE
+				WHEN W.CATG_CD = 'I' OR W.CATG_CD = 'T' THEN B.PKG_TP_CD
+				WHEN W.CATG_CD = 'E' THEN N.PKG_TP_CD
+			END AS PKGTYPE,
+			CASE
+				WHEN W.CATG_CD = 'I' OR W.CATG_CD = 'T' THEN B.FWRD
+				WHEN W.CATG_CD = 'E' THEN N.FWRD
+			END AS FWD,
+			W.CATG_CD CATGCD,
+			W.MT MT,
+			W.QTY QTY,
+			W.RMK RMK
+		FROM TMT_VSL_WORK_PLAN W
+        LEFT OUTER JOIN TMT_VSL_HATCH_PLAN H ON H.VSL_CALL_ID = W.VSL_CALL_ID AND W.HATCH_NO = H.HATCH_NO AND W.DECK_LOC = H.DECK_LOC AND W.HATCH_SEQ = H.HATCH_SEQ
+		LEFT OUTER JOIN TMT_BL B ON W.VSL_CALL_ID = B.VSL_CALL_ID AND W.SN_BL_NO = B.BL_NO
+		LEFT OUTER JOIN TMT_SHIPG_NOTE N ON N.VSL_CALL_ID = W.VSL_CALL_ID AND W.SN_BL_NO = N.SHIPG_NOTE_NO
+		WHERE 1=1 
+		<if test="vslCallId != null and vslCallId != ''">
+	  		AND W.VSL_CALL_ID =#{vslCallId}
+	  	</if>
+		UNION ALL
+		SELECT DISTINCT 
+			'' VSLSEQ, 
+			'' CRANENO,
+			H.VSL_CALL_ID VSLCALLID,
+			H.BTN_NO BTNNO,
+			H.BTN_SEQ BTNSEQ,
+			HATCH_NO HATCHNO,
+			DECK_LOC DECKLOC,
+			HATCH_SEQ HATCHSEQ,
+			CASE 
+				WHEN H.CATG_CD = 'I' OR H.CATG_CD = 'T' THEN B.BL_NO
+				WHEN H.CATG_CD = 'E' THEN N.SHIPG_NOTE_NO
+			END AS BLSNNO,
+			CASE 
+				WHEN H.CATG_CD = 'I' OR H.CATG_CD = 'T' THEN B.POD
+				WHEN H.CATG_CD = 'E' THEN N.POD
+			END AS POD,
+			CASE 
+				WHEN H.CATG_CD = 'I' OR H.CATG_CD = 'T' THEN B.CMDT_CD
+				WHEN H.CATG_CD = 'E' THEN N.CMDT_CD
+			END AS COMMODITY,
+			CASE 
+				WHEN H.CATG_CD = 'I' OR H.CATG_CD = 'T' THEN B.PKG_TP_CD
+				WHEN H.CATG_CD = 'E' THEN N.PKG_TP_CD
+			END AS PKGTYPE,
+			CASE 
+				WHEN H.CATG_CD = 'I' OR H.CATG_CD = 'T' THEN B.FWRD
+				WHEN H.CATG_CD = 'E' THEN N.FWRD
+			END AS FWD,
+			H.CATG_CD CATGCD,
+			MT MT,
+			QTY QTY,
+			H.RMK RMK
+		FROM TMT_VSL_HATCH_PLAN H
+		LEFT OUTER JOIN TMT_BL B ON H.VSL_CALL_ID = B.VSL_CALL_ID AND H.BTN_NO = B.BL_NO AND H.BTN_SEQ =B.CALL_SEQ
+		LEFT OUTER JOIN TMT_SHIPG_NOTE N ON N.VSL_CALL_ID = H.VSL_CALL_ID AND H.BTN_NO = N.SHIPG_NOTE_NO AND H.BTN_SEQ =N.CALL_SEQ
+		WHERE 1=1 
+		AND (
+			B.BL_NO NOT IN(
+				SELECT SN_BL_NO 
+				FROM TMT_VSL_WORK_PLAN P 
+				WHERE P.SN_BL_NO = B.BL_NO
+			) AND N.SHIPG_NOTE_NO NOT IN(
+				SELECT SN_BL_NO 
+				FROM TMT_VSL_WORK_PLAN P 
+				WHERE P.SN_BL_NO = N.SHIPG_NOTE_NO
+			)
+		)
+		<if test="vslCallId != null and vslCallId != ''">
+	  		AND H.VSL_CALL_ID =#{vslCallId}
+	  	</if>
+		UNION ALL
+		SELECT DISTINCT 
+			'' VSLSEQ, 
+			'' CRANENO,
+			N.VSL_CALL_ID VSLCALLID,
+			N.SHIPG_NOTE_NO BTNNO,
+			N.CALL_SEQ BTNSEQ,
+			'' HATCHNO,
+			'' DECKLOC,
+			'' HATCHSEQ,
+			N.SHIPG_NOTE_NO BLSNNO,
+			N.POD,
+			N.CMDT_CD COMMODITY,
+			N.PKG_TP_CD PKGTYPE,
+			N.FWRD FWD,
+			N.CATG_CD CATGCD,
+			N.CG_WGT  MT,
+			N.PKG_QTY QTY,
+			N.MARK_NO RMK
+		FROM TMT_SHIPG_NOTE N 
+		WHERE 1=1
+	  	AND N.SHIPG_NOTE_NO IS NOT NULL
+	  	AND N.SHIPG_NOTE_NO NOT IN(SELECT SN_BL_NO FROM TMT_VSL_WORK_PLAN P WHERE P.SN_BL_NO = N.SHIPG_NOTE_NO)
+		<if test="vslCallId != null and vslCallId != ''">
+		  	AND N.VSL_CALL_ID=#{vslCallId}
+		</if>
+		UNION ALL
+		SELECT DISTINCT 
+			'' VSLSEQ, 
+			'' CRANENO,
+			B.VSL_CALL_ID VSLCALLID,
+			B.BL_NO BTNNO,
+			B.CALL_SEQ BTNSEQ,
+			'' HATCHNO,
+			'' DECKLOC,
+			'' HATCHSEQ,
+			B.BL_NO BLSNNO,
+			B.POD, 
+			B.CMDT_CD COMMODITY,
+			B.PKG_TP_CD PKGTYPE,
+			B.FWRD FWD,
+			B.CATG_CD CATGCD,
+			B.CG_WGT MT,
+			B.PKG_QTY QTY,
+			B.MARK_NO RMK
+		FROM TMT_BL B
+		WHERE 1=1
+	  	AND B.BL_NO IS NOT NULL
+	  	AND B.BL_NO NOT IN(SELECT SN_BL_NO FROM TMT_VSL_WORK_PLAN P WHERE P.SN_BL_NO = B.BL_NO)
+ 		<if test="vslCallId != null and vslCallId != ''">
+ 			AND B.VSL_CALL_ID=#{vslCallId}
+ 		</if>
+ 		ORDER BY VSLSEQ, CRANENO
+	</sql>
+	
+	<select id="selectVesselWorkPLanList"  parameterType="SearchVesselWorkPlanParm" resultType="VesselWorkPlanItem">
+		<if test="pageNo != 0"> 
+			SELECT /*vesselWorkPlan.selectVesselWorkPLanList*/
+				* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+		<include refid="getVesseWorkPlanList"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+			AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+    </select>
+    
+  	<select id="selectVesselWorkPLanListCount"  parameterType="SearchVesselWorkPlanParm" resultType="java.lang.String">
+		SELECT COUNT(*) /*vesselWorkPlan.selectVesselWorkPLanListCount*/
+			FROM (<include refid="getVesseWorkPlanList"/>)
+    </select>
+
+	<select id="selectVslBaplieItem"  parameterType="VesselWorkPlanItem" resultType="VesselBaplieForGCItem">
+		SELECT /*vesselWorkPlan.selectVslBaplieItem*/
+			VSL_CALL_ID VSLCALLID,
+			BTN_NO || BTN_SEQ  BLNO,
+			BTN_SEQ BTNSEQ
+		FROM TMT_VSL_HATCH_PLAN
+		WHERE 1=1
+		<if test="vslCallId != null and vslCallId != ''">
+			AND VSL_CALL_ID=#{vslCallId}
+		</if>
+		AND HATCH_NO = #{hatchNo}
+		AND HATCH_SEQ = #{hatchSeq}
+		AND DECK_LOC = #{deckLoc}
+		AND (SELECT BTN_NO || BTN_SEQ BL_NO FROM TMT_BL WHERE BL_NO=#{blSNNo}) = BTN_NO || BTN_SEQ 
+		UNION ALL                
+	    SELECT 
+	    	VSL_CALL_ID VSLCALLID,
+			BTN_NO || BTN_SEQ  BLNO,
+			BTN_SEQ BTNSEQ
+		FROM TMT_VSL_HATCH_PLAN
+		WHERE 1=1
+		<if test="vslCallId != null and vslCallId != ''">
+			AND VSL_CALL_ID=#{vslCallId}
+		</if>
+		AND HATCH_NO = #{hatchNo}
+		AND HATCH_SEQ = #{hatchSeq}
+		AND DECK_LOC = #{deckLoc}
+		AND (SELECT BTN_NO || BTN_SEQ SN_NO FROM TMT_SHIPG_NOTE WHERE SHIPG_NOTE_NO=#{blSNNo}) = BTN_NO || BTN_SEQ
+	</select>
+
+	<insert id="insertHatchPlan"  parameterType="VesselWorkPlanItem">
+		INSERT /*vesselWorkPlan.insertHatchPlan*/
+		INTO TMT_VSL_HATCH_PLAN( 
+			VSL_CALL_ID,
+		  	BTN_NO,
+		  	BTN_SEQ,
+		  	HATCH_NO,
+		  	DECK_LOC,
+		  	HATCH_SEQ,
+		  	CATG_CD,
+		  	MT,
+		  	QTY,
+		  	RMK,
+		  	STAFF_CD,
+		  	UPDATE_TIME
+		) VALUES (
+			#{vslCallId}, 
+			#{btnNo}, 
+			#{btnSeq},
+			#{hatchNo},
+			#{deckLoc},
+			#{hatchSeq},
+			#{catgCd}, 
+			#{mt}, 
+			#{qty}, 
+			#{rmk}, 
+			#{userId}, 
+			SYSDATE
+		)
+	</insert>
+	
+	<select id="createNextSeq" resultType="java.lang.String">
+		SELECT /*vesselWorkPlan.createNextSeq*/
+			TRIM(TO_CHAR(VESSEL_WORK_PLAN_SEQ.NEXTVAL,'0000')) 
+		FROM DUAL
+	</select>
+	
+	<insert id="insertItems"  parameterType="VesselWorkPlanItem">
+		INSERT /*vesselWorkPlan.insertItems*/
+		INTO TMT_VSL_WORK_PLAN( 
+			VSL_CALL_ID,
+		  	CRANE_NO,
+		  	SEQ,
+		  	VESSEL_SEQ,
+		  	HATCH_NO,
+		  	DECK_LOC,
+		  	HATCH_SEQ,
+		  	CATG_CD,
+		  	SN_BL_NO,
+		  	MT,
+		  	QTY,
+		  	RMK,
+		  	STAFF_CD,
+		  	UPDATE_TIME
+		) VALUES (
+			#{vslCallId}, 
+			#{craneNo}, 
+			#{seq},
+			#{vslSeq},
+			#{hatchNo},
+			#{deckLoc},
+			#{hatchSeq},
+			#{catgCd}, 
+			#{blSNNo}, 
+			#{mt}, 
+			#{qty}, 
+			#{rmk}, 
+			#{userId}, 
+			SYSDATE
+		)
+	</insert>
+	
+	<delete id="deleteAllItems"  parameterType="VesselWorkPlanItem">
+		DELETE /*vesselWorkPlan.deleteAllItems*/
+		FROM TMT_VSL_WORK_PLAN 
+	</delete>
+	
+	<delete id="deleteItems"  parameterType="VesselWorkPlanItem">
+		DELETE /*vesselWorkPlan.deleteItems*/
+		FROM TMT_VSL_WORK_PLAN 
+		WHERE 1=1
+       	<if test="vslCallId != null and vslCallId != ''">
+ 			AND VSL_CALL_ID=#{vslCallId}
+ 		</if>
+	</delete>
+</mapper>

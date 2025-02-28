@@ -1,0 +1,41 @@
+Ext.define('MOST.model.document.SearchConsolDeconsolidationParm', {
+	extend: 'MOST.model.foundation.parm.BizParm',
+	fields: [
+		{
+			name:'vslCallId',
+			type:'string'
+		},
+		{
+			name:'mfDocId',
+			type:'string'
+		},
+		{
+			name:'blNo',
+			type:'string'
+		},
+		{
+			name:'snNo',
+			type:'string'
+		},
+		{
+			name:'getInFromTime',
+			type:'string'
+		},
+		{
+			name:'getInToTime',
+			type:'string'
+		},
+		{
+			name:'getOutFromTime',
+			type:'string'
+		},
+		{
+			name:'getOutToTime',
+			type:'string'
+		},
+		{
+			name:'cargoStatus',
+			type:'string'
+		}
+	]
+});

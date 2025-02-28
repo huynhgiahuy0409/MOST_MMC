@@ -1,0 +1,819 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cargoSearch">
+	
+	<select id="selectCargoSearchList" parameterType="CargoSearchParm" resultType="CargoSearchItem">
+	 	<if test="pageNo != 0">
+
+			WITH
+				<include refid="cargoSearchImportWithInclude"/>
+				<if test='isSubItems == "true"'>
+					,<include refid="exportGRWithInclude"/>
+				</if>
+				<if test='isSubItems != "true"'>
+					,<include refid="exportSNWithInclude"/>
+				</if>
+
+			SELECT /*cargoSearch.selectCargoSearchList*/
+				*
+			FROM (SELECT
+					inner_query.*, ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num
+				FROM (
+		</if>
+				<include refid="getCargoSearch"/>
+		<if test="pageNo != 0"> 
+				) inner_query
+			) inner_query
+			WHERE
+				inner_query.row_num <![CDATA[>]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT) - 1) * CAST(#{sizePerPage} AS INT)
+		  		AND inner_query.row_num <![CDATA[<=]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT)) * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+
+	<select id="selectCargoSearchListCount" parameterType="CargoSearchParm" resultType="java.lang.String" >
+		WITH
+			<include refid="cargoSearchImportWithInclude"/>
+			<if test='isSubItems == "true"'>
+				,<include refid="exportGRWithInclude"/>
+			</if>
+			<if test='isSubItems != "true"'>
+				,<include refid="exportSNWithInclude"/>
+			</if>
+        SELECT /*cargoSearch.selectCargoSearchListCount*/
+			COUNT(*)
+		FROM
+			(<include refid="getCargoSearch"/>)				AS selectCargoSearchListCount
+	</select>
+	
+	<sql id="getCargoSearch">
+		SELECT /*cargoSearch.getCargoSearch*/
+			DIV,
+			OPECLASSCD,
+			VSLCALLID,
+			MFDOCID,
+			BLSN,
+			CGNO,
+			SHIPGAGNT,
+			FWRAGNT,
+			DBO.F_CM_CODE_NM('MT', 'DELVTP', DELVTPCD)				AS DELVTPCD,
+			CMDTCD,
+			ISNULL(DIRMT, 0) + ISNULL(INDMT, 0) + ISNULL(NORMT, 0)	AS GRSMT,
+			ISNULL(GRSM3, 0)										AS GRSM3,
+			ISNULL(GRSQTY, 0)										AS GRSQTY,
+			ISNULL(DIRMT, 0)										AS DIRMT,
+			ISNULL(DIRM3, 0)										AS DIRM3,
+			ISNULL(DIRQTY, 0)										AS DIRQTY,
+			ISNULL(INDMT, 0)										AS INDMT,
+			ISNULL(INDM3, 0)										AS INDM3,
+			ISNULL(INDQTY, 0)										AS INDQTY,
+			ISNULL(NORMT, 0)										AS NORMT,
+			ISNULL(NORM3, 0)										AS NORM3,
+			ISNULL(NORQTY, 0)										AS NORQTY,
+			ISNULL(DMGMT, 0)										AS DMGMT,
+			ISNULL(DMGM3, 0)										AS DMGM3,
+			ISNULL(DMGQTY, 0)										AS DMGQTY,
+			ISNULL(SHUMT, 0)										AS SHUMT,
+			ISNULL(SHUM3, 0)										AS SHUM3,
+			ISNULL(SHUQTY, 0)										AS SHUQTY,
+			ISNULL(GPMT, 0)											AS GPMT,
+			ISNULL(GPM3, 0)											AS GPM3,
+			ISNULL(GPQTY, 0)										AS GPQTY,
+			C.ATA,
+			ISNULL(DOCMT, 0)										AS DOCMT,
+			ISNULL(DOCM3, 0)										AS DOCM3,
+			ISNULL(DOCQTY, 0)										AS DOCQTY,
+			GATETXNNO												AS GATETXNNO,
+			ISNULL(BAGWGT, 0)										AS BAGMT,
+			B.VSL_NM												AS VSLNM
+		FROM (	
+				<if test='isSubItems == "true"'>			
+					<include refid="cargoSearchExportGR"/>
+				</if>
+				<if test='isSubItems != "true"'>			
+					<include refid="cargoSearchExportSN"/>
+				</if>
+			UNION ALL
+				<include refid="cargoSearchImport"/>
+			) A,
+			TMT_VSL_PART B,
+			TMT_VSL_SCH C
+		WHERE
+			A.DIV IN ('SN','GR','BL')
+			AND C.VSL_CALL_ID 									= A.VSLCALLID
+			AND C.VSL_CD 										= B.VSL_CD
+			AND A.OPECLASSCD IS NOT NULL 
+		<if test="vslCallId != null and vslCallId != ''">
+			AND	A.VSLCALLID 									= #{vslCallId}
+		</if>
+		<if test="mfDocId != null and mfDocId != ''">
+			AND	A.MFDOCID 										= #{mfDocId}
+		</if>
+		<if test="ptnrCode != null and ptnrCode != ''">
+			<if test='authority == "SHA"'>
+				AND B.SA_CORP_ID 								= #{ptnrCode}
+				AND SHIPGAGNT 									= #{ptnrCode}
+			</if>
+		</if>
+		<if test="ptnrCode != null and ptnrCode != ''">
+			<if test='authority == "FWD"'>
+				AND FWRAGNT 									= #{ptnrCode}
+			</if>
+		</if>
+		<if test="blNo != null and blNo != ''">
+			AND	A.BLSN 											= #{blNo}
+		</if>
+		<if test="shipgNoteNo != null and shipgNoteNo != ''">
+			AND	A.BLSN 											= #{shipgNoteNo}
+		</if>					
+		<if test="delvTpCd != null and delvTpCd != ''">
+			AND A.DELVTPCD										= #{delvTpCd}
+		</if>
+		<if test="grNo != null and grNo != ''">
+			AND	A.CGNO											= #{grNo}
+		</if>
+		<if test="opeClassCd != null and opeClassCd != ''">
+			AND	A.OPECLASSCD 									= #{opeClassCd}
+		</if>
+		<if test="fromDate != null and fromDate != ''">
+			<if test="toDate != null and toDate != ''">
+				AND	CONVERT(DATE, FORMAT(C.ATB, 'dd/MM/yyyy'),103) BETWEEN CONVERT(DATE, #{fromDate},103) AND CONVERT(DATE, #{toDate},103)
+			</if>
+		</if>
+	</sql>
+
+	<sql id="exportGRWithInclude">
+		VS2 AS (
+			SELECT
+				VSL_CALL_ID					VSL_CALL_ID,
+				CG_NO						CG_NO,
+				SUM(ISNULL(CG_WGT, 0))  	GRS_MT,
+				SUM(ISNULL(CG_VOL, 0))		GRS_M3,
+				SUM(ISNULL(PKG_QTY, 0))		GRS_QTY,
+				SUM(CASE DELV_TP_CD
+					WHEN 'D' THEN ISNULL(CG_WGT, 0)
+					ELSE 0
+				END) 						DIR_MT,
+				SUM(CASE DELV_TP_CD
+					WHEN 'D' THEN ISNULL(CG_VOL, 0)
+					ELSE 0
+				END) 						DIR_M3,
+				SUM(CASE DELV_TP_CD
+					WHEN 'D' THEN ISNULL(PKG_QTY, 0)
+					ELSE 0
+				END) 						DIR_QTY,
+				SUM(CASE DELV_TP_CD
+					WHEN 'I' THEN ISNULL(CG_WGT, 0)
+					ELSE 0
+				END) 						IND_MT,
+				SUM(CASE DELV_TP_CD
+					WHEN 'I' THEN ISNULL(CG_VOL, 0)
+					ELSE 0
+				END) 						IND_M3,
+				SUM(CASE DELV_TP_CD
+					WHEN 'I' THEN ISNULL(PKG_QTY, 0)
+					ELSE 0
+				END) 						IND_QTY,
+				ISNULL(GATE_TXN_NO,'')		GATE_TXN_NO,
+				ISNULL(BAG_WGT, 0)			BAG_WGT
+			FROM
+				TMT_JOB
+			WHERE
+				1 = 1
+			<if test="vslCallId != null and vslCallId != ''">
+				AND	VSL_CALL_ID 			= #{vslCallId}
+			</if>
+				AND JOB_TP_CD IN ('LD','DS')
+				AND JOB_PURP_CD IN ('GV', 'AV')
+			GROUP BY
+				VSL_CALL_ID,
+				CG_NO,
+				ISNULL(GATE_TXN_NO,''),
+				ISNULL(BAG_WGT, 0)
+			),
+
+		WH AS (
+			SELECT
+				TJ.VSL_CALL_ID 				VSL_CALL_ID,
+				TJ.CG_NO	   				CG_NO,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'G' THEN TL.CG_WGT
+					ELSE 0
+				END)						NOR_MT,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'G' THEN TL.CG_VOL
+					ELSE 0
+				END)						NOR_M3,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'G' THEN TL.PKG_QTY
+					ELSE 0
+				END)						NOR_QTY,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'D' THEN TL.CG_WGT
+					ELSE 0
+				END)						DMG_MT,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'D' THEN TL.CG_VOL
+					ELSE 0
+				END)						DMG_M3,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'D' THEN TL.PKG_QTY
+					ELSE 0
+				END)						DMG_QTY,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'S' THEN TL.CG_WGT
+					ELSE 0
+				END)						SHU_MT,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'S' THEN TL.CG_VOL
+					ELSE 0
+				END)						SHU_M3,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'S' THEN TL.PKG_QTY
+					ELSE 0
+				END)						SHU_QTY
+			FROM
+				TMT_JOB TJ,
+				TMT_INV_LOC TL
+			WHERE
+				TJ.JOB_NO 					= TL.JOB_NO
+				AND TL.VSL_CALL_ID 			= TJ.VSL_CALL_ID
+			<if test="vslCallId != null and vslCallId != ''">
+				AND TJ.VSL_CALL_ID 			= #{vslCallId}
+			</if>
+				AND (TJ.SP_CA_CO_CD IS NULL OR TJ.SP_CA_CO_CD = '')
+			GROUP BY
+				TJ.VSL_CALL_ID,
+				TJ.CG_NO
+			),
+
+		GP AS (
+			SELECT
+				VSL_CALL_ID,
+				CG_IN_OUT_CD,
+				CG_NO,
+				SUM(ISNULL(CG_WGT, 0)) 		GP_MT,
+				SUM(ISNULL(CG_VOL, 0)) 		GP_M3,
+				SUM(ISNULL(PKG_QTY, 0)) 	GP_QTY
+			FROM
+				TMT_CG_ARRV_DELV
+			WHERE
+				1=1
+			<if test="vslCallId != null and vslCallId != ''">
+				AND	VSL_CALL_ID 		= #{vslCallId}
+			</if>
+				AND (GATE_PASS_NO IS NOT NULL AND GATE_PASS_NO <![CDATA[<>]]> '')
+			GROUP BY
+				VSL_CALL_ID,
+				CG_IN_OUT_CD,
+				CG_NO
+			)
+	</sql>
+	
+	<sql id="cargoSearchExportGR">
+		SELECT /*cargoSearch.cargoSearchExportGR*/
+			'GR'	   	   	 			DIV,
+			CM.OPE_CLASS_CD         	OPECLASSCD,
+			GR.VSL_CALL_ID 	  			VSLCALLID,
+			''							MFDOCID,
+			SN.SHIPG_NOTE_NO			BLSN,
+			GR.GR_NO					CGNO,
+			SN.SHIPG_AGNCY				SHIPGAGNT,
+			SN.FWRD						FWRAGNT,
+			SN.DELV_TP_CD				DELVTPCD,
+			SN.CMDT_CD					CMDTCD,
+			ISNULL(CM.PKG_QTY, 0) + DBO.F_GET_RC_PKG_QTY(CM.VSL_CALL_ID, CM.CG_NO)	GRSQTY,
+			ISNULL(CM.CG_VOL, 0) + DBO.F_GET_RC_MSRMT(CM.VSL_CALL_ID, CM.CG_NO) 	GRSM3,
+			ISNULL(CM.CG_WGT, 0) + DBO.F_GET_RC_WGT(CM.VSL_CALL_ID, CM.CG_NO) 		GRSMT,
+			tempVS2.DIR_MT					DIRMT,
+			tempVS2.DIR_M3					DIRM3,
+			tempVS2.DIR_QTY					DIRQTY,
+			tempVS2.IND_MT					INDMT,
+			tempVS2.IND_M3					INDM3,
+			tempVS2.IND_QTY					INDQTY,
+			tempWH.NOR_MT					NORMT,
+			tempWH.NOR_M3					NORM3,
+			tempWH.NOR_QTY					NORQTY,
+			tempWH.DMG_MT					DMGMT,
+			tempWH.DMG_M3					DMGM3,
+			tempWH.DMG_QTY					DMGQTY,
+			tempWH.SHU_MT					SHUMT,
+			tempWH.SHU_M3					SHUM3,
+			tempWH.SHU_QTY					SHUQTY,
+			tempGP.GP_MT					GPMT,
+			tempGP.GP_M3					GPM3,
+			tempGP.GP_QTY					GPQTY,
+			(CASE SN.DOMESTIC_CHK
+				WHEN 'Y' THEN 'Domestic Cargo'
+				ELSE ''
+			END) 						DOMESTICCHK,
+			SN.CG_WGT					DOCMT,
+			SN.CG_VOL					DOCM3,
+			SN.PKG_QTY					DOCQTY,
+			tempVS2.GATE_TXN_NO				GATETXNNO,
+			ISNULL(tempVS2.BAG_WGT, 0)		BAGWGT
+		FROM
+			TMT_SHIPG_NOTE SN,
+			TMT_CG_MST CM,
+			TMT_GR GR
+				LEFT OUTER JOIN VS2 tempVS2
+					ON GR.VSL_CALL_ID 			= tempVS2.VSL_CALL_ID
+					AND GR.GR_NO 				= tempVS2.CG_NO
+				LEFT OUTER JOIN WH tempWH
+					ON GR.VSL_CALL_ID 			= tempWH.VSL_CALL_ID
+					AND GR.GR_NO 				= tempWH.CG_NO
+				LEFT OUTER JOIN GP tempGP
+					ON GR.VSL_CALL_ID 			= tempGP.VSL_CALL_ID
+					AND GR.GR_NO 				= tempGP.CG_NO
+		WHERE
+			SN.VSL_CALL_ID 						= GR.VSL_CALL_ID
+			AND SN.SHIPG_NOTE_NO 				= GR.SHIPG_NOTE_NO
+			AND SN.VSL_CALL_ID 					= CM.VSL_CALL_ID
+			AND GR.GR_NO 						= CM.CG_NO
+		<if test="vslCallId != null and vslCallId != ''">
+			AND GR.VSL_CALL_ID 					= #{vslCallId}
+		</if>
+	</sql>
+
+	<sql id="exportSNWithInclude">
+		VS2 AS (
+			SELECT /*cargoSearch.cargoSearchExportSN VS2*/
+				TC.VSL_CALL_ID					VSL_CALL_ID,
+				TC.SHIPG_NOTE_NO 				CG_NO,
+				SUM(ISNULL(TJ.CG_WGT, 0))       GRS_MT,
+				SUM(ISNULL(TJ.CG_VOL, 0))       GRS_M3,
+				SUM(ISNULL(TJ.PKG_QTY, 0))      GRS_QTY,
+				SUM(CASE TJ.DELV_TP_CD
+					WHEN 'D' THEN ISNULL(TJ.CG_WGT, 0)
+					ELSE 0
+				END) 						DIR_MT,
+				SUM(CASE TJ.DELV_TP_CD
+					WHEN 'D' THEN ISNULL(TJ.CG_VOL, 0)
+					ELSE 0
+				END) 						DIR_M3,
+				SUM(CASE TJ.DELV_TP_CD
+					WHEN 'D' THEN ISNULL(TJ.PKG_QTY, 0)
+					ELSE 0
+				END) 						DIR_QTY,
+				SUM(CASE TJ.DELV_TP_CD
+					WHEN 'I' THEN ISNULL(TJ.CG_WGT, 0)
+					ELSE 0
+				END) 						IND_MT,
+				SUM(CASE TJ.DELV_TP_CD
+					WHEN 'I' THEN ISNULL(TJ.CG_VOL, 0)
+					ELSE 0
+				END) 						IND_M3,
+				SUM(CASE TJ.DELV_TP_CD
+					WHEN 'I' THEN ISNULL(TJ.PKG_QTY, 0)
+					ELSE 0
+				END) 						IND_QTY,
+				ISNULL(TJ.GATE_TXN_NO,'')	GATE_TXN_NO,
+				ISNULL(TJ.BAG_WGT, 0)		BAG_WGT
+			FROM
+				TMT_CG_MST TC,
+				TMT_JOB TJ
+			WHERE
+				1 = 1
+			<if test="vslCallId != null and vslCallId != ''">
+				AND	TJ.VSL_CALL_ID 			= #{vslCallId}
+			</if>
+				AND TJ.JOB_TP_CD IN ('LD', 'DS')
+				AND TJ.JOB_PURP_CD IN ('GV', 'AV')
+				AND TC.VSL_CALL_ID 			= TJ.VSL_CALL_ID
+				AND TC.CG_NO 				= TJ.CG_NO
+				AND (TC.SHIPG_NOTE_NO IS NOT NULL AND TC.SHIPG_NOTE_NO <![CDATA[<>]]> '')
+			GROUP BY
+				TC.VSL_CALL_ID,
+				TC.SHIPG_NOTE_NO,
+				ISNULL(TJ.GATE_TXN_NO,''),
+				ISNULL(TJ.BAG_WGT, 0)
+			),
+
+		WH AS (
+			SELECT /*cargoSearch.cargoSearchExportSN WH*/
+				TC.VSL_CALL_ID 				VSL_CALL_ID,
+				TC.SHIPG_NOTE_NO   			CG_NO,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'G' THEN TL.CG_WGT
+					ELSE 0
+				END) 						NOR_MT,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'G' THEN TL.CG_VOL
+					ELSE 0
+				END) 						NOR_M3,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'G' THEN TL.PKG_QTY
+					ELSE 0
+				END) 						NOR_QTY,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'D' THEN TL.CG_WGT
+					ELSE 0
+				END) 						DMG_MT,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'D' THEN TL.CG_VOL
+					ELSE 0
+				END) 						DMG_M3,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'D' THEN TL.PKG_QTY
+					ELSE 0
+				END) 						DMG_QTY,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'S' THEN TL.CG_WGT
+					ELSE 0
+				END) 						SHU_MT,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'S' THEN TL.CG_VOL
+					ELSE 0
+				END) 						SHU_M3,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'S' THEN TL.PKG_QTY
+					ELSE 0
+				END) 						SHU_QTY
+			FROM
+				TMT_CG_MST TC,
+				TMT_JOB TJ,
+				TMT_INV_LOC TL
+			WHERE
+				TC.VSL_CALL_ID 				= TJ.VSL_CALL_ID
+				AND TL.VSL_CALL_ID 			= TJ.VSL_CALL_ID
+				AND TC.CG_NO 				= TJ.CG_NO
+				AND TJ.JOB_NO 				= TL.JOB_NO
+				<if test="vslCallId != null and vslCallId != ''">
+					AND TJ.VSL_CALL_ID 		= #{vslCallId}
+				</if>
+				AND (TJ.SP_CA_CO_CD IS NULL OR TJ.SP_CA_CO_CD = '')
+				AND (TC.SHIPG_NOTE_NO IS NOT NULL AND TC.SHIPG_NOTE_NO <![CDATA[<>]]> '')
+			GROUP BY
+				TC.VSL_CALL_ID,
+				TC.SHIPG_NOTE_NO
+			),
+
+		GP AS (
+			SELECT /*cargoSearch.cargoSearchExportSN GP*/
+				TC.VSL_CALL_ID 				VSL_CALL_ID,
+				TC.SHIPG_NOTE_NO 			CG_NO,
+				SUM(ISNULL(TA.CG_WGT, 0)) 	GP_MT,
+				SUM(ISNULL(TA.CG_VOL, 0)) 	GP_M3,
+				SUM(ISNULL(TA.PKG_QTY, 0)) 	GP_QTY
+			FROM
+				TMT_CG_MST TC,
+				TMT_CG_ARRV_DELV TA
+			WHERE
+				TC.VSL_CALL_ID 				= TA.VSL_CALL_ID
+				AND TC.CG_NO 				= TA.CG_NO
+				<if test="vslCallId != null and vslCallId != ''">
+					AND	TA.VSL_CALL_ID 		= #{vslCallId}
+				</if>
+				AND (TA.GATE_PASS_NO IS NOT NULL AND TA.GATE_PASS_NO <![CDATA[<>]]> '')
+				AND (TC.SHIPG_NOTE_NO IS NOT NULL AND TC.SHIPG_NOTE_NO <![CDATA[<>]]> '')
+			GROUP BY
+				TC.VSL_CALL_ID,
+				TC.SHIPG_NOTE_NO
+			)
+	</sql>
+	
+	<sql id="cargoSearchExportSN">
+		SELECT /*cargoSearch.cargoSearchExportSN*/
+			'SN' 						DIV,
+			CM.OPE_CLASS_CD        		OPECLASSCD,
+			SN.VSL_CALL_ID              VSLCALLID,
+			''							MFDOCID,
+			SN.SHIPG_NOTE_NO            BLSN,
+			''                        	CGNO,
+			SN.SHIPG_AGNCY            	SHIPGAGNT,
+			SN.FWRD                    	FWRAGNT,
+			SN.DELV_TP_CD            	DELVTPCD,
+			SN.CMDT_CD                	CMDTCD,
+			CM.GRS_MT                	GRSMT,
+			CM.GRS_M3                	GRSM3,
+			CM.GRS_QTY            	    GRSQTY,
+			tempVS2.DIR_MT       	        DIRMT,
+			tempVS2.DIR_M3                	DIRM3,
+			tempVS2.DIR_QTY      	        DIRQTY,
+			tempVS2.IND_MT             		INDMT,
+			tempVS2.IND_M3                	INDM3,
+			tempVS2.IND_QTY     	        INDQTY,       
+			tempWH.NOR_MT                	NORMT,
+			tempWH.NOR_M3                	NORM3,
+			tempWH.NOR_QTY                	NORQTY,
+			tempWH.DMG_MT                	DMGMT,
+			tempWH.DMG_M3                	DMGM3,
+			tempWH.DMG_QTY                	DMGQTY,
+			tempWH.SHU_MT                	SHUMT,
+			tempWH.SHU_M3                	SHUM3,
+			tempWH.SHU_QTY                	SHUQTY,
+			tempGP.GP_MT                    GPMT,
+			tempGP.GP_M3                    GPM3,
+			tempGP.GP_QTY                	GPQTY,
+			(CASE SN.DOMESTIC_CHK
+				WHEN 'Y' THEN 'Domestic Cargo'
+				ELSE ''
+			END) 						AS domesticChk,
+			SN.CG_WGT					DOCMT,
+			SN.CG_VOL					DOCM3,
+			SN.PKG_QTY					DOCQTY,
+			tempVS2.GATE_TXN_NO				GATETXNNO,
+			ISNULL(tempVS2.BAG_WGT, 0)		BAGWGT
+		FROM 
+			TMT_SHIPG_NOTE SN
+				LEFT OUTER JOIN VS2 tempVS2
+						ON SN.VSL_CALL_ID = tempVS2.VSL_CALL_ID
+						AND SN.SHIPG_NOTE_NO = tempVS2.CG_NO
+				LEFT OUTER JOIN WH tempWH
+						ON SN.VSL_CALL_ID = tempWH.VSL_CALL_ID
+						AND SN.SHIPG_NOTE_NO = tempWH.CG_NO
+				LEFT OUTER JOIN GP tempGP
+						ON SN.VSL_CALL_ID = tempGP.VSL_CALL_ID
+						AND SN.SHIPG_NOTE_NO = tempGP.CG_NO,
+			(
+				SELECT 
+					TC.VSL_CALL_ID   		VSL_CALL_ID,
+					SN.SHIPG_NOTE_NO 		CG_NO,
+					SUM(ISNULL(TC.PKG_QTY, 0) + DBO.F_GET_RC_PKG_QTY(TC.VSL_CALL_ID, TC.CG_NO)) 	AS GRS_QTY,
+					SUM(ISNULL(TC.CG_WGT, 0) + DBO.F_GET_RC_WGT(TC.VSL_CALL_ID, TC.CG_NO)) 			AS GRS_MT,
+					SUM(ISNULL(TC.CG_VOL, 0) + DBO.F_GET_RC_MSRMT(TC.VSL_CALL_ID, TC.CG_NO))		AS GRS_M3,
+					TC.OPE_CLASS_CD
+				FROM 
+					TMT_CG_MST 				TC, 
+					TMT_SHIPG_NOTE 			SN
+				WHERE 
+					1 = 1
+				<if test="vslCallId != null and vslCallId != ''">
+					AND TC.VSL_CALL_ID 		= #{vslCallId}
+				</if>
+					AND TC.VSL_CALL_ID 		= SN.VSL_CALL_ID
+					AND TC.SHIPG_NOTE_NO 	= SN.SHIPG_NOTE_NO
+					GROUP BY 
+						TC.VSL_CALL_ID,
+						SN.SHIPG_NOTE_NO,
+						TC.OPE_CLASS_CD
+			) CM
+		WHERE
+			SN.SHIPG_NOTE_NO 				= CM.CG_NO
+		<if test="vslCallId != null and vslCallId != ''">
+			AND	SN.VSL_CALL_ID 				= #{vslCallId}
+		</if>
+	</sql>
+
+	<sql id="cargoSearchImportWithInclude">
+		VS AS (
+			SELECT /*cargoSearch.cargoSearchImport VS*/
+				VSL_CALL_ID					VSL_CALL_ID,
+				CG_NO						CG_NO,
+				SUM(CASE DELV_TP_CD
+					WHEN 'D' THEN ISNULL(CG_WGT, 0)
+					ELSE 0
+				END) 						DIR_MT,
+				SUM(CASE DELV_TP_CD
+					WHEN 'D' THEN ISNULL(CG_VOL, 0)
+					ELSE 0
+				END) 						DIR_M3,
+				SUM(CASE DELV_TP_CD
+					WHEN 'D' THEN ISNULL(PKG_QTY, 0)
+					ELSE 0
+				END) 						DIR_QTY,
+				SUM(CASE DELV_TP_CD
+					WHEN 'I' THEN ISNULL(CG_WGT, 0)
+					ELSE 0
+				END) 						IND_MT,
+				SUM(CASE DELV_TP_CD
+					WHEN 'I' THEN ISNULL(CG_VOL, 0)
+					ELSE 0
+				END) 						IND_M3,
+				SUM(CASE DELV_TP_CD
+					WHEN 'I' THEN ISNULL(PKG_QTY, 0)
+					ELSE 0
+				END) 						IND_QTY
+			FROM
+				TMT_JOB
+			WHERE
+				1 = 1
+			<if test="vslCallId != null and vslCallId != ''">
+				AND	VSL_CALL_ID 			= #{vslCallId}
+			</if>
+			GROUP BY
+				VSL_CALL_ID,
+				CG_NO
+			),
+
+		VS2CSI AS (
+			SELECT /*cargoSearch.cargoSearchImport VS2CSI*/
+				VSL_CALL_ID					VSL_CALL_ID,
+				CG_NO						CG_NO,
+				SUM(ISNULL(CG_WGT,0))    	GRS_MT,
+				SUM(ISNULL(PKG_QTY,0))	 	GRS_QTY,
+				SUM(CASE DELV_TP_CD
+					WHEN 'D' THEN ISNULL(CG_WGT, 0)
+					ELSE 0
+				END)						DIR_MT,
+				SUM(CASE DELV_TP_CD
+					WHEN 'D' THEN ISNULL(CG_VOL, 0)
+					ELSE 0
+				END)						DIR_M3,
+				SUM(CASE DELV_TP_CD
+					WHEN 'D' THEN ISNULL(PKG_QTY, 0)
+					ELSE 0
+				END)						DIR_QTY,
+				SUM(CASE DELV_TP_CD
+					WHEN 'I' THEN ISNULL(CG_WGT, 0)
+					ELSE 0
+				END)						IND_MT,
+				SUM(CASE DELV_TP_CD
+					WHEN 'I' THEN ISNULL(CG_VOL, 0)
+					ELSE 0
+				END)						IND_M3,
+				SUM(CASE DELV_TP_CD
+					WHEN 'I' THEN ISNULL(PKG_QTY, 0)
+					ELSE 0
+				END)						IND_QTY,
+				ISNULL(GATE_TXN_NO,'')		GATE_TXN_NO,
+				ISNULL(BAG_WGT, 0)			BAG_WGT
+			FROM
+				TMT_JOB
+			WHERE
+				1 = 1
+				<if test="vslCallId != null and vslCallId != ''">
+					AND VSL_CALL_ID 		= #{vslCallId}
+				</if>
+				AND JOB_TP_CD IN ('LD', 'DS')
+			GROUP BY
+				VSL_CALL_ID,
+				CG_NO,
+				ISNULL(GATE_TXN_NO,''),
+				ISNULL(BAG_WGT, 0)
+			),
+
+		WHCSI AS (
+			SELECT /*cargoSearch.cargoSearchImport WHCSI*/
+				TJ.VSL_CALL_ID 				VSL_CALL_ID,
+				TJ.CG_NO	   				CG_NO,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'G' THEN TL.CG_WGT
+					ELSE 0
+				END) 						NOR_MT,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'G' THEN TL.CG_VOL
+					ELSE 0
+				END) 						NOR_M3,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'G' THEN TL.PKG_QTY
+					ELSE 0
+				END) 						NOR_QTY,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'D' THEN TL.CG_WGT
+					ELSE 0
+				END) 						DMG_MT,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'D' THEN TL.CG_VOL
+					ELSE 0
+				END) 						DMG_M3,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'D' THEN TL.PKG_QTY
+					ELSE 0
+				END) 						DMG_QTY,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'S' THEN TL.CG_WGT
+					ELSE 0
+				END) 						SHU_MT,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'S' THEN TL.CG_VOL
+					ELSE 0
+				END) 						SHU_M3,
+				SUM(CASE TL.WH_TP_CD
+					WHEN 'S' THEN TL.PKG_QTY
+					ELSE 0
+				END) 						SHU_QTY
+			FROM
+				TMT_JOB TJ,
+			    TMT_INV_LOC TL
+			WHERE
+				TJ.JOB_NO 					= TL.JOB_NO
+				AND TL.VSL_CALL_ID 			= TJ.VSL_CALL_ID
+			<if test="vslCallId != null and vslCallId != ''">
+				AND TJ.VSL_CALL_ID 			= #{vslCallId}
+			</if>
+			GROUP BY
+				TJ.VSL_CALL_ID,
+				TJ.CG_NO
+			),
+
+		GPCSI AS (
+			SELECT /*cargoSearch.cargoSearchImport GPCSI*/
+				VSL_CALL_ID,
+				CG_IN_OUT_CD,
+				CG_NO,
+				SUM(ISNULL(CG_WGT,0)) 		GP_MT,
+				SUM(ISNULL(CG_VOL,0)) 		GP_M3,
+				SUM(ISNULL(PKG_QTY,0)) 		GP_QTY
+			FROM
+				TMT_CG_ARRV_DELV
+			WHERE
+				1 = 1
+				<if test="vslCallId != null and vslCallId != ''">
+					AND	VSL_CALL_ID 		= #{vslCallId}
+				</if>
+				AND (GATE_PASS_NO IS NOT NULL AND GATE_PASS_NO <![CDATA[<>]]> '')
+			GROUP BY
+				VSL_CALL_ID,
+				CG_IN_OUT_CD,
+				CG_NO
+			)
+	</sql>
+	
+	<sql id="cargoSearchImport">
+		SELECT /*cargoSearch.cargoSearchImport*/
+			'BL'       						DIV,
+			CM.OPE_CLASS_CD         		OPECLASSCD,
+			BL.VSL_CALL_ID       			VSLCALLID,
+			BL.MF_DOC_ID					MFDOCID,
+			BL.BL_NO                		BLSN,
+			''                      		CGNO,
+			CM.SHIPG_AGNT           		SHIPGAGNT,
+			CM.FWR_AGNT             		FWRAGNT,
+			BL.DELV_TP_CD           		DELVTPCD,
+			BL.CMDT_CD              		CMDTCD,
+			CM.CG_WGT               		GRSMT,
+			CM.CG_VOL						GRSM3,
+			CM.PKG_QTY              		GRSQTY,
+			tempVS2.DIR_MT              		DIRMT,
+			tempVS2.DIR_M3              		DIRM3,
+			tempVS2.DIR_QTY             		DIRQTY,
+			tempVS2.IND_MT              		INDMT,
+			tempVS2.IND_M3              		INDM3,
+			tempVS2.IND_QTY             		INDQTY,
+			tempWH.NOR_MT               		NORMT,
+			tempWH.NOR_M3               		NORM3,
+			tempWH.NOR_QTY              		NORQTY,
+			tempWH.DMG_MT               		DMGMT,
+			tempWH.DMG_M3               		DMGM3,
+			tempWH.DMG_QTY              		DMGQTY,
+			tempWH.SHU_MT               		SHUMT,
+			tempWH.SHU_M3               		SHUM3,
+			tempWH.SHU_QTY              		SHUQTY,
+			tempGP.GP_MT                		GPMT,
+			tempGP.GP_M3						GPM3,
+			tempGP.GP_QTY               		GPQTY,
+			(CASE BL.DOMESTIC_CHK
+				WHEN 'Y' THEN 'Domestic Cargo'
+				ELSE ''
+			END) 							domesticChk,
+			BL.CG_WGT						DOCMT,
+			BL.CG_VOL						DOCM3,
+			BL.PKG_QTY						DOCQTY,
+			tempVS2.GATE_TXN_NO				GATETXNNO,
+			ISNULL(tempVS2.BAG_WGT,0)		BAGWGT
+		FROM
+			TMT_CG_MST CM,
+			TMT_BL BL
+				LEFT OUTER JOIN VS tempVS
+					ON BL.VSL_CALL_ID 		= tempVS.VSL_CALL_ID
+					AND BL.BL_NO 			= tempVS.CG_NO
+				LEFT OUTER JOIN VS2CSI tempVS2
+					ON BL.VSL_CALL_ID 		= tempVS2.VSL_CALL_ID
+					AND BL.BL_NO 			= tempVS2.CG_NO
+				LEFT OUTER JOIN WHCSI tempWH
+					ON BL.VSL_CALL_ID 		= tempWH.VSL_CALL_ID
+					AND BL.BL_NO 			= tempWH.CG_NO
+				LEFT OUTER JOIN GPCSI tempGP
+					ON BL.VSL_CALL_ID 		= tempGP.VSL_CALL_ID
+					AND BL.BL_NO 			= tempGP.CG_NO
+		WHERE
+			BL.VSL_CALL_ID 					= CM.VSL_CALL_ID
+			AND BL.BL_NO 					= CM.CG_NO
+		<if test="vslCallId != null and vslCallId != ''">
+			AND BL.VSL_CALL_ID 				= #{vslCallId}
+		</if>
+	</sql>
+	
+	<!--  ################ Query Statement Define ######################################### -->
+	<select id="selectGrGoComboList"  parameterType="CargoSearchParm" resultType="CargoSearchItem">
+		SELECT /*cargoSearch.selectGrGoComboList*/
+			S.VSL_CALL_ID 							AS VSLCALLID,
+	  		G.SHIPG_NOTE_NO    						AS SHIPGNOTENO,
+	 		S.BERTH_LOC 							AS BERTHLOC,
+	 		FORMAT(S.ETA, 'dd/MM/yyyy HH:mm') 		AS ETA,
+			FORMAT(S.ETD, 'dd/MM/yyyy HH:mm') 		AS ETD,
+	       	(SELECT
+				FORMAT(MAX(EST_ARRV_DT), 'dd/MM/yyyy HH:mm')
+       	    FROM
+				TMT_SHIPG_NOTE
+			WHERE
+				SHIPG_NOTE_NO 						= G.SHIPG_NOTE_NO
+			) 										AS ESTARRVDT
+		FROM
+			TMT_GR G, TMT_VSL_SCH S
+		WHERE
+			G.VSL_CALL_ID 							= S.VSL_CALL_ID
+		<if test="vslCallId != null and vslCallId != ''">
+			AND G.VSL_CALL_ID 						= #{vslCallId}
+		</if>
+		<if test="grNo != null and grNo != ''">
+  			AND G.GR_NO 							= #{grNo}
+		</if>
+		<if test="cgNo != null and cgNo != ''">
+  			AND G.GR_NO 							= #{cgNo}
+		</if>
+	</select>
+</mapper>

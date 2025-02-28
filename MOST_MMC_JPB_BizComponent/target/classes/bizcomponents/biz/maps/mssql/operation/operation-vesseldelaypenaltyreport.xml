@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+<mapper namespace="vesselDelayPenaltyReport">
+	<select id="selectDelayPenaltyReportList" parameterType="vesselDelayPenaltyReportParm" resultType="vesselDelayPenaltyReportItem">
+	 	<if test="pageNo != 0"> 
+        	SELECT /*vesselDelay.selectDelayPenaltyReportList*/
+        		*
+        	FROM (
+        		SELECT
+					inner_query.*, ROW_NUMBER() OVER(ORDER BY UPDATETIME DESC) row_num
+        		FROM (
+		</if>
+				<include refid="getDelayPenaltyReportList"/>
+		<if test="pageNo != 0"> 
+				) inner_query
+			) inner_query
+			WHERE
+				inner_query.row_num <![CDATA[>]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT) - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_query.row_num <![CDATA[<=]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT)) * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+
+	<select id="selectDelayPenaltyReportListCount" parameterType="vesselDelayParm" resultType="java.lang.String">
+	 	SELECT /*vesselDelay.selectDelayPenaltyReportListCount*/
+	 		COUNT(*)
+        FROM
+            (<include refid="getDelayPenaltyReportList"/>) AS getDelayPenaltyReportList
+	</select>
+	
+	<sql id="getDelayPenaltyReportList">
+		SELECT 
+		    A.VSL_CALL_ID 															AS VSLCALLID,
+		    A.HATCH_NO 																AS HATCHNO,
+		    A.SHFT_ID 																AS SHFTID,
+			A.RSN_CD 																AS RSNCD,
+			(
+				SELECT DESCR
+				FROM TMT_DLY_CD
+				WHERE DLY_CD = A.RSN_CD
+			) 																		AS RSNCDNM,
+		    (
+		        SELECT SHFT_NM
+		        FROM TMT_SHFT
+		        WHERE SHFT_METH_CD = 'Standard'
+		          AND VLD_YN = 'Y'
+		          AND SHFT_ID = A.SHFT_ID
+		    ) 																		AS SHFTNM,
+		    CONVERT(VARCHAR(10), A.PNTY_DT, 103) 									AS PNTYDT,
+		    CONVERT(VARCHAR(10), A.PNTY_TIME, 103) + ' ' 
+		    		+ LEFT(CONVERT(VARCHAR(8), A.PNTY_TIME, 108), 5) 				AS PNTYTIME,
+		    CONVERT(VARCHAR(10), A.PNTY_END_TIME, 103) + ' ' 
+		    		+ LEFT(CONVERT(VARCHAR(8), A.PNTY_END_TIME, 108), 5) 			AS PNTYENDTIME,
+		    A.DLY_PNTY_RPT_NO 														AS DLYPNTYRPTNO,
+		    ISNULL(A.CONTRATOR, ' ') 												AS CONTRATOR,
+		    ISNULL(A.ITEM_CD, ' ') 													AS ITEMCD,
+		    ISNULL(A.ROLE_CD, ' ') 													AS ROLECD,
+		    ISNULL(A.ITEM_QTY, 0.0) 												AS ITEMQTY,
+		    ISNULL(A.PNTY_AMT, 0.0) 												AS PNTYAMT,
+		    ISNULL(A.UNIT_PRC, 0.0) 												AS UNITPRC,
+		    A.MACHINE_CD 															AS MACHINECD,
+		    CASE 
+		        WHEN A.MACHINE_CD = 'BO' THEN 'Both of Shovel and Excavator'
+		        WHEN A.MACHINE_CD = 'SH' THEN 'Shovel'
+		        WHEN A.MACHINE_CD = 'EX' THEN 'Excavator'
+		        ELSE ''
+		    END 																	AS MACHINENM,
+<!-- 		    ( -->
+<!-- 		        SELECT PNTY_DESCR  -->
+<!-- 		        FROM TCM_PNTY_CD  -->
+<!-- 		        WHERE PART_CD = A.ITEM_CD  -->
+<!-- 		          AND ROLE_CD = A.ROLE_CD -->
+<!-- 		    ) AS PNTYDESCR, -->
+		    (
+		        SELECT S_CD_NM 
+		        FROM TMT_CD_MSTD 
+		        WHERE L_CD = 'MT' 
+		          AND M_CD = 'ITEMCD' 
+		          AND S_CD = A.ITEM_CD
+		    ) 																		AS ITEMCDNM,
+		    (
+		        SELECT S_CD_NM 
+		        FROM TMT_CD_MSTD 
+		        WHERE L_CD = 'CM' 
+		          AND M_CD = 'ROLECD'
+		          AND S_CD = A.ROLE_CD
+		    ) 																		AS ROLECDNM,
+		    A.UPDATE_TIME															AS UPDATETIME
+		FROM TMT_DLY_PNTY_RPT A
+		WHERE 1 = 1
+		<if test="vslCallId != null and vslCallId != ''">
+		    AND A.VSL_CALL_ID = #{vslCallId}
+		</if>
+		<if test="scn != null and scn != ''">
+		    AND A.SHIP_CALL_NO = #{scn}
+		</if>
+		<if test="hatchNo != null and hatchNo != ''">
+		    AND A.HATCH_NO = #{hatchNo}
+		</if>
+		<if test="shftId != null and shftId != ''">
+		    AND A.SHFT_ID = #{shftId}
+		</if>
+		<if test="pntyDt != null and pntyDt != ''">
+		    AND CONVERT(VARCHAR(10), A.PNTY_DT, 103) = #{pntyDt}
+		</if>
+	</sql>
+	<update id="updatedelayRecordItems"  parameterType="vesselDelayPenaltyReportItem">
+		UPDATE /*vesselDelayPenaltyReport.updatedelayRecordItems*/
+			TMT_DLY_PNTY_RPT
+		SET CONTRATOR 							= #{contrator},
+		    ITEM_CD 							= #{itemCd},
+		    ROLE_CD 							= #{roleCd},
+		    RSN_CD 								= #{rsnCd},
+		    UNIT_PRC 							= #{unitPrc},
+		    ITEM_QTY 							= #{itemQty},
+		    PNTY_AMT 							= #{pntyAmt},
+		    HATCH_NO 							= #{hatchNo},
+		    SHFT_ID 							= #{shftId},
+		    MACHINE_CD 							= #{machineCd},
+		    PNTY_DT 							= CONVERT(DATETIME, #{pntyDt}, 103),
+		    PNTY_TIME 							= CONVERT(DATETIME, #{pntyTime}, 103),
+		    PNTY_END_TIME 						= CONVERT(DATETIME, #{pntyEndTime}, 103),
+		    UPDATE_TIME 						= GETDATE()
+<!-- 		    UPD_USER_ID 						= #{userId} -->
+		WHERE 
+			VSL_CALL_ID 						= #{vslCallId}
+		  	AND DLY_PNTY_RPT_NO 				= #{dlyPntyRptNo};
+	</update>
+	
+	<insert id="insertdelayRecordItems" parameterType="vesselDelayPenaltyReportItem">
+	     <selectKey 
+	        keyProperty="dlyPntyRptNo" 
+	        resultType="String" 
+	        order="BEFORE"
+	    >
+	        SELECT 
+	            'DPR' + FORMAT(GETDATE(), 'yyMM') + 
+	            RIGHT('00000' + CAST(
+	                ISNULL(MAX(CAST(RIGHT(DLY_PNTY_RPT_NO, 5) AS INT)), 0) + 1 
+	            AS VARCHAR(5)), 5)
+	        FROM TMT_DLY_PNTY_RPT
+	    </selectKey>
+	    
+	    INSERT INTO TMT_DLY_PNTY_RPT (
+	        VSL_CALL_ID,
+	        SHIP_CALL_NO,
+	        HATCH_NO,
+	        DLY_PNTY_RPT_NO,
+	        CONTRATOR,
+	        ITEM_CD,
+	        ROLE_CD,
+	        RSN_CD,
+	        UNIT_PRC,
+	        ITEM_QTY,
+	        PNTY_AMT,
+	        SHFT_ID, 
+	        PNTY_DT,
+	        <if test="pntyTime != null and pntyTime != ''">
+	            PNTY_TIME,
+	        </if>
+	        <if test="pntyEndTime != null and pntyEndTime != ''">
+	            PNTY_END_TIME,
+	        </if>
+	        MACHINE_CD,
+	        UPDATE_TIME,
+	        STAFF_CD
+	    ) VALUES (
+	        #{vslCallId},
+	        #{scn},
+	        #{hatchNo},
+	        #{dlyPntyRptNo},
+	        #{contrator},
+	        #{itemCd},
+	        #{roleCd},
+	        #{rsnCd},
+	        #{unitPrc},
+	        #{itemQty},
+	        #{pntyAmt},
+	        #{shftId},
+	        CONVERT(DATETIME, #{pntyDt}, 103),
+	        <if test="pntyTime != null and pntyTime != ''">
+	            CONVERT(DATETIME, #{pntyTime}, 103),
+	        </if>
+	        <if test="pntyEndTime != null and pntyEndTime != ''">
+	            CONVERT(DATETIME, #{pntyEndTime}, 103),
+	        </if>
+	        #{machineCd},
+	        GETDATE(),
+	        #{userId}
+	    )
+	</insert>
+	<delete id="deletedelayRecordItems" parameterType="vesselDelayPenaltyReportItem">
+			DELETE FROM TMT_DLY_PNTY_RPT
+			WHERE VSL_CALL_ID 		= #{vslCallId}	
+			AND DLY_PNTY_RPT_NO 	= #{dlyPntyRptNo}
+	</delete>
+	<select id="selectSpecificDelayCodes" parameterType="vesselDelayPenaltyReportParm" resultType="vesselDelayPenaltyReportItem">
+		SELECT /*vesselDelayPenaltyReport.selectSpecificDelayCodes */
+		    PARAMETER_CD AS PARAMETERCD,
+		    PARAMETER_VALUE AS PARAMETERVALUE
+		FROM
+		    TMT_MOST_PARAMETERS
+		WHERE
+		    (
+		        CATEGORY = 'CM'
+		        OR CATEGORY = 'MT'
+		        OR CASE
+		            WHEN CATEGORY = 'CU' THEN 'CM'
+		            ELSE CATEGORY
+		        END = 'MT'
+		    )
+		    AND PARAMETER_CD ='SPECIFIC_DELAY_CODE'
+		    AND PARAMETER_CHK ='Y'
+	</select>	
+</mapper>
+
+

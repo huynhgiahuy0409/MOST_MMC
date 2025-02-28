@@ -1,0 +1,652 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dgList">
+	<select id="selectDGList"  resultType="dgListItem" parameterType="dgListParm" >
+	WITH 
+		FWRD_CTE AS (
+			SELECT 
+				MAX(CASE WHEN BT.ROLE_CD = 'FWDAGN' THEN BT.PTNR_CODE ELSE '' END) 	AS FWRD
+			FROM TMT_BL B
+			JOIN TMT_FZ_DOC_PTNR_ROLE_DEF BT 
+				ON B.MF_DOC_ID = BT.DOC_ID 
+			WHERE 
+				BT.ROLE_CD IN ('SHPAGN','FWDAGN','CNSNEE','CNSNOR')
+			GROUP BY B.VSL_CALL_ID, B.BL_NO
+		)
+	
+		SELECT /*dgList.selectDGList*/
+			dg_div 				AS dgDiv		
+			, vsl_call_id 			AS vslCallId  	
+			, bbtLoc				AS bbtLoc
+			, CGTPCD 				AS cgTpCdDoc
+			<!-- ,(SELECT TOP(1) KEY_VAL  FROM TCM_CFG_DTL WHERE SYS_CD ='MPTS' AND CFG_ID = 'CFG_DOC' AND KEY_NM = CGTPCD ) configDoc -->
+			,vsl_nm					AS vslNm        
+			, cg_no 				AS cgNo  		
+			, seq 				AS refNo  		
+			, imdg 					AS imdg  		
+			, unno 					AS unno  		
+			, cg_tp_cd 				AS cgTpCd  		
+			, cmdt_cd 				AS cmdtCd  		
+			, dbo.F_GET_CMDT_DESC(cmdt_cd) AS cmdtDesc
+			,CASE dg_chk
+			    WHEN 'S' THEN 'Save'
+			    WHEN 'N' THEN 'Submit'
+			    WHEN 'Y' THEN 'Confirm'
+			    WHEN 'R' THEN 'Reject'
+			    ELSE NULL
+			END AS dgChk
+
+			, CONVERT(VARCHAR, upd_dt, 103) + ' ' + CONVERT(VARCHAR, upd_dt, 108) AS dclrDt 		
+			, upd_dt
+			, confm_by				AS confmBy	    
+			, FORMAT(confm_dt, 'dd/MM/yyyy HH:mm') AS confmDt  	
+			, shipg_agncy 			AS shipgAgncy  	
+			, fwrd 					AS fwrd  		
+			, shpr 					AS shpr  		
+			, cnsne 				AS cnsne  		
+			<!-- , pri_grp 				AS priGrp  		 -->
+			, pkg 					AS pkg  		
+
+			
+		
+			, cg_wgt				AS pkgWgt		
+			, vsl_cd 				AS vslCd  		
+			, call_year 			AS callYear  	
+			, call_seq 				AS callSeq  	
+			, seq 					AS dgSeq  		
+			, transhipment			AS transhipment	
+			, CONTACT_PERSON AS contactNm
+			,CONTACT_NUMBER as contactNo
+		FROM
+			(
+				SELECT 'EX' DG_DIV
+                    , C.VSL_CALL_ID VSL_CALL_ID
+                    , ISNULL((SELECT LOC_CD FROM TMT_BERTH_LOC WHERE BERTH_CD = C.BERTH_LOC),'N')  AS bbtLoc
+                    ,C.CARGO_TP_MPTS AS CGTPCD
+                    ,VSLP.VSL_NM
+					, A.CG_NO
+					, A.REF_NO
+					, A.IMDG
+					, A.UNNO
+					, B.CG_TP_CD
+					, B.CMDT_CD 
+					, A.DG_CHK
+					, A.UPDATE_TIME	AS upd_dt
+					, A.CONFM_BY
+					, A.CONFM_DT
+					, C.ARRV_SA_ID AS SHIPG_AGNCY
+					, B.FWRD
+					, B.SHPR
+					, B.CNSNE
+					<!-- , A.PRI_GRP -->
+					, A.PKG
+					, A.PKG_QTY AS CG_WGT
+					, A.VSL_CD
+					, A.CALL_YEAR
+					, A.CALL_SEQ
+					, A.SEQ
+					, 'EXPORT' AS transhipment
+					, A.CONTACT_PERSON
+					, A.CONTACT_NUMBER
+				FROM TMT_DG A,TMT_SHIPG_NOTE B, TMT_VSL_SCH C, TMT_VSL_PART VSLP
+		WHERE 	A.VSL_CD = C.VSL_CD
+                AND A.CALL_YEAR = C.CALL_YEAR
+                AND A.CALL_SEQ = C.CALL_SEQ	
+				AND A.SEQ = B.DG_SEQ
+				AND B.VSL_CALL_ID = C.VSL_CALL_ID
+				AND C.VSL_CD = VSLP.VSL_CD
+				<if test="sn != null and sn != ''">
+    AND
+					A.CG_NO LIKE (#{sn} + '%')  
+				</if>
+				<if test="authority == 'FWD'">
+    AND
+			 		B.FWRD = #{ptnrCd}
+				</if>
+				<if test="authority == 'SHA'">
+    AND
+					B.SHIPG_AGNCY  = #{ptnrCd}
+				</if>
+				<if test="authority == 'BH'">
+    AND
+					(B.SHIPG_AGNCY = #{ptnrCd} OR B.FWRD = #{ptnrCd})
+				</if>	
+				<if test="authority == 'CSC'">
+    AND
+			 		B.FWRD_SUMIT_DT IS NOT NULL
+				</if>
+				UNION ALL
+				SELECT TMP.DG_DIV
+					   ,TMP.VSL_CALL_ID
+					   ,TMP.bbtLoc AS bbtLoc
+					   ,TMP.CGTPCD AS CGTPCD
+					   ,TMP.VSL_NM
+					   ,C.CG_NO
+					   ,C.REF_NO
+					   ,C.IMDG
+					   ,C.UNNO
+					   ,TMP.CG_TP_CD
+					   ,TMP.CMDT_CD
+					   ,C.DG_CHK
+					   ,C.UPDATE_TIME
+					   ,C.CONFM_BY
+					   ,C.CONFM_DT
+					   ,TMP.SHIPG_AGNCY
+					   ,TMP.FWRD
+					   ,TMP.CNSNE
+					   ,TMP.SHPR
+					   <!-- ,C.PRI_GRP -->
+					   ,C.PKG
+					   ,C.PKG_QTY
+					   ,C.VSL_CD
+					   ,C.CALL_YEAR
+					   ,C.CALL_SEQ
+					   ,C.SEQ
+					   ,'IMPORT' AS TRANSHIPMENT
+					   , C.CONTACT_PERSON
+					, C.CONTACT_NUMBER
+				  FROM (
+						SELECT A.BL_NO AS BLNO
+							   ,A.VSL_CALL_ID
+							   ,A.DG_SEQ AS DGSEQ
+							   ,A.CG_TP_CD
+							   ,A.CMDT_CD
+							   ,CASE A.MF_DOC_ID
+								    WHEN 'K4BL' THEN 'IM'
+								    ELSE 'TS'
+								END AS DG_DIV	   
+		                       ,ISNULL(A.FWRD, ' ') AS FWRD
+		                       ,A.SHPR AS CNSNE
+		                       ,A.CNSNE AS SHPR
+							   ,B.ARRV_SA_ID AS SHIPG_AGNCY
+							   ,ISNULL((SELECT LOC_CD FROM TMT_BERTH_LOC WHERE BERTH_CD = B.BERTH_LOC),'N') AS bbtLoc
+							   ,B.CARGO_TP_MPTS                      AS CGTPCD
+							   ,P.VSL_NM
+						  FROM TMT_BL A, TMT_VSL_SCH B, TMT_VSL_PART P
+		                 WHERE A.CATG_CD IN ('I','T')
+						   AND A.VSL_CD = B.VSL_CD
+						   AND A.CALL_SEQ = B.CALL_SEQ
+						   AND A.CALL_YEAR = B.CALL_YEAR
+						   AND B.VSL_CD = P.VSL_CD
+						   <if test="bl != null and bl != ''">
+         AND
+						   		A.BL_NO LIKE (#{bl} + '%')
+						   </if>
+						) TMP, TMT_DG C
+				 WHERE TMP.DGSEQ = C.SEQ
+				 <if test="authority == 'FWD'">
+				   AND TMP.FWRD = #{ptnrCd}
+				 </if>
+				 <if test="authority == 'SHA'">
+				   AND TMP.SHIPG_AGNCY = #{ptnrCd}
+				 </if>
+				 <if test="authority == 'BH'">
+				   AND (TMP.FWRD = #{ptnrCd} OR TMP.SHIPG_AGNCY = #{ptnrCd})
+				 </if>
+			UNION ALL
+			  SELECT DISTINCT 'EX' DG_DIV
+                    , B.VSL_CALL_ID
+                    , NULL bbtLoc
+                     , NULL CGTPCD
+                    , NULL VSL_NM
+                    , A.CG_NO
+                    , A.REF_NO
+                    , A.IMDG
+                    , A.UNNO
+                    , B.CG_TP_CD
+                    , B.CMDT_CD 
+                    , A.DG_CHK
+                    , A.UPDATE_TIME AS upd_dt
+                    , A.CONFM_BY
+                    , A.CONFM_DT
+                    , ISNULL(B.SHIPG_AGNCY,B.FWRD)
+                    , B.FWRD
+                    , B.SHPR
+                    , B.CNSNE
+                    <!-- , A.PRI_GRP -->
+                    , A.PKG
+                    , A.PKG_QTY
+                    , A.VSL_CD
+                    , A.CALL_YEAR
+                    , A.CALL_SEQ
+                    , A.SEQ
+                    , 'EXPORT' AS transhipment
+                    , A.CONTACT_PERSON
+					, A.CONTACT_NUMBER
+                FROM TMT_DG A,TMT_SHIPG_NOTE B
+        WHERE                  
+                A.SEQ = B.DG_SEQ
+                AND B.VSL_CALL_ID ='NonCallId' 
+                <if test="sn != null and sn != ''">
+                AND
+					A.CG_NO LIKE (#{sn} + '%')  
+				</if>
+				<if test="authority == 'FWD'">
+    AND
+			 		B.FWRD = #{ptnrCd}
+				</if>
+				<if test="authority == 'SHA'">
+    AND
+					B.SHIPG_AGNCY  = #{ptnrCd}
+				</if>
+				<if test="authority == 'BH'">
+    AND
+					(B.SHIPG_AGNCY = #{ptnrCd} OR B.FWRD = #{ptnrCd})
+				</if>	
+				<if test="authority == 'CSC'">
+    AND
+			 	B.FWRD_SUMIT_DT IS NOT NULL
+				</if>						
+				UNION ALL			
+				SELECT 
+					CASE B.CG_OPT_TP_CD
+					    WHEN 'DS' THEN 'IM'
+					    WHEN 'LD' THEN 'EX'
+					    WHEN 'TD' THEN 'TS'
+					    WHEN 'TL' THEN 'TS'
+					    WHEN 'SD' THEN 'TS'
+					    WHEN 'SL' THEN 'TS'
+					    ELSE NULL
+					END AS DG_DIV
+                    , C.VSL_CALL_ID VSL_CALL_ID
+                    , ISNULL((SELECT LOC_CD FROM TMT_BERTH_LOC WHERE BERTH_CD = C.BERTH_LOC),'N') AS bbtLoc
+                    , C.CARGO_TP_MPTS AS CGTPCD
+                    , VSLP.VSL_NM
+					, A.CG_NO
+					, A.REF_NO
+					, A.IMDG
+					, A.UNNO
+					, B.CG_TP_CD
+					, B.CMDT_CD 
+					, A.DG_CHK
+					, A.UPDATE_TIME														AS upd_dt
+					, A.CONFM_BY
+					, A.CONFM_DT
+					, C.ARRV_SA_ID         	 											AS SHIPG_AGNCY
+					,(SELECT 
+						FWRD
+					FROM 
+						FWRD_CTE )														AS FWRD
+					, B.SHPR_CNSNE          											AS SHPR
+					, B.CNSNE          													AS CNSNE
+					<!-- , A.PRI_GRP -->
+					, A.PKG
+					, A.PKG_QTY
+					, A.VSL_CD
+					, A.CALL_YEAR
+					, A.CALL_SEQ
+					, A.SEQ
+					,CASE B.CG_OPT_TP_CD
+					    WHEN 'DS' THEN 'IM'
+					    WHEN 'LD' THEN 'EX'
+					    WHEN 'TD' THEN 'TS'
+					    WHEN 'TL' THEN 'TS'
+					    WHEN 'SD' THEN 'TRANSHIPMENT'
+					    WHEN 'SL' THEN 'TRANSHIPMENT'
+					    ELSE NULL 
+					END AS transhipment
+                    , A.CONTACT_PERSON
+					, A.CONTACT_NUMBER
+		FROM TMT_DG A
+		INNER JOIN TMT_CONFM_SLP_DTL B 
+			ON A.SEQ = B.DG_SEQ
+		INNER JOIN TMT_VSL_SCH C 
+			ON A.VSL_CD = C.VSL_CD
+               AND A.CALL_YEAR = C.CALL_YEAR
+               AND A.CALL_SEQ = C.CALL_SEQ
+		LEFT JOIN TMT_BL BL 
+			ON B.VSL_CALL_ID = BL.VSL_CALL_ID
+		       AND B.BL_NO = BL.BL_NO
+		INNER JOIN TMT_VSL_PART VSLP 
+			ON C.VSL_CD = VSLP.VSL_CD
+			
+		WHERE 
+			1=1     
+            <if test="sn != null and sn != ''">
+            AND
+                A.CG_NO LIKE (#{sn} + '%')  
+            </if>
+            <if test="authority == 'FWD'">
+            AND
+                 GET_AUTH_BL_YN2(BL.BL_NO, #{ptnrCd}) = 'Y'
+            </if>
+            <if test="authority == 'SHA'">
+            AND
+                C.ARRV_SA_ID  = #{ptnrCd}
+            </if>
+            <if test="authority == 'BH'">
+            AND
+                (C.ARRV_SA_ID = #{ptnrCd} OR GET_AUTH_BL_YN2(BL.BL_NO, #{ptnrCd}) = 'Y')
+            </if>
+         )  AS sub_query
+         WHERE 1= 1
+		<if test="dclrDtFrom != null and dclrDtFrom != ''">
+			AND upd_dt BETWEEN CONVERT(DATETIME, #{dclrDtFrom}, 103) AND DATEADD(DAY, 1, CONVERT(DATETIME, #{dclrDtTo}, 103))
+		</if>
+		<if test="vslCallId != null and vslCallId != ''">
+  		AND
+			vsl_call_id = #{vslCallId}
+		</if>
+		<if test="statCd != null and statCd != ''">
+  		AND
+			dg_chk = #{statCd}
+		</if>
+		<if test="bl != null and bl != ''">
+ 		AND
+			cg_no = #{bl}
+		</if>
+		<if test="sn != null and sn != ''">
+  		AND
+			cg_no = #{sn}
+		</if>
+		<if test="dgDiv != null and dgDiv != ''">
+ 		AND
+			dg_div = CASE #{dgDiv}
+					    WHEN 'IM' THEN 'IM'
+					    WHEN 'EX' THEN 'EX'
+					    WHEN 'TS' THEN 'TS'
+					    WHEN 'ST' THEN 'ST'
+					    ELSE NULL 
+					END
+
+		</if>
+		<if test="dgDivSub == 'ST'"> 
+  		AND
+			vsl_call_id = 'NonCallID'
+		</if>
+		<if test="dgDivSub == 'SS'"> 
+  		AND
+			cg_tp_cd  IN ('LQE','LQN')
+		</if>	
+		<if test="dgDivSub == 'LQ'"> 
+  		AND
+			cg_tp_cd IN ('LQE','LQN')
+		</if>
+		
+	ORDER BY dg_div, vslCallId, cgNo
+	</select>
+	
+	
+	<!-- From MMC version -->
+    <select id="selectDGItems"  resultType="dgListItem" parameterType="dgListParm" >
+        /*dgList.selectDGItems*/
+        SELECT /*Export*/
+                'EX' AS DGDIV
+                , C.VSL_CALL_ID AS VSLCALLID
+                , ISNULL(
+                        (SELECT LOC_CD FROM TMT_BERTH_LOC WHERE BERTH_CD = C.BERTH_LOC )
+                        , 'N'
+                ) AS BBTLOC
+                , C.CARGO_TP_MPTS AS CGTPCD
+                , P.VSL_NM AS VSLNM
+                , A.CG_NO AS CGMP
+                , A.REF_NO AS REFNO
+                , A.IMDG
+                , A.UNNO
+                , B.CG_TP_CD AS CGTPCD
+                , B.CMDT_CD AS CMDTCD
+                , dbo.F_GET_CMDT_DESC(B.CMDT_CD) AS CMDTDESC
+                , A.CG_NO AS cgNo
+                , CASE A.DG_CHK
+	                WHEN 'S' THEN 'Save'
+	                WHEN 'N' THEN 'Submit'
+	                WHEN 'Y' THEN 'Confirm'
+	                WHEN 'R' THEN 'Reject'
+                    ELSE NULL
+                  END AS DGCHK
+                , A.UPDATE_TIME AS upddt
+                , A.CONFM_BY AS confmBy  
+                , FORMAT(A.CONFM_DT, 'dd/MM/yyyy HH:mm') AS CONFMDT
+                , C.ARRV_SA_ID AS SHIPGAGNCY
+                , B.FWRD
+                , B.SHPR
+                , B.CNSNE
+                , A.PKG
+                , A.PKG_QTY AS PKGWGT
+                , A.VSL_CD AS VSLCD
+                , A.CALL_YEAR CALLYEAR
+                , A.CALL_SEQ AS CALLSEQ
+                , A.SEQ AS DGSEQ
+                , 'EXPORT' AS TRANSHIPMENT
+                , A.CONTACT_PERSON AS CONTACTNM
+                , A.CONTACT_NUMBER AS CONTACTNO
+        FROM
+                TMT_DG A
+                INNER JOIN TMT_SHIPG_NOTE B
+                      ON A.CG_NO = B.SHIPG_NOTE_NO
+                         AND A.VSL_CD = B.VSL_CD
+                         AND A.CALL_SEQ = B.CALL_SEQ
+                         AND A.CALL_YEAR = B.CALL_YEAR
+                INNER JOIN TMT_VSL_SCH C
+                      ON A.VSL_CD = C.VSL_CD
+                         AND A.CALL_SEQ = C.CALL_SEQ
+                         AND A.CALL_YEAR = C.CALL_YEAR
+                INNER JOIN TMT_VSL_PART P
+                      ON C.VSL_CD = P.VSL_CD
+        WHERE 
+                B.CATG_CD IN ('E', 'R')
+                <if test="sn != null and sn != ''">
+                    AND
+                    A.CG_NO LIKE (#{sn} + '%')  
+                </if>
+                <if test="authority == 'FWD'">
+                    AND
+                    B.FWRD = #{ptnrCd}
+                </if>
+                <if test="authority == 'SHA'">
+                    AND
+                    B.SHIPG_AGNCY  = #{ptnrCd}
+                </if>
+                <if test="authority == 'BH'">
+                    AND
+                    (B.SHIPG_AGNCY = #{ptnrCd} OR B.FWRD = #{ptnrCd})
+                </if>   
+                <if test="dclrDtFrom != null and dclrDtFrom != ''">
+                    AND A.DCL_DT BETWEEN CONVERT(DATETIME, #{dclrDtFrom}, 103) AND DATEADD(DAY, 1, CONVERT(DATETIME, #{dclrDtTo}, 103))
+                </if>
+		UNION ALL
+		SELECT /*Import*/
+		        CASE
+		                B.CATG_CD WHEN 'I' THEN 'IM'
+		                ELSE 'TS'
+		        END AS DG_DIV
+		        , B.VSL_CALL_ID
+		        , ISNULL(
+		                 (SELECT LOC_CD FROM TMT_BERTH_LOC WHERE BERTH_CD = C.BERTH_LOC )
+		                , 'N'
+		        ) AS bbtLoc
+		        , B.CG_TP_CD
+		        , P.VSL_NM
+		        , A.CG_NO
+		        , A.REF_NO
+		        , A.IMDG
+		        , A.UNNO
+		        , B.CG_TP_CD AS CGTPCD
+		        , B.CMDT_CD
+		        , dbo.F_GET_CMDT_DESC(B.CMDT_CD) AS CMDTDESC
+		        , A.CG_NO AS CGNO
+		        , CASE A.DG_CHK
+                    WHEN 'S' THEN 'Save'
+                    WHEN 'N' THEN 'Submit'
+                    WHEN 'Y' THEN 'Confirm'
+                    WHEN 'R' THEN 'Reject'
+                    ELSE NULL
+                  END AS DGCHK
+		        , A.UPDATE_TIME
+		        , A.CONFM_BY
+		        , A.CONFM_DT
+		        , C.ARRV_SA_ID AS SHIPG_AGNCY
+		        , B.FWRD
+		        , B.CNSNE
+		        , B.SHPR
+		        , A.PKG
+		        , A.PKG_QTY
+		        , A.VSL_CD
+		        , A.CALL_YEAR
+		        , A.CALL_SEQ
+		        , A.SEQ
+		        , 'IMPORT' AS TRANSHIPMENT
+		        , A.CONTACT_PERSON
+		        , A.CONTACT_NUMBER
+		    FROM
+		        TMT_DG A 
+		        INNER JOIN TMT_BL B
+		            ON   A.SEQ = B.DG_SEQ
+		                 AND A.CG_NO = B.BL_NO
+		                 AND A.VSL_CD = B.VSL_CD
+		                 AND A.CALL_SEQ = B.CALL_SEQ
+		                 AND A.CALL_YEAR = B.CALL_YEAR                     
+		        INNER JOIN TMT_VSL_SCH C
+		              ON B.VSL_CD = C.VSL_CD
+		                 AND B.CALL_SEQ = C.CALL_SEQ
+		                 AND B.CALL_YEAR = C.CALL_YEAR
+		        INNER JOIN TMT_VSL_PART P
+		              ON C.VSL_CD = P.VSL_CD
+		    WHERE 
+		        B.CATG_CD IN ('I', 'T')
+		        <if test="bl != null and bl != ''">
+		            AND 
+		            B.BL_NO LIKE (#{bl} + '%')
+		        </if>
+		        <if test="authority == 'FWD'">
+		            AND
+		            B.FWRD = #{ptnrCd}
+		        </if>
+		        <if test="authority == 'SHA'">
+		            AND
+		            C.ARRV_SA_ID  = #{ptnrCd}
+		        </if>
+		        <if test="authority == 'BH'">
+		            AND
+		            (C.FWRD = #{ptnrCd} OR C.ARRV_SA_ID = #{ptnrCd})
+		        </if>   
+		        <if test="dclrDtFrom != null and dclrDtFrom != ''">
+		            AND A.DCL_DT BETWEEN CONVERT(DATETIME, #{dclrDtFrom}, 103) AND DATEADD(DAY, 1, CONVERT(DATETIME, #{dclrDtTo}, 103))
+		        </if>		
+	</select>
+	
+	<select id="selectDGDetail" parameterType="dgListParm" resultType="dgListItem" >
+		SELECT  /*dgList.selectDGDetail*/
+				ISNULL(A.VSL_CD, ' ') AS VSLCD,
+				ISNULL(A.CALL_YEAR, ' ') AS CALLYEAR,
+				ISNULL(A.CALL_SEQ, ' ') AS CALLSEQ,
+				ISNULL(A.CG_NO, ' ') AS CGNO,
+				ISNULL(A.IMDG, ' ')  AS IMDG,
+				ISNULL(A.UNNO, ' ') AS UNNO,
+				ISNULL(A.SUBSTANCE, ' ') AS SUBSTANCE,
+				ISNULL(A.IMP_NM, ' ') AS IMPNM,
+				ISNULL(A.IMP_ADDR, ' ') AS IMPADDR,
+				ISNULL(A.EXP_NM, ' ') AS EXPNM,
+				ISNULL(A.EXP_ADDR, ' ') AS EXPADDR,
+				<!-- ISNULL(A.FREE_ZONE_DIV, ' ') AS FREEZONEDIV, -->
+				<!-- ISNULL(A.FLASH_PNT, ' ') AS FLASHPNT, -->
+				<!-- ISNULL(A.PRI_CD, ' ') AS PRICD,
+				ISNULL(A.PRI_GRP, ' ') AS PRIGRP, -->
+				ISNULL(A.HAZ_CHEM, ' ') AS HAZCHEM,
+				ISNULL(A.SEQ,' ') AS refNo,
+				A.PKG  AS PKG,
+				(SELECT S_CD_NM FROM TMT_CD_MSTD WHERE L_CD = 'MT' AND M_CD ='PKGTP' AND S_CD = A.PKG) AS PKGTPCDNM,
+				ISNULL(A.PKG_QTY, 0) AS PKGQTY,
+				ISNULL(A.RMK, ' ')AS RMK1,
+				ISNULL(A.RMK, ' ')AS RMK2,
+				CASE A.DG_CHK
+					WHEN 'Y' THEN 'Y'
+					WHEN 'R' THEN 'Y'
+					WHEN 'N' THEN 'N'
+					ELSE ' '
+				END AS DGCHK,
+				ISNULL(A.EMP_CD, ' ') AS USERID,
+				ISNULL(A.PROP_SNM,' ') AS PROPSNM ,
+				ISNULL(A.SEQ,' ') AS SEQ,
+				A.CONTACT_PERSON AS contactNm,
+				A.CONTACT_NUMBER as contactNo,
+				ISNULL(SCH.VSL_CALL_ID,'NonCallId') AS vslCallId,
+				SCH.ETA AS ETA,
+				SCH.BERTH_LOC berthLoc,
+				SCH.INB_VOY inbVoy,
+				<!--  F_VC_002(A.VSL_CD, A.CALL_YEAR, A.CALL_SEQ) lastPort,
+				(SELECT PORT_CD 
+				 	FROM TMT_PORT_CALL
+				 WHERE VSL_CD = A.VSL_CD
+				        AND CALL_YEAR = A.CALL_YEAR
+				        AND CALL_SEQ = A.CALL_SEQ
+				        AND PORT_DIV = 'LA'
+				        AND LST_PORT_YN = 'Y') 				AS lastPort , -->
+				<!-- F_VC_003(A.VSL_CD, A.CALL_YEAR, A.CALL_SEQ) AS nxtPort,
+				           (SELECT PORT_CD
+				 FROM TVC_PORT_CALL
+				WHERE VSL_CD = A.VSL_CD
+				   AND CALL_YEAR = A.CALL_YEAR
+				   AND CALL_SEQ = A.CALL_SEQ
+				AND PORT_DIV = 'NP')						AS nxtPort, -->
+                ISNULL((SELECT VSL_TP  FROM TMT_VSL_PART PART WHERE PART.VSL_CD = A.VSL_CD),'100') AS vslTp
+          FROM 
+                TMT_DG A INNER JOIN TMT_VSL_SCH SCH
+                     ON A.VSL_CD = SCH.VSL_CD 
+                        AND A.CALL_SEQ = SCH.CALL_SEQ 
+                        AND A.CALL_YEAR = SCH.CALL_YEAR
+                        AND A.VSL_CALL_ID = SCH.VSL_CALL_ID
+         WHERE 
+				A.VSL_CD = #{vslCd}
+				AND A.CALL_YEAR = #{callYear}
+				AND A.CALL_SEQ = #{callSeq}
+				<if test="cgNo != null and cgNo != ''">
+				    AND A.CG_NO = #{cgNo}
+				</if>
+				<if test="seq != null and seq != ''">
+				    AND A.SEQ = #{seq}
+				</if>
+	</select>
+	
+	<select id="selectSubstance"   parameterType="dgListParm"  resultType="dgListItem">
+		SELECT /*dgList.selectSubstance*/
+				UNNO AS UNNO,
+				CLASS AS IMDG,
+				IMDG_DIV AS IMDGDIV,
+				SUBSTANCE AS SUBSTANCE
+		  FROM TMT_IMDGDATA
+		 WHERE UNNO = #{unno}
+		   AND CLASS = #{imdg}
+			<if test="substance != null and substance != ''">
+   				AND	SUBSTANCE = #{substance}
+		   	</if>
+	</select>	
+	
+	<update id = "updateDGDetail"  parameterType = "dgListItem">
+		UPDATE /*dgList.updateDGDetail*/
+			TMT_DG 
+		SET  
+			IMDG = #{imdg},
+			UNNO =#{unno},
+			SUBSTANCE =#{substance},
+			IMP_NM =#{impNm},
+			IMP_ADDR =#{impAddr},
+			EXP_NM =#{expNm},
+			EXP_ADDR =#{expAddr},
+			<!-- FREE_ZONE_DIV =#{freeZoneDiv},
+			FLASH_PNT =#{flashPnt}, -->
+			HAZ_CHEM =#{hazChem},
+			<!-- PRI_CD =#{priCd},
+			PRI_GRP =#{priGrp}, -->
+			PKG  =#{pkg},
+			PKG_QTY =#{pkgQty},
+			RMK =#{rmk1},				
+			EMP_CD =#{userId},
+			UPDATE_TIME = GETDATE(),
+			PROP_SNM = #{propSnm},
+			CONTACT_PERSON = #{contactNm},
+			CONTACT_NUMBER	= #{contactNo}
+			<if test="dgChk eq 'N'.toString()">
+				,DG_CHK = 'N'
+			</if>
+	 WHERE 
+			    SEQ = #{seq}
+			AND VSL_CD = #{vslCd}
+			AND CALL_YEAR = #{callYear}
+			AND CALL_SEQ = #{callSeq}
+			AND CG_NO = #{cgNo}
+	</update> 
+</mapper>

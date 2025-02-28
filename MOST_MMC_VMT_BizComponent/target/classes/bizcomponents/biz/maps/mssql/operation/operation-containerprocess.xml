@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+<mapper namespace="containerProcess">
+
+		
+	<!--  ################ Query Statement Define ######################################### -->
+	<select id="selectEquipmentComboList" parameterType="containerProcessParm" resultType="containerProcessItem">
+			/*  ContainerProcessMap.selectEquipmentNoList */
+			SELECT 
+				EQ_FAC_NO AS EQNO, 
+                EQ_FAC_NM  AS EQNM 
+            FROM 
+            	TMT_EQ_FAC
+            WHERE 
+           		EQ_FAC_NO IN ('BG0001','BG0002','SC0001','SC0002','SC0005','SC0007','SC0008','SHIPCR')        
+           	ORDER BY 
+           		EQ_FAC_NO              
+	</select>
+		
+	<select id="selectContainerProcessList"  parameterType="containerProcessParm" resultType="containerProcessItem">
+			 <!-- ContainerProcessMap.selectContainerProcessList -->
+	    SELECT 
+	        A.VSL_CALL_ID AS VSLCALLID,
+	        A.SEQ AS SEQ,
+	        FORMAT(CONVERT(DATE, A.WORK_YMD, 112), 'dd/MM/yyyy') AS WORKYMD,
+	        ISNULL(A.SHFT_ID, ' ') AS SHFTID,
+	        ISNULL(
+	            (SELECT SHFT_NM AS SHFTNM
+	             FROM TMT_SHFT
+	             WHERE SHFT_METH_CD = 'Standard' AND VLD_YN = 'Y' AND SHFT_ID = A.SHFT_ID), ' ') AS SHFTNM,
+	        ISNULL(A.HATCH_NO, ' ') AS HATCHNO,
+	        ISNULL(A.EQ_NO, ' ') AS EQNO,
+	        ISNULL(
+	            (SELECT EQ_FAC_NM 
+	             FROM TMT_EQ_FAC 
+	             WHERE EQ_FAC_NO = A.EQ_NO), ' ') AS EQNM,
+	        A.LD_QTY_20 AS L20,
+	        A.LD_QTY_40 AS L40,
+	        A.DS_QTY_20 AS D20,
+	        A.DS_QTY_40 AS D40,
+	        FORMAT(A.ST_DT, 'dd/MM/yyyy HH:mm') AS STDT,
+	        FORMAT(A.END_DT, 'dd/MM/yyyy HH:mm') AS ENDDT,
+	        FORMAT(ISNULL(CONVERT(DECIMAL(10, 2), DATEDIFF(MINUTE, A.ST_DT, A.END_DT) / 60.0), 0), '########0.00') AS TOTALHRS
+	    FROM TMT_CNTR_PROC A
+	    WHERE A.VSL_CALL_ID = #{vslCallId}
+	    <if test="workYmd != null and workYmd != ''">
+	        AND A.WORK_YMD = FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+	    </if>
+	    <if test="shftId != null and shftId != ''">
+	        AND A.SHFT_ID = #{shftId}
+	    </if>
+	    ORDER BY A.WORK_YMD, SHFTNM, ST_DT, HATCH_NO
+	</select>
+		
+		
+
+	<insert id="insertContainerProcessItems" parameterType="containerProcessItem">
+			<!-- ContainerProcessMap.insertContainerProcessItems -->
+	    INSERT INTO TMT_CNTR_PROC (
+	        VSL_CALL_ID,
+	        WORK_YMD,
+	        SHFT_ID, 
+	        HATCH_NO,
+	        EQ_NO,
+	        SEQ,
+	        ST_DT,
+	        END_DT,
+	        LD_QTY_20,
+	        LD_QTY_40,
+	        DS_QTY_20,
+	        DS_QTY_40,
+	        UPD_DT, 
+	        UPD_USER_ID
+	    ) VALUES (
+	        #{vslCallId},
+	        FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd'),
+	        #{shftId},
+	        #{hatchNo},
+	        #{eqNo},
+	        ISNULL((SELECT MAX(SEQ) + 1 FROM TMT_CNTR_PROC), 1),
+	        CONVERT(DATETIME, #{stDt}, 103),
+	        CONVERT(DATETIME, #{endDt}, 103),
+	        #{l20},
+	        #{l40},
+	        #{d20},
+	        #{d40},
+	        GETDATE(),
+	        CASE WHEN #{userId} IS NULL THEN 'Unknown' ELSE #{userId} END
+	    )
+	</insert>
+		
+	<update id="updateContainerProcessItems"  parameterType="containerProcessItem">
+				<!-- ContainerProcessMap.updateContainerProcessItems -->
+	    UPDATE TMT_CNTR_PROC
+	    SET   
+	        WORK_YMD = FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd'),
+	        SHFT_ID = #{shftId},
+	        HATCH_NO = #{hatchNo},
+	        EQ_NO = #{eqNo},
+	        ST_DT = CONVERT(DATETIME, #{stDt}, 103),
+	        END_DT = CONVERT(DATETIME, #{endDt}, 103),
+	        LD_QTY_20 = #{l20},
+	        LD_QTY_40 = #{l40},
+	        DS_QTY_20 = #{d20},
+	        DS_QTY_40 = #{d40},
+	        UPD_DT = GETDATE(),
+	        UPD_USER_ID = CASE WHEN #{userId} IS NULL THEN 'Unknown' ELSE #{userId} END
+	    WHERE VSL_CALL_ID = #{vslCallId}
+	      AND SEQ = #{seq}
+	</update>
+		
+	<delete id="deleteContainerProcessItems"  parameterType="containerProcessItem">
+		<!-- ContainerProcessMap.deleteContainerProcessItems -->
+	    DELETE FROM TMT_CNTR_PROC
+	    WHERE VSL_CALL_ID = #{vslCallId}
+	      AND SEQ = #{seq}
+	</delete>	
+				
+	<update id="updateActualTime"  parameterType="containerProcessItem">
+		<!-- ContainerProcessMap.updateActualTime -->
+	    UPDATE TMT_VSL_SCH
+	    SET ATW = (
+	            SELECT MIN(A.ATW)
+	            FROM (
+	                SELECT RPT.VSL_CALL_ID AS VSLCALLID, RPT.ST_DT AS ATW
+	                FROM TMT_CNTR_PROC RPT
+	                WHERE RPT.VSL_CALL_ID = #{vslCallId}
+	                UNION 
+	                SELECT SCH.VSL_CALL_ID AS VSLCALLID, SCH.ATW AS ATW
+	                FROM TMT_VSL_SCH SCH
+	                WHERE SCH.VSL_CALL_ID = #{vslCallId}
+	            ) A
+	            GROUP BY A.VSLCALLID
+	        ),
+	        ATC = (
+	            SELECT MAX(B.ATC)
+	            FROM (
+	                SELECT RPT.VSL_CALL_ID AS VSLCALLID, RPT.END_DT AS ATC  
+	                FROM TMT_CNTR_PROC RPT
+	                WHERE RPT.VSL_CALL_ID = #{vslCallId}
+	                UNION 
+	                SELECT SCH.VSL_CALL_ID AS VSLCALLID, SCH.ATC AS ATC
+	                FROM TMT_VSL_SCH SCH
+	                WHERE SCH.VSL_CALL_ID = #{vslCallId}
+	            ) B
+	            GROUP BY B.VSLCALLID
+	        )
+	    WHERE VSL_CALL_ID = #{vslCallId}
+	</update> 
+
+</mapper>
+
+

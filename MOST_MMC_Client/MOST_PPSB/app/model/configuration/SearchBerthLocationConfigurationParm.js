@@ -1,0 +1,95 @@
+Ext.define('MOST.model.configuration.SearchBerthLocationConfigurationParm',{
+	extend: 'MOST.model.foundation.parm.BizParm',
+	fields:[{
+		name: 'check',
+		type: 'boolean'
+	}, {
+		name: 'berthCd',
+		type: 'string'
+	},{
+		name: 'berthNm',
+		type: 'string'
+	},{
+		name: 'berthTp',
+		type: 'string'
+	},{
+		name: 'berthTpNm',
+		type: 'string'
+	},{
+		name: 'locCd',
+		type: 'string'
+	},{
+		name: 'locNm',
+		type: 'string'
+	},{
+		name: 'pstSta',
+		type: 'string'
+	},{
+		name: 'pstEnd',
+		type: 'string'
+	},{
+		name: 'length',
+		type: 'string'
+	},{
+		name: 'huydrantYn',
+		type: 'string'
+	},{
+		name: 'elecYn',
+		type: 'string'
+	},{
+		name: 'ispsInfo',
+		type: 'string'
+	},{
+		name: 'berthOwn',
+		type: 'string'
+	},{
+		name: 'berthDepth',
+		type: 'string'
+	},{
+		name: 'chartDepth',
+		type: 'string'
+	},{
+		name: 'keelClr',
+		type: 'string'
+	},{
+		name: 'minParalDdy',
+		type: 'string'
+	},{
+		name: 'maxLenVsl',
+		type: 'string'
+	},{
+		name: 'maxHgtDft',
+		type: 'string'
+	},{
+		name: 'maxHgtMfld',
+		type: 'string'
+	},{
+		name: 'minHgtMfld',
+		type: 'string'
+	},{
+		name: 'insUserId',
+		type: 'string'
+	},{
+		name: 'insDtm',
+		type: 'string'
+	},{
+		name: 'updUserId',
+		type: 'string'
+	},{
+		name: 'updDtm',
+		type: 'string'
+	},{
+		name: 'cboGrpList',
+		type: 'string'
+	},{
+		name: 'depYn',
+		type: 'string'
+	},{
+		name: 'sysOdr',
+		type: 'string'
+	},{
+		name: 'tmnl',
+		type: 'string'
+	}]
+
+});

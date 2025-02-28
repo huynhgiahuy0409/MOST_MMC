@@ -1,0 +1,162 @@
+Ext.define('MOST.view.popup.SubDeliveryOrderPopupController', {
+	extend: 'MOST.view.foundation.BaseViewController',
+
+	requires: [
+	],
+
+	alias: 'controller.subdeliveryorderpopup',	
+	
+	/**
+	 * =========================================================================================================================
+	 * CONSTANT START
+	 */
+	MAIN_GRID_REF_NAME: 'refSubDeliveryOrderPopupGrid',
+	MAIN_STORE_NAME: 'subDeliveryOrderPopup',
+	/**
+	 * CONSTANT END
+	 * =========================================================================================================================
+	 */
+	/**
+	 * =========================================================================================================================
+	 * INITIALIZE START
+	 */
+	// After Renderer Event
+	onLoad: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var searchParm = Ext.create('MOST.model.popup.SearchPopupServiceParm');
+		
+		me.getViewModel().setData({theSearch:searchParm});
+		
+		me.updateViewStyle(me.getView());
+		searchParm.set('progress', 'N');
+		
+		if(me.getView().recvData.vslCallId){
+			refs.refVslCallId.setValue(me.getView().recvData.vslCallId);
+			me.getBlComboItems();
+		}
+		
+		me.onSearch();
+	},
+	
+	// Search Event Handler
+	onSearch: function() {
+    	var me = this;
+		var refs = me.getReferences();
+		var store = me.getStore(me.MAIN_STORE_NAME);
+		var params = me.getSearchCondition();
+		
+		store.load({
+			params: params, 
+			callback: function(records, operation, success) {
+				if (records.length <= 0) {
+					
+				}
+			}
+		});
+    },
+	
+	// Grid Row Double
+	onDblClick: function() {
+		var me = this;
+		var grid = me.lookupReference(me.MAIN_GRID_REF_NAME);
+		var refs = me.getReferences();
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+		var window = me.getView().up('window');
+		
+		if(selection == null){
+			return null
+		}
+		
+		var returnItem = {
+			code : selection.get("sdoNo"),
+			codeName : selection.get("sdoNo"),
+			item : selection
+		}
+		
+		window.returnValue = returnItem;
+		window.close();
+	},
+
+	// Returns the popup result.
+	getReturnData:function(){
+		var me = this;
+		var grid = me.lookupReference(me.MAIN_GRID_REF_NAME);
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+		
+		var selectArray = new Array();
+		selectArray.push(selection.data);
+		
+		var returnItem = {
+			code : selection.data.sdoNo,
+			item : selectArray
+		}
+	
+		return returnItem;
+	},
+
+	/**
+	 * EVENT HANDLER END
+	 * =========================================================================================================================
+	 */
+	
+	/**
+	 * =========================================================================================================================
+	 * GENERAL METHOD START
+	 */
+	// Search Condition
+	getSearchCondition : function(){
+		var me = this;
+		var refs = me.getReferences();
+		var searchParm = me.getViewModel().get('theSearch');
+		
+		var params = {
+			vslCallId: searchParm.get("vslCallId"),
+			blNo: searchParm.get("blNo"),
+			subDoNo: searchParm.get("subDoNo"),
+			lorryNo: me.getView().recvData.lorryNo?me.getView().recvData.lorryNo: ''
+		}
+		
+    	return params;
+    	
+	},
+	
+	getBlComboItems: function(){
+		var me = this;
+		var refs = me.getReferences();
+		
+		var blNoCombo = me.getStore('blNoCombo');
+		
+		blNoCombo.load({
+			params : {
+				vslCallId: refs.refVslCallId.getValue()
+			},
+			callback: function(records, operation, success) {
+				if (success) {
+					
+				}
+			}
+		});
+	},
+	
+	afterSetCodePopupData:function(xtype, targetControl, returnValue){
+		var me = this;
+		var refs = me.getReferences();
+		
+		if(targetControl === 'refVslCallId'){
+			if(returnValue){
+				me.getBlComboItems();
+			} else {
+				var blCombo = me.getStore('blNoCombo');
+
+				blCombo.loadData([],false);
+				refs.refBlNo.reset();
+			}
+		}
+	},
+	
+	/**
+	 * GENERAL METHOD END
+	 * =========================================================================================================================
+	 */
+});

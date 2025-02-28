@@ -1,0 +1,45 @@
+Ext.define('MOST.model.operation.SearchDimensionCheckParm', {
+	extend: 'MOST.model.foundation.parm.BizParm',
+	fields: [
+		{
+			name:'checkTime',
+			type:'string'
+		},
+		{
+			name:'vslCallId',
+			type:'string'
+		},
+		{
+			name:'eta',
+			type:'string'
+		},
+		{
+			name:'cgNo',
+			type:'string'
+		},
+		{
+			name:'category',
+			type:'string'
+		},
+		{
+			name:'jobNo',
+			type:'string'
+		},
+		{
+			name:'pgmId',
+			type:'string'
+		},
+		{
+			name:'catgCd',
+			type:'string'
+		},
+		{
+			name:'gateTicketNo',
+			type:'string'
+		},
+		{
+			name:'blNo',
+			type:'string'
+		}
+	]
+});

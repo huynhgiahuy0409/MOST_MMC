@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="damageCheck">
+	<resultMap 	id="resultBlSnComboMap" type="damageCheckItem">
+   		<result property = "vslCallId"		column = "VSL_CALL_ID"/>
+   		<result property = "vslCd"			column = "VSL_CD"/>
+   		<result property = "callSeq"		column = "CALL_SEQ"/>
+   		<result property = "callYear"		column = "CALL_SEQ"/> 
+   		<result property = "mfDocId"		column = "MF_DOC_ID"/>
+   		<result property = "blSnNo"			column = "BL_SN_NO"/>
+   		<result property = "cd"				column = "BL_SN_NO"/>
+   		<result property = "cdNm"			column = "BL_SN_NO"/>
+   		<result property = "ixCd"			column = "IX_CD"/>
+   		<result property = "catgCd"			column = "CATG_CD"/> 
+   	</resultMap>
+   	
+   	<resultMap 	id="resultDoGrComboMap" type="damageCheckItem">
+   		<result property = "vslCallId"		column = "VSL_CALL_ID"/>
+   		<result property = "doGrCd"			column = "DO_GR"/>
+   		<result property = "doGrNm"			column = "DO_GR"/>
+   	</resultMap>
+
+	<select id="selectBlSnNo"   parameterType="damageCheckParm"  resultMap="resultBlSnComboMap">
+		SELECT  /*damageCheck.selectBlSnNo*/
+			*          
+       	FROM (
+                SELECT 	
+					VSL_CALL_ID,
+					VSL_CD,
+					CALL_YEAR,
+					CALL_SEQ,
+					MF_DOC_ID,
+					BL_NO AS BL_SN_NO,
+					CATG_CD,
+					'I' AS IX_CD
+                FROM 
+					TMT_BL
+                WHERE
+					VSL_CALL_ID = #{vslCallId}
+					AND CG_TP_CD NOT IN ('RCV')
+                UNION
+                SELECT
+					VSL_CALL_ID,
+					VSL_CD,
+					CALL_YEAR,
+					CALL_SEQ,
+					MF_DOC_ID,
+					SHIPG_NOTE_NO AS BL_SN_NO,
+					CATG_CD,
+					'X' AS IX_CD
+                FROM
+					TMT_SHIPG_NOTE
+                WHERE
+					VSL_CALL_ID = #{vslCallId}
+					AND CG_TP_CD NOT IN ('RCV')
+		) AS selectBlSnNo
+	</select>
+	 
+	<select id="selectDoGrNo"   parameterType="damageCheckParm"  resultMap="resultDoGrComboMap">
+		SELECT /*damageCheck.selectDoGrNo*/
+			*             
+       	FROM (
+                SELECT 	
+					VSL_CALL_ID, 
+					DO_NO AS DO_GR
+                FROM
+					TMT_DO_DTL
+                WHERE
+					VSL_CALL_ID = #{vslCallId}
+					AND BL_NO = #{blNo}
+                UNION
+                SELECT
+					VSL_CALL_ID,
+					GR_NO AS DO_GR
+                FROM
+					TMT_GR
+                WHERE
+					VSL_CALL_ID = #{vslCallId}
+					AND SHIPG_NOTE_NO = #{blNo}
+            ) AS selectDoGrNo
+	 </select>
+	
+ 	
+    <select id="selectJobNoDamageCheck"   parameterType="damageCheckParm"  resultType="damageCheckItem">
+		SELECT /*damageCheck.selectJobNoDamageCheck*/
+			'J' + FORMAT(GETDATE(), 'yyMMdd') + RIGHT('000000000' + ISNULL(CONCAT(MAX(CAST(RIGHT(JOB_NO, 9) AS INT)), ''), '000000000'), 9) AS jobNo
+		FROM  
+			TMT_JOB
+	</select>
+	
+	<select id="selectDamageCheck" parameterType="damageCheckParm" resultType="damageCheckItem">
+		SELECT	/* GateOperationsMap.searchGateInSDonoInfo */
+			DMG_PART 						dmgPart,
+			
+			(SELECT	
+				S_CD_NM
+			FROM
+				TMT_CD_MSTD 
+			WHERE
+				M_CD 			= 'DMGCHK' 
+				AND S_CD_LGV 	= 'DMG_PART' 
+				AND S_CD 		= DMG_PART) dmgPartNm,
+				
+			DMG_LEVEL 						dmgLevel,
+			
+			(SELECT	
+				S_CD_NM
+			FROM
+				TMT_CD_MSTD 
+			WHERE
+				M_CD = 'DMGCHK' 
+				AND S_CD_LGV = 'DMG_LEVEL' 
+				AND S_CD = DMG_LEVEL)		dmgLevelNm,
+			CHK_DT 							checkTime,
+			RMK 							dmgRemark,
+			PKG_QTY 						dmgQty,
+			CG_WGT 							dmgMt,
+			CG_VOL 							dmgM3,
+			VSL_CD 							vslCd,
+			CALL_YEAR 						callYear,
+			CALL_SEQ 						callSeq,
+			VSL_CALL_ID 					vslCallId,
+			JOB_NO 							jobNo
+		FROM 
+			TMT_DAMAGE_CHECK
+		WHERE
+			1 = 1
+				<if test="vslCallId != null and vslCallId != ''">
+					AND VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="cgNo != null and cgNo != ''">
+					AND CG_NO = #{cgNo}
+				</if>
+				<if test="jobNo != null and jobNo != ''">
+					AND JOB_NO = #{jobNo}
+				</if>
+	</select>
+	
+	<insert id="insertDamageCheck" parameterType="damageCheckItem">
+		<selectKey order="BEFORE" resultType="damageCheckItem" keyProperty="vslCd,callYear,callSeq" >
+			SELECT TOP(1)
+				VSL_CD 		AS vslCd,
+				CALL_YEAR	AS callYear,
+				CALL_SEQ 	AS callSeq
+			 FROM 	
+				TMT_VSL_SCH
+			 WHERE
+				VSL_CALL_ID = #{vslCallId}
+		</selectKey>
+		
+		INSERT INTO /* GateOperationsMap.insertDamageCheck */
+		TMT_DAMAGE_CHECK (
+		   VSL_CALL_ID
+		   ,VSL_CD
+		   ,CALL_SEQ
+		   ,CALL_YEAR
+		   ,MF_DOC_ID
+		   ,CG_NO
+		   ,SDO_NO
+		   ,GR_NO
+		   ,SEQ
+		   ,IX_CD
+		   ,CATG_CD
+		   ,DMG_PART
+		   ,DMG_LEVEL
+		   ,PKG_QTY
+  		   ,CG_WGT
+  		   ,CG_VOL
+  		   ,JOB_NO
+	       ,CHK_DT
+		   ,RMK
+		   ,CRT_DT
+		   ,CRT_BY
+		   ,UPDATE_TIME
+		   ,STAFF_CD
+		  
+		) VALUES (
+		   #{vslCallId}
+		   ,#{vslCd}
+		   ,#{callSeq}
+		   ,#{callYear}
+		   ,#{mfDocId}
+		   ,#{cgNo}
+		   ,#{sdoNo}
+		   ,#{grNo}
+		   ,(SELECT 
+				ISNULL(MAX(CAST(SEQ AS INT)),0) + 1 
+			FROM 
+				TMT_DAMAGE_CHECK 
+			WHERE 
+				VSL_CALL_ID = #{vslCallId} 
+				AND CG_NO = #{cgNo})
+		   ,#{ixCd}
+		   ,#{catgCd}
+		   ,#{dmgPart}
+		   ,#{dmgLevel}
+		   ,#{dmgQty}
+		   ,#{dmgMt}
+		   ,#{dmgM3}
+		   ,#{jobNo}
+           ,SYSDATETIME() 
+		   ,#{dmgRemark}
+		   ,SYSDATETIME()
+		   ,#{userId}
+		   ,SYSDATETIME()
+		   ,#{userId}
+		)
+	</insert>
+	
+	
+	<delete id="deleteDamageCheck" parameterType="damageCheckItem">
+		DELETE /* GateOperationsMap.deleteDamageCheck */
+		FROM 
+			TMT_DAMAGE_CHECK
+		WHERE
+			JOB_NO = #{jobNo}
+	</delete>
+	 
+	
+</mapper>

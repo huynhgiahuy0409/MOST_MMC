@@ -1,0 +1,708 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace= "vesselParticular">
+
+	<select id="selectVesselParticularList" parameterType="vesselParticularParm" resultType="vesselParticularItem">
+	 	<if test="pageNo != 0"> 
+	    	SELECT /* vesselParticular.selectVesselParticularList */
+	    		* 
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY vslNm) 			AS ROW_NUM,
+					innerTable.*
+				FROM (
+		</if>
+				<include refid="getVesselParticularList"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 		* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	CAST((CASE WHEN #{pageNo}  = '0' THEN '1' ELSE #{pageNo} END) AS INT) 			* CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+
+	<sql id="getVesselParticularList">
+		SELECT /* vesselParticular.getVesselParticularList */
+			VSL_CD 												AS vslCd,               
+			VSL_NM  											AS vslNm,          
+			SHIP_OFFICIAL_NO 									AS shipOffNo, 
+			IMO_NO 												AS imoNo,         
+			CALL_SIGN 											AS callSign,          
+			VSL_FLAG_CD 										AS vslFlagCd,      
+			VSL_REG_PORT 										AS vslRegPort,      
+			FORMAT(LAUNCH_DT, 'dd/MM/yyyy') 					AS launchDt,
+			dbo.F_CM_CODE_NM('VC','VSLTP',VSL_TP) 				AS vslTp,       
+			TERMINAL_TYPE 										AS terminalTp,            
+			LOA 												AS loa,               
+			NRT 												AS nrt,               
+			GRT 												AS grt, 
+			DWT 												AS dwt,              
+			SA_CORP_ID 											AS saCorpId,    
+			CASE
+				WHEN
+					(CASE dbo.F_CM_CODE_NM('VC','STAT', STAT_CD)
+						WHEN 'Approved' THEN 'Confirmed'
+						ELSE dbo.F_CM_CODE_NM('VC','STAT', STAT_CD)						
+					END) = 'Confirmed'
+						THEN 'Confirmed'
+				ELSE
+					CASE dbo.F_CM_CODE_NM('VC','STAT', STAT_CD)
+						WHEN 'In Progress' THEN 'Confirmed'
+						ELSE 'Not Confirmed'
+					END	 
+			END 												AS jctConfirm,
+			STAT_CD 											AS statCd,
+			CASE
+				WHEN 
+					CASE STAT_CD
+						WHEN 'AP' THEN 'Approved'
+						ELSE STAT_CD
+					END = 'Approved'
+				THEN 'Approved'
+				ELSE 'Submitted'
+			END													AS statCdNm,
+			(SELECT 
+				ENG_SNM 
+			FROM 
+				TMT_AGENCY_INFO 
+			WHERE 
+				AGENCY_CODE 			= SA_CORP_ID 
+				AND PTNR_TYPE			= 'SHA'
+			) 													AS saNm,    
+			FORMAT(B.UPDATE_TIME, 'dd/MM/yyyy HH:mm') 			AS insDtm,            
+			FORMAT(CONFIRM_DTM, 'dd/MM/yyyy HH:mm') 			AS confirmDtm,    
+			FORMAT(ISSC_EXPR_DT,'yyyy/MM/dd') 					AS isscExprDt,        
+			COMPLIANT_YN 										AS compliantYn,
+			FLOAT_CRANE_YN 										AS floatYn,  
+			B.STAFF_CD 											AS userId                     
+		FROM 
+			TMT_VSL_PART 										B 
+		LEFT OUTER JOIN
+			TMT_AGENCY_INFO 									A      
+				ON B.SA_CORP_ID 								= A.AGENCY_CODE                      
+		<where>
+			1 = 1                            
+	    <if test="vslNm != '' and vslNm != null">
+	   		 AND VSL_NM 										LIKE UPPER('%'  + #{vslNm} + '%') 
+	    </if>
+	    <if test = "shipOffNo != '' and shipOffNo != null" >
+	    	AND SHIP_OFFICIAL_NO 								LIKE '%' + #{shipOffNo} + '%'
+	    </if>
+	    <if test = "imoNo != '' and imoNo != null" >
+	    	AND IMO_NO 											LIKE '%' + #{imoNo} + '%'
+	    </if>
+		<if test = "sdt != '' and sdt != null" >
+	    	AND FORMAT(B.UPDATE_TIME, 'yyyyMMdd') 				&gt;= FORMAT(CONVERT(DATE, #{sdt}, 103), 'yyyyMMdd')
+	    </if>
+     	<if test = "edt != '' and edt != null" >
+      		AND FORMAT(B.UPDATE_TIME, 'yyyyMMdd') 				&lt;= FORMAT(CONVERT(DATE, #{edt}, 103), 'yyyyMMdd')
+     	</if>
+   		<if test = "confCk != '' and confCk != null " >
+   			<if test = "confCk == 'AP' " >
+   		 		AND STAT_CD 									= #{confCk}
+   		 	</if>
+   		 	<if test = "confCk == 'ST' " >
+   		 		AND (STAT_CD 									IS NULL OR STAT_CD = '')	
+   		 		OR STAT_CD 										= #{confCk}
+   		 	</if>
+   		</if>
+		</where>     
+	</sql>
+
+	<select id="selectVesselParticularListCount" parameterType="vesselParticularParm" resultType="java.lang.String" >
+		SELECT /* vesselParticular.selectVesselParticularListCount */
+			COUNT(*)
+		FROM 
+			(<include refid="getVesselParticularList"/>) 		AS TEMPTABLE
+	</select>
+
+	<select id="selectVesselParticularDetailItem" parameterType="vesselParticularParm" resultType="vesselParticularItem">
+		SELECT /* vesselParticular.selectVesselParticularDetailItem */
+			A.VSL_CD 											AS vslCd,		
+			INMARSAT_NO 										AS inmarsatNo,
+			MMSI_CD 											AS mmsiCd,
+			VSL_NM 												AS vslNm,
+			BLD_YEAR 											AS bldYear,
+			SHIP_OFFICIAL_NO 									AS shipOfficialNo,
+			VSL_TP1_VSL 										AS vslTp1Vsl,
+			VSL_TP2_TERM 										AS vslTp2Term,
+			VSL_TP3_TRADE  										AS vsltp3Trade,
+			DOM_YN 												AS domYn,
+			COMPLIANT_YN 										AS complantYn,
+			CALL_SIGN 											AS callSign,
+			VSL_FLAG_CD 										AS vslFlagCd,
+			dbo.F_COUNTRY_NM(CNTRY_CD) 							AS cntyCd,
+			VSL_TP 												AS vslTp,
+			dbo.F_CM_CODE_NM('VC', 'VSLTP', VSL_TP) 			AS vslTpNm,
+			VSL_REG_PORT 										AS vslRegPort,
+			(SELECT 
+				PORT_CD
+			FROM 
+				TMT_PORT_MST
+			WHERE 
+				PORT_CD = A.VSL_REG_PORT
+			)													AS mapassPortCd,
+			'' 													AS vslRegPortNm,
+			FORMAT(REG_DT, 'dd/MM/yyyy') 						AS regDt,
+			VSL_CUST_CD 										AS vslCustCd,
+			SA_CUST_CD 											AS saCustCd,
+			IMO_NO 												AS imoNo,
+			CLASS 												AS class1,		
+			LST_DRYDOCK 										AS lstDrydock,
+			LOA 												AS loa,
+			LBP 												AS LBp,
+			VSL_WIDTH 											AS vslWidth,
+			VSL_MX_WIDTH 										AS vslMxWidth,
+			VSL_DEPTH 											AS vslDepth,
+			SUMM_DRF 											AS summDrf,
+			TOP_TIER 											AS topTiger,
+			ANTN_HGT 											AS antnHgt,
+			BOW_DIST 											AS bowDist,
+			STERN_DIST 											AS sternDist,
+			DISP 												AS disp,
+			FLOAT_CRANE_YN 										AS floatCraneYn,
+			CRANE_SIDE 											AS craneSide,
+			ALONG_SIDE 											AS alongSide,
+			ISSC_NO 											AS issNo,
+			FORMAT(ISSC_EXPR_DT, 'dd/MM/yyyy') 					AS isscExprDt,
+			NRT 												AS nrt,
+			GRT 												AS grt,
+			DWT 												AS dwt,
+			BALE_CAPA 											AS baleCapa,
+			GRAIN_CAPA 											AS grainCapa,
+			ENG_DESC 											AS engDesc,
+			ENG_BHP 											AS engBhp,
+			SPEED 												AS speed,
+			MX_TEU 												AS mxTeu,
+			HATCH_QTY 											AS hatchQty,
+			MX_ROW_DECK 										AS mxRowDeck,
+			MX_ROW_HOLD 										AS mxRowHod,
+			STAT_CD 											AS statCd,
+			CASE STAT_CD
+				WHEN 'AP' THEN 'Approved'
+				ELSE 'Submitted'
+			END 												AS statCdNm,
+			NAT_CD 												AS natCd,
+			SERV_TP 											AS servTp,
+			VHF_YN 												AS vhfYn,
+			SHIP_GEAR 											AS shipGear,
+			NSW_CHK 											AS nswChk,
+			VSL_OUTR 											AS vslOutr,
+			FORMAT(LAUNCH_DT, 'dd/MM/yyyy') 					AS launchDt,
+			OUTR 												AS outr,
+			B.UPDATE_TIME 										AS insDtm,
+			B.UPDATE_TIME 										AS updDtm,
+			B.STAFF_CD 											AS insUserId,
+			B.STAFF_CD 											AS updUserId,
+			VSL_DIV 											AS vslDiv,
+			SA_CORP_ID 											AS saCorpId,
+			CREW_NO 											AS crewNo,
+			NAV_EQU 											AS navEqu,
+			BUNKER_COND 										AS bunkerCond,
+			CONSUM_SEA 											AS consumSea,
+			FRESHWT_COND 										AS freshwtcond,
+			APPRX_DIST 											AS apprxDist,
+			TOWING_SPEED 										AS towinSpeed,
+			COMPTY_OFFICER 										AS comptyOfficer,
+			TRAD_CERTI 											AS tradCerti,
+			TOWING_EQ 											AS towingEq,
+			REMARKS 											AS remarks,
+			TERMINAL_TYPE 										AS terminalType,
+			VSL_TP_TRADE										AS vslTpTrade,
+			CONFIRM_USER_ID 									AS confirmUserId,
+			SHIPPING_LINE_CD 									AS shippingLineCd,
+			dbo.F_PTNR_SNM(SHIPPING_LINE_CD, 'SHP') 			AS shippingLineNm,
+			B.AGENCY_CODE 										AS corpId,
+			B.ENG_SNM 											AS corpNm,
+			'' 													AS vesselOwner,
+			CRANE_YN 											AS craneYn
+		FROM 
+			TMT_VSL_PART 										A
+		LEFT OUTER JOIN
+			TMT_AGENCY_INFO 									B
+				ON A.SA_CORP_ID 								= B.AGENCY_CODE
+		WHERE 
+      		A.VSL_CD 											= #{vslCd}    
+	</select>
+	
+	<update id="updateVesselParticularItem" parameterType="vesselParticularItem">
+		UPDATE /* vesselParticular.updateVesselParticularItem */
+			TMT_VSL_PART 
+		SET  
+			VSL_NM 												= UPPER(#{vslNm}),
+			DOM_YN 												= #{domYn},			
+			BLD_YEAR 											= #{bldYear},
+			CALL_SIGN 											= UPPER(#{callSign}),
+	 		VSL_FLAG_CD 										= #{vslFlagCd},			
+			CNTRY_CD 											= #{vslFlagCd},							
+			VSL_TP 												= #{vslTp},
+			VSL_REG_PORT 										= #{vslRegPort},		 
+		    <if test="launchDt != '' and launchDt != null">
+				LAUNCH_DT										= CONVERT(DATE, #{launchDt},103),
+			</if>
+			<if test="regDt != '' and regDt != null">
+				REG_DT											= ISNULL(CONVERT(DATE, #{regDt},103),''),
+			</if>
+			VSL_TP3_TRADE 										= #{vslTp3Trade},		
+			IMO_NO 												= UPPER(#{imoNo}),								
+			VSL_TP_TRADE 										= #{vslTpTrade},
+			CLASS 												= #{class1},		
+			<if test="lstDrydock != '' and lstDrydock != null">
+				LST_DRYDOCK 									= #{lstDrydock},
+			</if>			
+			<if test="saCorpId != '' and saCorpId != null">
+				SA_CORP_ID										= #{saCorpId},
+			</if>
+			MMSI_CD 											= #{mmsiCd},				
+			SHIPPING_LINE_CD 									= #{shippingLineCd},
+			INMARSAT_NO 										= #{inmarsatNo},
+			LOA 												= TRY_CONVERT(NUMERIC(18, 3), #{loa}),						
+			LBP 												= TRY_CONVERT(NUMERIC(18, 3), #{lbp}),									
+			TOP_TIER 											= TRY_CONVERT(NUMERIC(18, 3), #{topTiger}),
+			VSL_WIDTH 											= TRY_CONVERT(NUMERIC(18, 3), #{vslWidth}),			
+			VSL_DEPTH 											= TRY_CONVERT(NUMERIC(18, 3), #{vslDepth}),						
+			OUTR 												= TRY_CONVERT(NUMERIC(18, 3), #{outr}),						
+			ENG_DESC 											= #{engDesc},
+			ISSC_NO 											= #{issNo},		
+			<if test="isscExprDt != '' and isscExprDt != null">
+				ISSC_EXPR_DT 									= CONVERT(DATE, #{isscExprDt}, 103), 
+			</if>		 
+     	    CRANE_SIDE 											= #{craneSide},			
+     	    ALONG_SIDE 											= #{alongSide},
+			REMARKS 											= #{remarks},
+			SHIP_OFFICIAL_NO 									= #{shipOfficialNo},
+		    TERMINAL_TYPE 										= #{terminalType},
+			VSL_TP1_VSL 										= #{vslTp1Vsl},
+			VSL_TP2_TERM  										= #{vslTp2Term},
+			BOW_DIST 											= TRY_CONVERT(NUMERIC(18, 3), #{bowDist}),
+			STERN_DIST  										= TRY_CONVERT(NUMERIC(18, 3), #{sternDist}),	
+			VSL_MX_WIDTH 										= #{vslMxWidth},
+			SERV_TP 											= #{servTp},
+			VHF_YN 												= #{vhfYn},
+			SHIP_GEAR 											= #{shipGear},
+            NSW_CHK 											= #{nswChk},
+            ANTN_HGT  											= TRY_CONVERT(NUMERIC(18, 3), #{antnHgt}),
+            VSL_CUST_CD  										= #{vslCustCd},
+            SA_CUST_CD 											= #{saCustCd},
+            COMPLIANT_YN 										= #{complantYn},
+            CRANE_YN 											= #{craneYn},
+            NRT 												= TRY_CONVERT(NUMERIC(18, 3), #{nrt}),
+            ENG_BHP 											= TRY_CONVERT(NUMERIC(18, 3), #{engBhp}),
+            SUMM_DRF 											= TRY_CONVERT(NUMERIC(18, 3), #{summDrf}),
+            SPEED 												= TRY_CONVERT(NUMERIC(18, 3), #{speed}),
+            MX_ROW_DECK 										= TRY_CONVERT(NUMERIC(18, 0), #{mxRowDeck}),  
+            MX_ROW_HOLD 										= TRY_CONVERT(NUMERIC(18, 0), #{mxRowHod}),
+            GRT 												= TRY_CONVERT(NUMERIC(18, 3), #{grt}),
+            DWT 												= TRY_CONVERT(NUMERIC(18, 3), #{dwt}),
+            MX_TEU 												= TRY_CONVERT(NUMERIC(18, 3), #{mxTeu}),
+            BALE_CAPA 											= TRY_CONVERT(NUMERIC(18, 3), #{baleCapa}),
+            GRAIN_CAPA 											= TRY_CONVERT(NUMERIC(18, 3), #{grainCapa}),
+            DISP 												= TRY_CONVERT(NUMERIC(18, 3), #{disp}),
+            HATCH_QTY 											= TRY_CONVERT(NUMERIC(18, 0), #{hatchQty}),
+           	STAFF_CD 											= #{updUserId},
+           	UPDATE_TIME 										= SYSDATETIME()
+		WHERE 
+			VSL_CD 												= #{vslCd}
+	</update>
+
+	<insert id="insertVesselParticularItem" parameterType="vesselParticularItem">
+		INSERT /* vesselParticular.insertVesselParticularItem */
+		INTO TMT_VSL_PART(
+			VSL_CD,
+			VSL_NM,
+			DOM_YN,
+			BLD_YEAR,
+			CALL_SIGN,
+	 		VSL_FLAG_CD,
+	 		CNTRY_CD,
+	 		VSL_TP,
+	 		VSL_REG_PORT,
+		    <if test="launchDt != '' and launchDt != null">
+				LAUNCH_DT,
+			</if>
+			<if test="regDt != '' and regDt != null">
+				REG_DT,
+			</if>
+			VSL_TP3_TRADE,
+			IMO_NO,
+			VSL_TP_TRADE,
+			CLASS,
+			<if test="lstDrydock != '' and lstDrydock != null">
+				LST_DRYDOCK,
+			</if>
+			SA_CORP_ID,
+			MMSI_CD,
+			SHIPPING_LINE_CD,
+			INMARSAT_NO,
+			LOA,
+			LBP,
+			TOP_TIER,
+			VSL_WIDTH,			
+			VSL_DEPTH,
+			OUTR,
+			ENG_DESC,
+			ISSC_NO,	
+			<if test="isscExprDt != '' and isscExprDt != null">
+				ISSC_EXPR_DT,
+			</if>		 
+		 	CRANE_SIDE,
+		 	ALONG_SIDE,
+		 	REMARKS,
+			SHIP_OFFICIAL_NO,
+			TERMINAL_TYPE,
+			VSL_TP1_VSL,
+			VSL_TP2_TERM,
+			BOW_DIST,
+			STERN_DIST,
+			VSL_MX_WIDTH,
+			SERV_TP,
+			VHF_YN,
+			SHIP_GEAR,
+			NSW_CHK,
+            ANTN_HGT,
+            VSL_CUST_CD,
+            SA_CUST_CD,
+            COMPLIANT_YN,
+            CRANE_YN,
+            NRT,
+            ENG_BHP,
+            SUMM_DRF,
+            SPEED,
+            MX_ROW_DECK,
+            MX_ROW_HOLD,
+            GRT,
+            DWT,
+            MX_TEU,
+            BALE_CAPA,
+            GRAIN_CAPA,
+            DISP,
+            HATCH_QTY,
+           	STAT_CD,
+           	CONFIRM_USER_ID, 
+    		CONFIRM_DTM,
+			STAFF_CD,
+			UPDATE_TIME
+		) VALUES (
+			#{vslCd},
+			#{vslNm},
+			#{domYn},
+			#{bldYear},
+			#{callSign},
+	 		#{vslFlagCd},
+	 		#{vslFlagCd},
+	 		#{vslTp},
+	 		#{vslRegPort},
+		    <if test="launchDt != '' and launchDt != null">
+				CONVERT(DATE, #{launchDt}, 103),
+			</if>
+			<if test="regDt != '' and regDt != null">
+				ISNULL(CONVERT(DATE, #{regDt}, 103), ''),
+			</if>
+			#{vslTp3Trade},
+			#{imoNo},
+			#{vslTpTrade},
+			#{class1},
+			<if test="lstDrydock != '' and lstDrydock != null">
+				#{lstDrydock},
+			</if>
+			#{saCorpId},
+			#{mmsiCd},
+			#{shippingLineCd},
+			#{inmarsatNo},
+			TRY_CONVERT(NUMERIC(18, 3), #{loa}),
+			TRY_CONVERT(NUMERIC(18, 3), #{lbp}),
+			TRY_CONVERT(NUMERIC(18, 3), #{topTiger}),
+			TRY_CONVERT(NUMERIC(18, 3), #{vslWidth}),
+			TRY_CONVERT(NUMERIC(18, 3), #{vslDepth}),
+			TRY_CONVERT(NUMERIC(18, 3), #{outr}),
+			#{engDesc},
+			#{issNo},
+			<if test="isscExprDt != '' and isscExprDt != null">
+				CONVERT(DATE, #{isscExprDt}, 103),
+			</if>		 
+		 	#{craneSide},
+		 	#{alongSide},
+		 	#{remarks},
+			#{shipOfficialNo},
+			#{terminalType},
+			#{vslTp1Vsl},
+			#{vslTp2Term},
+			TRY_CONVERT(NUMERIC(18, 3), #{bowDist}),
+			TRY_CONVERT(NUMERIC(18, 3), #{sternDist}),
+			#{vslMxWidth},
+			#{servTp},
+			#{vhfYn},
+			#{shipGear},
+			#{nswChk},
+            TRY_CONVERT(NUMERIC(18, 3), #{antnHgt}),
+            #{vslCustCd},
+            #{saCustCd},
+            #{complantYn},
+            #{craneYn},
+            TRY_CONVERT(NUMERIC(18, 3), #{nrt}),
+            TRY_CONVERT(NUMERIC(18, 3), #{engBhp}),
+            TRY_CONVERT(NUMERIC(18, 3), #{summDrf}),
+            TRY_CONVERT(NUMERIC(18, 3), #{speed}),
+            TRY_CONVERT(NUMERIC(18, 0), #{mxRowDeck}),
+            TRY_CONVERT(NUMERIC(18, 0), #{mxRowHod}),
+            TRY_CONVERT(NUMERIC(18, 3), #{grt}),
+            TRY_CONVERT(NUMERIC(18, 3), #{dwt}),
+            TRY_CONVERT(NUMERIC(18, 3), #{mxTeu}),
+            TRY_CONVERT(NUMERIC(18, 3), #{baleCapa}),
+            TRY_CONVERT(NUMERIC(18, 3), #{grainCapa}),
+            TRY_CONVERT(NUMERIC(18, 3), #{disp}),
+            TRY_CONVERT(NUMERIC(18, 0), #{hatchQty}),
+			#{statCd},
+            #{updUserId},
+            SYSDATETIME(),
+            #{updUserId},
+            SYSDATETIME()
+		)
+	</insert>
+	
+	<select id="selectShpList" parameterType="vesselParticularParm" resultType="vesselParticularItem">
+		SELECT /* vesselParticular.selectShpList */
+			PTNR_CODE 											AS CD,          
+            dbo.F_PTNR_SNM(PTNR_CODE, PTNR_TYPE) 				AS cdNm  
+        FROM 
+			(SELECT 
+        		PTNR_CODE, 
+        		PTNR_TYPE 
+            FROM 
+				TMT_PTNR_AGENCY      
+            WHERE  
+				1 = 1 
+            <if test="jct eq 'Y'.toString()">
+            	AND PTNR_CODE IN 	(SELECT 
+										S_CD 
+									FROM 
+										TCM_CD_MSTD 
+									WHERE 
+										L_CD 					='VC' 
+										AND M_CD 				='SHL4JCT')  
+            </if>
+            <if test="agencyCode != null and agencyCode != ''">
+            	AND AGENCY_CODE 								= #{agencyCode} 
+            </if>
+			) 													AS TEMPTABLE
+	</select>
+	
+	<select id="selectShaList" parameterType="vesselParticularParm" resultType="vesselParticularItem">
+		SELECT /* vesselParticular.selectShaList */
+			(AGENCY_CODE + '^' + ENG_SNM) 						AS cd , 
+        	AGENCY_CODE 										AS cdNm                                                                                        
+		FROM 
+			TMT_AGENCY_INFO                                                                                         
+        WHERE 
+			SUBSTRING(AGENCY_CODE,0,4) 							&lt;&gt; 'PTNR'
+        <if test="agencyCode != null and agencyCode != ''">
+        	AND AGENCY_CODE 									= #{agencyCode}
+		</if>
+        ORDER BY 
+			AGENCY_CODE ASC
+	</select>
+	
+	<select id="selectSha" parameterType="vesselParticularParm" resultType="vesselParticularItem">
+		SELECT /* vesselParticular.selectSha */
+			AGENCY_CODE 										AS saCorpId,
+       		ENG_SNM 											AS corpNm,
+       		AGENCY_CODE 										AS cdNm
+		FROM 
+			TMT_AGENCY_INFO
+ 		WHERE 
+			AGENCY_CODE 										= #{agencyCode}
+	</select>
+	
+    <update id="updateVesselParticularOPeople" parameterType="vesselParticularItem">
+    	UPDATE /* vesselParticular.updateVesselParticularOPeople */
+    		TMT_PEOPLE 
+		SET
+    		PEOPLE_NM 											= #{peopleNm}
+    		ADDRESS1 											= #{address1}
+    		ADDRESS2 											= #{address2}
+    		ADDRESS3 											= #{address3}
+    		ADDRESS4 											= #{address4}
+    		POST_CD1 											= #{postCd1}
+    	WHERE 
+			VSL_CD 												= #{vslCd} 
+			AND PEOPLE_DIV 										= 'O'
+    </update>
+
+	<update id="updateVesselParticularAPeople" parameterType="vesselParticularItem">
+    	UPDATE /* vesselParticular.updateVesselParticularAPeople */
+    		TMT_PEOPLE 
+		SET
+    		PEOPLE_NM 											= #{accPeopleNm}
+    		PEOPLE_CD 											= #{accPeopleCd}
+    		ADDRESS1 											= #{accAddress1}
+    		ADDRESS2 											= #{accAddress2}
+    		ADDRESS3 											= #{accAddress3}
+    		ADDRESS4 											= #{accAddress4}
+    		POST_CD1 											= #{accPostCd1}
+    	WHERE 
+			VSL_CD 												= #{vslCd} 
+			AND PEOPLE_DIV 										= 'A'
+    </update>
+    
+    <update id="updateVesselParticularCPeople" parameterType="vesselParticularItem">
+    	UPDATE  /* vesselParticular.updateVesselParticularCPeople */
+    		TMT_PEOPLE 
+		SET
+    		PEOPLE_NM 											= #{chPeopleNm}
+    		PEOPLE_CD 											= #{chPeopleCd}
+    		ADDRESS1 											= #{chAddress1}
+    		ADDRESS2 											= #{chAddress2}
+    		ADDRESS3 											= #{chAddress3}
+    		ADDRESS4 											= #{chAddress4}
+    		POST_CD1 											= #{chPostCd1}
+    	WHERE 
+			VSL_CD 												= #{vslCd} 
+			AND PEOPLE_DIV 										= 'C'
+    </update>
+
+     <insert id="insertVesselParticularOPeople" parameterType="vesselParticularItem">
+    	INSERT  /* vesselParticular.insertVesselParticularOPeople */
+    	INTO TMT_PEOPLE (
+			VSL_CD, 
+			PEOPLE_DIV, 
+			PEOPLE_NM, 
+			ADDRESS1, 
+			ADDRESS2, 
+			ADDRESS3, 
+			ADDRESS4, 
+			POST_CD1
+		) VALUES (
+			#{vslCd}, 
+			'O', 
+			#{peopleNm}, 
+			#{address1},
+			#{address2}, 
+			#{address3}, 
+			#{address4}, 
+			#{postCd1}
+		)
+    </insert>
+    
+    <insert id="insertVesselParticularCPeople" parameterType="vesselParticularItem">
+    	INSERT /* vesselParticular.insertVesselParticularCPeople */
+    	INTO TMT_PEOPLE (
+			VSL_CD, 
+			PEOPLE_DIV, 
+			PEOPLE_NM, 
+			PEOPLE_CD, 
+			ADDRESS1, 
+			ADDRESS2, 
+			ADDRESS3, 
+			ADDRESS4, 
+			POST_CD1
+		) VALUES (
+			#{vslCd}, 
+			'C', 
+			#{chPeopleNm}, 
+			#{chPeopleCd}, 
+			#{chAddress1}, 
+			#{chAddress2}, 
+			#{chAddress3}, 
+			#{chAddress4}, 
+			#{chPostCd1}
+		)
+    </insert>
+    <insert id="insertVesselParticularAPeople" parameterType="vesselParticularItem">
+    	INSERT /* vesselParticular.insertVesselParticularAPeople */
+    	INTO TMT_PEOPLE (
+			VSL_CD, 
+			PEOPLE_DIV, 
+			PEOPLE_NM, 
+			PEOPLE_CD, 
+			ADDRESS1, 
+			ADDRESS2, 
+			ADDRESS3, 
+			ADDRESS4,
+			 POST_CD1
+		) VALUES (
+			#{vslCd}, 
+			'A',  
+			#{accPeopleNm}, 
+			#{accPeopleCd}, 
+			#{accAddress1}, 
+			#{accAddress2}, 
+			#{accAddress3}, 
+			#{accAddress4}, 
+			#{accPostCd1}
+		)
+    </insert>   
+      
+    <select id="vslScheduleCheck" parameterType="vesselParticularParm" resultType="vesselParticularItem">
+		SELECT /* vesselParticular.vslScheduleCheck */
+			A.VSL_CD vslCd
+        FROM 
+			TMT_VSL_PART A 
+        WHERE 
+			VSL_CD 												= #{vslCd}
+    </select>
+    
+     <select id="isCheckValidateForMQ" parameterType="vesselParticularParm" resultType="vesselParticularItem">
+		SELECT /* vesselParticular.isCheckValidateForMQ */
+			CASE
+				WHEN 
+					(SELECT 
+						COUNT(CALL_SIGN)
+					FROM 
+						TMT_VSL_PART
+					WHERE CALL_SIGN = #{callSign} 
+					) = 0
+					THEN 0
+				ELSE 4
+			END 												AS countChk
+    </select>
+    
+    <update id="updateVesselParticularConfirm" parameterType="vesselParticularItem">
+    	UPDATE /* vesselParticular.updateVesselParticularConfirm */
+    		TMT_VSL_PART 
+		SET
+    		STAT_CD 											= #{statCd},
+    		CONFIRM_USER_ID 									= #{updUserId},
+    		CONFIRM_DTM 										= SYSDATETIME(),
+    		STAFF_CD 											= #{updUserId},
+    		UPDATE_TIME 										= SYSDATETIME()
+    	WHERE 
+			VSL_CD 												= #{vslCd}
+    </update>
+  
+  	<select id="selectRequestVesselChangeList" parameterType="vesselParticularParm" resultType="vesselParticularItem">
+  		SELECT /* vesselParticular.selectRequestVesselChangeList */
+  			B.VSL_CD 											AS VSL_CD,
+	       	VSL_NM
+	  	FROM 
+			TMT_VSL_APPNCF_STAT 								A
+		RIGHT OUTER JOIN
+			TMT_VSL_PART										B
+				ON A.VSL_CD = B.VSL_CD
+	 	WHERE 
+	 		B.STAT_CD 											= 'AP'
+ 	    <if test="vslNm != '' and vslNm != null">
+ 			AND VSL_NM 											LIKE UPPER('%' + #{vslNm} +'%') 
+	    </if>
+	    <if test = "shipOffNo != '' and shipOffNo != null" >
+	    	AND SHIP_OFFICIAL_NO 								LIKE '%' + #{shipOffNo} + '%'
+	    </if>
+	    <if test = "imoNo != '' and imoNo != null" >
+	    	AND IMO_NO 											LIKE '%' + #{imoNo} + '%'
+	    </if>
+   	    <if test = "status != '' and status != null" >
+	    	AND A.APPLY_STAT 									LIKE '%' + #{status} + '%'
+	    </if>
+  	</select>
+  	
+  	<delete id="deleteVesselParticularItems" parameterType="vesselParticularItem">
+		DELETE /* vesselParticular.deleteVesselParticularItems */
+		FROM 
+			TMT_VSL_PART
+		WHERE 
+			VSL_CD 												= #{vslCd}
+	</delete>	
+ 	
+</mapper>

@@ -1,0 +1,502 @@
+Ext.define('MOST.view.planning.megadetail.MegaDetailTabMechanical', {
+	extend: 'Ext.panel.Panel',
+	alias: 'widget.app-megadetailtabmechanical',
+	
+	requires: [
+		'Ext.grid.plugin.RowEditing',
+	    'Ext.grid.plugin.Exporter',
+	    'Ext.grid.plugin.Clipboard',
+		'Ext.grid.filters.Filters',
+		'Ext.grid.selection.SpreadsheetModel'
+	],
+	
+	flex:1,
+	layout: {type: 'hbox', align: 'stretch'},
+
+	initComponent: function() {
+		var me = this;
+			
+		Ext.apply(me, {
+			items: [
+				{
+		            xtype: 'container',
+		            flex: 0.7,
+		            layout: {
+		                type: 'vbox',
+		                align:'stretch'
+		            },
+					margin: '0 5 0 0',
+		            items: [
+						{
+							xtype: 'fieldset',
+							layout: {
+								type: 'vbox',
+								align:'stretch'
+							},
+							margin: '5 0 0 0',
+							padding: '10 10 10 10',
+							items: [
+								{
+									xtype: 'container',
+									layout: {
+										type: 'vbox',
+									}, 
+									items: [
+										{ 
+											xtype: 'container',
+											layout: {
+												type: 'hbox',
+												align: 'stretch'
+											},
+											width: '100%',
+											defaults: { 
+												labelWidth: 120,
+												labelAlign: 'right',   
+												flex: 1
+											},
+											items: [
+												{
+													xtype: 'combobox',
+													reference: 'cboEqTypeMechanical',
+													fieldLabel: ViewUtil.getLabel('mechanicalEquipment'),
+													queryMode: 'local',
+													emptyText: '--E/Q Type--',
+													bind: {
+														store: '{megaDetailEqTypeComboForMechanical}'
+													},
+													displayField: 'scdNm',
+													valueField: 'scd',
+													filter: 'string',
+													listeners: {
+														change: 'onEqTypeComboForMechanicalChange'
+													},
+													matchFieldWidth: true,
+													editable: true,
+													forceSelection: true,
+													flex: 1,
+												},
+												{
+													xtype: 'combobox',
+													reference: 'cboCapacityMechanical',
+													queryMode: 'local',
+													emptyText: '--Capacity--',
+													bind: {
+														store: '{megaDetailMechanicalCapacityCombo}'
+													},
+													displayField: 'capaDesc',
+													valueField: 'capaCd',
+													filter: 'string',
+													fieldLabel: ViewUtil.getLabel('capaDescr'),
+													disabled: true,
+													editable: true,
+													forceSelection: true,
+													matchFieldWidth: true,
+													getDisplayValue: function () {
+														return Ext.String.htmlDecode(this.displayTpl.apply(this.displayTplData))
+													},
+												}
+											]
+										},
+										{
+											xtype: 'container',
+											layout: {
+												type: 'hbox',
+												align: 'stretch'
+											},
+											width: '100%',
+											defaults: {
+												margin: '5 0 0 0',
+												labelWidth: 120,
+												flex: 1
+											},
+											items: [
+												{
+													xtype: 'textfield',
+													align: 'left',
+													reference: 'ctlWorkingAreaMechanical',
+													fieldLabel: ViewUtil.getLabel('workingArea'),
+
+													labelAlign: 'right',
+													matchFieldWidth: true,
+													editable: true,
+													displayField: 'cd',
+													valueField: 'cd',
+													emptyText: '--Select--',
+													triggers: {
+														someField: {
+															cls: 'fa-search',
+															scope: 'controller',
+															handler: 'onTriggerClick'
+														}
+													},
+													listeners: {
+														change: function (field, newValue) {
+															field.setValue(newValue.toUpperCase());
+														}
+													}
+												},
+												{
+													xtype: 'numberfield',
+													align: 'right',
+													value: 1,
+													placeholder: 0,
+													minValue: 0,
+													maxValue: 999999,
+													reference: 'confQtyFieldMechanical',
+													fieldLabel: ViewUtil.getLabel('confirmQty'),
+													labelAlign: 'right',
+													listeners: {
+														blur: function () {
+															var me = this;
+															if (this.getValue() === null || this.getValue() === '') {
+																this.setValue(0);
+															}
+														}
+													},
+												},
+												{
+													xtype: 'numberfield',
+													align: 'right',
+													value: 1,
+													placeholder: 0,
+													minValue: 0,
+													maxValue: 999999,
+													reference: 'reqQtyFieldMechanical',
+													fieldLabel: ViewUtil.getLabel('requestQty'),
+													labelAlign: 'right',
+													listeners: {
+														blur: function () {
+															var me = this;
+															if (this.getValue() === null || this.getValue() === '') {
+																this.setValue(0);
+															}
+														}
+													},
+												}
+											]
+										},
+										{
+											xtype: 'container', 
+											layout: {
+												type: 'hbox'
+											},
+											width: '100%',
+											defaults: {
+												margin: '5 0 0 0',
+												labelWidth: 120,
+												labelAlign: 'right',
+												flex: 1
+											},
+											reference: 'cardTimeViewForMechanical',
+											items: [
+												{
+													xtype: 'datetimefield',
+													fieldLabel: ViewUtil.getLabel('startTime'),
+													reference: 'refStartTimeMechanical',
+													editable: false,
+													format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds()
+												},
+												{
+													xtype: 'datetimefield',
+													fieldLabel: ViewUtil.getLabel('endTime'),
+													reference: 'refEndTimeMechanical',
+													editable: false,
+													format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds()
+												}
+											]
+										},
+									]
+								},
+								{
+									xtype: 'container',
+									layout: {
+										type: 'hbox',
+										align: 'right',
+										pack: 'end'
+									},
+									margin: '5 0 0 0',
+									reference: 'cardCudBtnViewForMechanical',
+									defaults: {
+										margin: '0 0 0 5'
+									},
+									items: [
+										{
+											xtype: 'button',
+											reference: 'ctlMegaDetailAddForMechanical',
+											iconCls: 'x-fa fa-plus',
+											text: ViewUtil.getLabel('add'),
+											listeners: {
+												click: 'onAddForMechanical'
+											}
+										}, {
+											xtype: 'button',
+											reference: 'ctlMegaDetailUpdateForMechanical',
+											ui: 'update-button',
+											iconCls: 'x-fa fa-plus',
+											text: ViewUtil.getLabel('update'),
+											listeners: {
+												click: 'onGridUpdateForMechanical'
+											}
+										}, {
+											xtype: 'button',
+											reference: 'ctlMegaDetailDeleteForMechanical',
+											ui: 'delete-button',
+											iconCls: 'x-fa fa-minus',
+											text: ViewUtil.getLabel('delete'),
+											listeners: {
+												click: 'onGridRemoveForMechanical'
+											}
+										}
+									]
+								} 
+							]
+						},
+						{
+							xtype: 'fieldset',
+							layout: {
+								type: 'vbox',
+								align: 'stretch'						
+							},
+							flex: 1,
+							margin : '5 0 0 0',
+							padding: '0 0 0 0',
+							items:[
+								{
+									xtype: 'tsb-datagrid',
+									reference: 'refMegaDetailMechanicalGrid',
+									usePagingToolbar : false,
+									margin: '0 0 0 0',
+									flex : 1,							
+									stateful : true,
+									stateId : 'stateMegaDetailTabMechanicalGrid',
+									plugins: [
+										'gridexporter',
+										'gridfilters',
+										'clipboard'
+									],
+									bind: {
+										store: '{megaDetailMechanical}'
+									},
+									selModel: {
+										type: 'spreadsheet',
+										cellSelect: false
+									},
+									listeners: {
+										itemclick: 'onMasterSelectionChangeForMechanical'
+									},
+									columns: {
+										defaults: {
+											style : 'text-align:center',
+											align : 'center',
+											
+										},
+										items:GridUtil.getGridColumns('MegaDetailMechanical')
+									}
+								}
+							]
+						}
+		            ]
+		        },
+		        {
+		            xtype: 'container',
+		            flex: 0.3,
+		            layout: {
+		                type: 'vbox',
+		                align: 'stretch'
+		            },
+		            reference: 'ctlCompanyMechanical',
+		            items: [
+						{
+							xtype:	'fieldset',
+							layout: {
+								type: 'vbox',
+								align: 'stretch'
+							},
+							margin: '5 0 0 0',
+							padding: '10 10 10 10',
+							defaults:{
+								margin: '0 0 5 0',	
+								labelWidth: 70,							
+							},
+							items:[
+								{
+									xtype: 'partnercdfield',
+									reference: 'cboContractorMechanical',
+									fieldLabel: ViewUtil.getLabel('contractor'),
+									
+									labelAlign: 'right',
+									params: {
+										ptnrType: CodeConstants.MT_PTNRTP_CTT
+									}
+								},													
+								{
+									xtype: 'container',
+									layout: {
+										type: 'hbox',
+										align: 'stretch'
+									},
+									defaults: {
+										labelAlign: 'right',
+										labelWidth: 70,		
+										flex: 1
+									},
+									items:[
+										{
+											xtype: 'numberfield',
+											reference: 'ctlNoOfMechanical',
+											fieldLabel: ViewUtil.getLabel('nosofEquipment'),
+											minValue: 1,
+											maxValue: 99999,
+											value: 1,
+											placeholder: 0,
+											labelWidth: 100,
+											editable: false,
+											listeners: {
+												blur: function () {
+													var me = this;
+													if (this.getValue() === null || this.getValue() === '') {
+														this.setValue(1);
+													}
+												}
+											},
+										},
+										{
+											xtype: 'numberfield',
+											reference: 'ctlSypplyQtyMechanical',
+											fieldLabel: ViewUtil.getLabel('supplyQty'),
+											minValue: 1,
+											maxValue: 99999,
+											value: 1,
+											placeholder: 0,
+										}															
+									]
+								},
+								{
+									xtype: 'textfield',
+									reference: 'ctlRmkMechanical',
+									fieldLabel: ViewUtil.getLabel('rmk'),
+									labelAlign: 'right',
+									flex: 1,
+								},
+								{
+									xtype: 'container',
+									layout: {
+										type: 'vbox',
+										align: 'stretch'
+									},
+									margin: '0 0 0 0',			
+									items:[
+										{
+											xtype: 'container',
+											layout: {
+												type: 'hbox',
+												pack: 'end'
+											},
+											defaults:{
+												margin: '0 0 0 5',								
+											},
+											items: [
+												{
+													xtype: 'button',
+													reference:'ctlMegaDetailAddForMechanicalCompany',
+													iconCls: 'x-fa fa-plus',
+													text: ViewUtil.getLabel('add'),
+													listeners: {
+														click: 'onAddForMechanicalCompany'
+													}
+												},
+												{
+													xtype: 'button',
+													reference:'ctlMegaDetailUpdateForMechanicalCompany',
+													ui: 'update-button',
+													iconCls: 'x-fa fa-plus',
+													text: ViewUtil.getLabel('update'),
+													listeners: {
+														click: 'onGridUpdateForMechanicalCompany'
+													}
+												},
+												{
+													xtype: 'button',
+													reference:'ctlMegaDetailDeleteForMechanicalCompany',
+													ui: 'delete-button',
+													iconCls: 'x-fa fa-minus',
+													text: ViewUtil.getLabel('delete'),
+													listeners: {
+														click: 'onGridRemoveForMechanicalCompany'
+													}
+												}							
+											]
+										}
+									]
+								}
+							]		
+						},
+						{	
+							xtype: 'fieldset',
+							layout: {
+								type: 'vbox',
+								align: 'stretch'						
+							},
+							flex: 1,
+							margin : '5 0 0 0',
+							padding: '0 0 0 0',
+							items:[
+								{
+									xtype: 'tsb-datagrid',
+									reference: 'refMegaDetailMechanicalCompanyGrid',
+									usePagingToolbar : false,
+									flex : 1,
+									margin : '0 0 0 0',
+									stateful : true,
+									stateId : 'stateMegaDetailTabMechanicalCompanyGrid',
+									plugins: [
+										'gridexporter',
+										'gridfilters',
+										'clipboard'
+									],
+									bind: {
+										store: '{megaDetailTabMechanicalCompany}'
+									},
+									selModel: {
+										type: 'spreadsheet',
+										cellSelect: false
+									},
+									listeners: {
+										selectionchange: 'onCompanySelectionChangeForMechanical'
+									},
+									columns: {
+										defaults: {
+											style : 'text-align:center',
+											align : 'center'
+										},
+										items:GridUtil.getGridColumns('MegaDetailTabMechanicalCompany')
+									}
+								}
+							]
+						}
+		            ]
+		        },
+		        {
+		            xtype: 'container',
+		            reference:'ctlDetailMechanicalImage',
+		            flex: 0.3,
+		            defaults: {
+		                margin: '5 5 5 5'
+		            },
+		            layout: 'auto',
+		            items: [
+		            	{
+	                        xtype: 'image',
+	                        src:'resources/images/mega/MegaDtl_Mechanical.gif',
+	                        region:'center',
+							width: '100%',
+							height: 'auto'
+	                    }
+		            ]
+		        }
+			]
+		});
+		
+		me.callParent();
+	}
+});

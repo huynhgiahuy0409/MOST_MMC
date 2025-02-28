@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="annualHoliday">
+	
+	 <select id="selectAnnualHolidayCount" parameterType="AnnualHolidayParm" resultType="java.lang.String">
+	 	 SELECT /*annualHoliday.selectAnnualHolidayCount*/
+	 	     COUNT(*)
+          FROM
+              (<include refid="getAnnualHoliday"/>)
+	</select>
+	
+   <select id="selectAnnualHoliday"  parameterType="AnnualHolidayParm" resultType="AnnualHolidayItem">
+  		<if test="pageNo != 0"> 
+             SELECT /*annualHoliday.selectAnnualHoliday*/
+                 *
+             FROM (
+             		SELECT
+						inner_query.*,
+						ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num
+                   FROM (
+		</if>
+				<include refid="getAnnualHoliday"/>
+		<if test="pageNo != 0"> 
+				) inner_query
+			) inner_query
+			WHERE
+				inner_query.row_num <![CDATA[>]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT) - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_query.row_num <![CDATA[<=]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT)) * CAST(#{sizePerPage} AS INT)
+		</if>
+    </select>  
+    
+    <sql id="getAnnualHoliday">
+    	SELECT /*annualHoliday.getAnnualHoliday*/
+    	    FORMAT(CAST(A.HLDAY_YMD AS DATE), 'dd/MM/yyyy') 	AS strFormatHlDayYmd,
+  			A.HLDAY_YMD  										AS strHlDayYmd,
+  			A.HLDAY_YMD  										AS strOldHlDayYmd,
+			SUBSTRING(
+				FORMAT(CAST(A.HLDAY_YMD AS DATE),'dd/MM/yyyy'),
+				1,
+				CHARINDEX('/', FORMAT(CAST(A.HLDAY_YMD AS DATE),'dd/MM/yyyy')) - 1
+			)													AS strHlDay,
+			SUBSTRING(
+				FORMAT(CAST(A.HLDAY_YMD AS DATE),'dd/MM/yyyy'),
+				CHARINDEX('/', FORMAT(CAST(A.HLDAY_YMD AS DATE),'dd/MM/yyyy')) + 1,
+				2
+			)													AS strHlMonth,
+  		    A.HLDAY_CD  										AS strHlDayCd,
+  		    ISNULL(A.DESCR,' ')       							AS strDescr ,
+  		    A.STAFF_CD											AS userId,
+  		    A.VERSION											AS version,
+ 			CONVERT(NVARCHAR, A.UPDATE_TIME, 20)				AS updateTimeField
+  		FROM
+  		    TMT_HLDAY A
+  		WHERE
+  		    1 = 1
+		<if test="strHlDayYmd != null and strHlDayYmd != ''">
+  			AND	A.HLDAY_YMD LIKE '%' + #{strHlDayYmd} + '%'
+		</if>		
+		ORDER BY
+		    A.HLDAY_YMD,
+		    A.HLDAY_CD
+    </sql>
+    
+    
+    <insert id="insertItems"  parameterType="AnnualHolidayItem">
+	    INSERT INTO /*annualHoliday.insertItems*/
+	    	TMT_HLDAY(
+	        	HLDAY_YMD,
+	        	HLDAY_CD,
+	        	DESCR,
+	        	UPDATE_TIME,
+	        	STAFF_CD,VERSION
+			) VALUES (
+	        	#{strHlDayYmd},
+	            #{strHlDayCd},
+	            #{strDescr},
+	            SYSDATETIME(),
+	            #{userId},
+	            #{newVersion}
+		)
+    </insert>
+    <update id="updateItems"  parameterType="AnnualHolidayItem">
+		UPDATE /*annualHoliday.updateItems*/
+		    TMT_HLDAY
+		SET
+		    HLDAY_CD 					= #{strHlDayCd},
+			DESCR 						= #{strDescr},
+			UPDATE_TIME 				= SYSDATETIME(),
+			STAFF_CD 					= #{userId},
+			VERSION 					= #{newVersion}
+		WHERE
+		    HLDAY_YMD 					= #{strHlDayYmd}
+		<if test="version != null and version != ''">
+  			AND VERSION 				= #{version}
+		</if>
+    </update>
+    <delete id="deleteItems"  parameterType="AnnualHolidayItem">
+		DELETE /*annualHoliday.deleteItems*/
+		FROM
+		    TMT_HLDAY
+		WHERE
+		    HLDAY_YMD 					= #{strOldHlDayYmd}
+		<if test="version != null and version != ''">
+  			AND VERSION 				= #{version}
+		</if>	
+    </delete>   
+</mapper>

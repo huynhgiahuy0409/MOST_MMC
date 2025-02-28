@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+<mapper namespace="whRentalStatus">
+
+    <select id="selectWHRentalStatusList" parameterType="whRentalStatusParm" resultType="whRentalStatusItem">
+         <if test="pageNo != 0"> 
+            SELECT /* whRentalStatus.selectWHRentalStatusList */
+                *
+            FROM 
+                (
+                    <include refid="getWHRentalStatusList"/>
+                ) inner_querry
+            WHERE 
+                inner_querry.row_num <![CDATA[>]]> (CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) * CAST(#{sizePerPage} AS INT)
+                AND inner_querry.row_num <![CDATA[<=]]> CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) * CAST(#{sizePerPage} AS INT)
+        </if>
+    </select>
+
+    <select id="selectWHRentalStatusListCount" parameterType="whRentalStatusParm" resultType="java.lang.String">
+        SELECT /* whRentalStatus.selectWHRentalStatusListCount */
+			COUNT(*)
+        FROM 
+			(<include refid="getWHRentalStatusList"/>) AS TEMPTABLE
+    </select>
+
+    <sql id="getWHRentalStatusList" >
+        SELECT /*whRentalStatus.getWHRentalStatusList*/
+            A.CONTT_NO 												AS conttNo,
+            A.REF_NO 												AS refNo,
+            A.PAYER 												AS payer,
+            A.PRD_TP_CD 											AS prdTpCd,
+            FORMAT(C.SDATE, 'dd/MM/yyyy') 							AS sdate,
+            FORMAT(C.EDATE, 'dd/MM/yyyy') 							AS edate,
+<!--        (SELECT SHFT_NM FROM TMT_SHFT WHERE SHFT_ID = C.S_SHF) 	AS sShf,
+            (SELECT SHFT_NM FROM TMT_SHFT WHERE SHFT_ID = C.E_SHF) 	AS eShf, -->
+            SUBSTRING(B.CD_VAL, 1, CHARINDEX('-', B.CD_VAL) - 1) 	AS whCd,
+            B.CD_VAL 												AS locId,
+            A.RENT_UNIT 											AS rentUnit,
+            D.UNIT1_VAL 											AS unit1Val,
+            D.APLY_RATE 											AS aplyRate,
+            D.APLY_AMT 												AS aplyAmt,
+            D.STAT_CD 												AS statCd,
+            D.TAX_AMT 												AS gstAmount,
+            D.TOTAL_AMT 											AS totalAmount,
+            ROW_NUMBER() OVER(ORDER BY 
+            				A.CONTT_NO, A.REF_NO, C.SDATE) 			AS row_num
+        FROM 
+            TMT_RENT A
+        INNER JOIN 
+            TMT_RENT_DTL B ON 
+            	A.CONTT_NO = B.CONTT_NO
+        INNER JOIN 
+            TMT_B_WH_RENT C ON 
+	            A.CONTT_NO = C.CONTT_NO 
+	            AND A.REF_NO = C.REF_NO
+        INNER JOIN 
+            TMT_B_IV_DATA D ON 
+            	C.WH_RENT_NO = D.REF_NO2
+        WHERE 
+            D.SCR_ID 											= 'WHR'
+            AND B.ITEM_DIV_CD 									= 'LO'
+            <if test="payer != null and payer != ''">
+                AND A.PAYER 									= #{payer}
+            </if>
+            <if test="conttNo != null and conttNo != ''">
+                AND A.CONTT_NO 									= #{conttNo}
+            </if>
+            <if test="refNo != null and refNo != ''">
+                AND A.REF_NO 									= #{refNo}
+            </if>
+            <if test="fromDate != null and fromDate != ''">
+                AND C.SDATE 									>= CONVERT(DATE, #{fromDate}, 103)
+            </if>
+            <if test="toDate != null and toDate != ''">
+                AND <![CDATA[C.EDATE 							<= CONVERT(DATE, #{toDate}, 103)]]>
+            </if>
+            <if test="statCd != null and statCd != ''">
+                AND D.STAT_CD 									= #{statCd}
+            </if>
+            <if test="whCd != null and whCd != ''">
+                AND SUBSTRING(B.CD_VAL, 1, CHARINDEX('-', B.CD_VAL) - 1) = #{whCd}
+            </if>
+    </sql>
+
+</mapper>
+
+ 

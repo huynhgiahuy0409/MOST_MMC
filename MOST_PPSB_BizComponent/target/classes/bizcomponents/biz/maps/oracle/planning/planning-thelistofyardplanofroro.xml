@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="theListOfYardPlanOfRoRo">
+	<resultMap id="planMap" type="theListOfYardPlanOfRoRoItem">
+    	<result property="vslCallId"               	column="VSL_CALL_ID"/>
+		<result property="docNo"                  	column="MF_DOC_ID"/>
+		<result property="cgNo"                		column="CG_NO"/>
+		<result property="plannedQty"               column="PLAN_QTY"/>
+		<result property="yardLoc"                	column="PLAN_LOC_ID"/>
+		<result property="catgCd"              		column="CATG_CD"/>
+		<result property="catgNm"            		column="CATG_NM"/>
+		<result property="cgTpCd"               	column="CG_TP_CD"/>
+		<result property="cgTpNm"            		column="CG_TP_NM"/>
+		<result property="brandCd"                	column="BRAND_CD"/>
+		<result property="brandNm"              	column="BRAND_NM"/>
+		<result property="modelCd"               	column="MODEL_CD"/>
+		<result property="modelNm"           		column="MODEL_NM"/>
+		<result property="nosOfUnit"               	column="NO_OF_UNIT"/>
+    </resultMap>
+
+	<select id="selectTheListOfYardPlanOfROROItems" parameterType="theListOfYardPlanOfRoRoParm" resultMap="planMap">
+		<if test="pageNo != null and pageNo != 0"> 
+			SELECT /*theListOfYardPlanOfRoRo.selectTheListOfYardPlanOfROROItems*/
+             	* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+			<choose>
+				<when test="(blNo != null and blNo != '') and (shipgNoteNo == null or shipgNoteNo == '')">
+					<include refid="getRoRoYardPlanBlList" />
+				</when>
+				<when test="(blNo == null or blNo == '') and (shipgNoteNo != null and shipgNoteNo != '')">
+					<include refid="getRoRoYardPlanSnList" />
+				</when>
+				<otherwise>
+					<include refid="getRoRoYardPlanBlList" />
+					UNION ALL
+					<include refid="getRoRoYardPlanSnList" />
+				</otherwise>
+			</choose>
+			ORDER BY MF_DOC_ID, CG_NO	
+		<if test="pageNo != null and pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	
+	<select id="selectTheListOfYardPlanOfROROItemsCount" parameterType="theListOfYardPlanOfRoRoParm" resultType="java.lang.String">
+	 	SELECT COUNT(*) /*theListOfYardPlanOfRoRo.selectTheListOfYardPlanOfROROItemsCount*/
+			FROM (
+	          	<choose>
+					<when test="(blNo != null and blNo != '') and (shipgNoteNo == null or shipgNoteNo == '')">
+						<include refid="getRoRoYardPlanBlList" />
+					</when>
+					<when test="(blNo == null or blNo == '') and (shipgNoteNo != null and shipgNoteNo != '')">
+						<include refid="getRoRoYardPlanSnList" />
+					</when>
+					<otherwise>
+						<include refid="getRoRoYardPlanBlList" />
+						UNION ALL
+						<include refid="getRoRoYardPlanSnList" />
+					</otherwise>
+				</choose>
+			ORDER BY MF_DOC_ID, CG_NO	
+		)
+	</select>
+	 
+	<sql id="getRoRoYardPlanBlList">
+		SELECT DISTINCT
+			RR.VSL_CALL_ID,
+	        RR.MF_DOC_ID,
+	        RR.CG_NO,
+          	RR.PLAN_WH_ID,
+	        RR.PLAN_LOC_ID,
+          	BR.BRAND_CD,
+          	BR.BRAND_NM,
+          	M.MODEL_CD,
+          	M.MODEL_NM,
+          	BL.CG_TP_CD,
+          	F_CM_001('MT', 'CGTP', BL.CG_TP_CD) AS CG_TP_NM,
+          	RR.CATG_CD,
+  			F_CM_001('MT', 'CATGTP', BL.CATG_CD) AS CATG_NM,
+	        COUNT(RR.CHAS_NO) OVER (PARTITION BY RR.CG_NO, RR.MF_DOC_ID, RR.VSL_CALL_ID, RR.PLAN_LOC_ID) AS PLAN_QTY,
+	        (SELECT COUNT(*) FROM TMT_RORO_MST R1 WHERE R1.VSL_CALL_ID = RR.VSL_CALL_ID AND R1.CG_NO = RR.CG_NO) AS NO_OF_UNIT
+		FROM TMT_RORO_MST RR
+       	INNER JOIN TMT_BL BL ON RR.VSL_CALL_ID = BL.VSL_CALL_ID AND RR.CG_NO = BL.BL_NO
+       	LEFT OUTER JOIN TMT_BRAND BR ON	RR.BRAND_CD = BR.BRAND_CD
+		LEFT OUTER JOIN TMT_BRAND_DTL M ON	RR.MODEL_CD = M.MODEL_CD AND RR.BRAND_CD = M.BRAND_CD
+		WHERE RR.VSL_CALL_ID = #{vslCallId}
+		AND RR.IX_CD = 'I'
+		<if test="blNo != null and blNo != ''">
+			AND RR.CG_NO = #{blNo}
+		</if>
+        AND RR.PLAN_LOC_ID IS NOT NULL
+	</sql>
+	
+	<sql id="getRoRoYardPlanSnList">
+		SELECT DISTINCT
+			RR.VSL_CALL_ID,
+	        RR.MF_DOC_ID,
+	        RR.CG_NO,
+	       	RR.PLAN_WH_ID,
+	        RR.PLAN_LOC_ID,
+	       	BR.BRAND_CD,
+	       	BR.BRAND_NM,
+	       	M.MODEL_CD,
+	       	M.MODEL_NM,
+	       	SN.CG_TP_CD,
+	       	F_CM_001('MT', 'CGTP', SN.CG_TP_CD) AS CG_TP_NM,
+	       	RR.CATG_CD,
+			F_CM_001('MT', 'CATGTP', SN.CATG_CD) AS CATG_NM,
+	        COUNT(RR.CHAS_NO) OVER (PARTITION BY RR.CG_NO, RR.MF_DOC_ID, RR.VSL_CALL_ID, RR.PLAN_LOC_ID) AS PLAN_QTY,
+	        (SELECT COUNT(*) FROM TMT_RORO_MST R1 WHERE R1.VSL_CALL_ID = RR.VSL_CALL_ID AND R1.CG_NO = RR.CG_NO) AS NO_OF_UNIT
+		FROM TMT_RORO_MST RR
+       	INNER JOIN TMT_SHIPG_NOTE SN ON RR.VSL_CALL_ID = SN.VSL_CALL_ID AND RR.CG_NO = SN.SHIPG_NOTE_NO
+       	LEFT OUTER JOIN TMT_BRAND BR ON	RR.BRAND_CD = BR.BRAND_CD
+		LEFT OUTER JOIN TMT_BRAND_DTL M ON	RR.MODEL_CD = M.MODEL_CD AND RR.BRAND_CD = M.BRAND_CD
+		WHERE RR.VSL_CALL_ID = #{vslCallId}
+		AND RR.IX_CD = 'X'
+		AND SN.STAT_CD IN ('AP')
+		<if test="shipgNoteNo != null and shipgNoteNo != ''">
+			AND SN.SHIPG_NOTE_NO = #{shipgNoteNo}
+		</if>
+        AND RR.PLAN_LOC_ID IS NOT NULL
+	</sql>
+</mapper>

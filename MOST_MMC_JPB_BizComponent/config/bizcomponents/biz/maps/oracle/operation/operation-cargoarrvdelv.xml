@@ -1,0 +1,509 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cargoArrvDelv">
+	
+	<!--  ################ Query Statement Define ######################################### -->
+	<select id="selectGatepassNo"   parameterType="cargoArrvDelvParm" resultType="cargoArrvDelvItem">
+		<if test="isMultiCargo == '' or isMultiCargo == null or isMultiCargo eq 'N'.toString()">
+			SELECT 	('P'
+			        || TO_CHAR (SYSDATE, 'YYYYMMDD')
+			        || TRIM (
+			              TO_CHAR (
+			                 NVL (MAX (TO_NUMBER (SUBSTR (GATE_PASS_NO, -4, 4)) + 1), 1),
+			                 '0000')))
+			          AS GATEPASSNO
+			FROM	TMT_CG_ARRV_DELV
+			WHERE 	SUBSTR (GATE_PASS_NO, 1, LENGTH (GATE_PASS_NO) - 4) = ('P' || TO_CHAR (SYSDATE, 'YYYYMMDD'))
+		</if>
+		
+		<if test="isMultiCargo eq 'Y'.toString()">
+			SELECT 
+					GATE_PASS_NO AS GATEPASSNO
+			 FROM 
+			 	  TMT_CG_ARRV_DELV DL
+			WHERE 
+					VSL_CALL_ID = #{vslCallId}
+				AND GATE_TXN_NO = #{gateTxnNo}
+				AND GATE_PASS_NO IS NOT NULL
+				AND ROWNUM = 1 <!-- In case multiHO Cargo -> All row same gatePass -->
+		</if>
+	 </select>
+	 
+	 <select id="selectArrvDelvIsCheck"   parameterType="cargoArrvDelvParm" resultType="cargoArrvDelvItem">
+		SELECT 	/*cargoArrvDelv.selectArrvDelvIsCheck*/
+					'1' AS VALIDCHECK,
+					SEQ AS SEQ,
+					LORRY_NO AS LORRYNO 
+		FROM 	TMT_CG_ARRV_DELV AD
+		WHERE 	AD.CG_IN_OUT_CD = #{cgInOutCd}
+		 	 	AND AD.CG_NO = #{cgNo}
+				<if test="vslCallId != null and vslCallId != ''">
+					AND AD.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="lorryNo != null and lorryNo != ''">
+					AND AD.LORRY_NO = #{lorryNo}
+				</if>
+				AND AD.GATE_OUT_DT IS NULL
+				AND AD.GATE_CD_OUT IS NULL
+		ORDER BY SEQ DESC 
+		FETCH NEXT 1 ROWS ONLY
+	 </select>
+	 
+	 <select id="selectGateInCargoItem"  parameterType="cargoArrvDelvParm" resultType="cargoArrvDelvItem">
+	 	SELECT  /*selectGateInCargoItem*/
+                GT.VSL_CALL_ID		AS vslCallId,
+                GT.CG_IN_OUT_CD		AS cgInOutCd,
+                GT.GATE_TXN_NO		AS gateTxnNo,
+                GT.GR_NO			AS grNo,
+                GT.GATE_PASS_NO		AS gatePassNo,
+                GT.CG_NO			AS cgNo,
+                GT.CG_WGT			AS wgt,
+                GT.CG_VOL			AS msrmt,
+                GT.PKG_QTY			AS pkgQty,
+                GT.CMDT_CD			AS cmdtCd,
+                F_GET_CMDT_DESC(GT.CMDT_CD) AS cmdtNm,
+                TO_CHAR(GT.GATE_IN_DT, 'DD/MM/YYYY HH24:MI') AS gateInDt
+                 
+        FROM     TMT_CG_ARRV_DELV GT
+                LEFT JOIN TMT_BL BL
+                    ON GT.CG_NO = BL.BL_NO AND GT.VSL_CALL_ID = BL.VSL_CALL_ID
+                LEFT JOIN TMT_GR GR
+                    ON GT.CG_NO = GR.GR_NO AND GT.VSL_CALL_ID = GT.VSL_CALL_ID
+                LEFT JOIN TMT_SHIPG_NOTE SN
+                    ON     SN.SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO
+                       AND SN.VSL_CALL_ID = GR.VSL_CALL_ID
+        WHERE 	GT.GATE_OUT_DT IS NULL
+                AND GATE_TXN_NO IS NOT NULL
+                AND GT.GATE_IN_DT IS NOT NULL
+                <if test="lorryNo != null and lorryNo != ''">
+					AND GT.LORRY_NO = #{lorryNo}
+				</if>
+                AND ROWNUM=1
+	 </select>
+	 
+	 <select id="selectGateInData"  parameterType="cargoArrvDelvParm" resultType="cargoArrvDelvItem">
+		/*cargoArrvDelv.selectGateInData*/
+		SELECT 	*
+		FROM 	(
+					SELECT 
+							A.CG_NO                CGNO,
+							A.CG_IN_OUT_CD         CGINOUTCD,
+							A.SEQ                  SEQ,
+							CASE
+						          WHEN A.CG_IN_OUT_CD = 'O' AND A.GATE_PASS_NO IS NOT NULL
+						          THEN
+						             J.CG_WGT
+						          WHEN A.CG_IN_OUT_CD = 'O' AND A.GATE_PASS_NO IS NULL
+						          THEN
+						             A.CG_WGT
+						          WHEN A.CG_IN_OUT_CD = 'I'
+						          THEN
+						             A.CG_WGT
+						          ELSE
+						             0
+						       END
+						          AS WGT,
+							CASE
+				                  WHEN A.CG_IN_OUT_CD = 'O' AND A.GATE_PASS_NO IS NOT NULL
+				                  THEN
+				                     J.PKG_QTY
+				                  WHEN A.CG_IN_OUT_CD = 'O' AND A.GATE_PASS_NO IS NULL
+				                  THEN
+				                     A.PKG_QTY
+				                  WHEN A.CG_IN_OUT_CD = 'I'
+				                  THEN
+				                     A.PKG_QTY
+				                  ELSE
+				                     0
+				               END
+				                  AS PKGQTY,
+			       			NVL(A.CMDT_CD, (SELECT B.CMDT_CD AS CMDTCD
+                                     FROM TMT_BL B
+                                    WHERE B.VSL_CALL_ID = A.VSL_CALL_ID
+                                      AND B.BL_NO = A.CG_NO
+                                      AND ROWNUM = 1))              CMDTCD,
+			       			TO_CHAR(A.GATE_IN_DT, 'DD/MM/YYYY HH24:MI')           GATEINDT,
+			       			A.GATE_PASS_NO gatePassNo,
+			       			A.VSL_CALL_ID vslCallId,
+			       			A.DRIVER_ID driverId,
+			       			(SELECT DRIVER_NM FROM TMT_DRIVER_MST WHERE DRIVER_ID = A.DRIVER_ID AND ROWNUM = 1) driverNm,
+			       			(SELECT LICS_NO FROM TMT_DRIVER_MST WHERE DRIVER_ID = A.DRIVER_ID AND ROWNUM = 1) licsNo,
+			       			(SELECT TO_CHAR(LICS_EXPR_YMD, 'DD/MM/YYYY HH24:MI') FROM TMT_DRIVER_MST WHERE DRIVER_ID = A.DRIVER_ID  AND ROWNUM = 1) licsExprYmd,
+			       			ROW_NUMBER () OVER (ORDER BY A.GATE_IN_DT DESC, A.SEQ DESC) RN
+			       			,DECODE (
+		                  		A.CG_IN_OUT_CD,
+		                  		'O', (SELECT 	(SELECT 	C.PTNR_CD
+		                                  			FROM 	TMT_TRUCK_MST C
+		                                 			WHERE   C.LORRY_NO = #{lorryNo}
+		                                       				AND INSTR (B.TSPTR, C.PTNR_CD) > 0
+		                                       				AND ROWNUM = 1)
+		                          		FROM 	TMT_BL B
+		                         		WHERE   B.VSL_CALL_ID = A.VSL_CALL_ID
+		                               			AND B.BL_NO = A.CG_NO
+		                               			AND ROWNUM = 1),
+		                  		'I', (SELECT 	(SELECT 	C.PTNR_CD
+		                                  			FROM 	TMT_TRUCK_MST C
+		                                 			WHERE   C.LORRY_NO = #{lorryNo}
+		                                       				AND INSTR (B.TSPT_COMP, C.PTNR_CD) > 0
+		                                       				AND ROWNUM = 1)
+		                          		FROM 	TMT_SHIPG_NOTE B
+		                         		WHERE   B.VSL_CALL_ID = A.VSL_CALL_ID
+		                               			AND B.SHIPG_NOTE_NO = C.SHIPG_NOTE_NO
+		                               			AND ROWNUM = 1),
+		                  		NULL)
+		                 		AS TSPTR,
+		               		(SELECT 	P.ENG_SNM
+		                  		FROM 	TMT_PTNR P
+		                 		WHERE   P.PTNR_TYPE = 'TRK'
+		                       			AND P.PTNR_CODE =
+				                              (DECODE (
+				                                  A.CG_IN_OUT_CD,
+				                                  'O', (SELECT (SELECT C.PTNR_CD
+				                                                  FROM TMT_TRUCK_MST C
+				                                                 WHERE     C.LORRY_NO =
+				                                                              #{lorryNo}
+				                                                       AND INSTR (B.TSPTR,
+				                                                                  C.PTNR_CD) >
+				                                                              0
+				                                                       AND ROWNUM = 1)
+				                                          FROM TMT_BL B
+				                                         WHERE     B.VSL_CALL_ID =
+				                                                      A.VSL_CALL_ID
+				                                               AND B.BL_NO = A.CG_NO
+				                                               AND ROWNUM = 1),
+				                                  'I', (SELECT (SELECT C.PTNR_CD
+				                                                  FROM TMT_TRUCK_MST C
+				                                                 WHERE     C.LORRY_NO =
+				                                                              #{lorryNo}
+				                                                       AND INSTR (
+				                                                              B.TSPT_COMP,
+				                                                              C.PTNR_CD) > 0
+				                                                       AND ROWNUM = 1)
+				                                          FROM TMT_SHIPG_NOTE B
+				                                         WHERE     B.VSL_CALL_ID =
+				                                                      A.VSL_CALL_ID
+				                                               AND B.SHIPG_NOTE_NO =
+				                                                      C.SHIPG_NOTE_NO
+				                                               AND ROWNUM = 1),
+				                                  NULL)))
+				                  AS TSPTCOMPNM
+			FROM 	TMT_CG_ARRV_DELV A, TMT_JOB J, TMT_CG_MST C
+			WHERE 	A.LORRY_NO = #{lorryNo} 
+					AND A.JOB_NO =  J.JOB_NO(+)
+				
+					AND A.VSL_CALL_ID = C.VSL_CALL_ID
+		            AND A.CG_NO = C.CG_NO
+		               
+			        AND A.GATE_IN_DT IS NOT NULL
+			        AND A.GATE_CD_OUT IS NULL
+			        AND (SYSDATE - A.GATE_IN_DT) &lt;= 30
+	     )
+	     WHERE RN = 1
+	</select>
+	
+	<select id="selectCargoArrvDelv"  parameterType="cargoArrvDelvParm" resultType="cargoArrvDelvItem">
+		SELECT 	
+  			   	CG_NO                CGNO,
+				CG_IN_OUT_CD         CGINOUTCD,
+				SEQ                  SEQ,
+				CG_WGT                  WGT,
+				CG_WGT_UNIT             WGTUNIT,
+				CG_VOL                MSRMT,
+				CG_VOL_UNIT           MSRMTUNIT,
+				PKG_QTY              PKGQTY,
+				PKG_TP_CD            PKGTPCD,
+				CMDT_CD              CMDTCD,
+				CG_TP_CD             CGTPCD,
+<!-- 				DG_CG_IDT            DGCGIDT, -->
+				GATE_IN_DT           GATEINDT,
+				GATE_OUT_DT          GATEOUTDT,
+				TSPT_TP_CD           TSPTTPCD,
+				FNL_YN               FNLYN,
+				GR_NO                GRNO,
+				LOC_ID               LOCID,
+				RMK                  RMK,
+				LORRY_NO             LORRYNO,
+				GATE_PASS_NO         GATEPASSNO,
+				GATE_PASS_ISSUE_DT   GATEPASSISSUEDT,
+				ISSUE_CNT            ISSUECNT,
+				GATE_TXN_NO			GATETXNNO,
+				UPDATE_TIME               UPDDT,
+				STAFF_CD          UPDUSERID,
+				VERSION              VERSION
+		FROM 	TMT_CG_ARRV_DELV
+		WHERE
+		 		1 = 1
+			 	<if test="vslCallId != null and vslCallId != ''">
+					AND VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="cgNo != null and cgNo != ''">
+					AND CG_NO = #{cgNo}
+				</if>
+				<if test="cgNo != null and cgNo != ''">
+					AND CG_IN_OUT_CD = #{cgNo}
+				</if>
+	</select>
+	
+	<select id="selectGateOutCheck"   parameterType="cargoArrvDelvParm" resultType="cargoArrvDelvItem">
+		SELECT	/*selectIsGateOut*/
+	  			'1' AS VALIDCHECK,
+	  			SEQ AS SEQ 
+		FROM 	TMT_CG_ARRV_DELV AD
+		WHERE 	AD.CG_IN_OUT_CD = #{cgInOutCd}
+		 	 	AND AD.CG_NO = #{cgNo}
+				AND AD.GATE_TXN_NO = #{gateTxnNo}
+				<if test="vslCallId != null and vslCallId != ''">
+					AND AD.VSL_CALL_ID = #{vslCallId}
+				</if>
+				AND ROWNUM = 1
+	 </select>
+	 
+	 <select id="selectGateTxnNo"  parameterType="cargoArrvDelvParm" resultType="cargoArrvDelvItem">
+		SELECT 
+				('G' || TO_CHAR (SYSDATE, 'YYMMDD')
+						|| (SELECT NVL (
+						               TRIM (
+						                   TO_CHAR (SUBSTR (MAX (GATE_TXN_NO), -4, 4) + 1,
+						                            '0000')),
+						               '0001')
+						      FROM TMT_CG_ARRV_DELV
+						      WHERE GATE_TXN_NO LIKE CONCAT('G', TO_CHAR (SYSDATE, 'YYMMDD'))  || '%')
+				) 
+					AS GATETXNNO 
+		FROM DUAL
+	</select>
+	
+	<select id="selectJobGateInOut"   parameterType="cargoArrvDelvParm" resultType="cargoArrvDelvItem">
+		SELECT 
+				VSL_CALL_ID AS VSLCALLID,
+				CG_NO AS CGNO,
+				LORRY_NO AS LORRYNO
+		FROM 	TMT_JOB JB
+		WHERE	JB.VSL_CALL_ID = #{vslCallId}
+		 		AND JB.CG_NO = #{cgNo}
+		 		AND JB.JOB_TP_CD = #{jobTpCd}
+		 		AND JB.JOB_PURP_CD = #{jobPurpCd}
+		 		AND JB.LORRY_NO = #{lorryNo}
+		 		AND JB.GATE_TXN_NO = #{gateTxnNo}
+	 </select>
+	 
+	  <select id="checkMultiCargoTxn"    parameterType="cargoArrvDelvParm" resultType="cargoArrvDelvItem">
+		 SELECT  /*checkIsMultiCargo*/
+		  		'Y' AS isMultiCargo
+		   FROM TMT_CG_ARRV_DELV AD
+		  WHERE 
+		  			GATE_TXN_NO = #{gateTxnNo}
+		  		AND RMK = 'Multiple-Cargo'
+		  		<if test="vslCallId != null and vslCallId != ''">
+					AND AD.VSL_CALL_ID = #{vslCallId}
+				</if>
+	 </select>
+	
+	<insert id="insertGateIntems"  parameterType="cargoArrvDelvItem">
+		INSERT INTO TMT_CG_ARRV_DELV
+		/*insertGateIntems*/
+		(
+			VSL_CALL_ID
+			,CG_NO
+			,CG_IN_OUT_CD
+			,SEQ
+			,GATE_IN_DT
+			,GATE_OUT_DT
+			,LORRY_NO
+			,UPDATE_TIME
+			,STAFF_CD
+			,GATE_CD
+			,VERSION
+			,CG_WGT
+			,PKG_QTY
+			,CG_VOL
+			,CMDT_CD
+			,DRIVER_ID
+			,GATE_TXN_NO
+			,GR_NO
+			,SDO_NO
+		) 
+		VALUES 
+		(
+			#{vslCallId}
+			,#{cgNo}
+			,#{cgInOutCd}
+			,(SELECT NVL(TO_NUMBER(MAX(SEQ)), 0)+1 
+			 FROM  	TMT_CG_ARRV_DELV
+			 WHERE 	CG_NO=#{cgNo} AND CG_IN_OUT_CD =#{cgInOutCd})
+			,TO_DATE(#{gateInDt}, 'DD/MM/YYYY HH24:MI')
+			,TO_DATE(#{gateOutDt}, 'DD/MM/YYYY HH24:MI')
+			,#{lorryNo}
+			,SYSDATE
+			,#{userId}
+			,#{gateCd}
+			,#{newVersion}
+			,#{wgt}
+			,#{pkgQty}
+			,#{msrmt}
+			,#{cmdtCd}
+			,#{driverId}
+			,#{gateTxnNo}
+			,#{grNo}
+			,#{subDoNo}
+		)
+	</insert>
+	
+	<update id="updateGateInItems"  parameterType="cargoArrvDelvItem">
+	 	UPDATE	TMT_CG_ARRV_DELV
+		SET 	GATE_IN_DT = TO_DATE(#{gateInDt}, 'DD/MM/YYYY HH24:MI'),
+		        UPDATE_TIME = SYSDATE,
+		        STAFF_CD = #{userId}
+		        ,GATE_CD =#{gateCd}
+		        ,VERSION =#{newVersion}
+		        ,DRIVER_ID=#{driverId}
+		 WHERE	VSL_CALL_ID=#{vslCallId} 
+				AND CG_NO=#{cgNo} 
+				AND CG_IN_OUT_CD =#{cgInOutCd}
+				AND GATE_PASS_NO IS NULL
+				<if test="lorryNo != null and lorryNo != ''">
+					AND LORRY_NO = #{lorryNo}
+					
+					AND SEQ = (SELECT MAX(SEQ) 
+				  		   FROM TMT_CG_ARRV_DELV
+				  		   WHERE VSL_CALL_ID=#{vslCallId} 
+					 	AND CG_NO=#{cgNo} 
+					 	AND CG_IN_OUT_CD =#{cgInOutCd}
+					 	AND GATE_PASS_NO IS NULL
+					 	AND LORRY_NO = #{lorryNo})
+				</if>
+				<if test="lorryNo == null or lorryNo == ''">
+					AND
+					SEQ = (SELECT MAX(SEQ) 
+				   		   FROM TMT_CG_ARRV_DELV
+				   		   WHERE VSL_CALL_ID=#{vslCallId} 
+							 	AND CG_NO=#{cgNo} 
+							 	AND CG_IN_OUT_CD =#{cgInOutCd}
+							 	AND GATE_PASS_NO IS NULL) 
+				</if>
+	</update>
+	
+	<update id="updateGateOutItems"  parameterType="cargoArrvDelvItem">
+		UPDATE	TMT_CG_ARRV_DELV /*updateGateOutItems*/
+		SET
+			 	GATE_OUT_DT = TO_DATE(#{gateOutDt}, 'DD/MM/YYYY HH24:MI')
+				,UPDATE_TIME = SYSDATE
+				,STAFF_CD = #{userId}
+				,GATE_CD_OUT = #{gateOutCd}
+				,VERSION =#{newVersion}
+		 WHERE	GATE_TXN_NO = #{gateTxnNo}
+				<if test="gatePassNo != null and gatePassNo != ''"> 
+					AND GATE_PASS_NO = TRIM(#{gatePassNo})
+				</if>
+	</update>
+	
+	<insert id="insertGOJobItems"  parameterType="cargoArrvDelvItem">
+		<selectKey order="BEFORE" resultType="cargoDischargingItem" keyProperty="jobNo" >
+			SELECT 
+				('J' || TO_CHAR(SYSDATE, 'YYMMDD') 
+					 || (SELECT NVL(TRIM(To_CHAR(SUBSTR(MAX(JOB_NO) ,-9,9)+1, '000000000')),'000000000') 
+					  FROM  TMT_JOB)) AS jobNo
+			 FROM DUAL
+		</selectKey>
+		INSERT INTO TMT_JOB(
+			JOB_NO,
+			JOB_TP_CD,
+			WORK_ST_DT,
+			WORK_END_DT,
+			PKG_QTY,
+			CG_VOL,
+			CG_WGT,
+			STAT_CD,
+			CG_NO,
+			VSL_CALL_ID,
+			JOB_PURP_CD,
+			JOB_GROUP,
+			DMG_YN,
+			RHDL_MODE,
+			SHU_YN,
+			OPE_CLASS_CD,
+			DELV_TP_CD,
+			PKG_TP_CD,
+			TSPT_TP_CD,
+			LORRY_NO,
+			GATE_TXN_NO,
+			UPDATE_TIME,
+			STAFF_CD,
+			VERSION,
+			RMK,
+			JOB_CO_CD,
+			SDO_NO,
+			SHFT_ID,
+			SHFT_DT,
+			REPKG_TYPE_CD
+		) VALUES (
+			 #{jobNo},
+			 #{jobTpCd}, 
+			 TO_DATE(#{jobDt}, 'DD/MM/YYYY HH24:MI'),
+			 TO_DATE(#{jobDt}, 'DD/MM/YYYY HH24:MI'),
+			 NVL(#{pkgQty},0), 
+			 NVL(#{msrmt},0), 
+			 NVL(#{wgt},0), 
+			 #{statCd}, 
+			 #{cgNo}, 
+			 #{vslCallId}, 
+			 #{jobPurpCd}, 
+			 (SELECT NVL(MAX(TO_NUMBER(S.JOB_GROUP)),0)+1 AS JOBGROUP FROM TMT_JOB S),
+			 DECODE(#{dmgYn},NULL,'N','true','Y','false','N','Y','Y','N','N'),
+			 #{rhdlMode}, 
+			 DECODE(#{shuYn},NULL,'N','true','Y','false','N','Y','Y','N','N'),
+			 #{catgCd},
+			 #{delvTpCd},
+			 #{pkgTpCd},
+			 #{tsptTpCd},
+			 #{lorryNo},
+			 #{gateTxnNo},
+			 SYSDATE,
+			 #{userId},
+			 #{newVersion},
+			 #{rmk},
+			 'G',
+			 #{subDoNo},
+			 F_GET_SHIFT_CD(TO_DATE(#{jobDt}, 'DD/MM/YYYY HH24:MI'), 'CD'),
+			 TO_DATE(#{jobDt}, 'DD/MM/YYYY HH24:MI'),
+			 #{rePkgTpCd}
+		)
+	</insert>
+	
+	<update id="updateGOJobItems"  parameterType="cargoArrvDelvItem">
+		UPDATE	TMT_JOB
+		   SET
+				WORK_ST_DT 	= TO_DATE(#{jobDt}, 'DD/MM/YYYY HH24:MI'),
+				WORK_END_DT = TO_DATE(#{jobDt}, 'DD/MM/YYYY HH24:MI'),
+				PKG_QTY 	= NVL(#{pkgQty},0),
+				CG_VOL 		= NVL(#{msrmt},0),
+				CG_WGT 		= NVL(#{wgt},0),
+				UPDATE_TIME = SYSDATE,
+				VERSION 	= #{newVersion},
+				STAFF_CD = #{userId}
+		WHERE 	
+				VSL_CALL_ID =  #{vslCallId}
+				AND CG_NO =  #{cgNo}
+				AND JOB_TP_CD = #{jobTpCd}
+				AND JOB_PURP_CD = #{jobPurpCd}
+				AND LORRY_NO =  #{lorryNo}
+	</update>
+	
+	<update id="updateCirPrintItem"  parameterType="cargoArrvDelvItem">
+		UPDATE	TMT_CG_ARRV_DELV
+		   SET
+				CIR_PRINT_YN 	= #{printCirYn},
+				UPDATE_TIME = SYSDATE,
+				VERSION 	= #{newVersion},
+				STAFF_CD = #{userId}
+		WHERE 	
+				VSL_CALL_ID =  #{vslCallId}
+				AND CG_NO =  #{cgNo}
+				AND GATE_TXN_NO = #{gateTxnNo}
+				AND LORRY_NO =  #{lorryNo}
+	</update>
+	
+</mapper>

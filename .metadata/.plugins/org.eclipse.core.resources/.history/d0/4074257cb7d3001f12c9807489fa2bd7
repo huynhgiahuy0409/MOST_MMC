@@ -1,0 +1,1778 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	<import resource="classpath:/bizcomponents/bizcomponentContext-basebiz-mybatis.xml"/>
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+ 		 <property name="dataSource">
+			<ref bean="mostDataSource" />
+		 </property>
+		   <property name="configLocation">
+		  	<value>classpath:/bizcomponents/biz/maps/business-${db.type}-map-config-mybatis.xml</value>
+		  </property>	
+	</bean>
+		  
+	<bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate" >
+  		<constructor-arg index="0" ref="sqlSessionFactory" />
+	</bean>
+
+	<!-- ############ DAO Defindtions : MyBatis implements #################### -->
+	<!-- per module -->
+	<bean id="mostUnifiedDao" class="com.tsb.most.framework.dao.SqlMapUnifiedDaoMyBatis">
+	    <property name="sqlSession"><ref bean="sqlSession" /></property>
+    </bean>  	
+  	    
+	<bean id="mostDaoUtil" class="com.tsb.most.framework.bizcomponemt.base.DaoUtil" />    
+	
+  	<!-- ########### DAO for ServiceBizComponents ################################# -->
+
+  	<!-- Document -->
+	<bean id="vesselParticularDao" class="com.tsb.most.biz.dao.document.VesselParticularDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+	</bean>
+	<bean id="vesselScheduleRegisterDao" class="com.tsb.most.biz.dao.document.VesselScheduleRegisterDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+	</bean>
+	<bean id="shippingNoteDao" class="com.tsb.most.biz.dao.document.ShippingNoteDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+	</bean>
+	<bean id="blDao" class="com.tsb.most.biz.dao.document.BLDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+	</bean>
+	<bean id="goodsReceiptDao" class="com.tsb.most.biz.dao.document.GoodsReceiptDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+	</bean>
+	<bean id="deliveryOrderDao" class="com.tsb.most.biz.dao.document.DeliveryOrderDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+	</bean>
+	<bean id="truckAssignmentDao" class="com.tsb.most.biz.dao.document.TruckAssignmentDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+	</bean>
+	<bean id="checkListCustomClearanceDao" class="com.tsb.most.biz.dao.document.CheckListCustomClearanceDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+	</bean>
+	<bean id="deliveryOrderOfVehicleDao" class="com.tsb.most.biz.dao.document.DeliveryOrderOfVehicleDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+   	<bean id="truckAssignmentOfRORODao" class="com.tsb.most.biz.dao.document.TruckAssignmentOfRORODao" lazy-init="true">
+ 		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+     	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+   	</bean> 
+  	<bean id="dgDeclarationDao" class="com.tsb.most.biz.dao.document.DGDeclarationDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+	</bean>
+	<bean id="generalCargoDischargingListDao" class="com.tsb.most.biz.dao.document.GeneralCargoDischargingListDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+	</bean>
+	<bean id="generalCargoLoadingListDao" class="com.tsb.most.biz.dao.document.GeneralCargoLoadingListDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+	</bean>
+	<bean id="rORODischargingListDao" class="com.tsb.most.biz.dao.document.RORODischargingListDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+	</bean>
+	<bean id="rOROLoadingListDao" class="com.tsb.most.biz.dao.document.ROROLoadingListDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+	</bean>
+	<bean id="rORODetailUploadListDao" class="com.tsb.most.biz.dao.document.RORODetailUploadListDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+	</bean>
+	<bean id="customsCargoReleaseControlDao" class="com.tsb.most.biz.dao.document.CustomsCargoReleaseControlDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="terminalHoldReleaseControlDao" class="com.tsb.most.biz.dao.document.TerminalHoldReleaseControlDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="consolDeconsolidationDao" class="com.tsb.most.biz.dao.document.ConsolDeconsolidationDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="nominationManifestDao" class="com.tsb.most.biz.dao.document.NominationManifestDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<!-- Planning -->
+  	<bean id="vesselScheduleInternalDao" class="com.tsb.most.biz.dao.planning.VesselScheduleInternalDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="vesselScheduleDao" class="com.tsb.most.biz.dao.planning.VesselScheduleDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="berthPlanDao" class="com.tsb.most.biz.dao.planning.BerthPlanDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="rosterConfigurationMonthlyDao" class="com.tsb.most.biz.dao.planning.RosterConfigurationMonthlyDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="rosterConfigurationOthersDao" class="com.tsb.most.biz.dao.planning.RosterConfigurationOthersDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="megaDao" class="com.tsb.most.biz.dao.planning.MegaDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+	<bean id="staffAndDeploymentDao" class="com.tsb.most.biz.dao.planning.StaffAndDeploymentDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="terminalViewDao" class="com.tsb.most.biz.dao.planning.TerminalViewDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="spaceMovementPlanDao" class="com.tsb.most.biz.dao.planning.SpaceMovementPlanDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="spaceMovementSummaryDao" class="com.tsb.most.biz.dao.planning.SpaceMovementSummaryDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="warehouseHistoryDao" class="com.tsb.most.biz.dao.planning.WarehouseHistoryDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="movementListDao" class="com.tsb.most.biz.dao.planning.MovementListDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="dgListDao" class="com.tsb.most.biz.dao.planning.DGListDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="cargoSearchDao" class="com.tsb.most.biz.dao.planning.CargoSearchDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="roroYardPlanDao" class="com.tsb.most.biz.dao.planning.RoRoYardPlanDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="theListOfYardPlanOfRoRoDao" class="com.tsb.most.biz.dao.planning.TheListOfYardPlanOfRoRoDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="deploymentListDao" class="com.tsb.most.biz.dao.planning.DeploymentListDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="nonManifestedCargoOfGcDao" class="com.tsb.most.biz.dao.planning.NonManifestedCargoOfGcDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="workPlanDao" class="com.tsb.most.biz.dao.planning.VesselWorkPlanDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	
+  	<bean id="vesselBaplieForGCDao" class="com.tsb.most.biz.dao.planning.VesselBaplieForGCDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	
+  	<bean id="vOperationDeployDao" class="com.tsb.most.biz.dao.planning.VOperationDeployDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	
+  	<bean id="shiftGroupDefDao" class="com.tsb.most.biz.dao.planning.ShiftGroupDefDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	
+  	<bean id="whRentalDao" class="com.tsb.most.biz.dao.planning.WhRentalDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<!-- Planning End-->
+  	
+  	<!-- Operation -->
+  	<bean id="vesselOprSettingDao" class="com.tsb.most.biz.dao.operation.VesselOprSettingDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="cargoManualCtlDao" class="com.tsb.most.biz.dao.operation.CargoManualCtlDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="cargoMasterDao" class="com.tsb.most.biz.dao.operation.CargoMasterDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="operationSettingDao" class="com.tsb.most.biz.dao.operation.OperationSettingDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="cargoDischargingDao" class="com.tsb.most.biz.dao.operation.CargoDischargingDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="cargoArrvDelvDao" class="com.tsb.most.biz.dao.operation.CargoArrvDelvDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="gateOperationDao" class="com.tsb.most.biz.dao.operation.GateOperationDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="cargoHandlingOutDao" class="com.tsb.most.biz.dao.operation.CargoHandlingOutDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="cargoHandlingInDao" class="com.tsb.most.biz.dao.operation.CargoHandlingInDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="cargoLoadingDao" class="com.tsb.most.biz.dao.operation.CargoLoadingDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="whCheckExportDao" class="com.tsb.most.biz.dao.operation.WHCheckExportDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="cargoMovementDao" class="com.tsb.most.biz.dao.operation.CargoMovementDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="rehandlingOfGCDao" class="com.tsb.most.biz.dao.operation.RehandlingOfGCDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="rehandleOperationGCDao" class="com.tsb.most.biz.dao.operation.RehandleOperationGCDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="vesselDelayDao" class="com.tsb.most.biz.dao.operation.VesselDelayDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+
+  	<bean id="vsrCheckListDao" class="com.tsb.most.biz.dao.operation.VSRCheckListDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="whReconciliationDao" class="com.tsb.most.biz.dao.operation.WHReconciliationDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="shiftingDoubleBankingDao" class="com.tsb.most.biz.dao.operation.ShiftingDoubleBankingDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="vorDryBreakBulkDao" class="com.tsb.most.biz.dao.operation.VORDryBreakBulkDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="vorLiquidBulkDao" class="com.tsb.most.biz.dao.operation.VORLiquidBulkDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="confirmHandlingInOfRORODao" class="com.tsb.most.biz.dao.operation.ConfirmHandlingInOfRORODao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="confirmLoadingOfRORODao" class="com.tsb.most.biz.dao.operation.ConfirmLoadingOfRORODao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="confirmDischargingOfRORODao" class="com.tsb.most.biz.dao.operation.ConfirmDischargingOfRORODao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="confirmHandlingOutOfRORODao" class="com.tsb.most.biz.dao.operation.ConfirmHandlingOutOfRORODao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="rehandlingOfRORODao" class="com.tsb.most.biz.dao.operation.RehandlingOfRORODao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="confirmLoadingOfRORORehandlingDao" class="com.tsb.most.biz.dao.operation.ConfirmLoadingOfRORORehandlingDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="confirmHandlingOutOfRORORehandlingDao" class="com.tsb.most.biz.dao.operation.ConfirmHandlingOutOfRORORehandlingDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="dimensionCheckDao" class="com.tsb.most.biz.dao.operation.DimensionCheckDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="damageCheckDao" class="com.tsb.most.biz.dao.operation.DamageCheckDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+	<bean id="theListOfDamageCheckOfRORODao" class="com.tsb.most.biz.dao.operation.TheListOfDamageCheckOfRORODao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="serviceOrderDao" class="com.tsb.most.biz.dao.operation.ServiceOrderDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="theListOfDimensionCheckDao" class="com.tsb.most.biz.dao.operation.TheListOfDimensionCheckDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="theListOfDamageCheckOfGCDao" class="com.tsb.most.biz.dao.operation.TheListOfDamageCheckOfGCDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="roroMasterDao" class="com.tsb.most.biz.dao.operation.ROROMasterDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="rehandleGCDao" class="com.tsb.most.biz.dao.operation.RehandleGCDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="hangingScaleDao" class="com.tsb.most.biz.dao.operation.HangingScaleDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	
+	<!-- Monitoring -->
+	<bean id="assignedTruckDao" class="com.tsb.most.biz.dao.monitoring.AssignedTruckDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+	</bean>
+	<bean id="dischargingDao" class="com.tsb.most.biz.dao.monitoring.DischargingDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="loadingDao" class="com.tsb.most.biz.dao.monitoring.LoadingDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="handlingInOutListDao" class="com.tsb.most.biz.dao.monitoring.HandlingInOutListDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="cargoJobDao" class="com.tsb.most.biz.dao.monitoring.CargoJobDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="gateInDao" class="com.tsb.most.biz.dao.monitoring.GateInDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="gateOutDao" class="com.tsb.most.biz.dao.monitoring.GateOutDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="gatePassListDao" class="com.tsb.most.biz.dao.monitoring.GatePassListDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="jobMonitoringOfROROImportDao" class="com.tsb.most.biz.dao.monitoring.JobMonitoringOfROROImportDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="jobMonitoringOfROROExportDao" class="com.tsb.most.biz.dao.monitoring.JobMonitoringOfROROExportDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="jobMonitoringOfRORORehandlingDao" class="com.tsb.most.biz.dao.monitoring.JobMonitoringOfRORORehandlingDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="unclosedOperationListDao" class="com.tsb.most.biz.dao.monitoring.UnclosedOperationListDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="roroCargoInYardDao" class="com.tsb.most.biz.dao.monitoring.ROROCargoInYardDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+		<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="theListOfUnitNoCorrectionDao" class="com.tsb.most.biz.dao.monitoring.TheListOfUnitNoCorrectionDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="warehouseBalanceDao" class="com.tsb.most.biz.dao.monitoring.WarehouseBalanceDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+	<bean id="interfaceLogDao" class="com.tsb.most.biz.dao.monitoring.InterfaceLogDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="internalTruckMonitoringDao" class="com.tsb.most.biz.dao.monitoring.InternalTruckMonitoringDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="dailyOperationsReportDao" class="com.tsb.most.biz.dao.monitoring.DailyOperationsReportDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+	<bean id="logMonitoringTarget" class="com.tsb.most.biz.service.monitoring.LogMonitoring" lazy-init="true">
+  	</bean>
+  	<bean id="berthMonitoringDao" class="com.tsb.most.biz.dao.monitoring.BerthMonitoringDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	
+	<!-- Billing -->
+	<bean id="costCenterDao" class="com.tsb.most.biz.dao.billing.CostCenterDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="invoiceUnitDao" class="com.tsb.most.biz.dao.billing.InvoiceUnitDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="defineHolidayCodeDao" class="com.tsb.most.biz.dao.billing.DefineHolidayCodeDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="standardTariffRateDao" class="com.tsb.most.biz.dao.billing.StandardTariffRateDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>  	
+  	<bean id="annualHolidayDao" class="com.tsb.most.biz.dao.billing.AnnualHolidayDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>  
+    <bean id="freeStorageDaysDao" class="com.tsb.most.biz.dao.billing.FreeStorageDaysDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>	
+  	<bean id="tariffCodeDao" class="com.tsb.most.biz.dao.billing.TariffCodeDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="partnerTariffRateDao" class="com.tsb.most.biz.dao.billing.PartnerTariffRateDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="invoiceAdviceDao" class="com.tsb.most.biz.dao.billing.InvoiceAdviceDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="invoiceTemplateDao" class="com.tsb.most.biz.dao.billing.InvoiceTemplateDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="ssrListDao" class="com.tsb.most.biz.dao.billing.SSRListDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="invoiceDao" class="com.tsb.most.biz.dao.billing.InvoiceDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="dataGatheringDao" class="com.tsb.most.biz.dao.billing.DataGatheringDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="tariffCodeGeneratorDao" class="com.tsb.most.biz.dao.billing.TariffCodeGeneratorDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="proofSheetDao" class="com.tsb.most.biz.dao.billing.ProofSheetDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="proformaInvoiceDao" class="com.tsb.most.biz.dao.billing.ProformaInvoiceDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="foreignExchangeRateDao" class="com.tsb.most.biz.dao.billing.ForeignExchangeRateDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="importReconcileDao" class="com.tsb.most.biz.dao.billing.ImportReconcileDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="exportReconcileDao" class="com.tsb.most.biz.dao.billing.ExportReconcileDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="importReconcileForLiquidDao" class="com.tsb.most.biz.dao.billing.ImportReconcileForLiquidDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="exportReconcileForLiquidDao" class="com.tsb.most.biz.dao.billing.ExportReconcileForLiquidDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	
+    <!-- DashBoard -->
+  	<bean id="bbtDashboardDao" class="com.tsb.most.biz.dao.dashboard.BBTDashboardDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	<bean id="cargoFlowDashboardDao" class="com.tsb.most.biz.dao.dashboard.CargoFlowDashboardDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>  	
+  	<bean id="damageDimensionCheckDao" class="com.tsb.most.biz.dao.operation.DamageDimensionCheckDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	
+  	
+  	<!-- Configuration -->
+	<bean id="berthBittListDao" class="com.tsb.most.biz.dao.configuration.BerthBittListDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+	
+  	<!-- ################## ServiceBiz Component Target ######################## -->	
+	<!-- PDF Print -->
+	<bean id="monitoringReportTarget" class="com.tsb.most.biz.service.report.MonitoringReport" lazy-init="true">
+		<property name="gatePassListDao" 				ref="gatePassListDao"/>
+		<property name="vorDryBreakBulkDao" 			ref="vorDryBreakBulkDao"/>
+		<property name="dischargingDao" 				ref="dischargingDao"/>
+		<property name="loadingDao" 					ref="loadingDao"/>
+		<property name="dailyOperationsReportDao" 		ref="dailyOperationsReportDao"/>
+  	</bean>
+
+	<bean id="documentReportTarget" class="com.tsb.most.biz.service.report.DocumentReport" lazy-init="true">
+		<property name="shippingNoteDao" 	ref="shippingNoteDao"/>
+  	</bean>
+	
+  	<!-- Document -->
+  	<bean id="vesselParticularTarget" class="com.tsb.most.biz.service.document.VesselParticular" lazy-init="true">
+		<property name="vesselParticularDao" 			ref="vesselParticularDao"/>
+  	</bean>
+  	<bean id="vesselScheduleRegisterTarget" class="com.tsb.most.biz.service.document.VesselScheduleRegister" lazy-init="true">
+		<property name="vesselParticularDao" 			ref="vesselParticularDao"/>
+		<property name="vesselScheduleRegisterDao" 		ref="vesselScheduleRegisterDao"/>
+  	</bean>
+  	<bean id="blTarget" class="com.tsb.most.biz.service.document.BL" lazy-init="true">
+		<property name="blDao" 							ref="blDao"/>
+		<property name="fileUpload" 					ref="fileUpload"/>
+		<property name="terminalHoldReleaseControlDao" 	ref="terminalHoldReleaseControlDao"/>
+  	</bean>
+  	<bean id="shippingNoteTarget" class="com.tsb.most.biz.service.document.ShippingNote" lazy-init="true">
+  		<property name="shippingNoteDao" 				ref="shippingNoteDao"/>
+		<property name="fileUpload" 					ref="fileUpload"/>
+		<property name="companyRegisterDao" 			ref="companyRegisterDao"/>
+		<property name="dgDeclarationDao" 				ref="dgDeclarationDao"/>
+  	</bean>
+  	<bean id="goodsReceiptTarget" class="com.tsb.most.biz.service.document.GoodsReceipt" lazy-init="true">
+		<property name="goodsReceiptDao" 				ref="goodsReceiptDao"/>
+  	</bean>
+  	<bean id="deliveryOrderTarget" class="com.tsb.most.biz.service.document.DeliveryOrder" lazy-init="true">
+		<property name="deliveryOrderDao" 				ref="deliveryOrderDao"/>
+		<property name="fileUpload" 					ref="fileUpload"/>
+  	</bean>
+  	<bean id="truckAssignmentTarget" class="com.tsb.most.biz.service.document.TruckAssignment" lazy-init="true">
+		<property name="truckAssignmentDao" 			ref="truckAssignmentDao"/>
+  		<property name="fileUpload" 					ref="fileUpload"/>
+  	</bean>
+  	<bean id="checkListCustomClearanceTarget" class="com.tsb.most.biz.service.document.CheckListCustomClearance" lazy-init="true">
+		<property name="checkListCustomClearanceDao" 	ref="checkListCustomClearanceDao"/>
+  	</bean>
+  	<bean id="deliveryOrderOfVehicleTarget" class="com.tsb.most.biz.service.document.DeliveryOrderOfVehicle" lazy-init="true">
+  		<property name="deliveryOrderOfVehicleDao" 		ref="deliveryOrderOfVehicleDao"/>
+  	</bean>
+   	<bean id="truckAssignmentOfROROTarget" class="com.tsb.most.biz.service.document.TruckAssignmentOfRORO" lazy-init="true">
+   		<property name="truckAssignmentOfRORODao" 		ref="truckAssignmentOfRORODao"/>
+   	</bean>
+  	<bean id="dgDeclarationTarget" class="com.tsb.most.biz.service.document.DGDeclaration" lazy-init="true">
+  		<property name="dgDeclarationDao" 				ref="dgDeclarationDao"/>
+  		<property name="fileUpload" 					ref="fileUpload"/>
+  	</bean>
+  	<bean id="generalCargoDischargingListTarget" class="com.tsb.most.biz.service.document.GeneralCargoDischargingList" lazy-init="true">
+  		<property name="generalCargoDischargingListDao" ref="generalCargoDischargingListDao"/>
+  		<property name="companyRegisterDao" 			ref="companyRegisterDao"/>
+  	</bean>
+  	<bean id="generalCargoLoadingListTarget" class="com.tsb.most.biz.service.document.GeneralCargoLoadingList" lazy-init="true">
+  		<property name="generalCargoLoadingListDao" ref="generalCargoLoadingListDao"/>
+  		<property name="companyRegisterDao" 			ref="companyRegisterDao"/>
+  	</bean>
+  	<bean id="rORODischargingListTarget" class="com.tsb.most.biz.service.document.RORODischargingList" lazy-init="true">
+  		<property name="rORODischargingListDao" 		ref="rORODischargingListDao"/>
+  		<property name="companyRegisterDao" 			ref="companyRegisterDao"/>
+  	</bean>
+  	<bean id="rOROLoadingListTarget" class="com.tsb.most.biz.service.document.ROROLoadingList" lazy-init="true">
+  		<property name="rOROLoadingListDao" 			ref="rOROLoadingListDao"/>
+  		<property name="companyRegisterDao" 			ref="companyRegisterDao"/>
+  	</bean>
+  	<bean id="rORODetailUploadListTarget" class="com.tsb.most.biz.service.document.RORODetailUploadList" lazy-init="true">
+  		<property name="rORODetailUploadListDao" 		ref="rORODetailUploadListDao"/>
+  		<property name="companyRegisterDao" 			ref="companyRegisterDao"/>
+  	</bean>
+  	<bean id="packageDetailListTarget" class="com.tsb.most.biz.service.document.PackageDetailList" lazy-init="true">
+
+  	</bean>
+  	<bean id="customsCargoReleaseControlTarget" class="com.tsb.most.biz.service.document.CustomsCargoReleaseControl" lazy-init="true">
+  		<property name="customsCargoReleaseControlDao" 	ref="customsCargoReleaseControlDao"/>
+  	</bean>
+  	<bean id="terminalHoldReleaseControlTarget" class="com.tsb.most.biz.service.document.TerminalHoldReleaseControl" lazy-init="true">
+  		<property name="terminalHoldReleaseControlDao" 	ref="terminalHoldReleaseControlDao"/>
+  	</bean>
+  	<bean id="consolDeconsolidationTarget" class="com.tsb.most.biz.service.document.ConsolDeconsolidation" lazy-init="true">
+  		<property name="consolDeconsolidationDao" 	ref="consolDeconsolidationDao"/>
+  	</bean>
+  	<bean id="nominationManifestTarget" class="com.tsb.most.biz.service.document.NominationManifest" lazy-init="true">
+		<property name="nominationManifestDao" 			ref="nominationManifestDao"/>
+		<property name="fileUpload" 					ref="fileUpload"/>
+		<property name="dgDeclarationDao" 				ref="dgDeclarationDao"/>
+  	</bean>
+  	<!-- Planning -->
+  	<bean id="vesselScheduleInternalTarget" class="com.tsb.most.biz.service.planning.VesselScheduleInternal" lazy-init="true">
+		<property name="vesselScheduleInternalDao" 		ref="vesselScheduleInternalDao"/>
+	</bean>
+  	<bean id="deploymentListTarget" class="com.tsb.most.biz.service.planning.DeploymentList" lazy-init="true">
+		<property name="deploymentListDao" 				ref="deploymentListDao"/>
+	</bean>
+	<bean id="berthPlanTarget" class="com.tsb.most.biz.service.planning.BerthPlan" lazy-init="true">
+		<property name="berthPlanDao" 					ref="berthPlanDao"/>
+	</bean>
+	<bean id="rosterConfigurationMonthlyTarget" class="com.tsb.most.biz.service.planning.RosterConfigurationMonthly" lazy-init="true">
+		<property name="rosterConfigurationMonthlyDao" 	ref="rosterConfigurationMonthlyDao"/>
+	</bean>
+	<bean id="rosterConfigurationOthersTarget" class="com.tsb.most.biz.service.planning.RosterConfigurationOthers" lazy-init="true">
+		<property name="rosterConfigurationMonthlyDao" 	ref="rosterConfigurationMonthlyDao"/>
+	</bean>
+	<bean id="megaTarget" class="com.tsb.most.biz.service.planning.Mega" lazy-init="true">
+  		<property name="megaDao" 						ref="megaDao"/>
+  		<property name="staffAndDeploymentDao" 			ref="staffAndDeploymentDao"/>
+  		<property name="searchVesselCallDao" 			ref="searchVesselCallDao"/>
+  	</bean>
+  	<bean id="staffAndDeploymentTarget" class="com.tsb.most.biz.service.planning.StaffAndDeployment" lazy-init="true">
+  		<property name="staffAndDeploymentDao" 			ref="staffAndDeploymentDao"/>
+  	</bean>
+  	<bean id="terminalViewTarget" class="com.tsb.most.biz.service.planning.TerminalView" lazy-init="true">
+  		<property name="terminalViewDao" 				ref="terminalViewDao"/>
+  		<property name="commodityCodeDao" 				ref="commodityCodeDao"/>
+  		<property name="warehouseDefinitionDao" 		ref="warehouseDefinitionDao"/>
+  	</bean>
+  	<bean id="warehouseHistoryTarget" class="com.tsb.most.biz.service.planning.WarehouseHistory" lazy-init="true">
+  		<property name="warehouseHistoryDao" 			ref="warehouseHistoryDao"/>
+  	</bean>
+  	<bean id="movementListTarget" class="com.tsb.most.biz.service.planning.MovementList" lazy-init="true">
+  		<property name="movementListDao" 				ref="movementListDao"/>
+  	</bean>
+  	<bean id="dgListTarget" class="com.tsb.most.biz.service.planning.DGList" lazy-init="true">
+  		<property name="dgListDao" 						ref="dgListDao"/>
+  		<property name="fileUpload" 					ref="fileUpload"/>
+  	</bean>
+	<bean id="cargoSearchTarget" class="com.tsb.most.biz.service.planning.CargoSearch" lazy-init="true">
+  		<property name="cargoSearchDao" 				ref="cargoSearchDao"/>
+  		<property name="shippingNoteDao" 				ref="shippingNoteDao"/>
+  	</bean>
+  	<bean id="roroYardPlanTarget" class="com.tsb.most.biz.service.planning.RoRoYardPlan" lazy-init="true">
+  		<property name="roroYardPlanDao" 				ref="roroYardPlanDao"/>
+  		<property name="roroMasterDao" 					ref="roroMasterDao"/>
+  	</bean>
+  	<bean id="theListOfYardPlanOfRoRoTarget" class="com.tsb.most.biz.service.planning.TheListOfYardPlanOfRoRo" lazy-init="true">
+  		<property name="theListOfYardPlanOfRoRoDao" 	ref="theListOfYardPlanOfRoRoDao"/>
+  	</bean>
+  	<bean id="nonManifestedCargoOfGcTarget" class="com.tsb.most.biz.service.planning.NonManifestedCargoOfGc" lazy-init="true">
+		<property name="nonManifestedCargoOfGcDao" 		ref="nonManifestedCargoOfGcDao"/>
+	</bean>
+  	<bean id="vesselWorkPLanTarget" class="com.tsb.most.biz.service.planning.VesselWorkPlan" lazy-init="true">
+		<property name="workPlanDao" 					ref="workPlanDao"/>
+  	</bean>
+  	<bean id="vesselBaplieForGCTarget" class="com.tsb.most.biz.service.planning.VesselBaplieForGC" lazy-init="true">
+		<property name="vesselBaplieForGCDao" 			ref="vesselBaplieForGCDao"/>
+  	</bean>
+  	<bean id="spaceMovementPlanTarget" class="com.tsb.most.biz.service.planning.SpaceMovementPlan" lazy-init="true">
+		<property name="spaceMovementPlanDao" 			ref="spaceMovementPlanDao"/>
+		<property name="roroYardPlanDao" 				ref="roroYardPlanDao"/>
+  		<property name="roroMasterDao" 					ref="roroMasterDao"/>
+  	</bean>
+  	<bean id="spaceMovementSummaryTarget" class="com.tsb.most.biz.service.planning.SpaceMovementSummary" lazy-init="true">
+		<property name="spaceMovementSummaryDao" 		ref="spaceMovementSummaryDao"/>
+  	</bean>
+  	
+  	<bean id="whRentalTarget" class="com.tsb.most.biz.service.planning.WhRental" lazy-init="true">
+		<property name="whRentalDao" 					ref="whRentalDao"/>
+		<property name="whConfigurationDao" 			ref="whConfigurationDao"/>
+  	</bean>
+  	<!-- Planning End -->
+  	
+  	<!-- Operation -->
+  	<bean id="vesselOprSettingTarget" class="com.tsb.most.biz.service.operation.VesselOprSetting" lazy-init="true">
+		<property name="vesselOprSettingDao" 			ref="vesselOprSettingDao"/>
+  	</bean>
+  	<bean id="cargoManualCtlTarget" class="com.tsb.most.biz.service.operation.CargoManualCtl" lazy-init="true">
+		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+		<property name="cargoManualCtlDao" 				ref="cargoManualCtlDao"/>
+		<property name="cargoMasterDao" 				ref="cargoMasterDao"/>
+		<property name="shippingNoteDao" 				ref="shippingNoteDao"/>
+		<property name="deliveryOrderDao" 				ref="deliveryOrderDao"/>
+		<property name="operationSettingDao" 			ref="operationSettingDao"/>
+  	</bean>
+  	<bean id="cargoDischargingTarget" class="com.tsb.most.biz.service.operation.CargoDischarging" lazy-init="true">
+		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+		<property name="cargoDischargingDao" 			ref="cargoDischargingDao"/>
+		<property name="operationSettingDao" 			ref="operationSettingDao"/>
+		<property name="cargoArrvDelvDao" 				ref="cargoArrvDelvDao"/>
+		<property name="cargoMasterDao" 				ref="cargoMasterDao"/>
+		<property name="hangingScaleDao" 				ref="hangingScaleDao"/>
+  	</bean>
+  	<bean id="whCheckImportTarget" class="com.tsb.most.biz.service.operation.WHCheckImport" lazy-init="true">
+		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+		<property name="cargoDischargingDao" 			ref="cargoDischargingDao"/>
+		<property name="operationSettingDao" 			ref="operationSettingDao"/>
+		<property name="cargoArrvDelvDao" 				ref="cargoArrvDelvDao"/>
+		<property name="cargoMasterDao" 				ref="cargoMasterDao"/>
+		<property name="confirmDischargingOfRORODao" 	ref="confirmDischargingOfRORODao"/>
+  	</bean>
+  	<bean id="cargoHandlingOutTarget" class="com.tsb.most.biz.service.operation.CargoHandlingOut" lazy-init="true">
+		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+		<property name="cargoHandlingOutDao" 			ref="cargoHandlingOutDao"/>
+		<property name="whConfigurationDao" 			ref="whConfigurationDao"/>
+		<property name="cargoArrvDelvDao" 				ref="cargoArrvDelvDao"/>
+		<property name="cargoMasterDao" 				ref="cargoMasterDao"/>
+  	</bean>
+  	<bean id="cargoHandlingInTarget" class="com.tsb.most.biz.service.operation.CargoHandlingIn" lazy-init="true">
+		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+		<property name="cargoHandlingInDao" 			ref="cargoHandlingInDao"/>
+		<property name="cargoArrvDelvDao" 				ref="cargoArrvDelvDao"/>
+		<property name="cargoMasterDao" 				ref="cargoMasterDao"/>
+  	</bean>
+  	<bean id="cargoLoadingTarget" class="com.tsb.most.biz.service.operation.CargoLoading" lazy-init="true">
+		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+		<property name="cargoLoadingDao" 				ref="cargoLoadingDao"/>
+		<property name="operationSettingDao" 			ref="operationSettingDao"/>
+		<property name="whConfigurationDao" 			ref="whConfigurationDao"/>
+		<property name="cargoMasterDao" 				ref="cargoMasterDao"/>
+		<property name="cargoArrvDelvDao" 				ref="cargoArrvDelvDao"/>
+		<property name="vesselOprSettingDao" 			ref="vesselOprSettingDao"/>
+		<property name="hangingScaleDao" 				ref="hangingScaleDao"/>
+  	</bean>
+  	<bean id="whCheckExportTarget" class="com.tsb.most.biz.service.operation.WHCheckExport" lazy-init="true">
+		<property name="whCheckExportDao" 				ref="whCheckExportDao"/>
+		<property name="cargoMasterDao" 				ref="cargoMasterDao"/>
+		<property name="cargoArrvDelvDao" 				ref="cargoArrvDelvDao"/>
+		<property name="whConfigurationDao" 			ref="whConfigurationDao"/>
+  	</bean>
+  	<bean id="cargoMovementTarget" class="com.tsb.most.biz.service.operation.CargoMovement" lazy-init="true">
+		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+		<property name="cargoMovementDao" 				ref="cargoMovementDao"/>
+		<property name="cargoMasterDao" 				ref="cargoMasterDao"/>
+  	</bean>
+  	<bean id="rehandleGCTarget" class="com.tsb.most.biz.service.operation.RehandleGC" lazy-init="true">
+  		<property name="rehandleGCDao" 				ref="rehandleGCDao"/>
+		<property name="codeMasterDao" 				ref="codeMasterDao"/>
+		<property name="shippingNoteDao" 			ref="shippingNoteDao"/>
+		<property name="deliveryOrderDao" 			ref="deliveryOrderDao"/>
+  		<property name="operationSetDao" 			ref="operationSettingDao"/>
+  		<property name="whConfigurationDao" 		ref="whConfigurationDao"/>
+		<property name="cargoMasterDao" 			ref="cargoMasterDao"/>
+  		<property name="cargoLoadingDao" 			ref="cargoLoadingDao"/>
+  		<property name="blDao" 						ref="blDao"/>
+  		<property name="goodsReceiptDao" 			ref="goodsReceiptDao"/>
+  		<property name="shippingNote" 				ref="shippingNote"/>
+  	</bean>
+  	<bean id="rehandlingOfGCTarget" class="com.tsb.most.biz.service.operation.RehandlingOfGC" lazy-init="true">
+		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+		<property name="rehandlingOfGCDao" 				ref="rehandlingOfGCDao"/>
+		<property name="cargoMasterDao" 				ref="cargoMasterDao"/>
+  	</bean>
+  	<bean id="rehandleOperationGCTarget" class="com.tsb.most.biz.service.operation.RehandleOperationGC" lazy-init="true">
+		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+		<property name="rehandlingOfGCDao" 				ref="rehandlingOfGCDao"/>
+		<property name="cargoMasterDao" 				ref="cargoMasterDao"/>
+		<property name="rehandleOperationGCDao" 		ref="rehandleOperationGCDao"/>
+  	</bean>
+	<bean id="vesselDelayTarget" class="com.tsb.most.biz.service.operation.VesselDelay" lazy-init="true">
+  		<property name="vesselDelayDao" 				ref="vesselDelayDao"/>
+  		<property name="shiftGroupDefDao" 				ref="shiftGroupDefDao"/>
+  		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+  	</bean>
+   	<bean id="shiftingDoubleBankingTarget" class="com.tsb.most.biz.service.operation.ShiftingDoubleBanking" lazy-init="true">
+   		<property name="shiftingDoubleBankingDao" 		ref="shiftingDoubleBankingDao"/>
+   		<property name="vesselScheduleDao" 				ref="vesselScheduleDao"/>
+   		<property name="searchVesselCallDao" 			ref="searchVesselCallDao"/>
+   		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+   	</bean>
+  	<bean id="vsrCheckListTarget" class="com.tsb.most.biz.service.operation.VSRCheckList" lazy-init="true">
+		<property name="vsrCheckListDao" 				ref="vsrCheckListDao"/>
+		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+		<property name="vOperationDeployDao" 			ref="vOperationDeployDao"/>
+		<property name="equipmentConfigurationDao" 		ref="equipmentConfigurationDao"/>
+		<property name="vesselOprSettingDao" 			ref="vesselOprSettingDao"/>
+  		<property name="popupServiceDao" 				ref="popupServiceDao"/>
+  	</bean>
+  	<bean id="whReconciliationTarget" class="com.tsb.most.biz.service.operation.WHReconciliation" lazy-init="true">
+		<property name="whReconciliationDao" 			ref="whReconciliationDao"/>
+		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+		<property name="comboboxServiceDao" 			ref="comboboxServiceDao"/>
+		<property name="cargoMasterDao" 				ref="cargoMasterDao"/>
+  	</bean>
+  	<bean id="vorDryBreakBulkTarget" class="com.tsb.most.biz.service.operation.VORDryBreakBulk" lazy-init="true">
+		<property name="vorDryBreakBulkDao" 			ref="vorDryBreakBulkDao"/>
+		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+  	</bean>
+  	<bean id="vorLiquidBulkTarget" class="com.tsb.most.biz.service.operation.VORLiquidBulk" lazy-init="true">
+		<property name="vorLiquidBulkDao" 				ref="vorLiquidBulkDao"/>
+  	</bean>
+  	<bean id="gateOperationTarget" class="com.tsb.most.biz.service.operation.GateOperation" lazy-init="true">
+		<property name="gateOperationDao" 				ref="gateOperationDao"/>
+  	</bean>
+  	<bean id="rehandleCargoLoadingTarget" class="com.tsb.most.biz.service.operation.RehandleCargoLoading" lazy-init="true">
+		<property name="cargoLoadingDao" 				ref="cargoLoadingDao"/>
+		<property name="whConfigurationDao" 			ref="whConfigurationDao"/>
+		<property name="cargoMasterDao" 				ref="cargoMasterDao"/>
+  	</bean>
+  	<bean id="rehandleCargoHandlingOutTarget" class="com.tsb.most.biz.service.operation.RehandleCargoHandlingOut" lazy-init="true">
+		<property name="cargoHandlingOutDao" 			ref="cargoHandlingOutDao"/>
+		<property name="whConfigurationDao" 			ref="whConfigurationDao"/>
+		<property name="cargoMasterDao" 				ref="cargoMasterDao"/>
+		<property name="cargoArrvDelvDao" 				ref="cargoArrvDelvDao"/>
+  	</bean>
+  	<bean id="confirmLoadingOfROROTarget" class="com.tsb.most.biz.service.operation.ConfirmLoadingOfRORO" lazy-init="true">
+		<property name="confirmLoadingOfRORODao" 		ref="confirmLoadingOfRORODao"/>
+  		<property name="roroMasterDao" 					ref="roroMasterDao"/>
+  	</bean>
+  	<bean id="confirmHandlingInOfROROTarget" class="com.tsb.most.biz.service.operation.ConfirmHandlingInOfRORO" lazy-init="true">
+		<property name="confirmHandlingInOfRORODao" 	ref="confirmHandlingInOfRORODao"/>
+  		<property name="roroMasterDao" 					ref="roroMasterDao"/>
+  	</bean>
+  	
+  	<bean id="confirmHandlingOutOfROROTarget" class="com.tsb.most.biz.service.operation.ConfirmHandlingOutOfRORO" lazy-init="true">
+		<property name="confirmHandlingOutOfRORODao" 	ref="confirmHandlingOutOfRORODao"/>
+  	</bean>
+  	<bean id="confirmDischargingOfROROTarget" class="com.tsb.most.biz.service.operation.ConfirmDischargingOfRORO" lazy-init="true">
+		<property name="confirmDischargingOfRORODao" 	ref="confirmDischargingOfRORODao"/>
+  		<property name="roroMasterDao" 					ref="roroMasterDao"/>
+  	</bean>
+  	<bean id="rehandlingOfROROTarget" class="com.tsb.most.biz.service.operation.RehandlingOfRORO" lazy-init="true">
+		<property name="rehandlingOfRORODao" 			ref="rehandlingOfRORODao"/>
+		<property name="shippingNoteDao" 				ref="shippingNoteDao"/>
+		<property name="blDao" 							ref="blDao"/>
+		<property name="goodsReceiptDao" 				ref="goodsReceiptDao"/>
+  	</bean>
+  	<bean id="confirmHandlingOutOfRORORehandlingTarget" class="com.tsb.most.biz.service.operation.ConfirmHandlingOutOfRORORehandling" lazy-init="true">
+		<property name="confirmHandlingOutOfRORORehandlingDao" 	ref="confirmHandlingOutOfRORORehandlingDao"/>
+  	</bean>
+  	<bean id="confirmLoadingOfRORORehandlingTarget" class="com.tsb.most.biz.service.operation.ConfirmLoadingOfRORORehandling" lazy-init="true">
+		<property name="confirmLoadingOfRORORehandlingDao" 	ref="confirmLoadingOfRORORehandlingDao"/>
+  	</bean>
+  	<bean id="dimensionCheckTarget" class="com.tsb.most.biz.service.operation.DimensionCheck" lazy-init="true">
+		<property name="dimensionCheckDao" 				ref="dimensionCheckDao"/>
+  	</bean>
+  	<bean id="damageCheckTarget" class="com.tsb.most.biz.service.operation.DamageCheck" lazy-init="true">
+		<property name="damageCheckDao" 				ref="damageCheckDao"/>
+		<property name="fileUpload"						ref="fileUpload"/>
+  	</bean>
+  	<bean id="theListOfDamageCheckOfROROTarget" class="com.tsb.most.biz.service.operation.TheListOfDamageCheckOfRORO" lazy-init="true">
+		<property name="theListOfDamageCheckOfRORODao"	ref="theListOfDamageCheckOfRORODao"/>
+		<property name="fileUpload"	ref="fileUpload"/>
+  	</bean>
+  	<bean id="serviceOrderTarget" class="com.tsb.most.biz.service.operation.ServiceOrder" lazy-init="true">
+		<property name="serviceOrderDao"				ref="serviceOrderDao"/>
+  	</bean>
+  	<bean id="theListOfDimensionCheckTarget" class="com.tsb.most.biz.service.operation.TheListOfDimensionCheck" lazy-init="true">
+		<property name="theListOfDimensionCheckDao"		ref="theListOfDimensionCheckDao"/>
+  	</bean>
+  	<bean id="theListOfDamageCheckOfGCTarget" class="com.tsb.most.biz.service.operation.TheListOfDamageCheckOfGC" lazy-init="true">
+		<property name="theListOfDamageCheckOfGCDao"	ref="theListOfDamageCheckOfGCDao"/>
+  	</bean>
+  	<bean id="damageDimensionCheckTarget" class="com.tsb.most.biz.service.operation.DamageDimensionCheck" lazy-init="true">
+		<property name="damageDimensionCheckDao" 		ref="damageDimensionCheckDao"/>
+		<property name="fileUpload" 					ref="fileUpload"/>
+  	</bean>
+	<!-- Monitoring -->
+	<bean id="assignedTruckTarget" class="com.tsb.most.biz.service.monitoring.AssignedTruck" lazy-init="true">
+		<property name="assignedTruckDao" 				ref="assignedTruckDao"/>
+  		<property name="gateOperationDao" 				ref="gateOperationDao"/>
+  	</bean>
+	<bean id="dischargingTarget" class="com.tsb.most.biz.service.monitoring.Discharging" lazy-init="true">
+		<property name="dischargingDao" 				ref="dischargingDao"/>
+		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+		<property name="cargoMasterDao" 				ref="cargoMasterDao"/>
+  	</bean>
+  	<bean id="loadingTarget" class="com.tsb.most.biz.service.monitoring.Loading" lazy-init="true">
+		<property name="dischargingDao" 				ref="dischargingDao"/>
+		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+		<property name="loadingDao" 					ref="loadingDao"/>
+  	</bean>
+  	<bean id="handlingInOutListTarget" class="com.tsb.most.biz.service.monitoring.HandlingInOutList" lazy-init="true">
+		<property name="handlingInOutListDao" 			ref="handlingInOutListDao"/>
+		<property name="cargoMasterDao" 				ref="cargoMasterDao"/>
+		<property name="cargoJobDao" 					ref="cargoJobDao"/>
+  	</bean>
+  	<bean id="gateInTarget" class="com.tsb.most.biz.service.monitoring.GateIn" lazy-init="true">
+		<property name="gateInDao" 						ref="gateInDao"/>
+  	</bean>
+  	<bean id="gateOutTarget" class="com.tsb.most.biz.service.monitoring.GateOut" lazy-init="true">
+		<property name="gateOutDao" 					ref="gateOutDao"/>
+		<property name="cargoMasterDao" 				ref="cargoMasterDao"/>
+  	</bean>
+  	<bean id="gatePassListTarget" class="com.tsb.most.biz.service.monitoring.GatePassList" lazy-init="true">
+		<property name="gatePassListDao" 				ref="gatePassListDao"/>
+		<property name="cargoMasterDao" 				ref="cargoMasterDao"/>
+  	</bean>
+  	<bean id="cargoJobTarget" class="com.tsb.most.biz.service.monitoring.CargoJob" lazy-init="true">
+		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+		<property name="cargoMasterDao" 				ref="cargoMasterDao"/>
+		<property name="cargoJobDao" 					ref="cargoJobDao"/>
+  	</bean>
+  	<bean id="jobMonitoringOfROROImportTarget" class="com.tsb.most.biz.service.monitoring.JobMonitoringOfROROImport" lazy-init="true">
+		<property name="jobMonitoringOfROROImportDao" 	ref="jobMonitoringOfROROImportDao"/>
+  	</bean>
+  	<bean id="jobMonitoringOfROROExportTarget" class="com.tsb.most.biz.service.monitoring.JobMonitoringOfROROExport" lazy-init="true">
+		<property name="jobMonitoringOfROROExportDao" 	ref="jobMonitoringOfROROExportDao"/>
+  	</bean>
+  	<bean id="jobMonitoringOfRORORehandlingTarget" class="com.tsb.most.biz.service.monitoring.JobMonitoringOfRORORehandling" lazy-init="true">
+		<property name="jobMonitoringOfRORORehandlingDao" ref="jobMonitoringOfRORORehandlingDao"/>
+  	</bean>
+	<bean id="unclosedOperationListTarget" class="com.tsb.most.biz.service.monitoring.UnclosedOperationList" lazy-init="true">
+  		<property name="unclosedOperationListDao" 			ref="unclosedOperationListDao"/>
+  	</bean>
+  	<bean id="roroCargoInYardTarget" class="com.tsb.most.biz.service.monitoring.ROROCargoInYard" lazy-init="true">
+  		<property name="roroCargoInYardDao" 			ref="roroCargoInYardDao"/>
+  	</bean>
+  	<bean id="theListOfUnitNoCorrectionTarget" class="com.tsb.most.biz.service.monitoring.TheListOfUnitNoCorrection" lazy-init="true">
+		<property name="theListOfUnitNoCorrectionDao" 			ref="theListOfUnitNoCorrectionDao"/>
+  	</bean>
+  	<bean id="warehouseBalanceTarget" class="com.tsb.most.biz.service.monitoring.WarehouseBalance" lazy-init="true">
+		<property name="warehouseBalanceDao" 			ref="warehouseBalanceDao"/>
+  	</bean>
+  	<bean id="interfaceLogTarget" class="com.tsb.most.biz.service.monitoring.InterfaceLog" lazy-init="true">
+		<property name="interfaceLogDao" 				ref="interfaceLogDao"/>
+  	</bean>  	
+  	<bean id="internalTruckMonitoringTarget" class="com.tsb.most.biz.service.monitoring.InternalTruckMonitoring" lazy-init="true">
+		<property name="internalTruckMonitoringDao" 				ref="internalTruckMonitoringDao"/>
+  	</bean>
+  	<bean id="berthMonitoringTarget" class="com.tsb.most.biz.service.monitoring.BerthMonitoring" lazy-init="true">
+		<property name="berthMonitoringDao" 			ref="berthMonitoringDao"/>
+  	</bean>
+  	
+	<!-- Billing -->
+	<bean id="costCenterTarget" class="com.tsb.most.biz.service.billing.CostCenter" lazy-init="true">
+		<property name="costCenterDao" 					ref="costCenterDao"/>
+  	</bean>
+  	<bean id="invoiceUnitTarget" class="com.tsb.most.biz.service.billing.InvoiceUnit" lazy-init="true">
+		<property name="invoiceUnitDao" 				ref="invoiceUnitDao"/>
+  	</bean>
+   	<bean id="defineHolidayCodeTarget" class="com.tsb.most.biz.service.billing.DefineHolidayCode" lazy-init="true">
+		<property name="defineHolidayCodeDao" 			ref="defineHolidayCodeDao"/>
+  	</bean> 
+    <bean id="standardTariffRateTarget" class="com.tsb.most.biz.service.billing.StandardTariffRate" lazy-init="true">
+  		<property name="standardTariffRateDao" 			ref="standardTariffRateDao"/>
+  		<property name="costCenterDao" 					ref="costCenterDao"/>
+  		<property name="tariffCodeDao" 					ref="tariffCodeDao"/>
+  	</bean>
+ 	<bean id="annualHolidayTarget" class="com.tsb.most.biz.service.billing.AnnualHoliday" lazy-init="true">
+		<property name="annualHolidayDao" 				ref="annualHolidayDao"/>
+		<property name="defineHolidayCodeDao" 			ref="defineHolidayCodeDao"/>
+  	</bean>	
+  	<bean id="freeStorageDaysTarget" class="com.tsb.most.biz.service.billing.FreeStorageDays" lazy-init="true">
+		<property name="freeStorageDaysDao" 			ref="freeStorageDaysDao"/>
+  	</bean>	
+  	<bean id="tariffCodeTarget" class="com.tsb.most.biz.service.billing.TariffCode" lazy-init="true">
+		<property name="tariffCodeDao" 					ref="tariffCodeDao"/>
+  	</bean>
+  	<bean id="partnerTariffRateTarget" class="com.tsb.most.biz.service.billing.PartnerTariffRate" lazy-init="true">
+		<property name="partnerTariffRateDao" 			ref="partnerTariffRateDao"/>
+		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+		<property name="tariffCodeDao" 					ref="tariffCodeDao"/>
+		<property name="fileUpload" 					ref="fileUpload"/>
+  	</bean>  
+  	<bean id="invoiceAdviceTarget" class="com.tsb.most.biz.service.billing.InvoiceAdvice" lazy-init="true">
+		<property name="invoiceAdviceDao" 				ref="invoiceAdviceDao"/>
+  	</bean> 
+  	<bean id="invoiceTemplateTarget" class="com.tsb.most.biz.service.billing.InvoiceTemplate" lazy-init="true">
+		<property name="invoiceTemplateDao" 			ref="invoiceTemplateDao"/>
+  	</bean> 
+  	<bean id="ssrListTarget" class="com.tsb.most.biz.service.billing.SSRList" lazy-init="true">
+		<property name="ssrListDao" 					ref="ssrListDao"/>
+		<property name="invoiceDao" 					ref="invoiceDao"/>
+		<property name="costCenterDao" 					ref="costCenterDao"/>
+  	</bean> 
+  	<bean id="dataGatheringTarget" class="com.tsb.most.biz.service.billing.DataGathering" lazy-init="true">
+		<property name="dataGatheringDao" 				ref="dataGatheringDao"/>
+		<property name="tariffCodeGeneratorDao" 		ref="tariffCodeGeneratorDao"/>
+  	</bean> 
+  	<bean id="proofSheetTarget" class="com.tsb.most.biz.service.billing.ProofSheet" lazy-init="true">
+		<property name="proofSheetDao" 					ref="proofSheetDao"/>
+  	</bean> 
+  	<bean id="proformaInvoiceTarget" class="com.tsb.most.biz.service.billing.ProformaInvoice" lazy-init="true">
+		<property name="proformaInvoiceDao" 			ref="proformaInvoiceDao"/>
+		<property name="tariffCodeGeneratorDao" 		ref="tariffCodeGeneratorDao"/>
+  	</bean>
+  	<bean id="invoiceListTarget" class="com.tsb.most.biz.service.billing.InvoiceList" lazy-init="true">
+		<property name="fileUpload" 					ref="fileUpload"/>
+		<property name="invoiceDao" 					ref="invoiceDao"/>
+  	</bean>
+  	<bean id="foreignExchangeRateTarget" class="com.tsb.most.biz.service.billing.ForeignExchangeRate" lazy-init="true">
+		<property name="foreignExchangeRateDao" 		ref="foreignExchangeRateDao"/>
+  	</bean>
+  	<bean id="importReconcileTarget" class="com.tsb.most.biz.service.billing.ImportReconcile" lazy-init="true">
+		<property name="importReconcileDao" 			ref="importReconcileDao"/>
+  	</bean>
+  	<bean id="exportReconcileTarget" class="com.tsb.most.biz.service.billing.ExportReconcile" lazy-init="true">
+		<property name="exportReconcileDao" 			ref="exportReconcileDao"/>
+  	</bean>
+  	<bean id="importReconcileForLiquidTarget" class="com.tsb.most.biz.service.billing.ImportReconcileForLiquid" lazy-init="true">
+		<property name="importReconcileForLiquidDao" 			ref="importReconcileForLiquidDao"/>
+  	</bean>
+  	<bean id="exportReconcileForLiquidTarget" class="com.tsb.most.biz.service.billing.ExportReconcileForLiquid" lazy-init="true">
+		<property name="exportReconcileForLiquidDao" 			ref="exportReconcileForLiquidDao"/>
+  	</bean>
+  	
+  	<!-- DashBoard -->
+    <bean id="bbtDashboardTarget" class="com.tsb.most.biz.service.dashboard.BBTDashboard" lazy-init="true">
+		<property name="bbtDashboardDao" ref="bbtDashboardDao"/>
+  	</bean>
+  	<bean id="cargoflowDashboardTarget" class="com.tsb.most.biz.service.dashboard.CargoFlowDashboard" lazy-init="true">
+		<property name="cargoFlowDashboardDao" ref="cargoFlowDashboardDao"/>
+  	</bean>
+  
+  	<!-- Configuration -->
+  	<bean id="berthBittListTarget" class="com.tsb.most.biz.service.configuration.BerthBittList" lazy-init="true">
+		<property name="berthBittListDao" 	ref="berthBittListDao"/>
+  	</bean>
+    
+	<!-- ###########  Service Component  ################################# -->
+	<!-- PDF Print -->
+	
+	<bean id="documentReport" parent="mostTxProxyTemplate">
+	   <property name="target">
+	      <ref bean="documentReportTarget"/>
+	   </property>
+	</bean>
+	
+	<bean id="monitoringReport" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="monitoringReportTarget"/>
+		</property>
+	</bean>
+  	<!-- Document -->
+  	<bean id="vesselParticular" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="vesselParticularTarget"/>
+		</property>
+	</bean>
+	<bean id="vesselScheduleRegister" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="vesselScheduleRegisterTarget"/>
+		</property>
+	</bean>
+	<bean id="bl" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="blTarget"/>
+		</property>
+	</bean>
+	<bean id="shippingNote" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="shippingNoteTarget"/>
+		</property>
+	</bean>
+	<bean id="goodsReceipt" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="goodsReceiptTarget"/>
+		</property>
+	</bean>
+	<bean id="deliveryOrder" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="deliveryOrderTarget"/>
+		</property>
+	</bean>
+	<bean id="truckAssignment" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="truckAssignmentTarget"/>
+		</property>
+	</bean>
+	<bean id="checkListCustomClearance" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="checkListCustomClearanceTarget"/>
+		</property>
+	</bean>
+	<bean id="assignedTruck" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="assignedTruckTarget"/>
+		</property>
+	</bean>
+	<bean id="deliveryOrderOfVehicle" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="deliveryOrderOfVehicleTarget"/>
+		</property>
+	</bean>  
+ 	<bean id="truckAssignmentOfRORO" parent="mostTxProxyTemplate">
+ 		<property name="target">
+ 	    	<ref bean="truckAssignmentOfROROTarget"/>
+ 		</property>
+ 	</bean>
+	<bean id="dgDeclaration" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="dgDeclarationTarget"/>
+		</property>
+	</bean>
+	<bean id="generalCargoDischargingList" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="generalCargoDischargingListTarget"/>
+		</property>
+	</bean>
+	<bean id="generalCargoLoadingList" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="generalCargoLoadingListTarget"/>
+		</property>
+	</bean>
+	<bean id="rORODischargingList" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="rORODischargingListTarget"/>
+		</property>
+	</bean>
+	<bean id="rOROLoadingList" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="rOROLoadingListTarget"/>
+		</property>
+	</bean>
+	<bean id="rORODetailUploadList" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="rORODetailUploadListTarget"/>
+		</property>
+	</bean>
+	<bean id="packageDetailList" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="packageDetailListTarget"/>
+		</property>
+	</bean>
+	<bean id="customsCargoReleaseControl" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="customsCargoReleaseControlTarget"/>
+		</property>
+	</bean>
+	<bean id="terminalHoldReleaseControl" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="terminalHoldReleaseControlTarget"/>
+		</property>
+	</bean>
+	<bean id="consolDeconsolidation" parent="mostTxProxyTemplate">
+		<property name="target">
+	    	<ref bean="consolDeconsolidationTarget"/>
+		</property>
+	</bean>
+	<bean id="nominationManifest" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="nominationManifestTarget"/>
+		</property>
+	</bean>
+	
+  	<!-- Planning -->
+  	<bean id="vesselScheduleInternal" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="vesselScheduleInternalTarget"/>
+		</property>
+	</bean>
+	<bean id="deploymentList" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="deploymentListTarget"/>
+		</property>
+	</bean>
+	<bean id="berthPlan" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="berthPlanTarget"/>
+		</property>
+	</bean>
+	<bean id="rosterConfigurationMonthly" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="rosterConfigurationMonthlyTarget"/>
+		</property>
+	</bean>
+	<bean id="rosterConfigurationOthers" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="rosterConfigurationOthersTarget"/>
+		</property>
+	</bean>
+	<bean id="mega" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="megaTarget"/>
+		</property>
+	</bean>
+	<bean id="staffAndDeployment" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="staffAndDeploymentTarget"/>
+		</property>
+	</bean>
+	<bean id="terminalView" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="terminalViewTarget"/>
+		</property>
+	</bean>
+	<bean id="warehouseHistory" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="warehouseHistoryTarget"/>
+		</property>
+	</bean>
+	<bean id="movementList" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="movementListTarget"/>
+		</property>
+	</bean>
+	<bean id="dgList" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="dgListTarget"/>
+		</property>
+	</bean>
+	<bean id="cargoSearch" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="cargoSearchTarget"/>
+		</property>
+	</bean>
+	<bean id="roroYardPlan" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="roroYardPlanTarget"/>
+		</property>
+	</bean>
+	<bean id="theListOfYardPlanOfRoRo" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="theListOfYardPlanOfRoRoTarget"/>
+		</property>
+	</bean>
+	<bean id="workplan" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="vesselWorkPLanTarget"/>
+		</property>
+	</bean>
+	<bean id="vesselBaplieForGC" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="vesselBaplieForGCTarget"/>
+	   	</property>
+	</bean>
+	<bean id="spaceMovementPlan" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="spaceMovementPlanTarget"/>
+		</property>
+	</bean>
+	<bean id="spaceMovementSummary" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="spaceMovementSummaryTarget"/>
+		</property>
+	</bean>
+	<bean id="nonManifestedCargoOfGc" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="nonManifestedCargoOfGcTarget"/>
+		</property>
+	</bean>
+	
+	<bean id="whRental" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="whRentalTarget"/>
+		</property>
+	</bean>
+	
+  	<!-- Operation -->
+  	<bean id="vesselOprSetting" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="vesselOprSettingTarget"/>
+	   </property>
+	</bean>
+	<bean id="cargoManualCtl" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="cargoManualCtlTarget"/>
+	   </property>
+	</bean>
+	<bean id="cargoDischarging" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="cargoDischargingTarget"/>
+	   </property>
+	</bean>
+	<bean id="whCheckImport" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="whCheckImportTarget"/>
+	   </property>
+	</bean>
+	<bean id="whCheckExport" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="whCheckExportTarget"/>
+	   </property>
+	</bean>
+	<bean id="cargoHandlingOut" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="cargoHandlingOutTarget"/>
+	   </property>
+	</bean>
+	<bean id="cargoHandlingIn" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="cargoHandlingInTarget"/>
+	   </property>
+	</bean>
+	<bean id="cargoLoading" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="cargoLoadingTarget"/>
+	   </property>
+	</bean>
+	<bean id="cargoMovement" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="cargoMovementTarget"/>
+	   </property>
+	</bean>
+	<bean id="rehandleGC" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="rehandleGCTarget"/>
+		</property>
+	</bean>
+	<bean id="rehandlingOfGC" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="rehandlingOfGCTarget"/>
+	   </property>
+	</bean>
+	<bean id="rehandleOperationGC" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="rehandleOperationGCTarget"/>
+	   </property>
+	</bean>
+	<bean id="vesselDelay" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="vesselDelayTarget"/>
+		</property>
+	</bean>
+	
+	<bean id="shiftingDoubleBanking" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="shiftingDoubleBankingTarget"/>
+		</property>
+	</bean>
+	
+	<bean id="vsrCheckList" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="vsrCheckListTarget"/>
+		</property>
+	</bean>
+	
+	<bean id="whReconciliation" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="whReconciliationTarget"/>
+		</property>
+	</bean>
+	
+	<bean id="vorDryBreakBulk" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="vorDryBreakBulkTarget"/>
+		</property>
+	</bean>
+	<bean id="vorLiquidBulk" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="vorLiquidBulkTarget"/>
+		</property>
+	</bean>
+	<bean id="gateOperation" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="gateOperationTarget"/>
+		</property>
+	</bean>
+	<bean id="rehandleCargoHandlingOut" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="rehandleCargoHandlingOutTarget"/>
+		</property>
+	</bean>
+	<bean id="rehandleCargoLoading" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="rehandleCargoLoadingTarget"/>
+		</property>
+	</bean>
+	<bean id="confirmHandlingInOfRORO" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="confirmHandlingInOfROROTarget"/>
+		</property>
+	</bean>
+	<bean id="confirmLoadingOfRORO" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="confirmLoadingOfROROTarget"/>
+		</property>
+	</bean>
+	
+	<bean id="confirmDischargingOfRORO" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="confirmDischargingOfROROTarget"/>
+		</property>
+	</bean>
+	<bean id="confirmHandlingOutOfRORO" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="confirmHandlingOutOfROROTarget"/>
+		</property>
+	</bean>
+	<bean id="rehandlingOfRORO" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="rehandlingOfROROTarget"/>
+		</property>
+	</bean>
+	<bean id="confirmLoadingOfRORORehandling" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="confirmLoadingOfRORORehandlingTarget"/>
+		</property>
+	</bean>
+	<bean id="confirmHandlingOutOfRORORehandling" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="confirmHandlingOutOfRORORehandlingTarget"/>
+		</property>
+	</bean>
+	<bean id="dimensionCheck" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="dimensionCheckTarget"/>
+		</property>
+	</bean>
+	<bean id="damageCheck" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="damageCheckTarget"/>
+		</property>
+	</bean>
+  	<bean id="theListOfDamageCheckOfRORO" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="theListOfDamageCheckOfROROTarget"/>
+		</property>
+	</bean>
+	<bean id="serviceOrder" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="serviceOrderTarget"/>
+		</property>
+	</bean>
+	<bean id="theListOfDimensionCheck" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="theListOfDimensionCheckTarget"/>
+		</property>
+	</bean>
+	<bean id="theListOfDamageCheckOfGC" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="theListOfDamageCheckOfGCTarget"/>
+		</property>
+	</bean>
+	
+	<!-- Monitoring -->
+	<bean id="discharging" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="dischargingTarget"/>
+		</property>
+	</bean>
+	<bean id="loading" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="loadingTarget"/>
+		</property>
+	</bean>
+	<bean id="handlingInOutList" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="handlingInOutListTarget"/>
+		</property>
+	</bean>
+	<bean id="gateIn" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="gateInTarget"/>
+		</property>
+	</bean>
+	<bean id="gateOut" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="gateOutTarget"/>
+		</property>
+	</bean>
+	<bean id="gatePassList" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="gatePassListTarget"/>
+		</property>
+	</bean>
+	<bean id="cargoJob" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="cargoJobTarget"/>
+		</property>
+	</bean>
+	<bean id="jobMonitoringOfROROImport" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="jobMonitoringOfROROImportTarget"/>
+		</property>
+	</bean>
+	<bean id="jobMonitoringOfROROExport" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="jobMonitoringOfROROExportTarget"/>
+		</property>
+	</bean>
+	<bean id="jobMonitoringOfRORORehandling" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="jobMonitoringOfRORORehandlingTarget"/>
+		</property>
+	</bean>
+	<bean id="unclosedOperationList" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="unclosedOperationListTarget"/>
+		</property>
+	</bean>
+	<bean id="roroCargoInYard" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="roroCargoInYardTarget"/>
+		</property>
+	</bean>
+	<bean id="theListOfUnitNoCorrection" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="theListOfUnitNoCorrectionTarget"/>
+		</property>
+	</bean>
+	<bean id="warehouseBalance" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="warehouseBalanceTarget"/>
+		</property>
+	</bean>
+	<bean id="interfaceLog" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="interfaceLogTarget"/>
+		</property>
+	</bean>
+	<bean id="internalTruckMonitoring" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="internalTruckMonitoringTarget"/>
+		</property>
+	</bean>
+	<bean id="logMonitoring" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="logMonitoringTarget"/>
+	   </property>
+	</bean>
+	<bean id="berthMonitoring" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="berthMonitoringTarget"/>
+		</property>
+	</bean>
+	
+	<!-- Billing -->
+	<bean id="costCenter" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="costCenterTarget"/>
+	   </property>
+	</bean>
+	<bean id="invoiceUnit" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="invoiceUnitTarget"/>
+	   	</property>
+	</bean>
+	<bean id="defineHolidayCode" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="defineHolidayCodeTarget"/>
+	  	</property>
+	</bean>
+	<bean id="standardTariffRate" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="standardTariffRateTarget"/>
+	   	</property>
+	</bean>
+	<bean id="annualHoliday" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="annualHolidayTarget"/>
+	   	</property>
+	</bean>
+	<bean id="freeStorageDays" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="freeStorageDaysTarget"/>
+	   	</property>
+	</bean>
+	<bean id="tariffCode" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="tariffCodeTarget"/>
+	   	</property>
+	</bean>
+	<bean id="partnerTariffRate" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="partnerTariffRateTarget"/>
+	   	</property>
+	</bean>
+	<bean id="invoiceAdvice" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="invoiceAdviceTarget"/>
+	   	</property>
+	</bean>
+	<bean id="invoiceTemplate" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="invoiceTemplateTarget"/>
+	   	</property>
+	</bean>
+	<bean id="ssrList" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="ssrListTarget"/>
+	   	</property>
+	</bean>
+	<bean id="dataGathering" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="dataGatheringTarget"/>
+	   	</property>
+	</bean>
+	<bean id="proofSheet" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="proofSheetTarget"/>
+	   	</property>
+	</bean>
+	<bean id="proformaInvoice" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="proformaInvoiceTarget"/>
+	   	</property>
+	</bean>
+	<bean id="invoiceList" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="invoiceListTarget"/>
+	   	</property>
+	</bean>
+	<bean id="foreignExchangeRate" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="foreignExchangeRateTarget"/>
+		</property>
+	</bean>
+	<bean id="importReconcile" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="importReconcileTarget"/>
+		</property>
+	</bean>
+	<bean id="exportReconcile" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="exportReconcileTarget"/>
+		</property>
+	</bean>
+	<bean id="importReconcileForLiquid" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="importReconcileForLiquidTarget"/>
+		</property>
+	</bean>
+	<bean id="exportReconcileForLiquid" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="exportReconcileForLiquidTarget"/>
+		</property>
+	</bean>
+	<!-- DashBoard -->
+	<bean id="bbtDashboard" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="bbtDashboardTarget"/>
+	   	</property>
+	</bean>
+	<bean id="cargoflowDashboard" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="cargoflowDashboardTarget"/>
+	   	</property>
+	</bean>
+	
+	<!-- Configuration -->
+  	<bean id="berthBittList" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="berthBittListTarget"/>
+	   </property>
+	</bean>
+  	
+	<!-- Damage Dimension Check -->
+  	<bean id="damageDimensionCheck" parent="mostTxProxyTemplate">
+	<property name="target">
+	      <ref bean="damageDimensionCheckTarget"/>
+	   </property>
+	</bean>
+	<!--s Shifting Approval -->
+	<bean id="shiftRequestDao" class="com.tsb.most.biz.dao.planning.ShiftRequestDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>	 
+	<bean id="shiftingApprovalTarget" class="com.tsb.most.biz.service.planning.ShiftingApproval" lazy-init="true">
+		<property name="shiftRequestDao" 				ref="shiftRequestDao"/>
+		<property name="comboboxServiceDao" 				ref="comboboxServiceDao"/>
+  	</bean> 
+  	<bean id="shiftingApproval" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="shiftingApprovalTarget"/>
+	   	</property>
+	</bean>
+	<bean id="planningReportTarget" class="com.tsb.most.biz.service.report.PlanningReport" lazy-init="true">
+		<property name="shiftRequestDao" 				ref="shiftRequestDao"></property>
+  	</bean>
+  	<bean id="planningReport" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="planningReportTarget"/>
+		</property>
+	</bean>
+  	<!--e Shifting Approval -->
+  	
+  	<!--s Invoice Advice -->
+  	<bean id="billingReportTarget" class="com.tsb.most.biz.service.report.BillingReport" lazy-init="true">
+		<property name="invoiceDao" 					ref="invoiceDao"/>
+		<property name="proformaInvoiceDao" 			ref="proformaInvoiceDao"/>
+		<property name="invoiceAdviceDao" 				ref="invoiceAdviceDao"></property>
+  	</bean>
+  	<bean id="billingReport" parent="mostTxProxyTemplate">
+		<property name="target">
+			<ref bean="billingReportTarget"/>
+		</property>
+	</bean>
+  	<!--e Invoice Advice -->
+  	
+  	<!--s Package Tariff Rate -->
+  	<bean id="packageTariffRateDao" class="com.tsb.most.biz.dao.billing.PackageTariffRateDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>
+  	
+  	<bean id="packageTariffRateTarget" class="com.tsb.most.biz.service.billing.PackageTariffRate" lazy-init="true">
+		<property name="packageTariffRateDao" 			ref="packageTariffRateDao"/>
+		<property name="codeMasterDao" 					ref="codeMasterDao"/>
+		<property name="tariffCodeDao" 					ref="tariffCodeDao"/>
+  	</bean>
+  	
+  	<bean id="packageTariffRate" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="packageTariffRateTarget"/>
+	   	</property>
+	</bean>  
+  	<!--e Package Tariff Rate -->
+ 	
+ 	<!--s Custom Release -->
+  	<bean id="customReleaseDao" class="com.tsb.most.biz.dao.document.CustomReleaseDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>	 
+  	
+  	<bean id="customReleaseTarget" class="com.tsb.most.biz.service.document.CustomRelease" lazy-init="true">
+		<property name="customReleaseDao" 			ref="customReleaseDao"/>
+  	</bean>
+  	
+  	<bean id="customRelease" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="customReleaseTarget"/>
+	   	</property>
+	</bean>  
+  	<!--e Custom Release -->
+  	
+  	<!--s Credit Note -->
+  	<bean id="creditNoteDao" class="com.tsb.most.biz.dao.billing.CreditNoteDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+  	</bean>	 
+  	
+  	<bean id="creditNoteTarget" class="com.tsb.most.biz.service.billing.CreditNote" lazy-init="true">
+		<property name="creditNoteDao" 			ref="creditNoteDao"/>
+  	</bean>
+  	
+  	<bean id="creditNote" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="creditNoteTarget"/>
+	   	</property>
+	</bean>  
+  	<!--e Credit Note -->
+	
+	<!--s PL-005 Alerting for MEGA  -->
+	<bean id="alertFunctionDao" class="com.tsb.most.biz.dao.planning.AlertFunctionDao" lazy-init="true">
+		<property name="unifiedDao"><ref bean="mostUnifiedDao"/></property>
+    	<property name="daoUtil"><ref bean="mostDaoUtil"/></property>
+	</bean>
+
+  	<bean id="alertFunctionTarget" class="com.tsb.most.biz.service.planning.AlertFunction" lazy-init="true">
+		<property name="alertFunctionDao" 				ref="alertFunctionDao"/>
+	</bean>
+	
+	<bean id="alertFunction" parent="mostTxProxyTemplate">
+		<property name="target">
+	      <ref bean="alertFunctionTarget"/>
+	   	</property>
+	</bean>
+	<!--e PL-005 Alerting for MEGA  -->
+</beans>

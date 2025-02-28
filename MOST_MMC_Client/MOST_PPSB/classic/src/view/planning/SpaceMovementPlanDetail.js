@@ -1,0 +1,1054 @@
+Ext.define('MOST.view.planning.SpaceMovementPlanDetail', {
+	extend: 'Ext.form.Panel',
+	alias: 'widget.app-spacemovementplandetail',
+	
+	requires: [
+        'Ext.form.FieldSet',
+        'Ext.form.field.ComboBox',
+        'Ext.form.field.Date',
+        'Ext.button.Button',
+        'Ext.form.Label',
+        'Ext.form.field.Checkbox',
+	    'Ext.grid.plugin.Clipboard',
+		'Ext.grid.filters.Filters',
+		'Ext.grid.selection.SpreadsheetModel'
+	],
+	
+	width:1200,
+	height: 800,
+	scrollable: true,
+	
+//	controller: 'spacemovementplan',
+//	
+//	viewModel: {
+//		type: 'spacemovementplan'
+//	},
+	
+	listeners:{
+		afterrender: 'onDetailLoad'
+	},
+	
+	layout : {type  : 'vbox', align : 'stretch'},
+
+	initComponent: function() {
+		var me = this;
+		
+		Ext.apply(me, {
+			items: [
+				{
+		            xtype: 'fieldset',
+		            title: "",
+		            layout: {
+		                type: 'vbox',
+		                align: 'stretch'
+		            },
+					margin: '5 5 0 5',
+					padding: '10 10 10 10',
+		            items: [
+						{
+							xtype: 'container',
+							defaults: {
+								labelAlign: 'right',
+								margin: '0 0 0 5'
+							},
+							layout: {
+								type: 'hbox',
+								align: 'stretch'
+							},
+							items: [
+								{
+									xtype: 'textfield',
+									flex: 1,
+									fieldLabel: ViewUtil.getLabel('spaceMovementRequestReqNo'),
+									labelWidth: 100,
+									bind: '{theDetail.reqNo}',
+									readOnly: true,
+									reference: 'cttReqNo'
+								},
+								{
+									xtype: 'partnercdtypefield',
+									labelWidth: 100,
+									flex: 1,
+									fieldLabel: ViewUtil.getLabel('spaceMovementRequestReqr'),
+									bind: {
+										value: '{theDetail.reqr}'
+									},
+									editableControl: true,
+									reference: 'ctlRequester',
+									params: {
+										searchModule: CodeConstants.LCD_MOST
+									}
+								},
+								{
+									xtype: 'textfield',
+									labelWidth: 100,
+									flex: 2,
+									bind: '{theDetail.reqrNm}',
+									readOnly: true,
+									reference: 'ctlRequesterNm'
+								}
+							]
+						},
+						{
+							xtype: 'container',
+							margin: '5 0 0 0',
+							defaults: {
+								labelAlign: 'right', 
+								margin: '0 0 0 5',
+							},
+							layout: {
+								type: 'hbox',
+								align: 'stretch'
+							},
+							items: [
+								{
+									xtype: 'textfield',
+									flex: 1,
+									fieldLabel: ViewUtil.getLabel('spaceMovementRequestStatNm'),
+									labelWidth: 100,
+									readOnly: true,
+									reference: 'ctlStatus',
+									bind: '{theDetail.statNm}'
+								},
+								{
+									xtype: 'partnercdtypefield',
+									labelWidth: 100,
+									flex: 1,
+									fieldLabel: ViewUtil.getLabel('payer'),
+									bind: { value: '{theDetail.payer}' },
+									editableControl: true,
+									reference: 'ctlPayer',
+									params: {
+										searchModule: CodeConstants.LCD_MOST
+									}
+								},
+								{
+									xtype: 'container',
+									flex: 2,
+									layout: {
+										type: 'hbox',
+										align: 'stretch'
+									},
+									items: [
+										{
+											xtype: 'textfield',
+											labelWidth: 100,
+											flex: 1,
+											bind: '{theDetail.payerNm}',
+											readOnly: true,
+											reference: 'ctlPayerNm'
+										},
+										{
+											xtype: 'combobox',
+											labelWidth: 100,
+											flex: 1,
+											reference: 'ctlRequestTp',
+											fieldLabel: ViewUtil.getLabel('spaceMovementRequestReqTpNm'),
+											labelAlign: 'right', 
+											bind: {
+												store: '{spaceMovementRequestTypeCombo}',
+												value: '{theDetail.reqTpCd}',
+											},
+											queryMode: 'local',
+											displayField: 'scdNm',
+											valueField: 'scd',
+											allowBlank: false,
+											forceSelection: true,
+											editable: false
+										},
+										{
+											xtype: 'combobox',
+											flex: 1,
+											reference: 'ctlSpaceMovementRequestDetailMvTp',
+											editable: false,
+											visible: false,
+											bind: {
+												store: '{spaceMovementRequestTypeExtraCombo}',
+												value: '{theDetail.mvTp}'
+											},
+											queryMode: 'local',
+											displayField: 'scdNm',
+											valueField: 'scd'
+										}
+									]
+								}
+							]
+						},
+						{
+							xtype: 'container',
+							margin: '5 0 0 0',
+							defaults: {
+								margin: '0 0 0 5',
+								labelAlign: 'right',
+								labelWidth: 80
+							},
+							layout: {
+								type: 'hbox',
+								pack: 'end'
+							},
+							items: [
+								{
+									xtype: 'button',
+									reference: 'btnConfirm',
+									width: 155,
+									text: ViewUtil.getLabel('confirm'),
+									listeners: {
+										click: 'onConfirm'
+									}
+								},
+								{
+									xtype: 'button',
+									reference: 'btnReject',
+									ui: 'delete-button',
+									width: 155,
+									text: ViewUtil.getLabel('reject'),
+									bind: {
+										disabled: '{theDetail.reqNo === ""}'
+									},
+									listeners: {
+										click: 'onReject'
+									}
+								}
+							]
+						}
+		            ]
+		        },
+		        {
+		            xtype: 'fieldset',
+		            title: ViewUtil.getLabel('vesselCargo'),
+		            layout: {
+		                type: 'hbox',
+		                align: 'stretch'
+		            },
+					margin: '0 5 0 5',
+					padding: '0 10 10 10',
+		            items: [
+		                {
+		                	xtype: 'container',
+		                    flex: 1,
+							maxWidth: 245,
+		                    layout: {
+		                        type: 'vbox',
+		                        align: 'stretch'
+		                    },
+		                    items: [
+								{
+									xtype: 'container', 
+									defaults: {
+										labelAlign: 'right',
+										margin: '0 0 5 0'
+									},
+									layout: {
+										type: 'vbox',
+										align: 'stretch',
+									},
+									items: [
+										{
+											xtype: 'shipcallnofield',
+											reference: 'ctlScnDetail',
+											labelWidth: 80,
+											emptyText: ViewUtil.getLabel('shipCallNo'),
+											fieldLabel: ViewUtil.getLabel('shipCallNo'),
+											flex: 1,
+											bind: {
+												value: '{theDetail.scn}',
+											},
+										},
+										{
+											xtype: 'vesselcalllistnolabel',
+											flex: 1,
+											labelWidth: 80,
+											reference: 'ctlJpvc',
+											fieldLabel: ViewUtil.getLabel('vslschCallId'),
+											bind: {
+												value: '{theDetail.vslCallId}'
+											},
+											emptyText: ViewUtil.getLabel('vessel'),
+											allowBlank: false
+										},
+										{
+											xtype: 'textfield',
+											reference: 'ctlVesselName',
+											labelWidth: 80,
+											fieldLabel: ViewUtil.getLabel('vesselname'), 
+											flex: 1,
+											bind: '{theDetail.vslNm}',
+											readOnly: true
+										},
+									]
+								}
+		                    ]
+		                },
+		                {
+		                    xtype: 'container',
+		                    flex: 3,
+		                    layout: {
+		                        type: 'vbox',
+		                        align: 'stretch'
+		                    },
+		                    items: [
+		                        {
+		                            xtype: 'container',
+									width: '100%',
+		                            defaults: {
+		                                labelAlign: 'right',
+		                                labelWidth: 80
+		                            },
+		                            layout: {
+		                                type: 'hbox',
+		                                align: 'stretch'
+		                            },
+		                            items: [
+		                            	{
+											xtype: 'combo',
+											reference: 'ctlCommodityGroup',
+											flex: 1,
+											fieldLabel: ViewUtil.getLabel('spaceMovementPlanCommodityGroup'),
+											queryMode: 'local',
+											bind: {
+												store: '{commodityGroupCombo}',
+												value: '{theSearch.cmdtGrpCd}'
+											},
+											emptyText: 'Select',
+											displayField: 'cmdtGrpNm',
+											valueField: 'cmdtGrpCd',
+											editable: false,
+											forceSelection: true
+										},
+		                            	{
+											xtype: 'container',
+											flex: 1,
+											layout: {
+												type: 'hbox',
+												align: 'stretch'
+											},
+											defaults: {
+												/*labelAlign: 'right',
+												labelWidth: 80*/
+											},
+											items: [
+												{
+													xtype: 'container',
+													flex: 1,
+													layout: {
+														type: 'hbox',
+														align: 'stretch'
+													},
+													items: [
+														{
+															xtype: 'checkbox',
+															reference: 'chkIsNotPlanned',
+															margin: '0 0 0 5',
+															boxLabel: ViewUtil.getLabel('spaceMovementPlanChkIsNotPlanned'),
+															flex: 1,
+															bind: {
+																value: '{theSearch.isNotPlanned}'
+															},
+														}
+													]
+												}
+											]
+										},
+										{
+											xtype: 'container',
+											flex: 1
+										},
+										{
+											xtype: 'container',
+											flex: 1,
+											layout: {
+												type: 'hbox',
+												align: 'stretch',
+												pack: 'end'
+											},
+											defaults: {
+												labelAlign: 'right',
+												labelWidth: 80,
+												margin: '0 0 0 5',
+											},
+											items: [
+												{
+													xtype: 'button',
+													reference: 'btnDetailRetrieve',
+													text: ViewUtil.getLabel('search'),
+													iconCls: 'x-fa fa-search', 
+													cls: 'search-button', 
+													width: 100,
+													listeners: {
+														click: 'onRetrieve'
+													}
+												},
+												{
+													xtype: 'button',
+													reference: 'btnRefresh',
+													itemId: 'refreshButton',
+													text: ViewUtil.getLabel('refresh'),
+													iconCls: 'x-fa fa-refresh',
+													width: 100,
+													disabled:false,
+													listeners: {
+														click: 'onRefresh'
+													}
+												}
+											]
+										}, 
+		                            ]
+		                        },
+		                        {
+		                            xtype: 'container',
+									margin: '5 0 0 0',
+		                            defaults: {
+		                                labelAlign: 'right',
+		                                labelWidth: 80
+		                            },
+		                            layout: {
+		                                type: 'hbox',
+		                                align: 'stretch'
+		                            },
+		                            items: [
+										{
+											xtype: 'combo',
+		                                	reference: 'ctlMasterBL',
+		        		   					flex: 1,
+		        		   					fieldLabel: ViewUtil.getLabel('spaceMovementSummaryMasterBL'),
+		        		   					queryMode: 'local',
+		        		   					bind: {
+		        		    	    			store: '{masterBLCombo}',
+												value: '{theSearch.masterBL}'
+		        		    	    		},
+		        		    	    		listeners: {
+		    	       							select: 'onSelectedMfDocId'
+		    	       						},
+		        		    	    		emptyText:'Select',
+											displayField: 'scdNm',
+											valueField: 'mfDocId',
+		        		   					editable: true,
+		        		   					forceSelection:true
+		                                },
+										{
+											xtype: 'combo',
+		                                	reference: 'ctlBookingNo',
+											flex: 1,
+		        		   					fieldLabel: ViewUtil.getLabel('spaceMovementSummaryBookingNo'),
+		        		   					queryMode: 'local',
+		        		   					bind: {
+		        		    	    			store: '{bookingNoCombo}',
+												value: '{theSearch.bookingNo}'
+		        		    	    		},
+		        		    	    		listeners: {
+		    	       							select: 'onSelectedMfDocId'
+		    	       						},
+		        		    	    		emptyText:'Select',
+		        		   					displayField: 'scdNm',
+		        		   					valueField: 'mfDocId',
+		        		   					editable: true,
+		        		   					forceSelection:true
+		                                },
+										{
+											xtype: 'container',
+											flex: 2,
+											defaults: {
+												labelAlign: 'right',
+												labelWidth: 80
+											},
+											layout: {
+												type: 'hbox',
+												align: 'stretch'
+											},
+											items: [
+												{
+													xtype: 'textfield',
+													reference: 'ctlLotNo',
+													flex: 1,
+													labelWidth: 110,
+													   fieldLabel: ViewUtil.getLabel('lotNo'),
+													   queryMode: 'local',
+													   bind: {
+														value: '{theSearch.lotNo}'
+													},
+													listeners: {
+														change: 'onUpperCase'
+													}
+												},
+												{
+													xtype: 'combo',
+													reference: 'ctlPod',
+													flex: 0.8,
+													labelWidth: 30,
+													fieldLabel: ViewUtil.getLabel('spaceMovementPlanPod'),
+													bind: {
+														store: '{podCombo}',
+														value: '{theSearch.pod}'
+													},
+													emptyText:'Select',
+													displayField: 'pod',
+													valueField: 'pod',
+													queryMode: 'local',
+													editable : false,
+													forceSelection:true
+												}
+											]
+										} 
+		                            ]
+		                        },
+		                        {
+		                            xtype: 'container',
+									margin: '5 0 0 0',
+		                            defaults: {
+		                                labelAlign: 'right',
+		                                labelWidth: 80
+		                            },
+		                            layout: {
+		                                type: 'hbox',
+		                                align: 'stretch'
+		                            },
+		                            items: [
+										{
+											reference: 'ctlBlVessel',
+											xtype: 'combo',
+											flex: 1,
+											fieldLabel: ViewUtil.getLabel('spaceMovementSummarySubBL'),
+											queryMode: 'local',
+											bind: {
+												store: '{blCombo}',
+												value: '{theSearch.blNo}'
+											},
+											listeners: {
+												select: 'onSelectBLNo'
+											},
+											emptyText: 'Select',
+											displayField: 'blNo',
+											valueField: 'blNo',
+											editable: true,
+											forceSelection: true
+										},
+										{
+		                                	reference: 'ctlSnVessel',
+		        		   					xtype: 'combo',
+											flex: 1,
+		        		   					fieldLabel: ViewUtil.getLabel('sn'),
+		        		   					bind: {
+		        		    	    			store: '{snCombo}',
+												value: '{theSearch.shipgNoteNo}'
+		        		    	    		},
+		        		    	    		emptyText:'Select',
+		        		   					displayField: 'shipgNoteNo',
+		        		   					valueField: 'shipgNoteNo',
+		        		   					listeners:{
+                								select : 'onSelectSNNo'
+                							},
+											queryMode: 'local',
+		        		   					editable: true,
+		        		   					forceSelection:true
+		                                },
+		                                {
+		                                	xtype: 'combo',
+		                                	reference: 'ctlShpCns',
+											flex: 2,
+		                                    labelWidth: 110,
+		                                    fieldLabel: ViewUtil.getLabel('shipperConsignee'),
+											bind: {
+		        		    	    			store: '{cngShpCombo}',
+												value: '{theSearch.cngShp}'
+		        		    	    		},
+		        		    	    		emptyText:'Select',
+											displayField: 'cngShpNm',
+											valueField: 'cngShp',
+											queryMode: 'local',
+											editable : false,
+											forceSelection:true
+						                },
+		                            ]
+		                        },
+		                        {
+		                            xtype: 'container',
+		                            defaults: {
+		                                labelAlign: 'right',
+		                                labelWidth: 80
+		                            },
+									margin: '5 0 0 0',
+		                            layout: {
+		                                type: 'hbox',
+		                                align: 'stretch'
+		                            },
+		                            items: [
+										{
+											xtype: 'combobox',
+											reference:'refSearchSDONo',
+		        		   					flex: 1,
+		        		   					fieldLabel: ViewUtil.getLabel('subDoNo'),
+		        		   					queryMode: 'local',
+		        		   					bind: {
+		        		    	    			store: '{subDoCombo}',
+												value: '{theSearch.subDoNo}'
+		        		    	    		},
+		        		    	    		emptyText:'Select',
+		        		    	    		displayField: 'sDoNo',
+											valueField: 'sDoNo',
+		        		   					editable: true,
+		        		   					forceSelection:true,
+											hidden: true 			// FIX MANTIS 0201699
+						                },
+										{
+											xtype: 'container',
+											flex: 1
+										},
+										{
+						                	xtype: 'combobox',
+											reference:'refSearchGrNo',
+											flex: 1,
+		        		   					fieldLabel: ViewUtil.getLabel('LAGRNo'),
+		        		   					bind: {
+		        		    	    			store: '{goodsReceiptCombo}',
+												value: '{theSearch.grNo}'
+		        		    	    		},
+		        		    	    		emptyText:'Select',
+		        		    	    		displayField: 'grNo',
+											valueField: 'grNo',
+											queryMode: 'local',
+		        		   					editable: true,
+		        		   					forceSelection:true
+		                                },
+										{
+											xtype: 'container',
+											flex: 2
+										}
+		                            ]
+		                        }
+		                    ]
+		                }
+		            ]
+		        },
+				{
+					xtype: 'fieldset',
+					padding: '0 10 10 10',
+					margin: '0 5 0 5',
+					title: ViewUtil.getLabel('WHArea'),
+					layout: {
+						type: 'hbox',
+						align: 'stretch'
+					},
+					items: [
+						{
+							xtype: 'container',
+							flex: 1,
+							layout: {
+								type: 'vbox',
+								align: 'stretch'
+							},
+							items: [
+								{
+									xtype: 'container',
+
+									defaults: {
+										labelAlign: 'right',
+										labelWidth: 80
+									},
+									layout: {
+										type: 'hbox',
+										align: 'stretch'
+									},
+									items: [
+										{
+											xtype: 'combobox',
+											reference: 'ctlAreaLocation',
+											fieldLabel: ViewUtil.getLabel('location'),
+											flex: 1,
+											bind: {
+												store: '{locationCombo}',
+												value: '{theDetail.reqPos}'
+											},
+											listeners: {
+												select: 'onSelectLocation'
+											},
+											queryMode: 'local',
+											displayField: 'scdNm',
+											valueField: 'scd',
+											allowBlank: false,
+											forceSelection: true,
+											editable: false
+										},
+										{
+											xtype: 'container', 
+											layout: {
+												type: 'hbox',
+												align: 'stretch'
+											},
+											flex: 1,
+											items: [
+												{
+													xtype: 'button',
+													itemId: 'areaCellButton',
+													reference: 'refBtnAreaCell',
+													text: ViewUtil.getLabel('confirmMovementSetLocation'),
+													margin: '0 5 0 5',
+													flex: 1,
+													listeners: {
+														click: 'onCellLocBtnClicked'
+													}
+												},
+												{
+													reference: 'ctlAreaCell',
+													xtype: 'textfield',
+													flex: 1,
+													fieldLabel: "",
+													bind: {
+														value: '{theDetail.planLocId}'
+													},
+													editable: false
+												}
+											]
+										}
+									]
+								},
+								{
+									xtype: 'container',
+									defaults: {
+										labelAlign: 'right',
+										labelWidth: 80,
+										margin: '5 0 0 0'
+									},
+									layout: {
+										type: 'hbox',
+										align: 'stretch'
+									},
+									items: [
+										{
+											xtype: 'container',  
+											layout: {
+												type: 'hbox',
+												align: 'stretch'
+											},
+											flex: 1,
+											defaults: {
+												labelAlign: 'right',
+												labelWidth: 80
+											},
+											items: [
+												{
+													reference: 'ctlAreaM2',
+													xtype: 'textfield',
+													fieldLabel: ViewUtil.getLabel('areaSize'),
+													flex: 1,
+													readOnly: true,
+													bind: {
+														value: '{theDetail.reqM2}'
+													},
+													maskRe: /[0-9.]/
+												},
+												{
+													xtype: 'label',
+													margin: '5 0 0 5',
+													width: 20,
+													text: ViewUtil.getLabel('spaceMovementRequestReqM2'),
+												},
+											]
+										}, 
+										{
+											xtype: 'container', 
+											layout: {
+												type: 'hbox',
+												align: 'stretch'
+											},
+											flex: 1,
+											items: [
+												{
+													xtype: 'button',
+													reference: 'refBtnTerminalView',
+													text: 'Terminal View',
+													margin: '0 5 0 5',
+													flex: 1,
+													listeners: {
+														click: 'onOpenTerminalView'
+													}
+												},
+												{ 
+													xtype: 'container',
+													flex: 1, 
+												}
+											]
+										}
+									]
+								},
+								{
+									xtype: 'container',
+									layout: {
+										type: 'hbox',
+										align: 'stretch'
+									},
+									items: [
+										{
+											xtype: 'container', 
+											defaults: {
+												labelAlign: 'right',
+												labelWidth: 80, 
+											},
+											layout: {
+												type: 'hbox',
+												align: 'stretch'
+											},
+											flex: 1,
+											items: [ 
+												{
+													reference: 'ctlAreaMT',
+													xtype: 'textfield',
+													margin: '5 0 0 85',
+													flex: 1,
+													fieldLabel: "",
+													bind: {
+														value: '{theDetail.reqMt}'
+													},
+													readOnly: true,
+													maskRe: /[0-9.]/
+												},
+												{
+													xtype: 'label',
+													width: 20,
+													margin: '10 0 0 5',
+													text: ViewUtil.getLabel('LAMT'),
+												}
+											]
+										},
+										{
+											xtype: 'container',
+											flex: 1
+										}
+									]
+								},
+							]
+						},
+						{
+							xtype: 'container',
+							flex: 1,
+							maxWidth: 500,
+							layout: {
+								type: 'vbox',
+								align: 'stretch'
+							},
+							items: [
+								{
+									xtype: 'container',
+									defaults: {
+										labelAlign: 'right',
+										labelWidth: 60
+									},
+									layout: {
+										type: 'hbox',
+										align: 'stretch'
+									},
+									items: [
+										{
+											xtype: 'datetimefield',
+											flex: 1,
+											labelWidth: 120,
+											fieldLabel: ViewUtil.getLabel('spaceMovementRequestEta'),
+											reference: 'ctlEstArrvDt',
+											bind: '{theDetail.eta}',
+											allowBlank: false,
+											format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+											listeners: {
+												select: 'onSelectDate'
+											}
+										},
+										{
+											xtype: 'container', 
+											flex: 0.75,
+											layout: {
+												type: 'hbox',
+												align: 'stretch'
+											}, 
+											items: [
+												{
+													reference: 'ctlPeriod',
+													xtype: 'textfield',
+													fieldLabel: ViewUtil.getLabel('spaceMovementRequestPeriod'),
+													labelWidth: 40,
+													flex: 1,
+													labelAlign: 'right',
+													bind: {
+														value: '{theDetail.period}'
+													},
+													editable: false
+												},
+												{
+													xtype: 'label',
+													margin: '5 0 0 5',
+													width: 40,
+													text: ViewUtil.getLabel('days'),
+												}
+											]
+										}
+									]
+								},
+								{
+									xtype: 'container',
+									margin: '5 0 0 0',
+									defaults: {
+										labelAlign: 'right',
+										labelWidth: 60
+									},
+									layout: {
+										type: 'hbox',
+										align: 'stretch'
+									},
+									items: [
+										{
+											xtype: 'datetimefield',
+											flex: 1,
+											labelWidth: 120,
+											fieldLabel: ViewUtil.getLabel('estDeliveryDate'),
+											reference: 'ctlEstDelvDt',
+											bind: '{theDetail.svcDt}',
+											format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds(),
+											listeners: {
+												select: 'onSelectDate'
+											}
+										},
+										{
+											xtype: 'container',
+											flex: 0.75
+										}
+									]
+								},
+								{
+									xtype: 'container',
+									margin: '5 5 0 0',
+									defaults: {
+										labelAlign: 'right',
+										labelWidth: 60
+									},
+									layout: {
+										type: 'hbox',
+										align: 'stretch'
+									},
+									items: [
+										{
+											reference: 'ctlRemark',
+											xtype: 'textfield',
+											flex: 1,
+											labelWidth: 120,
+											fieldLabel: ViewUtil.getLabel('remark'),
+											bind: '{theDetail.rmk}',
+											editable: true
+										}
+									]
+								}
+							]
+						},
+						{
+							xtype: 'container',
+							width: 100,
+							layout: {
+								type: 'vbox',
+								align: 'stretch'
+							}, 
+							items: [
+								{
+									xtype: 'button',
+									disabled: false,
+									text: ViewUtil.getLabel('spaceMovementRequestSubmit'),
+									ui: 'create-button',
+									iconCls: 'x-fa fa-plus',
+									reference: 'btnAdd',
+									listeners: {
+										click: 'fncSubmit'
+									}
+								},
+								{
+									xtype: 'button',
+									itemId: 'btnDelete',
+									margin: '5 0 0 0',
+									text: ViewUtil.getLabel('remove'),
+									ui: 'delete-button',
+									iconCls: 'x-fa fa-minus',
+									reference: 'btnRemove',
+									listeners: {
+										click: 'onRemoveForDetail'
+									}
+								}
+							]
+						}
+					]
+				},
+		        {
+					xtype: 'grid',
+					margin: '5 5 0 5',
+					reference: 'refSpaceMovementPlanDetailGrid',
+					flex: 1,
+					stateful : true,
+					stateId : 'stateSpaceMovementPlanDetailGrid',
+					layout: {
+						type: 'fit'
+					},
+					plugins: [
+						'gridfilters',
+						'clipboard'
+		    		],
+		    		bind: {
+		    			store: '{spaceMovementPlanDetail}'
+		    		},
+		    		selModel: {
+						type: 'spreadsheet',
+						checkboxSelect: true,
+						cellSelect: false
+					},
+					listeners: {
+    					selectionchange: 'onGridSelectionChange',
+    					celldblclick: 'onDetailDblClick',
+    				},
+					columns: {
+		            	defaults: {
+		            		style : 'text-align:center',
+		            		align : 'center'
+		            	},
+		            	items:GridUtil.getGridColumns('SpaceMovementPlanDetail')
+					}
+			    },
+				{
+					xtype: 'container',
+					margin: '5 5 5 5',
+					layout: {
+						type: 'hbox',
+						align: 'stretch'
+					},
+					defaults: {
+						labelAlign: 'right',
+						labelWidth: 80,
+					},
+					items: [
+						{
+							xtype: 'numberfield',
+							reference: 'ctlTotalMT',
+							fieldLabel: 'Total MT',
+							bind: '{theDetail.totalMT}',
+							readOnly: true,
+							flex: 1
+						},
+						{
+							xtype: 'numberfield',
+							reference: 'ctlTotalM3',
+							fieldLabel: 'Total M3',
+							bind: '{theDetail.totalM3}',
+							readOnly: true,
+							flex: 1
+						},
+						{
+							xtype: 'numberfield',
+							reference: 'ctlTotalQty',
+							fieldLabel: 'Total Qty',
+							bind: '{theDetail.totalQty}',
+							readOnly: true,
+							flex: 1
+						},
+						{
+							xtype: 'container',
+							flex: 1
+						}
+					]
+				}
+			]
+		});
+		
+		me.callParent();
+	}
+});

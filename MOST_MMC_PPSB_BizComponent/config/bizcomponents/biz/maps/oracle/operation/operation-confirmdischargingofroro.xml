@@ -1,0 +1,1100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="confirmDischargingOfRORO">
+	<resultMap 	id="resultComboList" 	type="confirmDischargingOfROROItem">
+   		<result property = "cd"			column = "CD"/>
+   		<result property = "cdNm"		column = "CD_NM"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultBlMap" type="confirmDischargingOfROROItem">
+   		<result property = "vslCd"			column = "VSL_CD"/>
+		<result property = "callYear" 		column = "CALL_YEAR"/>
+		<result property = "callSeq" 		column = "CALL_SEQ"/>
+   		<result property = "vslCallId"		column = "VSL_CALL_ID"/>
+		<result property = "catgCd" 		column = "CATG_CD"/>
+		<result property = "catgNm" 		column = "CATG_NM"/>
+		<result property = "masterBlNo" 	column = "MF_DOC_ID"/>
+		<result property = "blNo" 			column = "BL_NO"/>
+		<result property = "doNo" 			column = "DO_NO"/>
+		<result property = "nosOfUnit" 		column = "NOS_OF_VIN"/>
+		<result property = "remainUnit" 	column = "VIN_REMAIN"/>
+		<result property = "brandCd" 		column = "BRAND_CD"/>
+		<result property = "brandNm" 		column = "BRAND_NM"/>
+		<result property = "modelCd" 		column = "MODEL_CD"/>
+		<result property = "modelNm" 		column = "MODEL_NM"/>
+		<result property = "delvTpCd" 		column = "DELV_TP_CD"/>
+		<result property = "delvTpNm" 		column = "DELV_TP_NM"/>
+		<result property = "cgTpCd" 		column = "CG_TP_CD"/>
+		<result property = "cgTpNm" 		column = "CG_TP_NM"/>
+		<result property = "tsptr" 			column = "TSPTR"/>
+		<result property = "unitYardLoc" 	column = "LOC_ID"/>
+		<!-- <result property = "yardPlanLoc" 	column = "PLAN_YARD_LOC"/> -->
+		<result property = "yardPlanLoc" 	column = "PLAN_LOC_ID"/>
+		<result property = "newYn" 			column = "NEW_YN"/>
+		<result property = "tsptTpCd" 			column = "TSPT_TP_CD"/>
+		<result property = "unitNo" 			column = "CHAS_NO"/>
+		<result property = "awUnit" 			column = "UNIT_NO"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultUnitMap" type="confirmDischargingOfROROItem">
+   		<result property = "vslCd"			column = "VSL_CD"/>
+		<result property = "callYear" 		column = "CALL_YEAR"/>
+		<result property = "callSeq" 		column = "CALL_SEQ"/>
+   		<result property = "vslCallId"		column = "VSL_CALL_ID"/>
+		<result property = "masterBlNo" 	column = "MF_DOC_ID"/>
+		<result property = "blNo" 			column = "CG_NO"/>
+		<result property = "unitNo" 		column = "CHAS_NO"/>
+		<result property = "roroSeq" 		column = "RORO_SEQ"/>
+		<result property = "delvTpCd" 		column = "DELV_TP_CD"/>
+		<result property = "delvTpNm" 		column = "DELV_TP_NM"/>
+		<result property = "dischargedDate" column = "DISCHARGING_DTM"/>
+		<result property = "inDate" 		column = "IN_DTM"/>
+		<result property = "outDate" 		column = "OUT_DTM"/>
+		<result property = "gateInDate" 	column = "GATE_IN_DTM"/>
+		<result property = "gateOutDate" 	column = "GATE_OUT_DTM"/>
+		<result property = "unitYardLoc" 	column = "LOC_ID"/>
+		<result property = "statCd" 		column = "STAT_CD"/>
+		<result property = "statNm" 		column = "STAT_NM"/>
+		<result property = "cgTpCd" 		column = "CG_TP_CD"/>
+		<result property = "cgTpNm" 		column = "CG_TP_NM"/>
+		<result property = "yardPlanLoc" 	column = "PLAN_LOC_ID"/>
+		<result property = "brandDesc" 		column = "BRAND_DESC"/>
+		<result property = "brandCd" 		column = "BRAND_CD"/>
+		<result property = "brandNm" 		column = "BRAND_NM"/>
+		<result property = "modelCd" 		column = "MODEL_CD"/>
+		<result property = "modelNm" 		column = "MODEL_NM"/>
+		<result property = "blDelvTpCd" 	column = "BL_DELIVERY_MODE"/>
+		<result property = "delvTpNm" 		column = "DELV_TP_NM"/>
+		<result property = "stevedoreId" 	column = "STEVEDORE_ID"/>
+		<result property = "dischargingRmk" column = "DISCHARGING_RMK"/>
+		<result property = "yardCheckRmk" 	column = "YARD_RMK"/>
+		<result property = "ixCd" 			column = "IX_CD"/>
+		<result property = "catgCd" 		column = "CATG_CD"/>
+		<result property = "newYn" 			column = "NEW_YN"/>
+		<result property = "docWgt" 		column = "DOC_WGT"/>
+		<result property = "cbm" 			column = "CBM"/>
+ 	</resultMap>
+
+	<select id="selectBlComboItems" parameterType="confirmDischargingOfROROParm" resultMap="resultComboList">
+		SELECT	/* confirmDischargingOfRORO.selectBlComboBoxItems */
+				DISTINCT
+				BL_NO CD,
+				BL_NO CD_NM
+		FROM	TMT_BL
+		WHERE	VSL_CALL_ID = #{vslCallId}
+				AND STAT_CD = 'AP'
+				AND CG_TP_CD IN ('RCV', 'RMA')
+	</select>
+	
+	<sql id="selectBlItems">
+		WITH VA
+		     AS (SELECT (NVL (TO_NUMBER (SUM (CG_WGT)), 0)) AS MT,
+		                (NVL (TO_NUMBER (SUM (CG_VOL)), 0)) AS M3,
+		                (NVL (TO_NUMBER (SUM (PKG_QTY)), 0)) AS QTY,
+		               	(SELECT LISTAGG (CHAS_NO, ', ') WITHIN GROUP (ORDER BY CHAS_NO)
+                     		FROM (SELECT DISTINCT CHAS_NO
+                             		FROM TMT_JOB
+                            		WHERE     VSL_CALL_ID = JB.VSL_CALL_ID
+                                  			AND CG_NO = JB.CG_NO
+                                  			AND JOB_PURP_CD = 'VA'))
+                     		AS CHAS_NO
+		           FROM TMT_JOB JB
+		          WHERE JB.VSL_CALL_ID = #{vslCallId} AND JB.CG_NO = #{blNo} AND JB.JOB_PURP_CD = 'VA'  GROUP BY  JB.VSL_CALL_ID, JB.CG_NO),
+		     VG
+		     AS (SELECT (NVL (TO_NUMBER (SUM (CG_WGT)), 0)) AS MT,
+		                (NVL (TO_NUMBER (SUM (CG_VOL)), 0)) AS M3,
+		                (NVL (TO_NUMBER (SUM (PKG_QTY)), 0)) AS QTY
+		           	FROM TMT_JOB JB
+		          	WHERE JB.VSL_CALL_ID = #{vslCallId} AND JB.CG_NO = #{blNo} AND JB.JOB_PURP_CD = 'VG'),
+		     
+		     SDO_INFORMATION
+		     AS (  SELECT VSL_CALL_ID,
+		                  BL_NO,
+		                  DO_NO,
+		                  SDO_NO,
+		                  SUM (NVL (D_MT, 0)) DMT,
+		                  SUM (NVL (D_M3, 0)) DM3,
+		                  SUM (NVL (D_QTY, 0)) DQTY,
+		                  MAX (TSPT_TP_CD) TSPT_TP_CD,
+		                  SUM (NVL (I_MT, 0)) IMT,
+		                  SUM (NVL (I_M3, 0)) IM3,
+		                  SUM (NVL (I_QTY, 0)) IQTY,
+		                  MAX (I_TSPT_TP_CD) I_TSPT_TP_CD
+		             FROM TMT_DO_DTL
+		            WHERE VSL_CALL_ID = #{vslCallId} AND BL_NO = #{blNo} 
+		            <if test="sdoNo != null and sdoNo != ''">
+		           		 AND SDO_NO = #{sdoNo}
+		            </if>
+		         GROUP BY VSL_CALL_ID,
+		                  BL_NO,
+		                  DO_NO,
+		                  SDO_NO)
+		SELECT   DISTINCT                      /*cargoDischarging.selectConfirmDischargingList*/
+		      B.BL_NO AS BLNO,
+		       B.MF_DOC_ID AS MFDOCID,
+		       DO.DO_NO AS DONO,
+       		   VA.CHAS_NO AS CHAS_NO,
+		       B.VSL_CALL_ID AS VSLCALLID,
+		       B.VSL_CD AS VSLCD,
+		       B.CALL_YEAR AS CALLYEAR,
+		       B.CALL_SEQ AS CALLSEQ,
+		       P.VSL_NM AS VSLNM,
+		       NVL (TO_NUMBER (B.PKG_QTY), 0) AS QTY,
+		       NVL (TO_NUMBER (REPLACE (NVL (TRUNC (B.CG_WGT, 3), 0), ',', '')), 0)
+		          AS MT,
+		       NVL (TO_NUMBER (TRUNC (B.CG_VOL, 3)), 0) AS M3,      /*Direct Balance*/
+		       TO_NUMBER (REPLACE (NVL (TRUNC (B.PKG_QTY, 3), 0), ',', '')) - NVL((TO_NUMBER (VA.QTY) + TO_NUMBER (VG.QTY)),0) AS BALQTY,
+			   TO_NUMBER (REPLACE (NVL (TRUNC (B.CG_WGT, 3), 0), ',', '')) - NVL((TO_NUMBER (VA.MT) + TO_NUMBER (VG.MT)),0) AS BALMT,
+			   TO_NUMBER (REPLACE (NVL (TRUNC (B.CG_VOL, 3), 0), ',', '')) - NVL((TO_NUMBER (VA.M3) + TO_NUMBER (VG.M3)),0) AS BALM3,
+		       NVL (TO_NUMBER (VA.QTY), 0) AS AQTY,
+		       NVL (TO_NUMBER (VA.MT ), 0) AS AMT,
+		       NVL (TO_NUMBER (VA.M3), 0) AS AM3,
+		       NVL (TO_NUMBER (VA.QTY), 0) AS ABQTY,
+		       NVL (TO_NUMBER (VA.MT), 0) AS ABMT,
+		       NVL (TO_NUMBER (VA.M3), 0) AS ABM3,
+		       B.TSPTR AS TSPTR,
+		       (SELECT ENG_SNM
+		          FROM TMT_PTNR
+		         WHERE PTNR_TYPE = 'TRK' AND PTNR_CODE = B.TSPTR)
+		          AS TSPTRNM,
+		       B.DELV_TP_CD AS DELVTPCD,
+		       NVL (B.CATG_CD, ' ') AS CATGCD,
+		       <!-- NVL (C.WH_FNL_DELV_YN, 'N') AS WHFNLDELVYN, -->
+		       B.CMDT_CD AS CMDTCD,
+		       B.CMDT_GRP_CD AS CMDTGRPCD,
+		       (SELECT M.CMDT_DESC
+		          FROM TMT_CMDT M
+		         WHERE M.CMDT_CD = B.CMDT_CD)
+		          AS CARGO,
+		       B.PKG_TP_CD AS PKGTPCD,
+		       B.PKG_TP_CD AS REPKGTYPECD,
+		       B.CG_WGT_UNIT AS WGTUNIT,
+		       B.CG_VOL_UNIT AS MSRMTUNIT,
+		       B.POL AS PORTOFLOAD,
+		       B.POD AS PORTOFDIS,
+		       B.FND AS FDEST,
+		       B.CG_TP_CD AS CGTPCD,
+		       (SELECT A.LORRY_NO AS LORRYID
+		          FROM TMT_CG_ARRV_DELV A
+		         WHERE     A.CG_IN_OUT_CD = 'O'
+		               AND A.GATE_OUT_DT IS NULL
+		               AND A.LORRY_NO IS NOT NULL
+		               AND A.VSL_CALL_ID = B.VSL_CALL_ID
+		               AND A.CG_NO = B.BL_NO
+		               AND ROWNUM = 1)
+		          AS externalLorryNo,
+		       NVL (B.FWRD, ' ') AS FWRAGNT,
+		       (SELECT JJ.RMK
+		          FROM TMT_JOB JJ
+		         WHERE     JJ.VSL_CALL_ID = #{vslCallId}
+		               AND JJ.CG_NO = #{blNo}
+		               AND JJ.JOB_PURP_CD IN ('VG', 'VA', 'VW')
+		               AND JJ.JOB_NO =
+		                      (SELECT MAX (J.JOB_NO)
+		                         FROM TMT_JOB J
+		                        WHERE     J.VSL_CALL_ID = #{vslCallId}
+		                              AND J.CG_NO = #{blNo}
+		                              AND J.JOB_PURP_CD IN ('VG', 'VA', 'VW')
+		                              AND J.RMK IS NOT NULL))
+		          AS RMK,
+		       (SELECT CASE
+		                  WHEN CUS.DOC_NO IS NULL
+		                  THEN
+		                     'HOLD'
+		                  WHEN CUS.DOC_NO IS NOT NULL AND CUS.RELEASE_MT IS NULL
+		                  THEN
+		                     'RELEASE'
+		                  ELSE
+		                     'RELEASE'
+		               END
+		                  AS status
+		          FROM TMT_BL BL
+		               LEFT OUTER JOIN (  SELECT DOC_NO,
+		                                         REF_NO,
+		                                         VSL_CALL_ID,
+		                                         SUM (RELEASE_MT) AS RELEASE_MT,
+		                                         SUM (RELEASE_QTY) AS RELEASE_QTY
+		                                    FROM TMT_CUSTOMS_RELEASE
+		                                GROUP BY DOC_NO, REF_NO, VSL_CALL_ID) CUS
+		                  ON     CUS.VSL_CALL_ID = BL.VSL_CALL_ID
+		                     AND (   (    CUS.REF_NO IS NULL
+		                              AND CUS.DOC_NO = BL.MF_DOC_ID)
+		                          OR (    CUS.REF_NO IS NOT NULL
+		                              AND CUS.REF_NO = BL.BL_NO))
+		         WHERE BL.VSL_CALL_ID = B.VSL_CALL_ID AND BL.BL_NO = B.BL_NO)
+		          AS CUSTMODE,
+		       (  SELECT 'Y'
+		            FROM TMT_JOB J
+		           WHERE     J.JOB_PURP_CD IN ('VA', 'VG', 'VW')
+		                 AND J.FNL_OPE_YN IN ('Y')
+		                 AND J.VSL_CALL_ID = C.VSL_CALL_ID
+		                 AND J.CG_NO = C.CG_NO
+		        GROUP BY J.VSL_CALL_ID, J.CG_NO)
+		          AS FNLDIS,
+		       NVL (DO.TSPT_TP_CD, 'LR') AS TSPTTPCD,
+		       '' AS GATETXNNO,
+		       '' AS LORRYNO,
+		       B.EACH_WGT AS eachWgt,
+		       B.EACH_VOL AS eachVol,
+		       NVL (B.ADDITIONAL_CHK, 'N') AS additionalCheckYn,
+		       F_CM_001 ('MT', 'TSPTTP', NVL (DO.TSPT_TP_CD, 'LR')) AS TSPTTPNM,
+		       F_CM_001 ('MT', 'DELVTP', B.DELV_TP_CD) AS DELVTPNM,
+		       F_CM_001 ('MT', 'CGTP', B.CG_TP_CD) AS CGTPNM,
+		       NVL (B.WGT_CHK, 'Y') AS WEIGHTCHECKYN,
+		       SDO.DMT,
+		       SDO.DM3,
+		       SDO.DQTY,
+		       SDO.IMT,
+		       SDO.IM3,
+		       SDO.IQTY,
+		       SDO.SDO_NO AS SDONO
+		  FROM TMT_BL B
+		       LEFT OUTER JOIN TMT_DO DO
+		          ON B.VSL_CALL_ID = DO.VSL_CALL_ID AND B.BL_NO = DO.BL_NO
+		       LEFT OUTER JOIN SDO_INFORMATION SDO
+		          ON     B.VSL_CALL_ID = SDO.VSL_CALL_ID
+		             AND B.BL_NO = SDO.BL_NO
+		             AND DO.DO_NO = SDO.DO_NO
+		       LEFT OUTER JOIN TMT_RORO_MST C
+          			ON B.VSL_CALL_ID = C.VSL_CALL_ID AND B.BL_NO = C.CG_NO AND SDO.SDO_NO =C.SDO_NO
+		       LEFT OUTER JOIN TMT_VSL_SCH SCH ON B.VSL_CALL_ID = SCH.VSL_CALL_ID
+		       LEFT OUTER JOIN TMT_VSL_PART P ON SCH.VSL_CD = P.VSL_CD
+		       LEFT OUTER JOIN VA ON 1 = 1
+		       LEFT OUTER JOIN VG ON 1 = 1
+		 WHERE B.VSL_CALL_ID = #{vslCallId} AND B.BL_NO = #{blNo} AND B.STAT_CD = 'AP'
+	</sql>
+	
+	<sql id="getYardTruckWhImportList">
+		WITH VA
+		     AS (SELECT (NVL (TO_NUMBER (SUM (CG_WGT)), 0)) AS MT,
+		                (NVL (TO_NUMBER (SUM (CG_VOL)), 0)) AS M3,
+		                (NVL (TO_NUMBER (SUM (PKG_QTY)), 0)) AS QTY,
+		               	(SELECT LISTAGG (CHAS_NO, ', ') WITHIN GROUP (ORDER BY CHAS_NO)
+                     		FROM (SELECT DISTINCT CHAS_NO
+                             		FROM TMT_JOB
+                            		WHERE     VSL_CALL_ID = JB.VSL_CALL_ID
+                                  			AND CG_NO = JB.CG_NO
+                                  			AND JOB_PURP_CD = 'VA'))
+                     		AS CHAS_NO
+		           FROM TMT_JOB JB
+		          WHERE JB.VSL_CALL_ID = #{vslCallId} AND JB.CG_NO = #{blNo} AND JB.JOB_PURP_CD = 'VA'  GROUP BY  JB.VSL_CALL_ID, JB.CG_NO),
+		     AW
+			     AS (SELECT (NVL (TO_NUMBER (SUM (CG_WGT)), 0)) AS MT,
+			                (NVL (TO_NUMBER (SUM (CG_VOL)), 0)) AS M3,
+			                (NVL (TO_NUMBER (SUM (PKG_QTY)), 0)) AS QTY,
+			                (SELECT LISTAGG (CHAS_NO, ', ')  WITHIN GROUP (ORDER BY CHAS_NO)
+			                     FROM (SELECT DISTINCT CHAS_NO
+			                             FROM TMT_JOB
+			                            WHERE     VSL_CALL_ID = JB.VSL_CALL_ID
+			                                  AND CG_NO = JB.CG_NO
+			                                  AND JOB_PURP_CD = 'AW')) AS CHAS_NO
+			           FROM TMT_JOB JB
+			          WHERE    JB.VSL_CALL_ID = #{vslCallId} AND JB.CG_NO = #{blNo}
+			                AND JB.JOB_PURP_CD = 'AW'
+			                GROUP BY JB.VSL_CALL_ID, JB.CG_NO),
+		     VG
+		     AS (SELECT (NVL (TO_NUMBER (SUM (CG_WGT)), 0)) AS MT,
+		                (NVL (TO_NUMBER (SUM (CG_VOL)), 0)) AS M3,
+		                (NVL (TO_NUMBER (SUM (PKG_QTY)), 0)) AS QTY
+		           	FROM TMT_JOB JB
+		          	WHERE JB.VSL_CALL_ID = #{vslCallId} AND JB.CG_NO = #{blNo} AND JB.JOB_PURP_CD = 'VG'),
+		     
+		     SDO_INFORMATION
+		     AS (  SELECT VSL_CALL_ID,
+		                  BL_NO,
+		                  DO_NO,
+		                  SDO_NO,
+		                  SUM (NVL (D_MT, 0)) DMT,
+		                  SUM (NVL (D_M3, 0)) DM3,
+		                  SUM (NVL (D_QTY, 0)) DQTY,
+		                  MAX (TSPT_TP_CD) TSPT_TP_CD,
+		                  SUM (NVL (I_MT, 0)) IMT,
+		                  SUM (NVL (I_M3, 0)) IM3,
+		                  SUM (NVL (I_QTY, 0)) IQTY,
+		                  MAX (I_TSPT_TP_CD) I_TSPT_TP_CD
+		             FROM TMT_DO_DTL
+		            WHERE VSL_CALL_ID = #{vslCallId} AND BL_NO = #{blNo} 
+		            <if test="sdoNo != null and sdoNo != ''">
+		           		 AND SDO_NO = #{sdoNo}
+		            </if>
+		         GROUP BY VSL_CALL_ID,
+		                  BL_NO,
+		                  DO_NO,
+		                  SDO_NO)
+		SELECT   DISTINCT                      /*cargoDischarging.selectConfirmDischargingList*/
+		      B.BL_NO AS BLNO,
+		       B.MF_DOC_ID AS MFDOCID,
+		       DO.DO_NO AS DONO,
+       		   VA.CHAS_NO AS CHAS_NO,
+       			AW.CHAS_NO AS UNIT_NO,
+		       B.VSL_CALL_ID AS VSLCALLID,
+		       B.VSL_CD AS VSLCD,
+		       B.CALL_YEAR AS CALLYEAR,
+		       B.CALL_SEQ AS CALLSEQ,
+		       P.VSL_NM AS VSLNM,
+		       NVL (TO_NUMBER (B.PKG_QTY), 0) AS QTY,
+		       NVL (TO_NUMBER (REPLACE (NVL (TRUNC (B.CG_WGT, 3), 0), ',', '')), 0)
+		          AS MT,
+		       NVL (TO_NUMBER (TRUNC (B.CG_VOL, 3)), 0) AS M3,      /*Direct Balance*/
+		       NVL (TO_NUMBER (VA.QTY - NVL(AW.QTY,0)), 0) AS BALQTY,
+		       NVL (TO_NUMBER (VA.MT - NVL(AW.MT,0)), 0) AS BALMT,
+		       NVL (TO_NUMBER (VA.M3 - NVL(AW.M3,0)), 0) AS BALM3,
+		       NVL (TO_NUMBER (VA.QTY - NVL(AW.QTY,0)), 0) AS AQTY,
+		       NVL (TO_NUMBER (VA.MT - NVL(AW.MT,0)), 0) AS AMT,
+		       NVL (TO_NUMBER (VA.M3 - NVL(AW.M3,0)), 0) AS AM3,
+		       NVL (TO_NUMBER (VA.QTY), 0) AS ABQTY,
+		       NVL (TO_NUMBER (VA.MT), 0) AS ABMT,
+		       NVL (TO_NUMBER (VA.M3), 0) AS ABM3,
+		       NVL (TO_NUMBER (VA.QTY - NVL(AW.QTY,0)), 0) AS yardTruckQty,
+		       NVL (TO_NUMBER (VA.MT - NVL(AW.MT,0)), 0) AS yardTruckMT,
+		       NVL (TO_NUMBER (VA.M3 - NVL(AW.M3,0)), 0) AS yardTruckM3,
+		       B.TSPTR AS TSPTR,
+		       (SELECT ENG_SNM
+		          FROM TMT_PTNR
+		         WHERE PTNR_TYPE = 'TRK' AND PTNR_CODE = B.TSPTR)
+		          AS TSPTRNM,
+		       B.DELV_TP_CD AS DELVTPCD,
+		       NVL (B.CATG_CD, ' ') AS CATGCD,
+		       <!-- NVL (C.WH_FNL_DELV_YN, 'N') AS WHFNLDELVYN, -->
+		       B.CMDT_CD AS CMDTCD,
+		       B.CMDT_GRP_CD AS CMDTGRPCD,
+		       (SELECT M.CMDT_DESC
+		          FROM TMT_CMDT M
+		         WHERE M.CMDT_CD = B.CMDT_CD)
+		          AS CARGO,
+		       B.PKG_TP_CD AS PKGTPCD,
+		       B.PKG_TP_CD AS REPKGTYPECD,
+		       B.CG_WGT_UNIT AS WGTUNIT,
+		       B.CG_VOL_UNIT AS MSRMTUNIT,
+		       B.POL AS PORTOFLOAD,
+		       B.POD AS PORTOFDIS,
+		       B.FND AS FDEST,
+		       B.CG_TP_CD AS CGTPCD,
+		       (SELECT A.LORRY_NO AS LORRYID
+		          FROM TMT_CG_ARRV_DELV A
+		         WHERE     A.CG_IN_OUT_CD = 'O'
+		               AND A.GATE_OUT_DT IS NULL
+		               AND A.LORRY_NO IS NOT NULL
+		               AND A.VSL_CALL_ID = B.VSL_CALL_ID
+		               AND A.CG_NO = B.BL_NO
+		               AND ROWNUM = 1)
+		          AS externalLorryNo,
+		       NVL (B.FWRD, ' ') AS FWRAGNT,
+		       (SELECT JJ.RMK
+		          FROM TMT_JOB JJ
+		         WHERE     JJ.VSL_CALL_ID = #{vslCallId}
+		               AND JJ.CG_NO = #{blNo}
+		               AND JJ.JOB_PURP_CD IN ('VG', 'VA', 'VW')
+		               AND JJ.JOB_NO =
+		                      (SELECT MAX (J.JOB_NO)
+		                         FROM TMT_JOB J
+		                        WHERE     J.VSL_CALL_ID = #{vslCallId}
+		                              AND J.CG_NO = #{blNo}
+		                              AND J.JOB_PURP_CD IN ('VG', 'VA', 'VW')
+		                              AND J.RMK IS NOT NULL))
+		          AS RMK,
+		       (SELECT CASE
+		                  WHEN CUS.DOC_NO IS NULL
+		                  THEN
+		                     'HOLD'
+		                  WHEN CUS.DOC_NO IS NOT NULL AND CUS.RELEASE_MT IS NULL
+		                  THEN
+		                     'RELEASE'
+		                  ELSE
+		                     'RELEASE'
+		               END
+		                  AS status
+		          FROM TMT_BL BL
+		               LEFT OUTER JOIN (  SELECT DOC_NO,
+		                                         REF_NO,
+		                                         VSL_CALL_ID,
+		                                         SUM (RELEASE_MT) AS RELEASE_MT,
+		                                         SUM (RELEASE_QTY) AS RELEASE_QTY
+		                                    FROM TMT_CUSTOMS_RELEASE
+		                                GROUP BY DOC_NO, REF_NO, VSL_CALL_ID) CUS
+		                  ON     CUS.VSL_CALL_ID = BL.VSL_CALL_ID
+		                     AND (   (    CUS.REF_NO IS NULL
+		                              AND CUS.DOC_NO = BL.MF_DOC_ID)
+		                          OR (    CUS.REF_NO IS NOT NULL
+		                              AND CUS.REF_NO = BL.BL_NO))
+		         WHERE BL.VSL_CALL_ID = B.VSL_CALL_ID AND BL.BL_NO = B.BL_NO)
+		          AS CUSTMODE,
+		       (  SELECT 'Y'
+		            FROM TMT_JOB J
+		           WHERE     J.JOB_PURP_CD IN ('VA', 'VG', 'VW')
+		                 AND J.FNL_OPE_YN IN ('Y')
+		                 AND J.VSL_CALL_ID = C.VSL_CALL_ID
+		                 AND J.CG_NO = C.CG_NO
+		        GROUP BY J.VSL_CALL_ID, J.CG_NO)
+		          AS FNLDIS,
+		       NVL (DO.TSPT_TP_CD, 'LR') AS TSPTTPCD,
+		       '' AS GATETXNNO,
+		       '' AS LORRYNO,
+		       B.EACH_WGT AS eachWgt,
+		       B.EACH_VOL AS eachVol,
+		       NVL (B.ADDITIONAL_CHK, 'N') AS additionalCheckYn,
+		       F_CM_001 ('MT', 'TSPTTP', NVL (DO.TSPT_TP_CD, 'LR')) AS TSPTTPNM,
+		       F_CM_001 ('MT', 'DELVTP', B.DELV_TP_CD) AS DELVTPNM,
+		       F_CM_001 ('MT', 'CGTP', B.CG_TP_CD) AS CGTPNM,
+		       NVL (B.WGT_CHK, 'Y') AS WEIGHTCHECKYN,
+		       SDO.DMT,
+		       SDO.DM3,
+		       SDO.DQTY,
+		       SDO.IMT,
+		       SDO.IM3,
+		       SDO.IQTY,
+		       SDO.SDO_NO AS SDONO
+		  FROM TMT_BL B
+		       LEFT OUTER JOIN TMT_DO DO
+		          ON B.VSL_CALL_ID = DO.VSL_CALL_ID AND B.BL_NO = DO.BL_NO
+		       LEFT OUTER JOIN SDO_INFORMATION SDO
+		          ON     B.VSL_CALL_ID = SDO.VSL_CALL_ID
+		             AND B.BL_NO = SDO.BL_NO
+		             AND DO.DO_NO = SDO.DO_NO
+		       LEFT OUTER JOIN TMT_RORO_MST C
+          			ON B.VSL_CALL_ID = C.VSL_CALL_ID AND B.BL_NO = C.CG_NO AND SDO.SDO_NO =C.SDO_NO
+		       LEFT OUTER JOIN TMT_VSL_SCH SCH ON B.VSL_CALL_ID = SCH.VSL_CALL_ID
+		       LEFT OUTER JOIN TMT_VSL_PART P ON SCH.VSL_CD = P.VSL_CD
+		       LEFT OUTER JOIN VA ON 1 = 1
+		       LEFT OUTER JOIN VG ON 1 = 1
+		       LEFT OUTER JOIN AW ON 1 = 1
+		 WHERE B.VSL_CALL_ID = #{vslCallId} AND B.BL_NO = #{blNo} AND B.STAT_CD = 'AP'          
+	</sql>
+	
+	<select id="selectCargoItems" parameterType="confirmDischargingOfROROParm" resultMap="resultBlMap">
+			<choose>
+				<when test="searchType !=null and searchType == 'JOBVA'">
+					<include refid="getYardTruckWhImportList"/>
+				</when>
+				<!-- <when test="listType !=null and listType == 'BARGE'">
+					<include refid="getBargeImportList"/>
+				</when> -->
+				<when test="searchType !=null and searchType == 'BL'">
+					<include refid="selectBlItems"/>
+				</when>
+			</choose>
+		
+	</select>
+	
+	<select id="selectCargoItemsCount" parameterType="confirmDischargingOfROROParm" resultType="java.lang.String">
+	 	SELECT COUNT(*)
+          FROM (<include refid="selectBlItems"/>)
+	 </select>
+	
+	<sql id="selectRcvUnitItems">
+		SELECT	/* confirmDischargingOfRORO.selectRcvUnitItems */
+				B.VSL_CD,
+				B.CALL_YEAR,
+				B.CALL_SEQ,
+				B.VSL_CALL_ID,
+				B.MF_DOC_ID,
+				B.BL_NO AS CG_NO,
+				B.BRAND_CD,
+				B.MODEL_CD,
+				B.CHAS_NO,
+				B.SEQ AS RORO_SEQ,
+				B.CG_TP_CD,
+				B.CATG_CD,
+				B.IX_CD,
+				B.DOC_WGT,
+				B.CBM,
+				R.DELV_TP_CD,
+				F_CM_001 ('MT', 'DELVTP', R.DELV_TP_CD) AS DELV_TP_NM,
+				TO_CHAR (R.DISCHARGING_DTM, 'DD/MM/YYYY HH24:MI') AS DISCHARGING_DTM,
+				TO_CHAR (R.IN_DTM, 'DD/MM/YYYY HH24:MI') AS IN_DTM,
+				TO_CHAR (R.OUT_DTM, 'DD/MM/YYYY HH24:MI') AS OUT_DTM,
+				R.LOC_ID,
+				NVL(R.STAT_CD, B.STAT_CD) AS STAT_CD,
+				F_CM_001 ('MT', 'CGSTATUS', NVL(R.STAT_CD, B.STAT_CD)) AS STAT_NM,
+				R.PLAN_LOC_ID,
+				R.STEVEDORE_ID,
+				NVL (R.DISCHARGING_RMK, '') AS DISCHARGING_RMK,
+				NVL (R.YARD_RMK, '') AS YARD_RMK,
+				NVL (R.NEW_YN, B.NEW_YN) AS NEW_YN
+		
+		FROM    TMT_BL_DTL B
+                        LEFT OUTER JOIN TMT_RORO_MST R ON R.VSL_CALL_ID = B.VSL_CALL_ID AND R.MF_DOC_ID = B.MF_DOC_ID AND R.CG_NO = B.BL_NO AND R.CHAS_NO = B.CHAS_NO AND R.RORO_SEQ = B.SEQ
+		WHERE   B.VSL_CALL_ID = #{vslCallId}
+		        <if test="blNo != null and blNo != ''">
+					AND B.BL_NO = #{blNo}
+				</if>
+				<if test="unitNo != null and unitNo != ''">
+					AND B.CHAS_NO = #{unitNo}
+				</if>
+				<if test="brandCd != null and brandCd != ''">
+					AND B.BRAND_CD = #{brandCd}
+				</if>
+				<if test="statCd != null and statCd != ''">
+					AND B.STAT_CD = #{statCd}
+				</if>
+		        AND B.CG_TP_CD IN ('RCV')
+		        
+		ORDER BY B.CHAS_NO
+	</sql>
+	
+	<select id="selectUnitItems" parameterType="confirmDischargingOfROROParm" resultMap="resultUnitMap">
+		<include refid="selectRcvUnitItems"/>
+	</select>
+	
+	<select id="selectUnitItemsCount" parameterType="confirmDischargingOfROROParm" resultType="java.lang.String">
+		SELECT COUNT(*)
+          FROM (<include refid="selectRcvUnitItems"/>)
+	</select>
+	
+	<update id="updateConfirmDischargingOfRoRo" parameterType="confirmDischargingOfROROItem">
+		/* confirmDischargingOfRORO.updateConfirmDischargingOfRoRo */
+		UPDATE  TMT_RORO_MST
+		SET     STAFF_CD =  #{userId}
+		        ,UPDATE_TIME = SYSDATE
+		        ,DELV_TP_CD = #{delvTpCd}
+				,STAT_CD = #{statCd}
+				,DISCHARGING_DTM = TO_DATE(#{dischargedDate},'DD/MM/YYYY HH24:MI')
+				,OUT_DTM = TO_DATE(#{outDate},'DD/MM/YYYY HH24:MI')
+				,STEVEDORE_ID = #{stevedoreId}
+        		,DISCHARGING_RMK = #{rmk}
+        		<!-- ,CORRECTION_UNIT_YN = #{correctionUnitNoYN} -->
+        		<!-- ,CHAS_NO = CASE WHEN #{correctionUnitNoYN}= 'Y' THEN #{correctionUnitNo} ELSE #{unitNo} END -->
+				,NEW_YN = #{newYn}
+				,IN_DTM = TO_DATE(#{inDate},'DD/MM/YYYY HH24:MI')
+				,LOC_ID = #{locId}
+				,WH_ID = SUBSTR(#{locId}, 0, INSTR(#{locId}, '(')-1)
+				,YARD_RMK = #{yardCheckRmk}
+				,TRUCK_NO = #{lorryNo}
+				,DRIVER_ID = #{driverId}
+		WHERE   VSL_CALL_ID = #{vslCallId}
+		        AND CG_NO = #{blNo}
+		        AND CHAS_NO IN ${unitNo}
+	</update>
+	
+	<insert id="insertUnitCorrectionOfRoRo" parameterType="confirmDischargingOfROROItem">
+
+		INSERT /* confirmDischargingOfRORO.insertUnitCorrectionOfRoRo */ INTO TMT_RORO_UNIT_CORRECTION (
+		   VSL_CD
+		  ,CALL_YEAR
+		  ,CALL_SEQ
+		  ,VSL_CALL_ID
+		  ,DOC_NO
+		  ,CG_NO
+		  ,RORO_SEQ
+		  ,SEQ
+		  ,ORG_UNIT_NO
+		  ,CORRECTION_UNIT_NO
+		  ,STAFF_CD
+		  ,UPD_TIME
+		) VALUES (
+		   #{vslCd}
+		  ,#{callYear} 
+		  ,#{callSeq}
+		  ,#{vslCallId}
+		  ,#{masterBlNo}
+		  ,#{blNo}
+		  ,#{roroSeq}
+		  ,(SELECT NVL(MAX(SEQ), 0) + 1 FROM TMT_RORO_UNIT_CORRECTION WHERE VSL_CALL_ID = #{vslCallId} AND CG_NO = #{blNo} AND RORO_SEQ = #{roroSeq})
+		  ,#{unitNo}
+		  ,#{correctionUnitNo}
+		  ,#{userId}
+		  ,SYSDATE
+		)
+	</insert>
+	
+	
+	<!-- ====== HHT Start====== -->
+	<select id="selectUnitItemsHHT" parameterType="confirmDischargingOfROROParm" resultMap="resultUnitMap">
+		SELECT /* ConfirmDischargingOfRoRoMAP.selectUnitItemsHHT */
+                B.VSL_CD,
+                B.CALL_YEAR,
+                B.CALL_SEQ,
+                B.VSL_CALL_ID,
+                B.MF_DOC_ID,
+                B.BL_NO AS CGNO,
+                B.BL_NO AS BLNO,
+                B.BRAND_CD,
+                B.MODEL_CD,
+                B.CHAS_NO,
+                B.SEQ AS RORO_SEQ,
+                B.CG_TP_CD,
+                B.CATG_CD,
+                B.IX_CD,
+                B.DOC_WGT,
+                B.CBM,
+                R.DELV_TP_CD,
+                R.PLAN_LOC_ID,
+                R.STEVEDORE_ID,
+                R.LOC_ID,
+                F_CM_001 ('MT', 'DELVTP', R.DELV_TP_CD) AS DELV_TP_NM,     
+		        TO_CHAR (R.DISCHARGING_DTM, 'DD/MM/YYYY HH24:MI') AS DISCHARGING_DTM,
+		        TO_CHAR (R.IN_DTM, 'DD/MM/YYYY HH24:MI') AS IN_DTM,
+		        TO_CHAR (R.OUT_DTM, 'DD/MM/YYYY HH24:MI') AS OUT_DTM,
+		        NVL(R.STAT_CD, B.STAT_CD) AS STAT_CD,
+		        F_CM_001 ('MT', 'CGSTATUS', NVL(R.STAT_CD, B.STAT_CD)) AS STAT_NM,
+		        NVL (R.DISCHARGING_RMK, '') AS DISCHARGING_RMK,
+		        NVL (R.YARD_RMK, '') AS YARD_RMK,
+		        NVL (R.NEW_YN, B.NEW_YN) AS NEW_YN,
+		        TO_CHAR (R.GATE_IN_DTM, 'DD/MM/YYYY HH24:MI') AS GATE_IN_DTM,
+		        TO_CHAR (R.GATE_OUT_DTM, 'DD/MM/YYYY HH24:MI') AS GATE_OUT_DTM
+		FROM	TMT_BL_DTL B
+				LEFT OUTER JOIN TMT_RORO_MST R ON R.VSL_CALL_ID = B.VSL_CALL_ID AND R.MF_DOC_ID = B.MF_DOC_ID AND R.CG_NO = B.BL_NO AND R.CHAS_NO = B.CHAS_NO AND R.RORO_SEQ = B.SEQ
+		WHERE   B.VSL_CALL_ID = #{vslCallId}
+				<if test="unitNo != null and unitNo != ''">
+					AND B.CHAS_NO = #{unitNo}
+				</if>
+				<if test="brandCd != null and brandCd != ''">
+					AND B.BRAND_CD = #{brandCd}
+				</if>
+				<if test="statCd != null and statCd != ''">
+					AND R.STAT_CD = #{statCd}
+				</if>
+				<if test="delvTpCd != null and delvTpCd != ''">
+					AND B.DELV_TP_CD = #{delvTpCd}
+				</if>
+				<if test="blNo != null and blNo != ''">
+						AND B.BL_NO = #{blNo}
+				</if>
+				<if test="cgNo != null and cgNo != ''">
+						AND B.BL_NO = #{cgNo}
+				</if>
+				
+				<if test="searchType != null and searchType != ''">
+					AND R.IN_DTM IS NOT NULL
+					AND R.LOC_ID IS NOT NULL
+					AND R.OUT_DTM IS NULL
+					AND R.GATE_OUT_DTM IS NULL
+					AND R.RHDL_NO IS NULL
+				</if>
+				
+		        AND B.CG_TP_CD IN ('RCV')
+		ORDER BY B.CHAS_NO
+	</select>
+	
+	<update id="updateConfirmDischargingOfRoRoHHT" parameterType="confirmDischargingOfROROItem">
+		UPDATE  TMT_RORO_MST /* confirmDischargingOfRORO.updateConfirmDischargingOfRoRoHHT */
+		SET     STAFF_CD =  #{userId}
+		        ,UPDATE_TIME = SYSDATE
+		        ,DELV_TP_CD = #{delvTpCd}
+				,STAT_CD = #{statCd}
+				,DISCHARGING_DTM = TO_DATE(#{dischargedDate},'DD/MM/YYYY HH24:MI')
+				,OUT_DTM = TO_DATE(#{outDate},'DD/MM/YYYY HH24:MI')
+				,STEVEDORE_ID = #{stevedoreId}
+        		,DISCHARGING_RMK = #{dischargingRmk}
+        		,CORRECTION_UNIT_YN = #{correctionUnitNoYN}
+        		,CHAS_NO = CASE WHEN #{correctionUnitNoYN}= 'Y' THEN #{correctionUnitNo} ELSE #{unitNo} END
+				,NEW_YN = #{newYn}
+
+				,IN_DTM = TO_DATE(#{inDate},'DD/MM/YYYY HH24:MI')
+				,LOC_ID = #{unitYardLoc}
+				,WH_ID = SUBSTR(#{unitYardLoc}, 0, INSTR(#{unitYardLoc}, '-')-1)
+				,YARD_RMK = #{yardCheckRmk}
+
+		WHERE   VSL_CALL_ID = #{vslCallId}
+		        AND CG_NO = #{blNo}
+		        AND CHAS_NO = #{unitNo}
+		        <if test="roroSeq != null and roroSeq != ''">
+					AND RORO_SEQ = #{roroSeq}
+				</if>
+	</update>
+	
+	<select id="selectApronCheckerImportList" parameterType="confirmDischargingOfROROParm" resultMap="resultBlMap">
+		SELECT                       /* ConfirmDischargingOfRoRoMAP.selectApronCheckerImportList */
+			DISTINCT
+			BL.VSL_CD,
+			BL.CALL_YEAR,
+			BL.CALL_SEQ,
+			BL.VSL_CALL_ID,
+			BL.MF_DOC_ID,
+			BL.BL_NO,
+			(	SELECT DO.DO_NO FROM TMT_DO DO WHERE BL.VSL_CALL_ID = DO.VSL_CALL_ID AND BL.BL_NO = DO.BL_NO	) AS doNo,
+			<!-- DECODE (BL.CATG_CD, 'I', 'Import', 'Transshipment') AS catgNm, --> <!-- AS opClassNm, -->
+			BL.CATG_CD,
+			F_CM_001 ('MT', 'CATGTP', BL.CATG_CD) AS CATG_NM,
+			COUNT (VIN.CHAS_NO)
+			   OVER (PARTITION BY VIN.CG_NO, VIN.MF_DOC_ID, VIN.VSL_CALL_ID)
+			   AS NOS_OF_VIN,
+			NVL(S.REMAIN_VIN, 0) AS VIN_REMAIN,	<!-- Remain of Discharging HHT -->
+			BR.BRAND_CD,
+			BR.BRAND_NM,
+			M.MODEL_CD,
+			M.MODEL_NM,
+			BL.DELV_TP_CD,
+			F_CM_001 ('MT', 'DELVTP', BL.DELV_TP_CD) AS DELV_TP_NM,
+			BL.CG_TP_CD,
+			F_CM_001 ('MT', 'CGTP', BL.CG_TP_CD) AS CG_TP_NM
+		FROM	TMT_BL BL
+				  <!-- INNER JOIN TMT_DO DO 			ON BL.VSL_CALL_ID = DO.VSL_CALL_ID AND BL.BL_NO = DO.BL_NO -->
+				  INNER JOIN TMT_RORO_MST VIN 	ON BL.VSL_CALL_ID = VIN.VSL_CALL_ID AND BL.BL_NO = VIN.CG_NO
+				  LEFT OUTER JOIN TMT_BRAND BR
+					  ON	VIN.BRAND_CD = BR.BRAND_CD
+				  LEFT OUTER JOIN TMT_BRAND_DTL M
+					  ON	VIN.MODEL_CD = M.MODEL_CD
+						    AND VIN.BRAND_CD = M.BRAND_CD
+				  LEFT OUTER JOIN 
+				  (		SELECT COUNT(R1.CHAS_NO) REMAIN_VIN,
+							    R1.VSL_CALL_ID,
+							    R1.MF_DOC_ID,
+							    R1.CG_NO
+						FROM	TMT_RORO_MST R1
+						WHERE	R1.VSL_CALL_ID = #{vslCallId}
+					  		AND R1.IN_DTM IS NULL
+					  		AND R1.OUT_DTM IS NULL
+					  		AND R1.DISCHARGING_DTM IS NULL
+					  		<choose>
+								<when test="cgTpCd != null and cgTpCd != ''">
+									AND R1.CG_TP_CD = #{cgTpCd}
+								</when>
+								<otherwise>
+									AND R1.CG_TP_CD IN ('RCV','RMA')
+								</otherwise>
+							</choose>
+						GROUP BY  R1.VSL_CALL_ID,
+							      R1.MF_DOC_ID,
+							      R1.CG_NO
+					) S
+					ON	BL.VSL_CALL_ID = S.VSL_CALL_ID
+						    AND BL.BL_NO = S.CG_NO
+		WHERE	BL.VSL_CALL_ID = #{vslCallId}
+          		
+<!--           		AND BL.STAT_CD = 'AP' -->
+          
+				<if test="blNo != null and blNo != ''">
+					AND BL.BL_NO = #{blNo}
+				</if>
+				<if test="unitNo != null and unitNo != ''">
+					AND VIN.CHAS_NO LIKE CONCAT(#{unitNo},'%')
+				</if>
+          		<choose>
+					<when test="cgTpCd != null and cgTpCd != ''">
+						AND BL.CG_TP_CD =#{cgTpCd}
+					</when>
+					<otherwise>
+						AND BL.CG_TP_CD IN ('RCV','RMC','RMA')
+					</otherwise>
+				</choose>
+
+		ORDER BY BL.BL_NO
+	</select>
+	<select id="selectGatepassNo"   parameterType="cargoArrvDelvParm" resultType="cargoArrvDelvItem">
+		<if test="isMultiCargo == '' or isMultiCargo == null or isMultiCargo eq 'N'.toString()">
+			SELECT 	('P'
+			        || TO_CHAR (SYSDATE, 'YYYYMMDD')
+			        || TRIM (
+			              TO_CHAR (
+			                 NVL (MAX (TO_NUMBER (SUBSTR (GATE_PASS_NO, -4, 4)) + 1), 1),
+			                 '0000')))
+			          AS GATEPASSNO
+			FROM	TMT_CG_ARRV_DELV
+			WHERE 	SUBSTR (GATE_PASS_NO, 1, LENGTH (GATE_PASS_NO) - 4) = ('P' || TO_CHAR (SYSDATE, 'YYYYMMDD'))
+		</if>
+	</select>
+	
+	<select id="selectIsROROMst"   parameterType="cargoMasterParm" resultType="java.lang.String">
+		SELECT	'1' FROM TMT_RORO_MST
+		WHERE 	ROWNUM = 1 AND CG_NO = #{cgNo} AND	VSL_CALL_ID = #{vslCallId}
+	</select>
+	
+	<update id="updateDelvItems" parameterType="confirmDischargingOfROROItem">
+		UPDATE	TMT_CG_ARRV_DELV
+		SET 	CG_IN_OUT_CD = #{cgInOutCd},
+		   		GATE_PASS_ISSUE_DT = SYSDATE,
+				GATE_PASS_NO = #{gatePassNo},
+				RMK = #{rmk},
+				UPDATE_TIME = SYSDATE,
+				STAFF_CD = #{userId},
+				JOB_NO = ( SELECT J.JOB_NO AS jobNo FROM TMT_JOB J
+							 WHERE J.VSL_CALL_ID = #{vslCallId}
+							   AND J.CG_NO = #{blNo}
+							   AND J.JOB_GROUP = #{jobGroup}
+							   AND J.GATE_TXN_NO = #{gateTxnNo}
+							   AND ROWNUM=1),
+				VERSION =#{newVersion}
+		 WHERE 	VSL_CALL_ID=#{vslCallId} 
+		   		AND CG_NO=#{blNo} 
+				AND LORRY_NO = #{lorryNo}
+				<if test="gateTxnNo != null and gateTxnNo != ''">
+					AND GATE_TXN_NO = #{gateTxnNo}
+				</if>
+				<if test="cgInOutCd != null and cgInOutCd != ''">
+					AND CG_IN_OUT_CD =#{cgInOutCd}
+				</if>
+				AND GATE_PASS_NO IS NULL
+	</update>
+	<!-- <insert id="insertUnitCorrectionOfRoRoHHT" parameterType="confirmDischargingOfROROItem">
+		INSERT /* confirmDischargingOfRORO.insertUnitCorrectionOfRoRoHHT  */ 
+		INTO TMT_RORO_UNIT_CORRECTION (
+		   VSL_CD
+		  ,CALL_YEAR
+		  ,CALL_SEQ
+		  ,VSL_CALL_ID
+		  ,DOC_NO
+		  ,CG_NO
+		  ,RORO_SEQ
+		  ,SEQ
+		  ,ORG_UNIT_NO
+		  ,CORRECTION_UNIT_NO
+		  ,STAFF_CD
+		  ,UPDATE_TIME
+		) VALUES (
+		   #{vslCd}
+		  ,#{callYear} 
+		  ,#{callSeq}
+		  ,#{vslCallId}
+		  ,#{masterBlNo}
+		  ,#{blNo}
+		  ,#{roroSeq}
+		  ,(SELECT NVL(MAX(SEQ), 0) + 1 FROM TMT_RORO_UNIT_CORRECTION WHERE VSL_CALL_ID = #{vslCallId} AND CG_NO = #{blNo} AND RORO_SEQ = #{roroSeq})
+		  ,#{unitNo}
+		  ,#{correctionUnitNo}
+		  ,#{userId}
+		  ,SYSDATE
+		)
+	</insert> -->
+	<insert id="insertConfirmDischargingOfRoRo" parameterType="confirmDischargingOfROROItem">
+		INSERT /*confirmDischargeForRoRo.insertRoRoItems*/
+		INTO TMT_RORO_MST (
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			VSL_CALL_ID,
+			MF_DOC_ID,
+			CG_NO,
+			CHAS_NO,
+			RORO_SEQ,
+			BRAND_CD,
+			MODEL_CD,
+			DOC_WGT,
+			CBM,
+			CATG_CD,
+			CG_TP_CD,
+			IX_CD,
+			NEW_YN,
+			DISCHARGING_DTM,
+        	DISCHARGING_RMK,
+			STAT_CD,
+			STAFF_CD,
+			UPDATE_TIME
+		) VALUES (     
+			(SELECT VSL_CD FROM TMT_BL_DTL 
+					WHERE   VSL_CALL_ID  =  #{vslCallId}
+                            AND BL_NO    =  #{blNo}
+                            AND CHAS_NO  = #{unitNo})
+			,(SELECT CALL_YEAR FROM TMT_BL_DTL 
+					WHERE   VSL_CALL_ID  =  #{vslCallId}
+                            AND BL_NO    =  #{blNo}
+                            AND CHAS_NO  = #{unitNo})
+			,(SELECT CALL_SEQ FROM TMT_BL_DTL 
+					WHERE   VSL_CALL_ID  =  #{vslCallId}
+                            AND BL_NO    =  #{blNo}
+                            AND CHAS_NO  = #{unitNo})
+			,#{vslCallId}
+			,(SELECT MF_DOC_ID FROM TMT_BL_DTL 
+					WHERE   VSL_CALL_ID  =  #{vslCallId}
+                            AND BL_NO    =  #{blNo}
+                            AND CHAS_NO  = #{unitNo})
+			,#{blNo}
+			,#{unitNo}
+			,(SELECT    RTRIM(LTRIM(TO_CHAR(MAX(A.roroSeq),'0000'))) roroSeq
+                        FROM (
+                                SELECT    CAST(MAX(RORO_SEQ) AS INT) + 1 as roroSeq
+                                FROM    TMT_RORO_MST
+                                WHERE   VSL_CALL_ID     =  #{vslCallId}
+                                        AND MF_DOC_ID  IN (SELECT MF_DOC_ID FROM TMT_BL_DTL 
+														WHERE   VSL_CALL_ID  =  #{vslCallId}
+									                            AND BL_NO    =  #{blNo}
+									                            AND CHAS_NO  = #{unitNo})	
+                                        <if test="blNo != null and blNo != ''">
+											AND CG_NO   =  #{blNo}
+										</if>
+                                UNION
+                                SELECT 1 roroSeq from dual) A)
+			,(SELECT BRAND_CD FROM TMT_BL_DTL 
+					WHERE   VSL_CALL_ID  =  #{vslCallId}
+                            AND BL_NO    =  #{blNo}
+                            AND CHAS_NO  = #{unitNo})
+			,(SELECT MODEL_CD FROM TMT_BL_DTL 
+					WHERE   VSL_CALL_ID  =  #{vslCallId}
+                            AND BL_NO    =  #{blNo}
+                            AND CHAS_NO  = #{unitNo})
+			,(SELECT DOC_WGT FROM TMT_BL_DTL 
+					WHERE   VSL_CALL_ID  =  #{vslCallId}
+                            AND BL_NO    =  #{blNo}
+                            AND CHAS_NO  = #{unitNo})
+			,(SELECT CBM FROM TMT_BL_DTL 
+					WHERE   VSL_CALL_ID  =  #{vslCallId}
+                            AND BL_NO    =  #{blNo}
+                            AND CHAS_NO  = #{unitNo})
+			,#{catgCd}
+			,#{cgTpCd}
+			,'I'
+			,(SELECT NEW_YN FROM TMT_BL_DTL 
+					WHERE   VSL_CALL_ID  =  #{vslCallId}
+                            AND BL_NO    =  #{blNo}
+                            AND CHAS_NO  = #{unitNo})
+			,TO_DATE(#{dischargedDate},'DD/MM/YYYY HH24:MI')
+			,#{rmk}
+			,'OD'
+			,#{userId}
+			,SYSDATE
+		)
+	</insert>
+	
+	<insert id="insertJobItems" parameterType="confirmDischargingOfROROItem">
+		<selectKey order="BEFORE" resultType="confirmDischargingOfROROItem" keyProperty="jobNo" >
+			SELECT 
+				('J' || TO_CHAR(SYSDATE, 'YYMMDD') 
+					 || (SELECT NVL(TRIM(To_CHAR(SUBSTR(MAX(JOB_NO) ,-9,9)+1, '000000000')),'000000000') 
+					  FROM  TMT_JOB)) AS jobNo
+			 FROM DUAL
+		</selectKey>
+		INSERT INTO TMT_JOB (
+			JOB_NO,
+			JOB_TP_CD,
+			WORK_ST_DT,
+			WORK_END_DT,
+			SHFT_ID,
+			PKG_TP_CD,
+			PKG_QTY,
+			CG_VOL,
+			CG_WGT,
+			EQ_NO,
+			STAT_CD,
+			CG_NO,
+			SDO_NO,
+			VSL_CALL_ID,
+			JOB_PURP_CD,
+			DELV_TP_CD,
+			FNL_OPE_YN,
+			FNL_DELV_YN,
+			HATCH_NO,
+			OPE_CLASS_CD,
+			DMG_YN,
+			JOB_GROUP,
+			UPDATE_TIME,
+			STAFF_CD,
+			VERSION,
+			TSPT_TP_CD,
+			JOB_CO_CD,
+			REPKG_TYPE_CD,
+			RMK,
+			LORRY_NO,
+			DRIVER_ID,
+			STEVEDORE_ID,
+			TO_LOC_ID,
+			GATE_TXN_NO
+			<if test="(iunitNo != null and iunitNo != '') or (dunitNo != null and dunitNo != '') or (unitNo != null and unitNo != '')" >
+			  , CHAS_NO
+			</if>
+		) VALUES (
+			#{jobNo},
+			#{jobTpCd},
+			TO_DATE(#{startDtStr}, 'DD/MM/YYYY HH24:MI'),
+			TO_DATE(#{endDtStr}, 'DD/MM/YYYY HH24:MI'),
+			F_GET_SHIFT_CD(TO_DATE(#{endDtStr}, 'DD/MM/YYYY HH24:MI'), 'CD'),
+			#{pkgTpCd},
+			TO_NUMBER(NVL(#{pkgQty},0)),
+			TO_NUMBER(NVL(#{msrmt},0)),
+			TO_NUMBER(NVL(#{wgt},0)),
+			#{eqNo},
+			#{statCd},
+			#{blNo},
+			#{sdoNo},
+			#{vslCallId},
+			#{jobPurpCd},
+			#{delvTpCd},
+			DECODE(#{fnlOpeYn},'true','Y','Y','Y','N'),
+			#{fnlDelvYn},
+			#{hatchNo},
+			#{catgCd},
+			DECODE(#{dmgYn},NULL,'N','true','Y','false','N','Y','Y','N','N'),
+			#{jobGroup},
+			SYSDATE,
+			#{userId},
+			#{newVersion},
+			#{tsptTpCd},
+			#{jobCoCd},
+			#{rePkgTpCd},
+			#{rmk},
+			#{lorryNo},
+			#{driverId},
+			#{stevedoreId},
+			#{toLocId},
+			#{gateTxnNo}
+			<if test="iunitNo != null and iunitNo != ''">
+				,#{iunitNo}
+			</if>
+			<if test="dunitNo != null and dunitNo != ''">
+				,#{dunitNo}
+			</if>
+			<if test="unitNo != null and unitNo != ''">
+				,#{unitNo}
+			</if>
+		)
+	</insert>
+	
+	<insert id="insertCargoInvLocationItems" parameterType="confirmDischargingOfROROItem">
+		<selectKey order="BEFORE" resultType="String" keyProperty="jobNo" >
+			SELECT J.JOB_NO AS jobNo FROM TMT_JOB J
+			 WHERE TRIM(J.VSL_CALL_ID) = TRIM(#{vslCallId})
+			   AND TRIM(J.CG_NO) = TRIM(#{blNo})
+			   AND TRIM(J.JOB_GROUP) = TRIM(#{jobGroup})
+			   AND TO_NUMBER(J.PKG_QTY) = TO_NUMBER(#{pkgQty})
+			   AND TO_NUMBER(J.CG_VOL) = TO_NUMBER(#{msrmt})
+			   AND TO_NUMBER(J.CG_WGT) = TO_NUMBER(#{wgt})
+			   AND TRIM(J.JOB_PURP_CD) = TRIM(#{jobPurpCd})
+			   AND TRIM(J.JOB_TP_CD) = TRIM(#{jobTpCd})
+			   AND TRIM(J.TO_LOC_ID) = TRIM(#{locArea})
+			   AND TRIM(J.JOB_CO_CD) = TRIM(#{jobCoCd})
+			   AND nvl(J.SP_CA_CO_CD,' ') = nvl(#{spCaCoCd},' ')
+		</selectKey>
+		INSERT INTO TMT_INV_LOC (
+				JOB_NO,
+				CG_NO,
+				LOC_ID,
+				PKG_QTY,
+				CG_VOL,
+				CG_WGT,
+				VSL_CALL_ID,
+				WH_TP_CD,
+				UPDATE_TIME,
+				STAFF_CD,
+				VERSION,
+				SEQ,
+				WH_LOC_ID
+				,WH_LOC_TP
+			) VALUES (
+				#{jobNo},
+				#{blNo},
+				#{locId},
+				#{locQty},
+				#{locMsrmt},
+				#{locWgt},
+				#{vslCallId},
+				#{whTpCd},
+				SYSDATE,
+				#{userId},
+				#{newVersion},
+				(SELECT NVL(MAX(SEQ), 0)+1
+				   FROM TMT_INV_LOC
+				  WHERE VSL_CALL_ID = #{vslCallId}
+					AND CG_NO = #{blNo}
+					AND JOB_NO = #{jobNo}
+					AND LOC_ID = #{locId}),
+				SUBSTR(#{locId}, 0, INSTR(#{locId}, '-')-1)
+				,#{whLocTpCd}
+		)
+	</insert>
+	
+	<update id="updateNextPurpCd" parameterType="confirmDischargingOfROROItem">
+		UPDATE 	TMT_JOB
+			SET NEXT_JOB_NO = #{jobNo},
+				UPDATE_TIME = SYSDATE
+				,STAFF_CD = #{userId}
+		WHERE 	CG_NO = #{blNo} 
+		  		AND VSL_CALL_ID = #{vslCallId}
+		  		AND JOB_PURP_CD = 'VA'
+		  		AND JOB_NO = #{preJobNo}
+
+	</update>
+	
+	
+</mapper>

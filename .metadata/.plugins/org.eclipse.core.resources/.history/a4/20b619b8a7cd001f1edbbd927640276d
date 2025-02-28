@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="equipmentConfiguration">
+	
+	<!--  ############################# Query Statement Define ############################# -->
+	<select id="selectEquipmentList" parameterType="equipmentConfigurationParm" resultType="equipmentConfigurationItem">
+		<if test="pageNo != 0"> 
+            SELECT /*equipmentConfiguration.selectEquipmentList*/
+        	    * 
+			FROM (
+				SELECT 
+					ROW_NUMBER() OVER(ORDER BY EQTPCD) 		AS ROW_NUM,
+					innerTable.* 
+				FROM ( 
+		</if>
+				<include refid="getEquipmentList"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable 
+			WHERE 
+				innerTable.ROW_NUM <![CDATA[>]]> (CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) * CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM <![CDATA[<=]]> CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<select id="selectEquipmentListCount" parameterType="equipmentConfigurationParm" resultType="java.lang.String" >
+        SELECT /*equipmentConfiguration.selectEquipmentListCount*/
+			COUNT(*)
+        FROM 
+			(<include refid="getEquipmentList"/>) 	AS TEMPTABLE
+	</select>
+	
+	<sql id="getEquipmentList">
+		SELECT /*equipmentConfiguration.getEquipmentList*/
+	   		A.EQ_FAC_NO                    		 			AS EQFACNO,
+			ISNULL(A.EQ_FAC_NM, ' ')						AS EQFACNM,
+			A.EQ_TP_CD                    				 	AS EQTPCD,
+			A.DIV_CD                       				 	AS DIVCD,
+			ISNULL(A.LOC, ' ')                 			 	AS LOC,
+			ISNULL(A.MDL , ' ')                			 	AS MDL,
+			ISNULL(A.PDUCT_YEAR, ' ')          			 	AS PDUCTYEAR,
+			ISNULL(A.FILE_REF_1, ' ')          			 	AS FILEREF1,
+			ISNULL(A.FILE_REF_2, ' ')          			 	AS FILEREF2,
+			ISNULL(A.AVG_HM, 0)                			 	AS AVGHM,
+			ISNULL(A.RMK , ' ')                			 	AS RMK,
+			ISNULL(A.STAT_CD, ' ')            		 		AS STATCD,
+			ISNULL(A.STOP_RSN_CD, ' ')        		 	 	AS STOPRSNCD,
+			ISNULL(A.VLD_YN, ' ')             		 	 	AS USEYN,
+			' '											 	AS SEARCHTYPE,
+			' '                             			 	AS USERID,
+			A.CAPA_CD                       			 	AS CAPACD,
+			ISNULL(A.CAPA_DESCR, ' ')        		  	 	AS CAPADESCR,
+			ISNULL(A.OWN_DIV_CD, ' ')          	 			AS OWNDIVCD,
+			dbo.F_CM_CODE_NM('MT', 'EQFCSTAT', A.STAT_CD)  	AS STATNM,
+			dbo.F_CM_CODE_NM('MT', 'EQFCTPCD', A.EQ_TP_CD) 	AS EQTPCDNM,
+			dbo.F_CM_CODE_NM('MT', 'MNFR', A.MKR_CD) 		AS MKRNM,
+			A.MKR_CD 									 	AS MKRCD,
+			A.VERSION 									 	AS VERSION,
+			A.CONTT_NO          						 	AS CONTRACTOR,
+			A.WHARF_MARK_STA 								AS wharfMarkSt,
+			A.WHARF_MARK_END								AS wharfMarkEd,
+			A.PERIOD_STA									AS periodSt,
+			A.PERIOD_END									AS periodEd
+		FROM 
+			TMT_EQ_FAC 										A
+		WHERE 
+			1 = 1
+        <if test="eqTpCd != null and eqTpCd != ''">
+        	AND A.EQ_TP_CD 									= #{eqTpCd}
+		</if>
+		<if test="useYN != null and useYN != ''">
+  			AND A.VLD_YN 									= #{useYN}
+		</if>
+		<if test="contractor != null and contractor != ''">
+  			AND A.CONTT_NO 									= #{contractor}
+		</if> 
+		<if test="eqFacNo != null and eqFacNo != ''">
+  			AND A.EQ_FAC_NO 								= #{eqFacNo}
+		</if>
+		<if test="loc != null and loc != ''">
+  			AND A.LOC 										= #{loc}
+		</if>
+		<if test="mkrCd != null and mkrCd != ''">
+  			AND A.MKR_CD 									= #{mkrCd}
+		</if>
+		<!-- ORDER BY A.EQ_TP_CD -->
+	</sql>
+	
+	<insert id = "insertEquipmentListItem"  parameterType = "equipmentConfigurationItem">
+		INSERT /*equipmentConfiguration.insertEquipmentListItem*/
+		INTO TMT_EQ_FAC(
+			EQ_FAC_NO,
+			EQ_FAC_NM,
+			EQ_TP_CD,
+			VLD_YN,
+			LOC,
+			MDL,
+			PDUCT_YEAR,
+			FILE_REF_1,
+			FILE_REF_2,
+			AVG_HM,
+			RMK,
+			STAT_CD,
+			STOP_RSN_CD,
+			DIV_CD,
+			UPDATE_TIME,
+			STAFF_CD,
+			CAPA_CD,
+			CAPA_DESCR,
+			CONTT_NO,
+			MKR_CD,
+			OWN_DIV_CD,
+			VERSION,
+			WHARF_MARK_STA,
+			WHARF_MARK_END,
+			PERIOD_STA,
+			PERIOD_END,
+			DIAMETER,
+			SAFETY_LIMIT
+		) VALUES (
+			#{eqFacNo},
+			#{eqFacNm},
+			#{eqTpCd},
+			#{useYN},
+			#{loc},
+			#{mdl},
+			#{pductYear},
+			#{fileRef1},
+			#{fileRef2},
+			#{avgHm},
+			#{rmk},
+			#{statCd},
+			#{stopRsnCd},
+			#{divCd},
+			SYSDATETIME(),
+			#{userId},
+			#{capaCd},	
+			#{capaDescr},
+			#{contractor},
+			#{mkrCd},
+			#{ownDivCd},
+			#{newVersion},
+			#{wharfMarkFrom},
+			#{wharfMarkTo},
+			CONVERT(DATETIME, #{periodSt}, 103),
+			CONVERT(DATETIME, #{periodEd}, 103),
+			#{diameter},
+			#{safetyLimit}
+		)
+	</insert>  
+	
+	<update id = "updateEquipmentListItem"  parameterType = "equipmentConfigurationItem">
+		UPDATE /*equipmentConfiguration.updateEquipmentListItem*/
+			TMT_EQ_FAC 
+		SET 	
+		   <if test="eqFacNm != null and eqFacNm != ''">
+		   		EQ_FAC_NM 										= #{eqFacNm},
+		   </if>
+		   <if test="eqTpCd != null and eqTpCd != ''">
+		   		EQ_TP_CD 										= #{eqTpCd},
+		   </if>
+		   <if test="useYN != null and useYN != ''">
+		   		VLD_YN 											= #{useYN},
+		   </if>
+		   <if test="loc != null and loc != ''">
+		   		LOC 											= #{loc},
+		   </if>	
+		   <if test="mdl != null and mdl != ''">
+		   		MDL 											= #{mdl},
+		   </if>	
+		   <if test="pductYear != null and pductYear != ''">
+		   		PDUCT_YEAR 										= #{pductYear},
+		   </if>				
+ 		   <if test="fileRef1 != null and fileRef1 != ''">
+		   		FILE_REF_1 										= #{fileRef1},
+		   </if>
+		   <if test="fileRef2 != null and fileRef2 != ''">
+		   		FILE_REF_2 										= #{fileRef2},
+		   </if>
+		   <if test="avgHm != null and avgHm != ''">
+		   		AVG_HM 											= #{avgHm},
+		   </if>
+		   <if test="rmk != null and rmk != ''">
+		   		RMK 											= #{rmk},
+		   </if>
+		   <if test="statCd != null and statCd != ''">
+		   		STAT_CD 										= #{statCd},
+		   </if>
+		   <if test="stopRsnCd != null and stopRsnCd != ''">
+		   		STOP_RSN_CD 									= #{stopRsnCd},	
+		   </if>
+		   <if test="userId != null and userId != ''">
+		   		STAFF_CD 										= #{userId},
+		   </if>
+		   <if test="capaCd != null and capaCd != ''">
+		   		CAPA_CD 										= #{capaCd},
+		   </if>
+		   <if test="capaDescr != null and capaDescr != ''">
+		   		CAPA_DESCR 										= #{capaDescr},
+		   </if>
+		   <if test="contractor != null and contractor != ''">
+		   		CONTT_NO 										= #{contractor},
+		   </if>
+		   <if test="divCd != null and divCd != ''">
+		   		DIV_CD 											= #{divCd},
+		   </if>
+		   <if test="mkrCd != null and mkrCd != ''">
+		   		MKR_CD 											= #{mkrCd},
+		   </if>
+		   <if test="ownDivCd != null and ownDivCd != ''">
+		   		OWN_DIV_CD 										= #{ownDivCd},
+		   </if>
+		   <if test="newVersion != null and newVersion != ''">
+		   		VERSION 										= #{newVersion},
+		   </if>
+		   <if test="periodSt != null and periodSt != ''">
+		   		PERIOD_STA 										= #{periodSt},
+		   </if>
+		   <if test="periodEd != null and periodEd != ''">
+		   		PERIOD_END	 									= #{periodEd},
+		   </if>
+		   <if test="wharfMarkSt != null">
+		   		WHARF_MARK_STA 									= #{wharfMarkSt},
+		   </if>
+		   <if test="wharfMarkEd != null">
+		   		WHARF_MARK_END 									= #{wharfMarkEd},
+		   </if>
+				UPDATE_TIME 									= SYSDATETIME()
+		   <if test="diameter != null and diameter != ''">
+		   		DIAMETER = #{diameter},
+		   </if>
+		   <if test="safetyLimit != null and safetyLimit != ''">
+		   		SAFETY_LIMIT = #{safetyLimit},
+		   </if>
+				UPDATE_TIME = SYSDATETIME()
+		WHERE 
+			EQ_FAC_NO 											= #{eqFacNo}
+		<if test="version != null and version != ''">
+   			AND VERSION 										= #{version}
+		</if>
+	</update>  
+	
+	<delete id = "deleteEquipmentListItem"  parameterType = "equipmentConfigurationItem">
+		DELETE /*equipmentConfiguration.deleteEquipmentListItem*/
+		FROM 
+			TMT_EQ_FAC 
+		WHERE 
+			EQ_FAC_NO = #{eqFacNo}
+		<if test="version != null and version != ''">
+			AND	VERSION = #{version}
+		</if>
+	</delete>  
+	
+</mapper>

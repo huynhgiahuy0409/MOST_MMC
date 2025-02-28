@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="BerthMaintenanceMap">
+	<select id="selectBerthMaintenanceList" resultType="berthMaintenanceItem" parameterType="berthMaintenanceParm">
+	 	SELECT 	BERTH AS berthCd,
+				BERTH_TP AS berthTp,
+				FROM_BITT AS fromBitt,
+				TO_BITT AS toBitt,
+				FROM_METER AS fromPos,
+				TO_METER AS toPos,
+				CONVERT(VARCHAR,STOP_STIME, 103)+ ' ' + LEFT(CONVERT(VARCHAR, STOP_STIME, 108), 5) AS startTime,
+        		CONVERT(VARCHAR,STOP_ETIME, 103)+ ' ' + LEFT(CONVERT(VARCHAR, STOP_ETIME, 108), 5) AS endTime,
+				STOP_RSN AS stoppageReasonCd,
+				(SELECT TOP 1 S_CD_NM FROM TMT_CD_MSTD WHERE L_CD = 'MT' AND M_CD = 'STOPPGRSN' AND S_CD = STOP_RSN) AS stoppageReason,
+				STAFF_CD AS updatedBy,
+				CONVERT(VARCHAR,UPDATE_TIME, 103)+ ' ' + LEFT(CONVERT(VARCHAR, UPDATE_TIME, 108), 5) AS updatedDt
+				FROM TMT_REP_BERTH 
+				WHERE 1 = 1
+				<if test="startTime != null  and startTime != ''" >
+					AND STOP_STIME &gt;=  CONVERT(DATETIME,#{startTime}, 103) 
+				</if>
+				<if test="endTime != null and endTime != ''" >
+					AND STOP_ETIME &lt;=  CONVERT(DATETIME,#{endTime}, 103) 
+				</if>
+	</select>
+	
+	<select id="selectBerthMaintenanceReportList" resultType="berthMaintenanceItem" parameterType="berthMaintenanceParm">
+	 	SELECT 	BERTH AS berthCd,
+				BERTH_TP AS berthTp,
+				FROM_BITT AS fromBitt,
+				TO_BITT AS toBitt,
+				(SELECT 
+                     LENGTH
+                FROM TMT_BERTH_LOC bl
+                WHERE BERTH_TP IS NOT NULL AND FREEZONE_YN = 'Y' and bl.berth_cd = berth) as berthMaintenanceLength,
+                FORMAT(STOP_STIME,'DD/MM/YYYY HH24:MI') AS startTime,
+                FORMAT(STOP_ETIME,'DD/MM/YYYY HH24:MI') AS endTime,
+                ROUND(((STOP_ETIME - STOP_STIME)),2) as berthMaintenanceDuration,
+                (SELECT LENGTH FROM TMT_BERTH_LOC bl
+                WHERE BERTH_TP IS NOT NULL AND FREEZONE_YN = 'Y' and bl.berth_cd = berth) * ROUND((STOP_ETIME - STOP_STIME),2) as berthMaintenanceUtiMeters,
+				STAFF_CD AS updatedBy,
+				FORMAT(UPDATE_TIME,'DD/MM/YYYY HH24:MI') AS updatedDt
+				FROM TMT_REP_BERTH 
+				WHERE 1 = 1
+				<if test="startTime != null  and startTime != ''" >
+					AND STOP_STIME &gt;= CONVERT(DATETIME,#{startTime}, 103) 
+				</if>
+				<if test="endTime != null and endTime != ''" >
+					AND STOP_ETIME &lt;=   CONVERT(DATETIME,#{endTime}, 103) 
+				</if>
+	</select>
+	
+	<select id="selectDuplicateBerthNoAndStartTime" resultType="berthMaintenanceItem" parameterType="berthMaintenanceParm">
+	 	SELECT BERTH AS berthCd
+		FROM TMT_REP_BERTH 
+		WHERE BERTH = #{berthCd} AND STOP_STIME = CONVERT(DATETIME,#{startTime}, 103) 
+	</select>
+	
+	<insert id="insertBerthMaintenanceList" parameterType="berthMaintenanceItem">
+		INSERT INTO TMT_REP_BERTH 
+					(BERTH,
+                     BERTH_TP,
+                     FROM_BITT,
+                     TO_BITT,
+                     FROM_METER,
+                     TO_METER,
+                     STOP_STIME,
+                     STOP_ETIME,
+                     STOP_RSN,
+                     REMARK,
+                     STAFF_CD,
+                     UPDATE_TIME)
+		     VALUES (
+				     #{berthCd}
+				     ,#{berthTp}
+				     ,#{fromBitt}
+				     ,#{toBitt}
+				     ,#{fromPos}
+				     ,#{toPos}
+				     ,CONVERT(DATETIME,#{startTime}, 103) 
+				     ,CONVERT(DATETIME,#{endTime}, 103) 
+				     ,#{stoppageReason}
+				     ,#{remark}
+				     ,#{userId}
+				     ,GETDATE()
+		     		)
+	</insert>
+	
+	<update id="updateBerthMaintenanceList" parameterType="berthMaintenanceItem">
+	    UPDATE TMT_REP_BERTH 
+ 		SET	FROM_BITT = #{fromBitt},
+            TO_BITT = #{toBitt},
+            FROM_METER = #{fromPos},
+            TO_METER = #{toPos},
+            STOP_ETIME = CONVERT(DATETIME,#{endTime}, 103) ,
+            STOP_RSN = #{stoppageReason},
+            STAFF_CD = #{userId},
+            UPDATE_TIME = GETDATE()
+	    WHERE BERTH = #{berthCd} AND  STOP_STIME = CONVERT(DATETIME,#{startTime}, 103) 
+	</update>
+	
+	<delete id="deleteBerthMaintenanceList" parameterType="berthMaintenanceItem">
+	    DELETE TMT_REP_BERTH
+		WHERE BERTH = #{berthCd} AND  STOP_STIME = CONVERT(DATETIME,#{startTime}, 103) 
+	</delete>
+</mapper>

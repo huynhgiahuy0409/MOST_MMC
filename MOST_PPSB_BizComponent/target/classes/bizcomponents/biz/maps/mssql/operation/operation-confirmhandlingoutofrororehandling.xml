@@ -1,0 +1,426 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="confirmHandlingOutOfRORORehandling">
+	<resultMap 	id="resultComboList" 	type="confirmHandlingOutOfROROItem">
+   		<result property = "cd"			column = "CD"/>
+   		<result property = "cdNm"		column = "CD_NM"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultDriverComboList" 	type="confirmHandlingOutOfROROItem">
+   		<result property = "cd"				column = "CD"/>
+   		<result property = "cdNm"			column = "CD_NM"/>
+   		<result property = "driverNm"		column = "DRIVER_NM"/>
+   		<result property = "tsptCompCd"		column = "TRANSPORT"/>
+ 		<result property = "driverLicense"	column = "LICENSE_NO"/>
+ 		<result property = "bookingNo"		column = "MF_DOC_ID"/>
+ 		<result property = "shipgNoteNo"	column = "CG_NO"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultTruckComboList" 	type="confirmHandlingOutOfROROItem">
+   		<result property = "cd"				column = "CD"/>
+   		<result property = "cdNm"			column = "CD_NM"/>
+   		<result property = "gateInDate"		column = "GATEIN_DT"/>
+   		<result property = "gateTicketNo"	column = "GATE_TICKET_NO"/>
+   		<result property = "driverId"		column = "DRIVER_ID"/>
+ 		<result property = "bookingNo"		column = "MF_DOC_ID"/>
+ 		<result property = "shipgNoteNo"	column = "CG_NO"/>
+ 	</resultMap>
+ 	
+ 	
+ 	<resultMap 	id="resultCgMap" type="confirmHandlingOutOfROROItem">
+   		<result property = "vslCallId"		column = "VSL_CALL_ID"/>
+		<result property = "catgCd" 		column = "CATG_CD"/>
+		<result property = "catgNm" 		column = "CATG_NM"/>
+		<result property = "bookingNo" 		column = "MF_DOC_ID"/>
+		<result property = "shipgNoteNo" 	column = "SHIPG_NOTE_NO"/>
+		<result property = "nosOfUnit" 		column = "NOS_OF_VIN"/>
+		<result property = "nosOfHO" 		column = "NO_OF_HO"/>
+		<result property = "nosOfGO" 		column = "NO_OF_GO"/>
+		<result property = "toDoHO" 		column = "TO_DO_HO"/>
+		<result property = "brandCd" 		column = "BRAND_CD"/>
+		<result property = "brandNm" 		column = "BRAND_NM"/>
+		<result property = "modelCd" 		column = "MODEL_CD"/>
+		<result property = "modelNm" 		column = "MODEL_NM"/>
+		<result property = "delvTpCd" 		column = "DELV_TP_CD"/>
+		<result property = "delvTpNm" 		column = "DELV_TP_NM"/>
+		<result property = "cgTpCd" 		column = "CG_TP_CD"/>
+		<result property = "cgTpNm" 		column = "CG_TP_NM"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultUnitMap" type="confirmHandlingOutOfROROItem">
+   		<result property = "vslCallId"		column = "VSL_CALL_ID"/>
+		<result property = "shipgNoteNo" 	column = "CG_NO"/>
+		<result property = "unitNo" 		column = "CHAS_NO"/>
+		<result property = "roroSeq" 		column = "RORO_SEQ"/>
+		<result property = "grNo" 			column = "GR_NO"/>
+		<result property = "unitNo" 		column = "CHAS_NO"/>
+		<result property = "roroSeq" 		column = "RORO_SEQ"/>
+		<result property = "rhdlNo" 		column = "RHDL_NO"/>
+		<result property = "inDate" 		column = "IN_DTM"/>
+		<result property = "outDate" 		column = "OUT_DTM"/>
+		<result property = "yardLoc" 		column = "LOC_ID"/>
+		<result property = "driverId" 		column = "DRIVER_ID"/>
+		<result property = "driverNm" 		column = "DRIVER_NM"/>
+		<result property = "truckNo" 		column = "TRUCK_NO"/>
+		<result property = "blDelvTpCd" 	column = "BL_DELIVERY_MODE"/>
+		<result property = "delvTpNm" 		column = "DELV_TP_NM"/>
+		<result property = "gateOutDate" 	column = "GATE_OUT_DTM"/>
+		<result property = "statCd" 		column = "STAT_CD"/>
+		<result property = "statNm" 		column = "STAT_NM"/>
+		<result property = "driverLicense"	column = "DRIVER_LICENSE"/>
+		<result property = "gateInDate" 	column = "GATE_IN_DTM"/>	
+		<result property = "brandDesc" 		column = "BRAND_DESC"/>
+		<result property = "brandCd" 		column = "BRAND_CD"/>
+		<result property = "brandNm" 		column = "BRAND_NM"/>
+		<result property = "modelCd" 		column = "MODEL_CD"/>
+		<result property = "modelNm" 		column = "MODEL_NM"/>
+		<result property = "ixCd" 			column = "IX_CD"/>
+		<result property = "catgCd" 		column = "CATG_CD"/>	
+		<result property = "hoRemarks" 		column = "HO_RMK"/>
+ 	</resultMap>
+ 	
+ 	
+	<select id="selectShipgNoteNoComboBoxItems" parameterType="confirmHandlingOutOfROROParm" resultMap="resultComboList">
+		SELECT	/* ConfirmHandlingOutOfRORORehandling.selectShipgNoteNoComboBoxItems */	
+			DISTINCT
+			SHIPG_NOTE_NO CD,
+			SHIPG_NOTE_NO CD_NM
+		FROM	
+			TMT_SHIPG_NOTE
+		WHERE
+			VSL_CALL_ID = #{vslCallId}
+			AND STAT_CD IN ('AP')
+			AND CATG_CD IN ('E')
+			AND CG_TP_CD IN ('RCV')
+	</select>
+	
+	<select id="selectDriverComboBoxItems" parameterType="confirmHandlingOutOfROROParm" resultMap="resultDriverComboList">
+		SELECT	/* ConfirmHandlingOutOfRORORehandling.selectDriverComboBoxItems */
+			DISTINCT
+			AT.DRIVER_ID 		AS CD,
+			AT.DRIVER_ID 		AS CD_NM,
+			DV.DRIVER_NM,
+			AT.TRANSPORT,
+			DV.LICS_NO 			AS LICENSE_NO
+		FROM 
+			TMT_ASSIGN_TRANSPORT AT
+		INNER JOIN 
+			TMT_DRIVER_MST DV 
+		ON 
+			AT.DRIVER_ID 		= DV.DRIVER_ID 
+			AND AT.TRANSPORT 	= DV.PTNR_CD
+<!-- 		      INNER JOIN TMT_WEIGHBRIDGE WB -->
+<!-- 		        ON  AT.VSL_CALL_ID = WB.VSL_CALL_ID -->
+<!-- 		            AND AT.CG_NO = WB.BL_NO -->
+<!-- 		            AND AT.SDO_NO = WB.SDO_NO -->
+<!-- 		            AND AT.DRIVER_ID = WB.DRIVER_ID -->
+<!-- 		            AND WB.GATEIN_DT IS NOT NULL -->
+<!-- 		            AND WB.GATEOUT_DT IS NULL -->
+		WHERE   
+			AT.VSL_CALL_ID = #{vslCallId}
+			AND AT.DRIVER_ID IS NOT NULL
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				AND AT.SHIPG_NOTE_NO = #{shipgNoteNo}
+			</if>
+
+<!-- 		        <if test="unitNo != null and unitNo != ''"> -->
+<!-- 					AND WB.UNIT_NO = #{unitNo} -->
+<!-- 				</if> -->
+<!-- 				<if test="trkNo != null and trkNo != ''"> -->
+<!-- 					AND WB.TRK_NO = #{trkNo} -->
+<!-- 				</if> -->
+<!-- 				AND WB.GATE_POINT != 'RORO' -->
+	</select>
+	
+	<select id="selectDriverWithoutTruckComboBoxItems" parameterType="confirmHandlingOutOfROROParm" resultMap="resultDriverComboList">
+<!-- 		WITH INGATE AS -->
+<!-- 		(SELECT DRIVER_ID -->
+<!-- 		 FROM 	TMT_WEIGHBRIDGE -->
+<!-- 		 WHERE 	GATEOUT_DT IS NULL) -->
+		
+		SELECT	/* ConfirmHandlingOutOfRORORehandling.selectDriverWithoutTruckComboBoxItems */
+			DISTINCT
+			AT.DRIVER_ID 		AS CD,
+			AT.DRIVER_ID 		AS CD_NM,
+			DV.DRIVER_NM,
+			AT.TRANSPORT,
+			DV.LICS_NO 			AS LICENSE_NO
+		FROM  
+			TMT_ASSIGN_TRANSPORT AT 
+		INNER JOIN 
+			TMT_DRIVER_MST DV 
+		ON 
+			AT.DRIVER_ID 		= DV.DRIVER_ID 
+			AND AT.TRANSPORT 	= DV.PTNR_CD
+<!-- 				LEFT OUTER JOIN INGATE I ON AT.DRIVER_ID = I.DRIVER_ID -->
+		WHERE   
+			AT.VSL_CALL_ID 		= #{vslCallId}
+		        <if test="shipgNoteNo != null and shipgNoteNo != ''">
+			        AND AT.SHIPG_NOTE_NO = #{shipgNoteNo}
+			    </if>
+		        AND AT.DRIVER_ID IS NOT NULL
+                <if test="driverID != null and driverID != ''">
+					AND AT.DRIVER_ID LIKE CONCAT (#{driverID}, '%')
+				</if>
+	</select>
+	
+	<select id="selectTruckComboBoxItems" parameterType="confirmHandlingOutOfROROParm" resultMap="resultTruckComboList">
+		SELECT	/* ConfirmHandlingOutOfRORORehandling.selectTruckComboBoxItems */
+			DISTINCT
+			AT.LORRY_NO AS CD,
+			AT.LORRY_NO AS CD_NM
+<!-- 		        ,FORMAT(WB.GATEIN_DT, #{dsY4M2D2H24M2withSplit}) AS GATEIN_DT, -->
+<!-- 		        WB.GATE_TICKET_NO, -->
+<!-- 		        WB.DRIVER_ID -->
+		FROM  
+			TMT_ASSIGN_TRANSPORT AT
+<!-- 		      INNER JOIN TMT_WEIGHBRIDGE WB -->
+<!-- 		        ON  AT.VSL_CALL_ID = WB.VSL_CALL_ID -->
+<!-- 		            AND AT.CG_NO = WB.BL_NO -->
+<!-- 		            AND AT.SDO_NO = WB.SDO_NO -->
+<!-- 		            AND AT.TRUCK_NO = WB.TRK_NO -->
+<!-- 		            AND WB.GATEIN_DT IS NOT NULL -->
+<!-- 		            AND WB.GATEOUT_DT IS NULL -->
+		WHERE   
+			AT.VSL_CALL_ID 			= #{vslCallId}
+			AND AT.LORRY_NO IS NOT NULL
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				AND AT.SHIPG_NOTE_NO = #{shipgNoteNo}
+			</if>
+<!-- 		        <if test="unitNo != null and unitNo != ''"> -->
+<!-- 					AND WB.UNIT_NO = #{unitNo} -->
+<!-- 				</if> -->
+	</select>
+	
+	<sql id="cgItems">
+		WITH HO_INFO AS
+		(
+			SELECT	
+				VSL_CALL_ID
+				,MF_DOC_ID
+				,CG_NO
+				,IX_CD
+				,COUNT(CHASSIS_NO) AS NO_OF_HO
+			FROM	
+				TMT_RORO_MST
+			WHERE
+				VSL_CALL_ID = #{vslCallId}
+				AND IN_DTM IS NOT NULL
+				AND OUT_DTM IS NOT NULL
+				AND RHDL_MODE = 'R'
+				AND STAT_CD != 'RH'
+			GROUP BY 
+				VSL_CALL_ID
+				,MF_DOC_ID
+				,CG_NO
+				,IX_CD
+		)
+		, GO_INFO AS
+		(
+			SELECT	
+				VSL_CALL_ID
+				,MF_DOC_ID
+				,CG_NO
+				,IX_CD
+				,COUNT(CHASSIS_NO) AS NO_OF_GO
+			FROM
+				TMT_RORO_MST
+			WHERE
+				VSL_CALL_ID = #{vslCallId}
+				AND IN_DTM IS NOT NULL
+				AND OUT_DTM IS NOT NULL
+				AND GATE_OUT_DTM IS NOT NULL
+				AND RHDL_MODE = 'R'
+				AND STAT_CD != 'RH'
+			GROUP BY
+				VSL_CALL_ID
+				,MF_DOC_ID
+				,CG_NO
+				,IX_CD
+		),
+	cgItems AS (
+		SELECT	/* ConfirmHandlingOutOfRORORehandling.cgItems */
+			DISTINCT
+			S.VSL_CALL_ID,
+			S.MF_DOC_ID,
+			S.SHIPG_NOTE_NO,
+			S.CATG_CD,
+			DBO.F_CM_CODE_NM('MT', 'CATGTP', S.CATG_CD) 														AS CATG_NM,
+			COUNT(R.CHASSIS_NO) OVER (PARTITION BY R.CG_NO, R.MF_DOC_ID, R.VSL_CALL_ID) 						AS NOS_OF_VIN,
+			ISNULL(H.NO_OF_HO, 0) 																				AS NO_OF_HO,
+			ISNULL(G.NO_OF_GO, 0) 																				AS NO_OF_GO,
+			COUNT(R.CHASSIS_NO) OVER (PARTITION BY R.CG_NO, R.MF_DOC_ID, R.VSL_CALL_ID) - ISNULL(H.NO_OF_HO, 0) AS TO_DO_HO,
+			B.BRAND_CD,
+			B.BRAND_NM,
+			M.MODEL_CD,
+			M.MODEL_NM,
+			R.DELV_TP_CD,
+			DBO.F_CM_CODE_NM('MT', 'DELVTP', R.DELV_TP_CD) 														AS DELV_TP_NM,
+			S.CG_TP_CD,
+			DBO.F_CM_CODE_NM('MT', 'CGTP', S.CG_TP_CD) 															AS CG_TP_NM	
+		FROM	
+			TMT_SHIPG_NOTE S
+		INNER JOIN 
+			TMT_RORO_MST R
+		ON
+			S.VSL_CALL_ID 		= R.VSL_CALL_ID
+			AND S.MF_DOC_ID 	= R.MF_DOC_ID
+			AND S.SHIPG_NOTE_NO = R.CG_NO
+		LEFT OUTER 
+			JOIN HO_INFO H
+		ON	
+			R.VSL_CALL_ID 		= H.VSL_CALL_ID
+			AND R.MF_DOC_ID 	= H.MF_DOC_ID
+			AND R.CG_NO 		= H.CG_NO
+			AND R.IX_CD 		= H.IX_CD
+
+		LEFT OUTER JOIN 
+			GO_INFO G
+		ON	
+			R.VSL_CALL_ID 		= G.VSL_CALL_ID
+			AND R.MF_DOC_ID 	= G.MF_DOC_ID
+			AND R.CG_NO 		= G.CG_NO
+			AND R.IX_CD 		= G.IX_CD
+		LEFT OUTER JOIN 
+			TMT_BRAND B
+		ON	
+			R.BRAND_CD 			= B.BRAND_CD
+		LEFT OUTER JOIN 
+			TMT_BRAND_DTL M
+		ON	
+			R.MODEL_CD 			= M.MODEL_CD
+			AND R.BRAND_CD 		= M.BRAND_CD
+		
+		WHERE	
+			S.VSL_CALL_ID 		= #{vslCallId}
+			AND R.RHDL_MODE 	= 'R'
+			AND R.STAT_CD 		!= 'RH'
+			AND R.CG_TP_CD IN ('RCV')
+			<if test="bookingNo != null and bookingNo != ''">
+				AND R.MF_DOC_ID = #{bookingNo}
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				AND R.CG_NO 	= #{shipgNoteNo}
+			</if>
+			<if test="unitNo != null and unitNo != ''">
+				AND R.CHASSIS_NO LIKE CONCAT(#{unitNo}, '%')
+			</if>
+		)
+	</sql>
+	
+	<select id="selectCargoItems" parameterType="confirmHandlingOutOfROROParm" resultMap="resultCgMap">
+		<include refid="cgItems"/>
+		SELECT /*ConfirmHandlingOutOfRORORehandling.selectCargoItems*/
+			*
+		FROM 
+			cgItems
+		ORDER BY 	
+			MF_DOC_ID,
+			SHIPG_NOTE_NO
+	</select>
+	
+	<select id="selectCargoItemsCount" parameterType="confirmHandlingOutOfROROParm" resultType="java.lang.String">
+		<include refid="cgItems"/>
+	 	SELECT /*ConfirmHandlingOutOfRORORehandling.selectCargoItemsCount*/
+			COUNT(*)
+        FROM 
+			 cgItems
+	 </select>
+	
+	<select id="selectUnitItems" parameterType="confirmHandlingOutOfROROParm" resultMap="resultUnitMap">
+		SELECT	/* ConfirmHandlingOutOfRORORehandling.selectUnitItems */
+			VSL_CALL_ID,
+			MF_DOC_ID 										AS MF_DOC_ID,
+			CG_NO,
+			CHASSIS_NO,
+			<!-- RORO_SEQ, -->
+			DELV_TP_CD,
+			DBO.F_CM_CODE_NM('MT', 'DELVTP', DELV_TP_CD) 	AS DELV_TP_NM,
+			
+			FORMAT(IN_DTM, 'dd/MM/yyyy hh:mm') 				AS IN_DTM,
+			FORMAT(OUT_DTM, 'dd/MM/yyyy hh:mm') 			AS OUT_DTM,
+			FORMAT(GATE_IN_DTM, 'dd/MM/yyyy hh:mm') 		AS GATE_IN_DTM,
+			FORMAT(GATE_OUT_DTM, 'dd/MM/yyyy hh:mm') 		AS GATE_OUT_DTM,
+			
+			LOC_ID,
+			STAT_CD,
+			DBO.F_CM_CODE_NM('MT', 'CGSTATUS', STAT_CD) 	AS STAT_NM,
+			CG_TP_CD,
+			ISNULL(HO_RMK, '') 								AS HO_RMK,
+			DRIVER_ID,
+			DRIVER_NM,
+			DRIVER_LICENSE,
+			TRUCK_NO,
+			FORMAT(UPDATE_TIME, 'dd/MM/yyyy hh:mm') 		AS VERSION,
+			
+			RHDL_NO,
+			CATG_CD
+		FROM    
+			TMT_RORO_MST
+		WHERE
+			VSL_CALL_ID 	= #{vslCallId}
+			AND CG_NO 		= #{shipgNoteNo}
+			AND RHDL_MODE 	= 'R'
+			AND STAT_CD 	!= 'RH'
+			AND IN_DTM IS NOT NULL
+			AND CG_TP_CD 	= 'RCV'
+			<choose>
+				<when test="searchType == 'HOUNIT'">AND OUT_DTM IS NOT NULL</when>
+				<otherwise>AND OUT_DTM IS NULL</otherwise>
+			</choose>
+			<if test="unitNo != null and unitNo != ''">
+				AND CHASSIS_NO = #{unitNo}
+			</if>
+		ORDER BY 
+			OUT_DTM DESC
+	</select>
+	
+	<update id="updateHandlingOutUnitItems" parameterType="confirmHandlingOutOfROROItem">
+		/* ConfirmHandlingOutOfRORORehandling.updateHandlingOutUnitItems */
+		UPDATE  
+			TMT_RORO_MST
+		SET     
+			STAFF_CD 		=  #{userId}
+			,UPDATE_TIME 	= SYSDATETIME()
+
+			,STAT_CD 		= #{statCd}
+			,OUT_DTM 		= SYSDATETIME()
+			,HO_RMK 		= #{hoRemarks}
+			,DRIVER_ID 		= #{driverId}
+			,DRIVER_NM 		= #{driverNm}
+			,DRIVER_LICENSE = #{driverLicense}
+			,TRUCK_NO 		= #{truckNo}
+		WHERE
+			VSL_CALL_ID 	= #{vslCallId}
+			AND CG_NO 		= #{shipgNoteNo}
+			<!-- AND RORO_SEQ 	= #{roroSeq} -->
+			AND RHDL_NO 	= #{rhdlNo}
+	
+	</update>
+	
+	<update id="deleteHandlingOutUnitItems" parameterType="confirmHandlingOutOfROROItem">
+		/* ConfirmHandlingOutOfRORORehandling.deleteHandlingOutUnitItems */
+		UPDATE  
+			TMT_RORO_MST
+		SET 
+			STAFF_CD 		=  #{userId}
+			,UPDATE_TIME 	= SYSDATETIME()
+
+			,STAT_CD 		= #{statCd}
+			,OUT_DTM 		= NULL
+			,HO_RMK 		= NULL
+			,DRIVER_ID 		= NULL
+			,DRIVER_NM 		= NULL
+			,DRIVER_LICENSE = NULL
+			,TRUCK_NO 		= NULL
+		WHERE
+			VSL_CALL_ID 	= #{vslCallId}
+			AND CG_NO 		= #{shipgNoteNo}
+			<!-- AND RORO_SEQ 	= #{roroSeq} -->
+			AND RHDL_NO 	= #{rhdlNo}
+	
+	</update>
+</mapper>

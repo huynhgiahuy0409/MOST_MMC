@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="deploymentList">
+	
+    <resultMap type="deploymentListItem" id="deploymentMap">
+    	<result property="vslCallId"               				column="VSL_CALL_ID"/>
+    	<result property="scn"               					column="SHIP_CALL_NO"/>
+		<result property="staffNo"                  			column="STAFF_NO"/>
+		<result property="staffNm"                				column="STAFF_NM"/>
+		<result property="departmentNm"              			column="DEPARTMENT"/>
+		<result property="groupCd"            					column="GRP"/>
+		<result property="deploymentDate"               		column="WORK_YMD"/>
+		<result property="deploymentShiftId"            		column="SHFT_ID"/>
+		<result property="deploymentShiftNm"            		column="SHFT_NM"/>
+		<result property="roleCd"              					column="ROLE_CD"/>
+		<result property="roleNm"               				column="ROLE_NM"/>
+		<result property="eqTypeCd"           					column="EQ_TP_CD"/>
+		<result property="eqTypeNm"               				column="EQ_TP_NM"/>
+		<result property="capacity"               				column="CAPA_DESCR"/>
+		<result property="workingArea"               			column="WORK_LOC"/>
+    </resultMap>
+	 
+    <select id="selectDeploymentItems" parameterType="deploymentListParm" resultMap="deploymentMap">
+	 	<if test="pageNo != 0"> 
+			SELECT /* deploymentList.selectDeploymentItems */
+             	*
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY VSL_CALL_ID) 		AS ROW_NUM,
+					innerTable.*
+				FROM ( 
+		</if>
+				<include refid="getDeploymentItems"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	 
+	<select id="selectDeploymentItemsCount" parameterType="deploymentListParm" resultType="java.lang.String">
+		SELECT /* deploymentList.selectDeploymentItemsCount */
+			COUNT(*)
+        FROM 
+			(<include refid="getDeploymentItems"/>) AS TEMPTABLE
+	</select>
+
+	<sql id="getDeploymentItems">
+		SELECT DISTINCT/* deploymentList.getDeploymentItems */
+			D.VSL_CALL_ID,
+			D.SHIP_CALL_NO,
+			FORMAT(
+					CONVERT(DATE, D.WORK_YMD, 112), 
+					'dd/MM/yyyy'	
+			) 													AS WORK_YMD,
+			D.SHFT_ID,
+			(SELECT 
+				SHFT_NM 
+			FROM 
+				TMT_SHFT 
+			WHERE 
+				SHFT_ID = D.SHFT_ID) 							AS SHFT_NM,
+			S.EMP_ID 											AS STAFF_NO,
+			S.ENG_NM 											AS STAFF_NM,
+			D.WORK_LOC,
+			D.ROLE_CD,
+			dbo.F_CM_CODE_NM('CM', 'ROLECD', D.ROLE_CD) 		AS ROLE_NM,
+			D.EQ_TP_CD,
+			CASE
+			  	WHEN D.EQ_TP_CD IN ('SR1', 'SR2', 'SR3') 
+					THEN 'Ship Crane'
+			   	ELSE dbo.F_CM_CODE_NM('MT', 'EQTP', D.EQ_TP_CD)
+			END 												AS EQ_TP_NM,
+			E.CAPA_DESCR,
+			CASE P.TERMINAL_TYPE
+				WHEN '1' THEN 'BBT'
+				WHEN '2' THEN 'Both'
+				WHEN '3' THEN 'Others'
+				ELSE ''
+			END 		 										AS DEPARTMENT,
+			CASE 
+				WHEN (B.SHFT_GRP_NM IS NULL OR B.SHFT_GRP_NM = '') 
+					THEN 'Staff' 
+				ELSE B.SHFT_GRP_NM 
+			END  												AS groupCd
+		FROM 
+			TMT_DEPY 											D
+		INNER JOIN TMT_STAFF 									S 
+			ON S.EMP_ID = (
+				CASE 
+					WHEN (D.DRIVER IS NULL  OR D.DRIVER = '')
+						THEN D.EMP_ID
+					ELSE D.DRIVER
+				END
+			)
+		LEFT OUTER JOIN TMT_RSTR_SET 							B 
+			ON 	(CASE 
+					WHEN (D.DRIVER IS NULL OR D.DRIVER = '') 
+						THEN D.EMP_ID
+					ELSE D.DRIVER
+				END
+				) 												= B.EMP_ID
+		LEFT OUTER JOIN 
+			TMT_EQ_FAC 											E 
+				ON D.EQ_NO 										= E.EQ_FAC_NO
+		LEFT OUTER JOIN 
+			TMT_VSL_SCH 										V 
+				ON D.VSL_CALL_ID 								= V.VSL_CALL_ID
+		LEFT OUTER JOIN 
+			TMT_VSL_PART 										P 
+				ON V.VSL_CD 									= P.VSL_CD
+		WHERE 
+			(D.ROLE_CD 		IS NOT NULL							AND D.ROLE_CD 	<![CDATA[<>]]> '') 
+			AND (D.EQ_TP_CD IS NOT NULL 						AND D.EQ_TP_CD 	<![CDATA[<>]]> '')
+			AND (S.EMP_ID 	IS NOT NULL							AND S.EMP_ID 	<![CDATA[<>]]> '')
+		<if test="vslCallId != null and vslCallId != ''">
+			AND D.VSL_CALL_ID 									= #{vslCallId}
+		</if>
+		<if test="scn != null and scn != ''">
+			AND D.SHIP_CALL_NO 									= #{scn}
+		</if>
+		<if test="deplDateFrom != null and deplDateFrom != ''">
+			AND D.WORK_YMD 										= FORMAT(CONVERT(DATE, #{deplDateFrom}, 103), 'yyyyMMdd')
+		</if>
+		<if test="shiftId != null and shiftId != ''">
+			AND D.SHFT_ID 										= #{shiftId}
+		</if>
+		<if test="staffNo != null and staffNo != ''">
+			AND D.DRIVER 										= #{staffNo} 
+		</if>
+		<if test="staffNm != null and staffNm != ''">
+			AND S.ENG_NM 										LIKE '%' + #{staffNm} + '%'
+		</if>
+	</sql>
+
+</mapper>

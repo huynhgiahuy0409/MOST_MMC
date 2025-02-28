@@ -1,0 +1,484 @@
+Ext.define('MOST.view.codes.CommodityPackageTypeController', {
+	extend: 'MOST.view.foundation.BaseViewController',
+	
+	requires: [
+	],
+		
+	alias: 'controller.commoditypackagetype',
+	
+	/**
+	 * =========================================================================================================================
+	 * CONSTANT START
+	 */
+	COMMODITY_GRID_REF_NAME: 'refCommodityGrid',
+	COMMODITY_GROUP_GRID_REF_NAME: 'refCommodityGroupGrid',
+	
+	COMMODITY_GRID_STORE_NAME: 'commodityCodeList',
+	COMMODITY_GROUP_GRID_STORE_NAME: 'commodityGroup',
+	
+	COMMODITY_CODE_CARGOTP_STORE: 'commodityCodeCargoTpCombo',
+	COMMODITY_CODE_GROUP_STORE: 'commodityCodeGroupCombo',
+	COMMODITY_CODE_GROUP_CODE_STORE: 'commodityCodeGroupCdCombo',
+	COMMODITY_CODE_IMDG_STORE: 'commodityCodeImdgCombo',
+	
+	DUCPLICATE_CHECK_STORE: 'checkDuplicate',
+	
+	DETAIL_REQUIRED_FIELDS: [],
+	/**
+	 * CONSTANT END
+	 * =========================================================================================================================
+	 */
+
+	/**
+	 * =========================================================================================================================
+	 * INITIALIZE START
+	 */
+	isDupCheck: false,
+	isDup:false,
+
+	onLoad: function() {
+		var me = this;
+		var refs = me.getReferences();
+		var cargoTpCombo = me.getStore(me.COMMODITY_CODE_CARGOTP_STORE);	
+		var groupCdCombo = me.getStore(me.COMMODITY_CODE_GROUP_CODE_STORE)
+		var commodityGroupStore= me.getStore(me.COMMODITY_CODE_GROUP_STORE);
+		var searchParm = Ext.create('MOST.model.codes.SearchCommodityCodeParm');
+		var params = me.createParam(searchParm);
+		
+		cargoTpCombo.load();
+		commodityGroupStore.load({
+			params: params,
+			callback: function(records, operation, success) {
+				if(success){
+					if(records != null && records.length > 0){
+						groupCdCombo.removeAll();
+						records.forEach(function (record, index){							
+							groupCdCombo.insert(index, record.copy());
+						});
+					}
+				}
+			}
+		});
+		
+		me.setSearchParm(searchParm); // Settings Model Data Change
+		me.getViewModel().setData({theSearch:searchParm});
+		me.updateViewStyle(me.getView());
+		searchParm.set('progress', 'N');
+	},
+	
+	onDetailLoad: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailView = me.getDetailBizView();
+		var recvData = detailView.items.get(0).recvData;
+		var cargoTpStore= me.getStore(me.COMMODITY_CODE_CARGOTP_STORE);
+		var commodityGroupStore= me.getStore(me.COMMODITY_CODE_GROUP_STORE);
+		var commodityGroupCodeStore= me.getStore(me.COMMODITY_CODE_GROUP_CODE_STORE);
+		
+		var grid = me.lookupReference(me.COMMODITY_GROUP_GRID_REF_NAME);
+		var selection = grid.getSelection();
+		
+		var gridCheck = me.lookupReference(me.COMMODITY_GRID_REF_NAME);
+		var selectionCheck = gridCheck.getSelection();
+		
+		cargoTpStore.load();
+		
+		if(selection.length > 0){						
+			if(recvData.data.check == 'DBL'){
+				refs.txtComCd.setDisabled(true);
+				refs.txtComDes.setDisabled(true);
+				refs.txtUnno.setDisabled(true);
+				refs.txtImdg.setDisabled(true);
+				refs.ctlPkgTp.setDisabled(true);
+				
+				if(recvData == null || recvData == undefined){
+					recvData = Ext.create('MOST.model.codes.CommodityCode');
+					me.DETAIL_REQUIRED_FIELDS = [
+						'ctlCgTp', 
+						'txtComGrCd', 
+						'txtComGrDes', 
+					];
+				}else{				
+					refs.txtComGrCd.setDisabled(true);	
+					me.DETAIL_REQUIRED_FIELDS = [
+						 
+					];
+				}
+			}else{
+				refs.ctlCgTp.setDisabled(true);
+				refs.txtComGrCd.setDisabled(true);
+				refs.txtComGrDes.setDisabled(true);
+				
+				me.DETAIL_REQUIRED_FIELDS = [
+					'ctlCgTp', 
+					'txtComGrCd', 
+					'txtComGrDes',
+					'txtComCd', 
+					'txtComDes'				
+				];
+				
+				if(recvData.data.cmdtCd == null || recvData.data.cmdtCd == ''){
+					refs.txtComCd.setDisabled(false);
+				}else{
+					refs.txtComCd.setDisabled(true);
+				}				
+			}		
+		}else{
+			if(selectionCheck.length == 0){
+				refs.txtComCd.setDisabled(true);
+				refs.txtComDes.setDisabled(true);
+				refs.txtUnno.setDisabled(true);
+				refs.txtImdg.setDisabled(true);
+				refs.ctlPkgTp.setDisabled(true);	
+				
+				if(recvData == null || recvData == undefined){
+					recvData = Ext.create('MOST.model.codes.CommodityCode');
+					me.DETAIL_REQUIRED_FIELDS = [
+						'ctlCgTp', 
+						'txtComGrCd', 
+						'txtComGrDes', 
+					];
+				}else{				
+					refs.txtComGrCd.setDisabled(true);								
+				}
+			}else{
+				refs.ctlCgTp.setDisabled(true);
+				refs.txtComGrCd.setDisabled(true);
+				refs.txtComGrDes.setDisabled(true);
+				
+				me.DETAIL_REQUIRED_FIELDS = [
+					'ctlCgTp', 
+					'txtComGrCd', 
+					'txtComGrDes',
+					'txtComCd', 
+					'txtComDes'				
+				];
+				
+				if(recvData.data.cmdtCd == null || recvData.data.cmdtCd == ''){
+					refs.txtComCd.setDisabled(false);
+				}else{
+					refs.txtComCd.setDisabled(true);
+				}
+			}						
+		}
+			
+		me.setListRequiredField(me.DETAIL_REQUIRED_FIELDS, true);
+		me.getViewModel().setData({theDetail:recvData});
+		me.updateViewStyle(me.getDetailBizView());
+	},
+	
+	/**
+	 * INITIALIZE END
+	 * =========================================================================================================================
+	 */
+	
+   
+    /**
+	 * =========================================================================================================================
+	 * EVENT HANDLER START
+	 */
+	onSearchGrpCdCbx: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var groupCdCombo = me.getStore(me.COMMODITY_CODE_GROUP_CODE_STORE)
+		var commodityGroupStore= me.getStore(me.COMMODITY_CODE_GROUP_STORE);
+		var searchParm = me.getViewModel().get('theSearch');
+		var params = me.createParam(searchParm);
+		
+		if (refs.ctlCgTp.getValue()) {
+			var cgTp = refs.ctlCgTp.getValue();
+			
+			commodityGroupStore.load({
+				params: {
+					cgTp: searchParm.data.cgTp
+				},
+				callback: function(records, operation, success) {
+					if(success){
+						if(records != null && records.length > 0){
+							groupCdCombo.removeAll();
+							records.forEach(function (record, index){							
+								groupCdCombo.insert(index, record.copy());
+							});
+						} else {
+							groupCdCombo.removeAll();
+						}
+					}
+				}
+			});
+		}
+	},
+	
+	onSearch: function() {
+		var me = this;
+		var refs  = me.getReferences();
+		var grpGridStore = me.getStore(me.COMMODITY_GROUP_GRID_STORE_NAME);
+		var gridStore = me.getStore(me.COMMODITY_GRID_STORE_NAME);
+		var params = me.getSearchCondition();
+		
+		if (params == null) {
+			return;
+		}
+		
+		grpGridStore.load({
+			params: params,
+			callback: function(records, operation, success) {
+				if(success){					
+				}
+			}
+		});
+		
+		gridStore.load({
+			params: params,
+			callback: function(records, operation, success) {
+				if(success){
+				}
+			}
+		});
+		
+	},
+	
+	onCreate: function() {
+		var me = this;
+		var refs = me.getReferences();
+		var grpGrid = me.lookupReference(me.COMMODITY_GROUP_GRID_REF_NAME);
+		var grid = me.lookupReference(me.COMMODITY_GRID_REF_NAME);
+		var selectionGrid = grid.getSelection();
+		var selection = grpGrid.getSelection();
+		var recvData = Ext.create('MOST.model.codes.CommodityCode');
+		
+		if(selection.length > 0){
+			recvData.set('cgTp', selection[0].data.cgTp);
+			recvData.set('cmdtGrpCd', selection[0].data.cmdtGrpCd);
+			recvData.set('cmdtGrpDes', selection[0].data.cmdtGrpDes);
+
+			me.openDetailPopup(recvData);
+		}else{
+			me.openDetailPopup();
+		}	
+	},
+	
+	onRemove: function() {
+		var me = this;
+		var cmdtGrpGrid = me.lookupReference(me.COMMODITY_GROUP_GRID_REF_NAME);
+		var cmdtGrpGridSelection = cmdtGrpGrid.getSelection();
+		var cmdtGrid = me.lookupReference(me.COMMODITY_GRID_REF_NAME);
+		var cmdtGridSelection = cmdtGrid.getSelection();
+		var cmdtGrpStore = me.getStore(me.COMMODITY_GROUP_GRID_STORE_NAME); 
+		var cmdtStore = me.getStore(me.COMMODITY_GRID_STORE_NAME);
+		
+		if(cmdtGrpGridSelection.length > 0 && cmdtGridSelection.length <= 0){
+			if(cmdtGrid.getStore().getData().items.length > 0){
+				MessageUtil.warning('warning_msg', 'Please remove corresponding Commodity first');
+				return;
+			}else{
+				me.gridRemoveRow(cmdtGrpGrid, cmdtGrpStore, me.removeComplete);
+			}
+		}	
+		
+		if(cmdtGridSelection.length > 0){
+			me.gridRemoveRow(cmdtGrid, cmdtStore, me.removeComplete);			
+		}
+	},
+	
+	onDblClick: function() {
+		var me = this;
+		var grpGrid = me.lookupReference(me.COMMODITY_GROUP_GRID_REF_NAME);
+		var grid = me.lookupReference(me.COMMODITY_GRID_REF_NAME);
+		var selection = grpGrid.getSelection();
+		var selectionGrid = grid.getSelection();
+		
+		if(selection.length > 0){
+			if(selectionGrid.length > 0){
+				selectionGrid[0].data.cmdtGrpDes = selectionGrid[0].data.cmdtGrp;
+				me.openDetailPopup(selectionGrid[0]);
+			}else{
+				selection[0].set('check','DBL');
+				me.openDetailPopup(selection[0]);
+			}
+		}else{
+			selectionGrid[0].data.cmdtGrpDes = selectionGrid[0].data.cmdtGrp;
+			me.openDetailPopup(selectionGrid[0]);
+		}
+		
+	},
+	
+	onGridClick: function(){
+		var me = this;
+		var store = me.getStore(me.COMMODITY_GRID_STORE_NAME);
+		var grpGrid = me.lookupReference(me.COMMODITY_GROUP_GRID_REF_NAME);
+		var selection = grpGrid.getSelection() == null ? null : grpGrid.getSelection()[0];		
+			
+		var pageNo = store.currentPage;
+		var sizePerPage = CommonConstants.PAGE_SIZE;
+		var searchParm = me.getViewModel().get('theSearch');
+		var params = me.createParam(searchParm);
+		
+		params['pageNo'] = pageNo;
+		params['sizePerPage'] = sizePerPage;
+		params['sort'] = grpGrid.getSortString();
+		params['cmdtGrpCd'] = selection.data.cmdtGrpCd;
+		
+		if (params == null) {
+			return;
+		}
+		
+		store.load({
+			params: params,
+			callback: function(records, operation, success) {
+				if(success){
+				}
+			}
+		});	
+	},
+	
+	onChangeUnno: function(field, newValue) {
+		var me = this;
+		var refs = me.getReferences();
+		var unnoCheck = me.getStore(me.COMMODITY_CODE_IMDG_STORE);
+		var index = unnoCheck.find('unno', newValue);
+		
+		if(index != -1) {
+			refs.refImdg.setValue(unnoCheck.getAt(index).get('classes'));
+		}else {
+			refs.refImdg.setValue(null);
+		}
+	},
+	
+	/**
+	 * =========================================================================================================================
+	 * EVENT HANDLER END
+	 */
+		
+	/**
+	 * GENERAL METHOD START
+	 * =========================================================================================================================
+	 */
+	
+	afterSetCodePopupData:function(xtype, targetControl, returnValue){
+		var me = this;
+		var refs = me.getReferences();
+		var detailItem = me.getViewModel().get('theDetail');
+		
+		if(targetControl === 'ctlPkgTp'){
+			if(returnValue){
+				detailItem.set('pkgTpCd',returnValue.code);
+			}
+		}
+	},
+	
+    getSearchCondition : function() {
+		var me = this;
+		//var store = me.getStore(me.COMMODITY_GROUP_GRID_STORE_NAME);
+		var store = me.getStore(me.COMMODITY_GRID_STORE_NAME);
+		var grid = me.lookupReference(me.COMMODITY_GROUP_GRID_REF_NAME);
+		var pageNo = store.currentPage;
+		var sizePerPage = CommonConstants.PAGE_SIZE;
+		var searchParm = me.getViewModel().get('theSearch');
+		var params = me.createParam(searchParm);
+		
+		params['pageNo'] = pageNo;
+		params['sizePerPage'] = sizePerPage;
+		params['sort'] = grid.getSortString();
+		
+		return params;
+	},
+	
+	onDetailSave:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailView = me.getDetailBizView();
+		var detailItem = me.getViewModel().get('theDetail');
+		
+		if(detailView){
+			if(me.validateDataByReference(me.DETAIL_REQUIRED_FIELDS, null) == false){
+				MessageUtil.mandatoryFieldInValid();
+				return;
+			}
+			if(detailItem.data.cmdtGrpCd.length > 5){
+				MessageUtil.alert('Warning', 'Commodity Group Code must be less than equal to 5 characters');
+				return;
+			}
+			me.saveProcess();
+		}
+	},
+	
+	saveProcess:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var store = me.getStore(me.COMMODITY_GROUP_GRID_STORE_NAME);
+		var storeGrid = me.getStore(me.COMMODITY_GRID_STORE_NAME);
+		var detailItem = me.getViewModel().get('theDetail');
+		var detailView = me.getDetailBizView();
+		var isCreated = detailItem.phantom;
+		var updateParm = Ext.create('MOST.model.foundation.parm.UpdateBizParm');
+		
+		var duplicateCheckStore = me.getStore(me.DUCPLICATE_CHECK_STORE);
+		var comGrpCd = refs.txtComGrCd.getValue();
+		var comCd = refs.txtComCd.getValue();
+
+		detailItem.set('cmdtCd',detailItem.data.cmdtCd.toUpperCase());
+		detailItem.set('userId',MOST.config.Token.getUserId());
+		detailItem.set('cmdtGrp', detailItem.get('cmdtGrpDes'));
+		
+		if(refs.ctlCgTp.isDisabled() == true){
+			updateParm.getProxy().url = storeGrid.getProxy().url;
+		}else{
+			updateParm.getProxy().url = store.getProxy().url;
+		}
+		
+		updateParm.phantom = isCreated;
+		updateParm.set('workingStatus', isCreated ? WorkingStatus.INSERT : WorkingStatus.UPDATE);
+		updateParm.set('userId', MOST.config.Token.getUserId());
+		updateParm.set('item', detailItem.data);
+		
+		if(!StringUtil.isNullorEmpty(comGrpCd)){
+			duplicateCheckStore.load({
+				params:{
+					cmdtGrpCd: comGrpCd,
+					cmdtCd: comCd
+				},
+				callback:function(records, operation, success){
+					if(success){
+						if(records.length > 0 && updateParm.get('workingStatus') == 'C'){
+							if (!StringUtil.isNullorEmpty(comGrpCd) && !StringUtil.isNullorEmpty(comCd)){
+								MessageUtil.error('warning_msg','comcd_dup_true');
+							} 
+							if (!StringUtil.isNullorEmpty(comGrpCd) && StringUtil.isNullorEmpty(comCd)){
+								MessageUtil.error('warning_msg','comgrpcd_dup_true');
+							}
+						} else{
+							updateParm.save({
+								success: function(record) {
+									MessageUtil.show(Ext.Msg.INFO,'success_msg' ,'savesuccess_msg','',
+										function(button){
+											if (button === 'ok') {
+												store.commitChanges();
+												store.reload();
+												storeGrid.commitChanges();
+												storeGrid.reload();
+												me.onLoad();
+												me.onSearch();							
+												//detailView.close();
+												detailView.doClose();
+												me.isDupCheck = false;
+												me.isDup = false;
+											}
+									});
+								}
+							});
+						}
+					}
+				}
+			});
+		}
+	},
+	
+	removeComplete : function(me){
+		MessageUtil.saveSuccess(); // Success Message
+	},
+	
+	/**
+	 * GENERAL METHOD END
+	 * =========================================================================================================================
+	 */
+});

@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="costCenter">
+    
+   	<select id="selectCostCenterCount" parameterType="CostCenterParm" resultType="java.lang.String">
+	 	 SELECT COUNT(*)
+          FROM (<include refid="getCostCenter"/>)
+	</select>
+	<select id="selectCostCenter"  parameterType="CostCenterParm" resultType="CostCenterItem">
+  		<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getCostCenter"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+    </select>  
+	<sql id="getCostCenter">
+			SELECT A.COST_CENT_CD  						AS codeCostCenter,
+  			   A.ERP_COST_CENT							AS codeFinancial,
+  		       NVL(A.DESCR,' ') 						AS codeDescription,
+  		       A.SBU_CD         						AS codeSBU,
+  		       NVL(A.DELV_TP_CD,' ')    				AS typeDelivery,
+  		       NVL(A.CG_TP_CD,' ') 						AS typeCargo,
+  		       NVL(B.S_CD_NM,' ')       				AS codeSBUName,
+  		       NVL(D.S_CD_NM,' ')     					AS typeDeliveryName,
+  		       NVL(C.S_CD_NM,' ') 						AS typeCargoName,  		       
+  		       A.DMY_YN      							AS dateUpdate,
+  		       A.STAFF_CD								AS userId,
+  		       A.VERSION								AS version,
+  		       A.UPDATE_TIME							AS updateTimeField  		       
+  		  FROM TMT_B_COSTCENT A , TMT_CD_MSTD B , TMT_CD_MSTD C , TMT_CD_MSTD D 	
+  		 WHERE VLD_YN = 'Y' 
+			AND A.SBU_CD = B.S_CD(+)
+			AND A.CG_TP_CD  = C.S_CD(+)
+			AND A.DELV_TP_CD  = D.S_CD(+)
+			AND B.l_cd (+)= 'MT' AND B.m_cd (+)= 'SBU'
+			AND C.l_cd (+)= 'MT' AND C.m_cd (+)= 'CGTP'
+			AND D.l_cd (+)= 'MT' AND D.m_cd (+)= 'DELVTP'
+		<if test="codeCostCenter != null and codeCostCenter != ''">
+  			AND A.COST_CENT_CD LIKE #{codeCostCenter} || '%'
+		</if>	
+		<if test="codeSBU != null and codeSBU != ''">
+  			AND A.SBU_CD = #{codeSBU} 
+		</if>	
+		<if test="bbtYn != null and bbtYn != ''">
+  			AND NVL(A.BBT_YN, 'N') = #{bbtYn}
+		</if>		
+		ORDER BY A.COST_CENT_CD , NVL(A.DESCR,' ') , A.SBU_CD , NVL(A.CG_TP_CD,' ') ,NVL(A.DELV_TP_CD,' ')
+	</sql>
+	
+    <select id="isExistedCostCenter"  parameterType="CostCenterParm" resultType="CostCenterItem">
+  		SELECT	A.COST_CENT_CD  	AS codeCostCenter
+  		FROM	TMT_B_COSTCENT A
+  		WHERE	A.COST_CENT_CD = #{codeCostCenter}
+  				AND A.VLD_YN = 'Y'
+    </select> 
+    <select id="hasExistedConstraint"  parameterType="CostCenterParm" resultType="CostCenterItem">
+  		SELECT A.COST_CENT_CD  	AS codeCostCenter
+  		  FROM TMT_B_TRF_CD A
+  		 WHERE A.COST_CENT_CD = #{codeCostCenter} 					
+    </select>     
+    <insert id="insertItems"  parameterType="CostCenterItem">
+		INSERT INTO 
+		TMT_B_COSTCENT (COST_CENT_CD,
+                        ERP_COST_CENT,
+                        DESCR,
+                        SBU_CD,
+                        DELV_TP_CD,
+                        CG_TP_CD,
+                        DMY_YN,
+                        VLD_YN,
+                        STAFF_CD,
+                        UPDATE_TIME,
+                        VERSION)
+		     VALUES (#{codeCostCenter}, 
+		            #{codeFinancial}, 
+		            #{codeDescription}, 
+		            #{codeSBU}, 
+		            #{typeDelivery}, 
+		            #{typeCargo}, 
+		            #{dateUpdate},
+		            'Y',#{userId},
+		            SYSDATE,
+		            #{newVersion}
+		            )
+    </insert>
+    <update id="updateItems"  parameterType="CostCenterItem">
+		UPDATE	TMT_B_COSTCENT 
+		SET STAFF_CD  	= #{userId} ,
+			DESCR  		= #{codeDescription} ,
+			SBU_CD  		= #{codeSBU}   ,
+			DELV_TP_CD   		=  #{typeDelivery} ,			
+			CG_TP_CD 		= #{typeCargo} ,
+			UPDATE_TIME = SYSDATE,
+			VERSION = #{newVersion}			
+		WHERE	COST_CENT_CD 	= #{codeCostCenter} 
+				AND ERP_COST_CENT = #{codeFinancial}
+		<if test="version != null and version != ''">
+  			AND
+			VERSION = #{version} 
+		</if>
+    </update>
+    <delete id="deleteItems"  parameterType="CostCenterItem">
+		DELETE	TMT_B_COSTCENT  
+		WHERE	COST_CENT_CD = #{codeCostCenter}
+		AND ERP_COST_CENT = #{codeFinancial}
+		<if test="version != null and version != ''">
+ 		 	AND
+			VERSION = #{version} 
+		</if>
+    </delete>
+    <select id="isUnitInUsed" parameterType="CostCenterParm" resultType="CostCenterItem">
+		SELECT COST_CENT_CD  as codeCostCenter FROM TMT_B_TRF_CD
+		WHERE rownum = 1 AND COST_CENT_CD = #{codeCostCenter}
+	</select>
+	
+	<select id="duplicatedCostERP" parameterType="CostCenterParm" resultType="java.lang.String">
+			SELECT  CASE WHEN COUNT(*) = 0 THEN 'N' ELSE 'Y' END  AS isValidated
+                FROM    TMT_B_COSTCENT
+                WHERE   COST_CENT_CD = #{codeCostCenter}
+               	AND ERP_COST_CENT = #{codeFinancial}
+	</select>
+</mapper>

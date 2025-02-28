@@ -1,0 +1,378 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+<mapper namespace="vesselDelay">
+	<sql id="getDelayRecordList">
+		SELECT	/* vesselDelay.getDelayRecordList */
+			A.VSL_CALL_ID 								AS VSLCALLID,
+			ISNULL(A.SEQ, 0)         					AS SEQ,
+			FORMAT(A.ST_DT, 'dd/MM/yyyy HH:mm')       	AS STDT,
+			FORMAT(A.END_DT, 'dd/MM/yyyy HH:mm')      	AS ENDDT,
+			FORMAT(A.INPT_DT, 'dd/MM/yyyy')       		AS INPTDT,
+			ISNULL(A.SHFT_ID, '')     					AS SHFTID,
+			ISNULL((
+				SELECT
+					SHFT_NM 							AS SHFTNM
+				FROM
+					TMT_SHFT
+				WHERE
+					SHFT_METH_CD 						= 'Standard'
+			        AND VLD_YN 							= 'Y'
+			        AND SHFT_ID 						= A.SHFT_ID
+				)
+			, ' ') 										AS SHFTNM,
+			ISNULL(A.HATCH_NO, '')    					AS HATCHNO,
+			ISNULL(A.HATCH_DRT_CD, '')    				AS HATCHDRTCD,
+			ISNULL(A.EQ_NO, '')       					AS EQNO,
+			ISNULL(A.RSN_CD, '')      					AS RSNCD,
+			(CASE ISNULL(A.ACPT_YN, 'N')
+				WHEN 'N' THEN 'N'
+				ELSE 'Y'
+			END)     									AS ACPTYN,
+			A.RMK         								AS RMK,
+			(SELECT
+				DESCR
+			FROM
+				TMT_DLY_CD
+			WHERE
+				DLY_CD 									= A.RSN_CD
+			<!-- and CG_TP = 'BBK' -->
+			) 											AS RSNCDNM,
+			FORMAT(
+				ROUND(
+					ISNULL(
+						DBO.F_INTERVAL_OF_HOUR('NR', END_DT, ST_DT)
+					, 0)
+				* 100, 2, 1) / 100
+			, '0.00')  									AS TOTALHRS,
+			VERIFY_STATUS								AS VERIFYSTATUS,
+			VERIFY_BY									AS VERIFYBY,
+			FORMAT(VERIFY_DATE,'dd/MM/yyyy HH:mm') 	  	AS VERIFYDATE,
+			A.OPE_COMP 									AS CONTRACTOR
+		FROM
+		    TMT_DLY_BRK A
+		WHERE
+			A.VSL_CALL_ID 								= #{vslCallId}
+		<if test="shftId != null and shftId != ''">
+	   		AND A.SHFT_ID 								= #{shftId}
+		</if>
+		<if test="hatchNo != null and hatchNo != ''">
+	   		AND A.HATCH_NO 								= #{hatchNo}
+		</if>
+		<if test="stDt != null and stDt != ''">
+	    	AND FORMAT(A.ST_DT, 'dd/MM/yyyy') 			= #{stDt}
+		</if>
+	</sql>
+		
+	<select id="selectEqNoList" parameterType = "vesselDelayParm" resultType="vesselDelayItem">
+		SELECT	/* vesselDelay.selectEqNoList */
+			EQNO,
+			EQNM,
+			STUFF((
+				SELECT
+					', ' + CAST(HATCHNO AS VARCHAR(MAX))
+				FROM (
+					SELECT
+						D.EQ_FAC_NO 					AS EQNO,
+						E.EQ_FAC_NM 					AS EQNM,
+						D.HATCH_NO 						AS HATCHNO,
+						ROW_NUMBER()
+							OVER (
+							    PARTITION BY D.EQ_FAC_NO
+							    ORDER BY D.HATCH_NO) 	AS CNT
+					FROM
+						TMT_VSL_OPE_RPT V
+							LEFT OUTER JOIN TMT_VSL_OPE_RPT_DTL tempD
+								ON V.VSL_CALL_ID 		= tempD.VSL_CALL_ID
+								AND V.WORK_YMD 			= tempD.WORK_YMD
+								AND V.SHFT_ID 			= tempD.SHFT_ID
+							JOIN TMT_VSL_OPE_RPT_DTL D
+							    ON V.VSL_CALL_ID 		= D.VSL_CALL_ID
+								AND V.WORK_YMD 			= D.WORK_YMD
+								AND V.SHFT_ID 			= D.SHFT_ID
+							JOIN TMT_EQ_FAC E
+								ON D.EQ_FAC_NO 			= E.EQ_FAC_NO
+					WHERE
+						D.EQ_FAC_NO IS NOT NULL
+						AND D.EQ_FAC_NO <![CDATA[<>]]> ''
+					<if test="vslCallId != null and vslCallId != ''">
+						AND V.VSL_CALL_ID				= #{vslCallId}
+					</if>
+					<if test="stDt != null and stDt != ''">
+						AND V.WORK_YMD					= FORMAT(CONVERT(DATE, #{stDt},103), 'yyyyMMdd')
+					</if>
+					<if test="shftId != null and shftId != ''">
+						AND V.SHFT_ID					= #{shftId}
+					</if>
+					<if test="hatchNo != null and hatchNo != ''">
+						AND D.HATCH_NO					= #{hatchNo}
+					</if>
+					GROUP BY
+						D.EQ_FAC_NO,
+						E.EQ_FAC_NM,
+						D.HATCH_NO
+					) 									AS InnerTable
+				WHERE
+					InnerTable.EQNO						= OuterTable.EQNO
+				FOR XML PATH(''), TYPE
+				).value('.', 'VARCHAR(MAX)'), 1, 2, '')	AS HATCHNO
+		FROM (
+			SELECT
+				D.EQ_FAC_NO 							AS EQNO,
+				E.EQ_FAC_NM 							AS EQNM
+			FROM
+				TMT_VSL_OPE_RPT V
+					LEFT OUTER JOIN TMT_VSL_OPE_RPT_DTL tempD
+						ON V.VSL_CALL_ID				= tempD.VSL_CALL_ID
+						AND V.WORK_YMD					= tempD.WORK_YMD
+						AND V.SHFT_ID					= tempD.SHFT_ID
+					JOIN TMT_VSL_OPE_RPT_DTL D
+						ON V.VSL_CALL_ID				= D.VSL_CALL_ID
+						AND V.WORK_YMD					= D.WORK_YMD
+						AND V.SHFT_ID					= D.SHFT_ID
+					JOIN TMT_EQ_FAC E
+						ON D.EQ_FAC_NO					= E.EQ_FAC_NO
+			WHERE
+				D.EQ_FAC_NO IS NOT NULL
+				AND D.EQ_FAC_NO <![CDATA[<>]]> ''
+			<if test="vslCallId != null and vslCallId != ''">
+				AND V.VSL_CALL_ID 						= #{vslCallId}
+			</if>
+			<if test="stDt != null and stDt != ''">
+				AND V.WORK_YMD 							= FORMAT(CONVERT(DATE, #{stDt},103), 'yyyyMMdd')
+			</if>
+			<if test="shftId != null and shftId != ''">
+				AND V.SHFT_ID 							= #{shftId}
+			</if>
+			<if test="hatchNo != null and hatchNo != ''">
+				AND D.HATCH_NO 							= #{hatchNo}
+			</if>
+			GROUP BY
+				D.EQ_FAC_NO,
+				E.EQ_FAC_NM,
+				D.HATCH_NO
+			) AS OuterTable
+		GROUP BY
+			EQNO,
+			EQNM
+	</select>
+
+	<select id="selectHatchNoList" parameterType = "vesselDelayParm" resultType="vesselDelayItem">
+		SELECT /*vesselDelay.selectHatchNoList*/
+			D.HATCH_NO 						AS HATCHNO,
+			D.HATCH_NO 						AS SCD,
+			D.HATCH_NO 						AS SCDNM
+		FROM
+			TMT_VSL_OPE_RPT V
+				LEFT OUTER JOIN TMT_VSL_OPE_RPT_DTL tempD
+		    		ON V.VSL_CALL_ID 		= tempD.VSL_CALL_ID
+					AND V.WORK_YMD 			= tempD.WORK_YMD
+					AND V.SHFT_ID 			= tempD.SHFT_ID,
+			TMT_VSL_OPE_RPT_DTL D
+		WHERE
+			(D.HATCH_NO IS NOT NULL AND D.HATCH_NO <![CDATA[<>]]> '')
+		<if test="vslCallId != null and vslCallId != ''">
+			AND V.VSL_CALL_ID 				= #{vslCallId}
+		</if>
+		<if test="stDt != null and stDt != ''">
+			AND V.WORK_YMD 					= FORMAT(CONVERT(DATE, #{stDt},103), 'yyyyMMdd')
+		</if>
+		<if test="shftId != null and shftId != ''">
+			AND V.SHFT_ID 					= #{shftId}
+		</if>
+		GROUP BY
+		    D.HATCH_NO
+		ORDER BY
+		    D.HATCH_NO ASC
+	</select>
+	
+	<select id="selectVesselDelayList" parameterType="vesselDelayParm" resultType="vesselDelayItem">
+	 	<if test="pageNo != 0"> 
+        	SELECT /*vesselDelay.selectVesselDelayList*/
+        		*
+        	FROM (
+        		SELECT
+					inner_query.*, ROW_NUMBER() OVER(ORDER BY STDT ASC) row_num
+        		FROM (
+		</if>
+				<include refid="getDelayRecordList"/>
+		<if test="pageNo != 0"> 
+				) inner_query
+			) inner_query
+			<!-- WHERE
+				inner_query.row_num <![CDATA[>]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT) - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_query.row_num <![CDATA[<=]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT)) * CAST(#{sizePerPage} AS INT) -->
+		</if>
+	</select>
+
+	<select id="selectVesselDelayListCount" parameterType="vesselDelayParm" resultType="java.lang.String">
+	 	SELECT /*vesselDelay.selectVesselDelayListCount*/
+	 		COUNT(*)
+        FROM
+            (<include refid="getDelayRecordList"/>) AS getDelayRecordList
+	</select>
+
+	<select id="selectAcceptedDelayCode" parameterType="vesselDelayParm" resultType="vesselDelayItem">
+		SELECT /*vesselDelay.selectAcceptedDelayCode*/
+			DLY_CD             	 		AS RSNCD,
+		    DESCR        		 		AS RSNCDNM,
+			(CASE ISNULL(CHAG_YN, 'N')
+				WHEN 'N' THEN 'N'
+				ELSE 'Y'
+			END)						AS 	ACPTYN
+		FROM
+			TMT_DLY_CD
+		WHERE
+			1 = 1
+		<if test="rsnCd != null and rsnCd != ''">
+	   		AND DLY_CD 					= #{rsnCd}
+		</if>
+		<if test="bulkTp != null and bulkTp != ''">
+	   		AND CG_TP 					= #{bulkTp}
+		</if>
+	</select>
+
+	<select id="selectDelayCodeList"  parameterType="codeMasterParm" resultType="codeMasterItem">
+		SELECT /*vesselDelay.selectDelayCodeList*/
+			DLY_CD             	 		AS SCD,
+		    DESCR        		 		AS SCDNM,
+			(CASE ISNULL(CHAG_YN, 'N')
+				WHEN 'N' THEN 'N'
+				ELSE 'Y'
+			END)						AS ACPTYN
+		FROM
+			TMT_DLY_CD
+		WHERE
+			1 = 1
+		<if test="tyCd == 'CD'">
+			<if test="scd != null and scd != ''">
+    			AND DLY_CD LIKE #{scd} + '%'
+			</if>
+		</if>
+		<if test="col1 != null and col1 != ''"> 		<!--For HHT-->
+			AND DLY_CATG_CD 			=  #{col1}
+		</if>
+		<if test="tyCd == 'NM'">
+			<if test="scd != null and scd != ''">
+     			AND UPPER(DESCR) LIKE UPPER(#{scd} + '%')
+			</if>
+		</if>
+		<if test="lcd != null and lcd != ''">
+			AND
+			<if test="lcd == 'LIQUIQ'">
+				CG_TP 					= 'LQD'
+			</if>
+			<if test="lcd != 'LIQUIQ'">
+				<![CDATA[ CG_TP <>  'LQD' ]]>
+			</if>
+		</if>
+		ORDER BY
+			DLY_CD,
+			DESCR
+	</select>
+	
+	<insert id="insertdelayRecordItems" parameterType="vesselDelayItem">
+		INSERT /*vesselDelay.insertdelayRecordItems*/
+			INTO
+			    TMT_DLY_BRK(
+			    	VSL_CALL_ID,
+					SEQ,
+					ST_DT,
+					END_DT,
+					INPT_DT,
+					SHFT_ID,
+					HATCH_NO,
+					HATCH_DRT_CD,
+					EQ_NO,
+					RSN_CD,
+					ACPT_YN,
+					RMK,
+					UPDATE_TIME,
+					STAFF_CD,
+			        OPE_COMP
+				) VALUES (
+					#{vslCallId},
+					(SELECT
+						(CASE
+							WHEN (MAX(SEQ) IS NULL OR MAX(SEQ) = 0) THEN 1
+							ELSE MAX(SEQ) + 1
+						END)
+					FROM
+						TMT_DLY_BRK),
+					CONVERT(DATETIME, #{stDt}, 103),
+					CONVERT(DATETIME, #{endDt}, 103),
+					CONVERT(DATE, #{inptDt}, 103),
+					#{shftId},
+					#{hatchNo},
+					#{hatchDrtCd},
+					#{eqNo},
+					#{rsnCd},
+					(CASE #{acptYN}
+						WHEN 'N' THEN 'N'
+					    ELSE 'Y'
+    				END),
+					#{rmk},
+					SYSDATETIME(),
+				    (CASE
+				    	WHEN (#{userId} IS NULL OR #{userId} = '') THEN 'Unknown'
+				    	ELSE #{userId}
+				    END),
+					#{contractor}
+				)
+	</insert>
+	
+	<update id="updatedelayRecordItemsVerify"  parameterType="vesselDelayItem">
+		UPDATE /*vesselDelay.updatedelayRecordItemsVerify*/
+			TMT_DLY_BRK
+	    SET
+	    	VERIFY_STATUS 			= #{verifyStatus},
+	        VERIFY_BY 				= #{verifyBy},
+	        VERIFY_DATE 			= SYSDATETIME(),
+	        STAFF_CD 				= #{verifyBy},
+			UPDATE_TIME 			= SYSDATETIME()
+    	WHERE
+        	VSL_CALL_ID 			= #{vslCallId}
+            AND SEQ 				= #{seq}
+	</update>
+
+	<delete id="deletedelayRecordItems"  parameterType="vesselDelayItem">
+		DELETE /*vesselDelay.updatedelayRecordItemsVerify*/
+		FROM
+			TMT_DLY_BRK
+		WHERE
+		    VSL_CALL_ID 			= #{vslCallId}
+		  	AND SEQ 				= #{seq}
+	</delete>
+	
+	<update id="updatedelayRecordItems"  parameterType="vesselDelayItem">
+		UPDATE /*vesselDelay.updatedelayRecordItems*/
+			TMT_DLY_BRK
+		SET
+			ST_DT 				= CONVERT(DATETIME, #{stDt}, 103),
+			END_DT 				= CONVERT(DATETIME, #{endDt}, 103),
+			INPT_DT 			= CONVERT(DATE, #{inptDt}, 103),
+			SHFT_ID 			= #{shftId},
+			HATCH_NO 			= #{hatchNo},
+			HATCH_DRT_CD 		= #{hatchDrtCd},
+			EQ_NO 				= #{eqNo},
+			RSN_CD 				= #{rsnCd},
+			ACPT_YN 			= (CASE #{acptYN}
+										WHEN 'N' THEN 'N'
+										ELSE 'Y'
+									END),
+			RMK 				= #{rmk},
+			UPDATE_TIME 		= SYSDATETIME(),
+			STAFF_CD 			= (CASE
+										WHEN (#{userId} IS NULL OR #{userId} = '') THEN 'Unknown'
+										ELSE #{userId}
+									END),
+			OPE_COMP 			= #{contractor}
+		WHERE
+			VSL_CALL_ID 		= #{vslCallId}
+		  	AND SEQ 			= #{seq}
+	</update>
+</mapper>
+
+

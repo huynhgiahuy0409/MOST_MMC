@@ -1,0 +1,1223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace = "customsCargoReleaseControl">
+
+	<select id="selectCustomsCargoReleaseList" parameterType="customsCargoReleaseControlParm" resultType="customsCargoReleaseControlItem">
+	 	<if test="pageNo != 0"> 
+	            SELECT /*customsCargoReleaseControl.selectCustomsCargoReleaseList*/
+					* 
+				FROM 
+					(SELECT 
+						inner_querry.*, ROW_NUMBER() OVER(ORDER BY(SELECT NULL)) row_num 
+					FROM ( 
+		</if>
+				<include refid="getCustomsCargoReleaseList"/>
+		<if test="pageNo != 0"> 
+				)inner_querry 
+			)inner_querry 
+			WHERE 
+				inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+
+	<select id="selectCustomsCargoReleaseListCount" parameterType="customsCargoReleaseControlParm" resultType="java.lang.String" >
+	       SELECT /*customsCargoReleaseControl.selectCustomsCargoReleaseListCount*/
+				COUNT(*)
+	       FROM 
+				(<include refid="getCustomsCargoReleaseList"/>) AS getCustomsCargoReleaseList
+	</select>
+	
+	<sql id="getCustomsCargoReleaseList">
+		<if test="masterBL != null and masterBL != '' and bookingNo != null and bookingNo != ''">
+			<include refid="inquiryByMasterBL"/>
+			UNION ALL
+			<include refid="inquiryByBookingNo"/>
+		</if>
+		  
+		<if test="masterBL != null and masterBL != '' and (bookingNo == null or bookingNo == '')">
+			<include refid="inquiryByMasterBL"/>
+		</if>
+		  
+		<if test="bookingNo != null and bookingNo != '' and (masterBL == null or masterBL == '')">
+			<include refid="inquiryByBookingNo"/>
+		</if>
+				  
+		<if test="(masterBL == null or masterBL == '') and (bookingNo == null or bookingNo == '')">
+			<include refid="inquiryByMasterBL"/>
+			UNION ALL
+			<include refid="inquiryByBookingNo"/>
+		</if>
+	</sql>
+
+	<sql id="inquiryByMasterBL">
+		SELECT /*customsCargoReleaseControl.inquiryByMasterBL*/
+			C.VSL_CALL_ID 														AS vslManifestNo, 
+			D.VSL_CALL_ID 														AS vslCallId, 
+			CASE
+				WHEN IX_CD = 'IM' THEN 'Import'
+				WHEN IX_CD = 'EX' THEN 'EX'
+				WHEN IX_CD = 'TS' THEN 'Transshipment'
+				ELSE ''
+			END 																AS categoryNm,
+			C.IX_CD  															AS categoryCd,
+			C.DOC_NO 															AS docNo, 
+			C.CUSTOMS_REF_NO 													AS releaseNo,
+			C.REF_NO															AS blNo,
+			''																	AS snNo, 
+			C.REF_NO															AS refNo,
+			FORMAT(C.CUSTOMS_RELEASE_DT, 'dd/MM/yyyy HH:mm') 					AS customReleaseDT,
+			FORMAT(C.CUST_GET_IN, 'dd/MM/yyyy HH:mm') 							AS custGetIn,
+			FORMAT(C.CUST_GET_OUT, 'dd/MM/yyyy HH:mm') 							AS custGetOut,
+			C.TMNL_DESC 														AS tmnlDesc,
+			ISNULL(C.RELEASE_MT, D.DOC_MT) 										AS releaseMt,
+			ISNULL(C.RELEASE_QTY, D.DOC_QTY) 									AS releaseQty,
+			ISNULL(C.RELEASE_M3, D.DOC_M3) 										AS releaseM3,
+			C.STAFF_CD 															AS updUserId,
+			'Release' 															AS status,
+			<!-- sMantis: 0167587 -->
+			D.CG_TP_CD 															AS cgTpCd,
+			CASE													
+				WHEN C.REF_NO IS NOT NULL AND C.REF_NO <![CDATA[<>]]> ''
+					THEN E.DOC_MT 
+				ELSE D.DOC_MT 
+			END 																AS docMt,
+			CASE													
+				WHEN C.REF_NO IS NOT NULL AND C.REF_NO <![CDATA[<>]]> ''
+					THEN E.DOC_QTY 
+				ELSE D.DOC_QTY 
+			END 																AS docQty,
+			CASE													
+				WHEN C.REF_NO IS NOT NULL AND C.REF_NO <![CDATA[<>]]> ''
+					THEN E.DOC_M3
+				ELSE D.DOC_M3
+			END 																AS docM3,
+			
+			CASE													
+				WHEN C.REF_NO IS NOT NULL AND C.REF_NO <![CDATA[<>]]> ''
+					THEN E.DOC_MT - C.RELEASE_MT 
+				ELSE D.DOC_MT - C.RELEASE_MT 
+			END 																AS balanceMt,
+			CASE													
+				WHEN C.REF_NO IS NOT NULL AND C.REF_NO <![CDATA[<>]]> ''
+					THEN E.DOC_QTY - C.RELEASE_QTY 
+				ELSE D.DOC_QTY - C.RELEASE_QTY 
+			END 																AS balanceQty,
+			CASE													
+				WHEN C.REF_NO IS NOT NULL AND C.REF_NO <![CDATA[<>]]> ''
+					THEN E.DOC_M3 - C.RELEASE_M3
+				ELSE D.DOC_M3 - C.RELEASE_M3
+			END 																AS balanceM3,
+			<!-- eMantis: 0167587 -->
+			C.BONDED_WH_YN 														AS BONDEDWHYN,
+			<!-- 
+			(SELECT 
+				BL.CMDT_CD 
+			FROM 
+				TMT_BL BL 
+			WHERE 
+				BL.VSL_CALL_ID = D.VSL_CALL_ID 
+			) 																	AS cmdtCd,
+			(SELECT 
+				CMDT.CMDT_DESC 
+			FROM 
+				TMT_CMDT CMDT,TMT_BL BL 
+			WHERE 
+				BL.CMDT_CD = CMDT.CMDT_CD 
+				AND  BL.VSL_CALL_ID = D.VSL_CALL_ID
+			) 																	AS cmdtNm, 
+			-->
+			C.INTERFACE_PK 														AS interfacePK,
+			CASE 
+				WHEN (SELECT COUNT(1) 
+					FROM 
+						TMT_TMNL_HOLD A 
+					WHERE 
+						A.VSL_CALL_ID = D.VSL_CALL_ID 
+						AND ISNULL(RELEASE_STATUS, 'N') = 'Y' 
+						AND A.HOLD_REASON_CD = 'ABD') > 0 THEN 'Release'
+				WHEN (SELECT COUNT(1) 
+					FROM 
+						TMT_TMNL_HOLD A 
+					WHERE 
+						A.VSL_CALL_ID = D.VSL_CALL_ID 
+						AND ISNULL(RELEASE_STATUS, 'N') = 'N' 
+						AND A.HOLD_REASON_CD = 'ABD') > 0 THEN 'Hold'
+				ELSE ''
+				END 															AS abandoNoStatus,
+			C.STAFF_CD 															AS CREATEDBY,
+			C.STAFF_CD 															AS UPDATEDBY
+		FROM	
+			TMT_CUSTOMS_RELEASE 												C
+		INNER JOIN (
+			SELECT DISTINCT
+				BL.MF_DOC_ID 													AS DOC_NO,
+				BL.CG_TP_CD 													AS CG_TP_CD,
+				SUM(BL.CG_WGT) 
+					OVER (PARTITION BY BL.MF_DOC_ID,BL.VSL_CALL_ID) 			AS DOC_MT,
+				SUM(BL.PKG_QTY) 
+					OVER (PARTITION BY BL.MF_DOC_ID,BL.VSL_CALL_ID) 			AS DOC_QTY,
+				SUM(BL.CG_VOL) 
+					OVER (PARTITION BY BL.MF_DOC_ID,BL.VSL_CALL_ID) 			AS DOC_M3,
+				BL.VSL_CALL_ID 													AS VSL_CALL_ID,
+				VSL.VSL_CALL_ID 												AS VSL_MANIFEST_NO
+				<!-- ,BL.BONDED_WH_YN AS BONDED_WH_YN -->
+			FROM	
+				TMT_BL 															BL 
+			INNER JOIN 
+				TMT_VSL_SCH 													VSL 
+			ON 
+				BL.VSL_CALL_ID 													= VSL.VSL_CALL_ID
+			WHERE
+				1 = 1
+				<if test="vslCallId != null and vslCallId != ''">
+					AND VSL.VSL_CALL_ID 										= #{vslCallId}
+				</if>
+				<if test="vslManifestNo != null and vslManifestNo !=  ''">
+					AND VSL.VSL_CALL_ID 										= #{vslManifestNo}
+				</if>
+				<if test="masterBL != null and masterBL !=  ''">
+					AND BL.MF_DOC_ID 											= #{masterBL}
+				</if>
+		) 																		D 
+			ON 
+				C.VSL_CALL_ID 													= D.VSL_CALL_ID 
+				AND C.DOC_NO 													= D.DOC_NO
+		LEFT OUTER JOIN(
+			SELECT
+				BL.CG_WGT 														AS DOC_MT,
+				BL.PKG_QTY 														AS DOC_QTY,
+				BL.CG_VOL														AS DOC_M3,
+				BL.VSL_CALL_ID 													AS VSL_CALL_ID,
+				BL.BL_NO														AS BL_NO,
+				BL.MF_DOC_ID 													AS DOC_NO
+			FROM	
+				TMT_BL 															BL 
+			WHERE
+				1 = 1
+				<if test="vslCallId != null and vslCallId != ''">
+					AND BL.VSL_CALL_ID 											= #{vslCallId}
+				</if>
+				<if test="masterBL != null and masterBL !=  ''">
+					AND BL.MF_DOC_ID 											= #{masterBL}
+				</if>
+				<if test="blNo != null and blNo !=  ''">
+					AND BL.BL_NO	 											= #{blNo}
+				</if>
+		) 																		E
+			ON 
+				C.VSL_CALL_ID 													= E.VSL_CALL_ID 
+				AND C.DOC_NO 													= E.DOC_NO
+				AND C.REF_NO													= E.BL_NO
+		WHERE	
+			C.IX_CD IN ('IM')
+				<if test="startDate != null and startDate != ''">
+					AND C.CUSTOMS_RELEASE_DT 									<![CDATA[>=]]> CONVERT(datetime,#{startDate} + ' 00:00', 103)
+				</if>
+				<if test="endDate != null and endDate != ''">
+					AND C.CUSTOMS_RELEASE_DT 									<![CDATA[<=]]> CONVERT(datetime,#{endDate} + ' 23:59', 103)
+				</if>
+				<if test="vslCallId != null and vslCallId != ''">
+					AND D.VSL_CALL_ID 											= #{vslCallId}
+				</if>
+				<if test="vslManifestNo != null and vslManifestNo !=  ''">
+					AND D.VSL_CALL_ID 											= #{vslManifestNo}
+				</if>  
+				<if test="masterBL != null and masterBL !=  ''">
+					AND C.DOC_NO 												= #{masterBL}
+				</if> 
+				<if test="blNo != null and blNo !=  ''">
+					AND C.REF_NO 												= #{blNo}
+				</if> 
+				<!-- <if test="bondedWhYn != null and bondedWhYn !=  ''">
+					AND C.BONDED_WH_YN 											= #{bondedWhYn}
+				</if> -->
+	</sql>
+	
+	<sql id="inquiryByBookingNo">
+		SELECT /*customsCargoReleaseControl.inquiryByBookingNo*/
+			C.VSL_CALL_ID 														AS vslManifestNo, 
+			D.VSL_CALL_ID 														AS vslCallId,
+			CASE
+				WHEN IX_CD = 'IM' THEN 'Import'
+				WHEN IX_CD = 'EX' THEN 'EX'
+				WHEN IX_CD = 'TS' THEN 'Transshipment'
+				ELSE ''
+			END 																AS categoryNm, 			
+			C.IX_CD  															AS categoryCd,
+			C.DOC_NO 															AS docNo, 
+			C.CUSTOMS_REF_NO 													AS releaseNo, 
+			''																	AS blNo,
+			C.REF_NO 															AS snNo, 
+			C.REF_NO															AS refNo,
+			FORMAT(C.CUSTOMS_RELEASE_DT, 'dd/MM/yyyy HH:mm') 					AS customReleaseDT,
+			FORMAT(C.CUST_GET_IN, 'dd/MM/yyyy HH:mm') 							AS custGetIn,
+			FORMAT(C.CUST_GET_OUT, 'dd/MM/yyyy HH:mm') 							AS custGetOut,
+			C.TMNL_DESC 														AS tmnlDesc,
+			ISNULL(C.RELEASE_MT, D.DOC_MT) 										AS releaseMt,
+			ISNULL(C.RELEASE_QTY, D.DOC_QTY) 									AS releaseQty,
+			ISNULL(C.RELEASE_M3, D.DOC_M3) 										AS releaseM3,
+			C.STAFF_CD  						 								AS updUserId,
+			'Release'  						 									AS status,
+			<!-- sMantis: 0167587 -->
+			D.CG_TP_CD 															AS cgTpCd,
+			CASE													
+				WHEN C.REF_NO IS NOT NULL AND C.REF_NO <![CDATA[<>]]> ''
+					THEN E.DOC_MT 
+				ELSE D.DOC_MT 
+			END 																AS docMt,
+			CASE													
+				WHEN C.REF_NO IS NOT NULL AND C.REF_NO <![CDATA[<>]]> ''
+					THEN E.DOC_QTY 
+				ELSE D.DOC_QTY 
+			END 																AS docQty,
+			CASE													
+				WHEN C.REF_NO IS NOT NULL AND C.REF_NO <![CDATA[<>]]> ''
+					THEN E.DOC_M3
+				ELSE D.DOC_M3
+			END 																AS docM3,
+			
+			CASE													
+				WHEN C.REF_NO IS NOT NULL AND C.REF_NO <![CDATA[<>]]> ''
+					THEN E.DOC_MT - C.RELEASE_MT 
+				ELSE D.DOC_MT - C.RELEASE_MT 
+			END 																AS balanceMt,
+			CASE													
+				WHEN C.REF_NO IS NOT NULL AND C.REF_NO <![CDATA[<>]]> ''
+					THEN E.DOC_QTY - C.RELEASE_QTY 
+				ELSE D.DOC_QTY - C.RELEASE_QTY 
+			END 																AS balanceQty,
+			CASE													
+				WHEN C.REF_NO IS NOT NULL AND C.REF_NO <![CDATA[<>]]> ''
+					THEN E.DOC_M3 - C.RELEASE_M3
+				ELSE D.DOC_M3 - C.RELEASE_M3
+			END 																AS balanceM3,
+			<!-- eMantis: 0167587 -->
+			C.BONDED_WH_YN  													AS BONDEDWHYN,
+			<!-- 
+			(SELECT 
+				SN.CMDT_CD 
+			FROM 
+				TMT_SHIPG_NOTE SN 
+			WHERE 
+				SN.VSL_CALL_ID = D.VSL_CALL_ID 
+				AND SN.STAT_CD = 'AP'
+			) 																	AS cmdtCd,
+			(SELECT 
+				CMDT.CMDT_DESC 
+			FROM 
+				TMT_CMDT CMDT,TMT_SHIPG_NOTE SN 
+			WHERE 
+				SN.CMDT_CD = CMDT.CMDT_CD 
+				AND  SN.VSL_CALL_ID = D.VSL_CALL_ID 
+				AND SN.STAT_CD = 'AP'
+			) 																	AS cmdtNm, 
+			-->
+			C.INTERFACE_PK  													AS interfacePK,
+			'' 																	AS abandoNoStatus,
+			C.STAFF_CD  						 								AS CREATEDBY,
+			C.STAFF_CD  						 								AS UPDATEDBY
+		FROM 	
+			TMT_CUSTOMS_RELEASE 												C
+		INNER JOIN (
+			SELECT DISTINCT
+				SN.MF_DOC_ID  													AS DOC_NO,
+				SN.CG_TP_CD  													AS CG_TP_CD,
+				SUM(SN.CG_WGT) OVER (PARTITION BY SN.MF_DOC_ID,SN.VSL_CALL_ID) 	AS DOC_MT,
+				SUM(SN.PKG_QTY) OVER (PARTITION BY SN.MF_DOC_ID,SN.VSL_CALL_ID) AS DOC_QTY,
+				SUM(SN.CG_VOL) OVER (PARTITION BY SN.MF_DOC_ID,SN.VSL_CALL_ID) 	AS DOC_M3,
+				SN.VSL_CALL_ID  												AS VSL_CALL_ID,
+				VSL.VSL_CALL_ID  												AS VSL_MANIFEST_NO
+				<!-- ,SN.BONDED_WH_YN -->
+			FROM	
+				TMT_SHIPG_NOTE 													SN 
+			INNER JOIN 
+				TMT_VSL_SCH VSL
+				ON 
+					SN.VSL_CALL_ID 												= VSL.VSL_CALL_ID
+			WHERE
+				SN.STAT_CD 														= 'AP'
+				<if test="vslCallId != null and vslCallId != ''">
+					AND VSL.VSL_CALL_ID 										=  #{vslCallId}
+				</if>
+				<if test="vslManifestNo != null and vslManifestNo !=  ''">
+					AND VSL.VSL_CALL_ID 										= #{vslManifestNo}
+				</if>
+				<if test="bookingNo != null and bookingNo != ''">
+					AND SN.MF_DOC_ID 											= #{bookingNo}
+				</if>
+		) 																		D 
+			ON 
+				C.VSL_CALL_ID 													= D.VSL_CALL_ID 
+				AND C.DOC_NO 													= D.DOC_NO
+		LEFT OUTER JOIN(
+			SELECT
+				SN.CG_WGT 														AS DOC_MT,
+				SN.PKG_QTY 														AS DOC_QTY,
+				SN.CG_VOL														AS DOC_M3,
+				SN.VSL_CALL_ID 													AS VSL_CALL_ID,
+				SN.SHIPG_NOTE_NO												AS SHIPG_NOTE_NO,
+				SN.MF_DOC_ID 													AS DOC_NO
+			FROM	
+				TMT_SHIPG_NOTE 													SN
+			WHERE
+				1 = 1
+				<if test="vslCallId != null and vslCallId != ''">
+					AND SN.VSL_CALL_ID 											= #{vslCallId}
+				</if>
+				<if test="bookingNo != null and bookingNo !=  ''">
+					AND SN.MF_DOC_ID 											= #{masterBL}
+				</if>
+				<if test="snNo != null and snNo !=''">
+					AND SN.SHIPG_NOTE_NO	 									= #{snNo}
+				</if>
+		) 																		E
+			ON 
+				C.VSL_CALL_ID 													= E.VSL_CALL_ID 
+				AND C.DOC_NO 													= E.DOC_NO
+				AND C.REF_NO													= E.SHIPG_NOTE_NO
+		WHERE 
+			C.IX_CD IN ('EX', 'TS') 
+			<if test="startDate != null and startDate != ''">
+				AND C.CUSTOMS_RELEASE_DT 										<![CDATA[>=]]> CONVERT(datetime,#{startDate} + ' 00:00', 103)
+			</if>
+			<if test="endDate != null and endDate != ''">
+				AND C.CUSTOMS_RELEASE_DT 										<![CDATA[<=]]> CONVERT(datetime,#{endDate} + ' 23:59', 103)
+			</if>
+
+			<if test="vslCallId != null and vslCallId != ''">
+				AND D.VSL_CALL_ID 												= #{vslCallId}
+			</if>
+			<if test="vslManifestNo != null and vslManifestNo !=  ''">
+				AND D.VSL_CALL_ID 												= #{vslManifestNo}
+			</if>
+			<if test="bookingNo != null and bookingNo !=  ''">
+				AND C.DOC_NO 													= #{bookingNo}
+			</if>
+			<if test="snNo != null and snNo !=  ''">
+					AND C.REF_NO 												= #{snNo}
+				</if> 
+			<!-- <if test="bondedWhYn != null and bondedWhYn !=  ''">
+				AND C.BONDED_WH_YN 												= #{bondedWhYn}
+			</if>  -->
+	</sql>
+	
+	
+	<select id="selectMasterBlItems" parameterType="customsCargoReleaseControlParm" resultType="customsCargoReleaseControlItem">
+		SELECT  /*customsCargoReleaseControl.selectMasterBlItems*/
+			DISTINCT
+			MF_DOC_ID  				AS CD,
+			MF_DOC_ID  				AS CDNM
+		FROM    
+			TMT_BL
+		WHERE   
+			MF_DOC_ID IS NOT NULL AND MF_DOC_ID <![CDATA[<>]]>''
+			<if test="vslCallId != null and vslCallId != ''" >
+				AND VSL_CALL_ID = #{vslCallId}
+			</if>
+			<if test="vslManifestNo != null and vslManifestNo != ''" >
+				AND VSL_CALL_ID IN (SELECT 
+										VSL.VSL_CALL_ID 
+									FROM 
+										TMT_VSL_SCH VSL 
+									WHERE 
+										VSL.VSL_CALL_ID = #{vslManifestNo} )
+			</if>
+			 <if test="categoryCd != null and categoryCd != ''" >
+				AND CATG_CD 		= #{categoryCd}
+			</if>
+	</select>
+	
+	<select id="selectBookingNoItems" parameterType="customsCargoReleaseControlParm" resultType="customsCargoReleaseControlItem">
+		SELECT /*customsCargoReleaseControl.selectBookingNoItems*/
+			DISTINCT
+			MF_DOC_ID 				AS CD,
+			MF_DOC_ID 				AS CDNM
+		FROM    
+			TMT_SHIPG_NOTE
+		WHERE   
+			MF_DOC_ID IS NOT NULL AND MF_DOC_ID <![CDATA[<>]]>''
+			AND STAT_CD = 'AP'
+			<if test="vslCallId != null and vslCallId != ''" >
+				AND VSL_CALL_ID 	= #{vslCallId}
+			</if>
+			<if test="vslManifestNo != null and vslManifestNo != ''" >
+				AND VSL_CALL_ID IN (SELECT 
+										VSL.VSL_CALL_ID 
+									FROM 
+										TMT_VSL_SCH VSL 
+									WHERE 
+										VSL.VSL_CALL_ID = #{vslManifestNo} )
+			</if>
+			
+			<if test="categoryCd != null and categoryCd != ''" >
+				<choose>
+					<when test="categoryCd == 'T'.toString()">AND CATG_CD = 'T'</when>
+					<otherwise>AND CATG_CD != 'T'</otherwise>
+				</choose>
+			</if>
+	</select>
+	
+	<select id="selectDocumentInformation" parameterType="customsCargoReleaseControlParm" resultType="customsCargoReleaseControlItem">
+		 <if test='categoryCd == "I"' >
+		 	SELECT  /*customsCargoReleaseControl.selectDocumentInformation*/
+				SUM(BL.CG_WGT) OVER (PARTITION BY BL.MF_DOC_ID) 				AS docMt,
+				SUM(BL.PKG_QTY) OVER (PARTITION BY BL.MF_DOC_ID) 				AS docQty,
+				SUM(BL.CG_VOL) OVER (PARTITION BY BL.MF_DOC_ID) 				AS docM3,
+				BL.CG_TP_CD 													AS cgTpCd,
+				CASE 
+					WHEN CU.DOC_NO IS NULL OR CU.DOC_NO ='' 
+						THEN SUM(BL.CG_WGT) OVER (PARTITION BY BL.MF_DOC_ID)
+	                WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseMt IS NULL THEN 0
+	                WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseMt IS NOT NULL 
+							THEN (
+								SUM(BL.CG_WGT) OVER (PARTITION BY BL.MF_DOC_ID) 
+								- ISNULL(CU.releaseMt, 0) 
+							)
+				END 															AS releaseMt,
+				CASE 
+					WHEN CU.DOC_NO IS NULL OR CU.DOC_NO ='' 
+						THEN SUM(BL.PKG_QTY) OVER (PARTITION BY BL.MF_DOC_ID)
+	                WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseQty IS NULL THEN 0
+	                WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseQty IS NOT NULL 
+							THEN (
+								SUM(BL.PKG_QTY) OVER (PARTITION BY BL.MF_DOC_ID) 
+								- ISNULL(CU.releaseQty, 0) 
+							)
+				END 															AS releaseQty,
+				CASE 
+					WHEN CU.DOC_NO IS NULL OR CU.DOC_NO ='' 
+						THEN SUM(BL.CG_VOL) OVER (PARTITION BY BL.MF_DOC_ID)
+	                WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseM3 IS NULL THEN 0
+	                WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseQty IS NOT NULL 
+							THEN (
+								SUM(BL.CG_VOL) OVER (PARTITION BY BL.MF_DOC_ID) 
+								- ISNULL(CU.releaseM3, 0) 
+							)
+				END 															AS releaseM3,
+				CASE 
+					WHEN CU.DOC_NO IS NULL OR CU.DOC_NO ='' 
+						THEN SUM(BL.CG_WGT) OVER (PARTITION BY BL.MF_DOC_ID)
+	                WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseMt IS NULL THEN 0
+	                WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseMt IS NOT NULL 
+							THEN (
+								SUM(BL.CG_WGT) OVER (PARTITION BY BL.MF_DOC_ID) 
+								- ISNULL(CU.releaseMt, 0)
+							) 
+				END  															AS balanceMt,
+				CASE 
+					WHEN CU.DOC_NO IS NULL OR CU.DOC_NO ='' 
+						THEN SUM(BL.PKG_QTY) OVER (PARTITION BY BL.MF_DOC_ID)
+	                WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseQty IS NULL THEN 0
+	                WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseQty IS NOT NULL 
+							THEN (
+								SUM(BL.PKG_QTY) OVER (PARTITION BY BL.MF_DOC_ID) 
+								- ISNULL(CU.releaseQty, 0)
+							)
+				END 															AS balanceQty,
+				CASE 
+					WHEN CU.DOC_NO IS NULL OR CU.DOC_NO ='' 
+						THEN SUM(BL.CG_VOL) OVER (PARTITION BY BL.MF_DOC_ID)
+	                WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseM3 IS NULL THEN 0
+	                WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseM3 IS NOT NULL 
+							THEN (
+								SUM(BL.CG_VOL) OVER (PARTITION BY BL.MF_DOC_ID) 
+								- ISNULL(CU.releaseM3, 0)
+							)
+				END 															AS balanceM3
+			FROM	
+				TMT_BL 															BL 
+			LEFT OUTER JOIN (
+				SELECT DISTINCT 
+					DOC_NO,
+					B.VSL_CALL_ID,
+					SUM(RELEASE_MT) 	
+						OVER (
+							PARTITION BY 
+								DOC_NO,
+								A.VSL_CALL_ID
+						) 														AS releaseMt ,
+					SUM(RELEASE_QTY) OVER (PARTITION BY  DOC_NO, A.VSL_CALL_ID)	AS releaseQty,
+					SUM(RELEASE_M3) OVER(PARTITION BY DOC_NO, A.VSL_CALL_ID)	AS releaseM3
+				FROM   
+					TMT_CUSTOMS_RELEASE 										A 
+				LEFT OUTER JOIN 
+					TMT_VSL_SCH 												B 
+						ON  A.VSL_CALL_ID 										= B.VSL_CALL_ID
+				 WHERE  
+					DOC_NO 														= #{docNo}
+					AND IX_CD 													= 'IM'
+				 ) 																CU
+				ON  BL.MF_DOC_ID 												= CU.DOC_NO 
+				AND BL.VSL_CALL_ID 												= CU.VSL_CALL_ID
+			WHERE	
+				MF_DOC_ID 														= #{docNo}
+				AND BL.CG_TP_CD NOT 											IN ('RMA')
+				<if test="vslCallId != null and vslCallId != ''" >
+					AND BL.VSL_CALL_ID 											= #{vslCallId}
+				</if>
+				<if test="vslManifestNo != null and vslManifestNo != ''" >
+					AND BL.VSL_CALL_ID = (SELECT 
+											VS.VSL_CALL_ID 
+										FROM 
+											TMT_VSL_SCH VS 
+										WHERE 
+											VS.VSL_CALL_ID = #{vslManifestNo})
+				</if>
+		 </if> 
+		 
+		<if test='categoryCd == "E" or categoryCd == "T"' >
+		 	SELECT  /*customsCargoReleaseControl.selectDocumentInformation*/
+				SUM(SN.CG_WGT) OVER (PARTITION BY SN.MF_DOC_ID) 				AS docMt,
+				SUM(SN.PKG_QTY) OVER (PARTITION BY SN.MF_DOC_ID) 				AS docQty,
+				SUM(SN.CG_VOL) OVER (PARTITION BY SN.MF_DOC_ID) 				AS docM3,
+				SN.CG_TP_CD 													AS cgTpCd,
+				CASE 
+					WHEN CU.DOC_NO IS NULL OR CU.DOC_NO ='' 
+						THEN SUM(SN.CG_WGT) OVER (PARTITION BY SN.MF_DOC_ID)
+					WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseMt IS NULL THEN 0
+					WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseMt IS NOT NULL 
+							THEN (
+								SUM(SN.CG_WGT) OVER (PARTITION BY SN.MF_DOC_ID) 
+								- ISNULL(CU.releaseMt, 0) 	
+							)
+				END AS releaseMt,
+				CASE 
+					WHEN CU.DOC_NO IS NULL OR CU.DOC_NO = '' 
+						THEN SUM(SN.PKG_QTY) OVER (PARTITION BY SN.MF_DOC_ID)
+					WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseQty IS NULL THEN 0
+					WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseQty IS NOT NULL 
+							THEN (
+								SUM(SN.PKG_QTY) OVER (PARTITION BY SN.MF_DOC_ID) 
+								- ISNULL(CU.releaseQty, 0)
+							)
+				END 															AS releaseQty,
+				CASE 
+					WHEN CU.DOC_NO IS NULL OR CU.DOC_NO = '' 
+						THEN SUM(SN.CG_VOL) OVER (PARTITION BY SN.MF_DOC_ID)
+					WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseM3 IS NULL THEN 0
+					WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseM3 IS NOT NULL 
+							THEN (
+								SUM(SN.CG_VOL) OVER (PARTITION BY SN.MF_DOC_ID) 
+								- ISNULL(CU.releaseM3, 0)
+							)
+				END 															AS releaseM3,
+				CASE 
+					WHEN CU.DOC_NO IS NULL OR CU.DOC_NO = '' 
+						THEN SUM(SN.CG_WGT) OVER (PARTITION BY SN.MF_DOC_ID)
+					WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseMt IS NULL THEN 0
+					WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseMt IS NOT NULL 
+							THEN (
+								SUM(SN.CG_WGT) OVER (PARTITION BY SN.MF_DOC_ID) 
+								- ISNULL(CU.releaseMt, 0)
+							) 
+				END  															AS balanceMt,
+				CASE 
+					WHEN CU.DOC_NO IS NULL OR CU.DOC_NO = '' 
+						THEN SUM(SN.PKG_QTY) OVER (PARTITION BY SN.MF_DOC_ID)
+					WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseQty IS NULL THEN 0
+					WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseQty IS NOT NULL
+							THEN (
+								SUM(SN.PKG_QTY) OVER (PARTITION BY SN.MF_DOC_ID) 
+								- ISNULL(CU.releaseQty, 0)
+							)
+				END 															AS balanceQty,
+				CASE 
+					WHEN CU.DOC_NO IS NULL OR CU.DOC_NO = '' 
+						THEN SUM(SN.CG_VOL) OVER (PARTITION BY SN.MF_DOC_ID)
+					WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseM3 IS NULL THEN 0
+					WHEN CU.DOC_NO IS NOT NULL AND CU.DOC_NO <![CDATA[<>]]>'' 
+						AND CU.releaseM3 IS NOT NULL
+							THEN (
+								SUM(SN.CG_VOL) OVER (PARTITION BY SN.MF_DOC_ID) 
+								- ISNULL(CU.releaseM3, 0)
+							)
+				END 															AS balanceM3
+			FROM 
+				TMT_SHIPG_NOTE 													SN 
+			LEFT OUTER JOIN
+			  (SELECT DISTINCT
+				  DOC_NO,
+				  B.VSL_CALL_ID,
+				  SUM(RELEASE_MT) OVER (PARTITION BY DOC_NO,A.VSL_CALL_ID) 		AS releaseMt,
+				  SUM(RELEASE_QTY) OVER (PARTITION BY DOC_NO,A.VSL_CALL_ID) 	AS releaseQty,
+				  SUM(RELEASE_M3) OVER(PARTITION BY DOC_NO, A.VSL_CALL_ID)		AS releaseM3
+			  FROM    
+				TMT_CUSTOMS_RELEASE A 
+			  LEFT OUTER JOIN 
+				TMT_VSL_SCH B 
+			  ON 
+				A.VSL_CALL_ID 			= B.VSL_CALL_ID
+			  WHERE   
+				DOC_NO 					= #{docNo}
+				AND IX_CD 				= 'EX') CU
+			ON 
+				SN.MF_DOC_ID = CU.DOC_NO 
+				AND SN.VSL_CALL_ID 		= CU.VSL_CALL_ID
+			WHERE	
+				SN.MF_DOC_ID 			= #{docNo}
+				AND SN.STAT_CD 			= 'AP'
+				<if test="vslCallId != null and vslCallId != ''" >
+					AND SN.VSL_CALL_ID 	= #{vslCallId}
+				</if>
+				<if test="vslManifestNo != null and vslManifestNo != ''" >
+					AND SN.VSL_CALL_ID 	= (SELECT 
+												VS.VSL_CALL_ID 
+											FROM 
+												TMT_VSL_SCH VS 
+											WHERE 
+												VS.VSL_CALL_ID = #{vslManifestNo})
+				</if>
+		 </if>
+	</select>
+	
+	 <select id="selectBlSnItems" parameterType="customsCargoReleaseControlParm" resultType="customsCargoReleaseControlItem">
+		 <if test='categoryCd == "I"' >
+		 	SELECT  /*customsCargoReleaseControl.selectBlSnItems*/
+				BL_NO 								AS cd,
+				BL_NO 								AS cdNm,
+				CMDT_CD 							AS cmdtCd,
+				(SELECT TOP(1) 
+					CMDT.CMDT_DESC 
+				FROM 
+					TMT_CMDT CMDT  
+				WHERE 
+					CMDT.CMDT_CD = CMDT_CD )		AS cmdtNm,
+				CG_WGT AS docMt,
+				PKG_QTY 							AS docQty,
+				CASE 
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						  AND CUS.RELEASE_MT IS NULL 
+					THEN  0
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						  AND CUS.RELEASE_MT IS NOT NULL
+					THEN  CG_WGT - CUS.RELEASE_MT
+					ELSE  CG_WGT
+				END 								AS balanceMt,   
+				CASE 
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						  AND CUS.RELEASE_MT IS NULL 
+					THEN  0
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						  AND CUS.RELEASE_MT IS NOT NULL 
+					THEN  PKG_QTY - CUS.RELEASE_QTY
+					ELSE  PKG_QTY
+				END 								AS balanceQty,
+				CASE 
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						  AND CUS.RELEASE_MT IS NULL 
+					THEN  0
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						  AND CUS.RELEASE_MT IS NOT NULL 
+					THEN  CG_WGT - CUS.RELEASE_MT
+					ELSE  CG_WGT
+				END 								AS releaseMt, 
+				CASE 
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						  AND CUS.RELEASE_MT IS NULL 
+					THEN  0
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						  AND CUS.RELEASE_MT IS NOT NULL 
+					THEN  PKG_QTY - CUS.RELEASE_QTY
+					ELSE  PKG_QTY
+				END 								AS releaseQty,  
+				CG_TP_CD 							AS cgTpCd
+			FROM	
+				TMT_BL BL
+			INNER JOIN 
+				TMT_VSL_SCH VS 
+			ON 
+				BL.VSL_CALL_ID 						= VS.VSL_CALL_ID
+			LEFT OUTER JOIN
+				(SELECT DISTINCT 
+					VSL_CALL_ID, 
+					DOC_NO,
+					SUM(RELEASE_MT) OVER (PARTITION BY VSL_CALL_ID, DOC_NO) RELEASE_MT,
+					SUM(RELEASE_QTY) OVER (PARTITION BY VSL_CALL_ID, DOC_NO) RELEASE_QTY
+				  FROM  
+					TMT_CUSTOMS_RELEASE
+				  WHERE 
+					DOC_NO 							= #{docNo}
+					AND IX_CD IN ('IM', 'TS')
+				) CUS
+			ON 
+				VS.VSL_CALL_ID 						= CUS.VSL_CALL_ID
+				AND BL.MF_DOC_ID 					= CUS.DOC_NO
+			WHERE 	
+				MF_DOC_ID 							= #{docNo}
+				AND BL.CG_TP_CD NOT IN ('RMA')
+				<if test="vslCallId != null and vslCallId != ''" >
+					AND VS.VSL_CALL_ID 				= #{vslCallId}
+				</if>
+				<if test="vslManifestNo != null and vslManifestNo != ''" >
+					AND VS.VSL_CALL_ID 				= #{vslManifestNo}
+				</if>
+		 </if>
+
+		 <if test='categoryCd == "E" or categoryCd == "T"' >
+		 	SELECT /*customsCargoReleaseControl.selectBlSnItems*/
+					SHIPG_NOTE_NO 					AS cd,
+			        SHIPG_NOTE_NO 					AS cdNm,
+			        CMDT_CD 						AS cmdtCd,
+			        (SELECT TOP(1) 
+			        	CMDT.CMDT_DESC 
+		        	FROM
+	        		 	TMT_CMDT CMDT  
+        		 	WHERE 
+        		 		CMDT.CMDT_CD = CMDT_CD ) 	AS cmdtNm,
+			        CG_WGT AS docMt,
+					PKG_QTY 						AS docQty,
+					CASE 
+						WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+		                      AND CUS.RELEASE_MT IS NULL 
+		                THEN  0
+		                WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+		                      AND CUS.RELEASE_MT IS NOT NULL 
+		                THEN  CG_WGT - CUS.RELEASE_MT
+		                ELSE  CG_WGT
+		            END 							AS balanceMt,
+		          	CASE 
+						WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+		                      AND CUS.RELEASE_MT IS NULL 
+		                THEN  0
+		                WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+		                      AND CUS.RELEASE_MT IS NOT NULL
+		                THEN  PKG_QTY - CUS.RELEASE_QTY
+		                ELSE  PKG_QTY
+		            END 							AS balanceQty,
+		            CASE WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+		                      AND CUS.RELEASE_MT IS NULL 
+		                THEN  0
+		                WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+		                      AND CUS.RELEASE_MT IS NOT NULL 
+		                THEN  CG_WGT - CUS.RELEASE_MT
+		                ELSE  CG_WGT
+		            END 							AS releaseMt,  
+		          	CASE WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+		                      AND CUS.RELEASE_MT IS NULL 
+		                THEN  0
+		                WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+		                      AND CUS.RELEASE_MT IS NOT NULL 
+		                THEN  PKG_QTY - CUS.RELEASE_QTY
+		                ELSE  PKG_QTY
+		            END 							AS releaseQty,
+		            /*
+		            SN.SHIPG_AGNCY 							AS shaCd,
+			        DBO.F_PTNR_SNM(SN.SHIPG_AGNCY, 'SHA') 	AS shaNm,
+			        SN.FWRD 								AS fwdCd,
+			        DBO.F_PTNR_SNM(SN.FWRD, 'FWD') 			AS fwdNm,
+			        SN.SHPR 								AS cnsCd,
+			        DBO.F_PTNR_SNM(SN.SHPR, 'CNS') 			AS cnsNm,
+			        */
+			        SN.CG_TP_CD 					AS cgTpCd
+			FROM	
+				TMT_SHIPG_NOTE SN
+			INNER JOIN 
+				TMT_VSL_SCH VS 
+			ON 
+				SN.VSL_CALL_ID					 			= VS.VSL_CALL_ID
+			LEFT OUTER JOIN
+				(SELECT DISTINCT 
+					VSL_CALL_ID, 
+					DOC_NO,
+					SUM(RELEASE_MT) OVER (PARTITION BY VSL_CALL_ID, DOC_NO) RELEASE_MT,
+					SUM(RELEASE_QTY) OVER (PARTITION BY VSL_CALL_ID, DOC_NO) RELEASE_QTY
+				  FROM  
+					TMT_CUSTOMS_RELEASE
+				  WHERE 
+					DOC_NO 									= #{docNo}
+					AND IX_CD IN ('EX')
+				  ) CUS
+			ON 
+				VS.VSL_CALL_ID 								= CUS.VSL_CALL_ID
+				AND SN.MF_DOC_ID 							= CUS.DOC_NO
+			WHERE	
+				MF_DOC_ID 									= #{docNo}
+				AND SN.STAT_CD 								= 'AP'
+				<if test="vslCallId != null and vslCallId != ''" >
+					AND VS.VSL_CALL_ID 						= #{vslCallId}
+				</if>
+				<if test="vslManifestNo != null and vslManifestNo != ''" >
+					AND VS.VSL_CALL_ID 						= #{vslManifestNo}
+				</if>
+		 </if>
+	</select> 
+	
+	<update id="updateCustomsItems"  parameterType="customsCargoReleaseControlItem">
+		UPDATE /*customsCargoReleaseControl.updateCustomsItems*/
+			TMT_CUSTOMS_RELEASE 
+		SET
+			ACTIVATE_YN 										= 	CASE 
+																		WHEN #{activateYN} IS NULL OR #{activateYN} = '' THEN 'N'  
+																		ELSE #{activateYN} 
+																	END,
+			STAFF_CD 											= 	CASE 
+																		WHEN #{userId} IS NULL OR #{userId} = '' THEN #{updUserId} 
+																		ELSE #{userId} 
+																	END,
+			UPDATE_TIME 										= SYSDATETIME(),
+			TMNL_DESC 											= #{tmnlDesc},
+			CUSTOMS_REF_NO 										= #{refNo},
+			CUSTOMS_RELEASE_DT 									= 	CASE #{customReleaseDT}
+																		WHEN '' THEN NULL
+																		ELSE CONVERT(DATETIME, #{customReleaseDT}, 103)
+																	END,
+			CUST_GET_OUT 										= 	CASE #{custGetOut}
+																		WHEN '' THEN NULL
+																		ELSE CONVERT(DATETIME, #{custGetOut}, 103)
+																	END,
+			CUST_GET_IN 										= 	CASE #{custGetIn}
+																		WHEN '' THEN NULL
+																		ELSE CONVERT(DATETIME, #{custGetIn}, 103)
+																	END,
+			BONDED_WH_YN 										= #{bondedWhYn},
+			RELEASE_MT 											= 	CASE 
+																		WHEN #{releaseMt} IS NULL THEN NULL 
+																		ELSE #{releaseMt} 
+																	END,
+			RELEASE_QTY 										= 	CASE 
+																		WHEN #{releaseQty} IS NULL THEN NULL 
+																		ELSE #{releaseQty} 
+																	END,
+			RELEASE_M3 											= 	CASE 
+																		WHEN #{releaseM3} IS NULL THEN NULL 
+																		ELSE #{releaseM3} 
+																	END,
+			VERSION 											= #{newVersion}
+		WHERE
+			DOC_NO 												= #{docNo}
+			AND VSL_CALL_ID 									= #{vslManifestNo}
+			AND INTERFACE_PK 									= #{interfacePK}
+	</update>
+	
+	<insert id="insertCustomsItems"  parameterType="customsCargoReleaseControlItem">
+		INSERT /*customsCargoReleaseControl.insertCustomsItems*/
+		INTO TMT_CUSTOMS_RELEASE(
+			INTERFACE_PK,
+			VSL_CALL_ID,
+			IX_CD,
+			DOC_NO,
+			CUSTOMS_REF_NO,
+			CUSTOMS_RELEASE_DT,
+			CUST_GET_IN,
+			CUST_GET_OUT,
+			BONDED_WH_YN,
+			TMNL_DESC,
+			TRANS_DT,
+			STAFF_CD,
+			UPDATE_TIME,
+			RELEASE_MT,
+			RELEASE_QTY,
+			RELEASE_M3,
+			VERSION, 
+			REF_NO
+		) VALUES (
+			NEWID(),
+			#{vslCallId},
+			#{categoryCd},
+			#{docNo},
+			#{releaseNo},	
+			CONVERT(
+				DATETIME, 
+				CASE 
+					WHEN #{customReleaseDT} = '' THEN NULL 
+					ELSE #{customReleaseDT} 
+				END,
+				103
+			),
+			CONVERT(
+				DATETIME, 
+				CASE 
+					WHEN #{custGetIn} = '' THEN NULL 
+					ELSE #{custGetIn} 
+				END,
+				103
+			),
+			CONVERT(
+				DATETIME, 
+				CASE 
+					WHEN #{custGetOut} = '' THEN NULL 
+					ELSE #{custGetOut} 
+				END,
+				103
+			),
+			#{bondedWhYn},
+			#{tmnlDesc},
+			NULL,
+			CASE 
+				WHEN #{userId} IS NULL OR #{userId} = '' THEN #{updUserId} 
+				ELSE #{userId} 
+			END,
+			SYSDATETIME(),
+			CASE 
+				WHEN #{releaseMt} IS NULL THEN NULL 
+				ELSE CAST(#{releaseMt} AS NUMERIC(17,3)) 
+			END,
+			CASE 
+				WHEN #{releaseQty} IS NULL THEN NULL 
+				ELSE CAST(#{releaseQty} AS NUMERIC(16, 0)) 
+			END,
+			CASE 
+				WHEN #{releaseM3} IS NULL THEN NULL 
+				ELSE CAST(#{releaseM3} AS NUMERIC(16, 0)) 
+			END,
+			#{newVersion},
+			#{refNo}
+		)
+	</insert>
+	
+	<delete id="deleteCustomsItems"  parameterType="customsCargoReleaseControlItem">
+		DELETE /*customsCargoReleaseControl.deleteCustomsItems*/
+			TMT_CUSTOMS_RELEASE
+		WHERE 
+			DOC_NO 												= #{docNo}
+			AND VSL_CALL_ID 									= #{vslManifestNo}
+			AND INTERFACE_PK 									= #{interfacePK}
+			<if test="blNo != null and blNo != ''" >
+				AND REF_NO 										= #{blNo}
+			</if>
+			<if test="snNo != null and snNo != ''" >
+				AND REF_NO 										= #{snNo}
+			</if>
+	</delete>
+	
+	<select id="selectCargoNoInfo" parameterType="customsCargoReleaseControlParm" resultType="customsCargoReleaseControlItem">
+		 <if test='categoryCd == "I"' >
+		 	SELECT  /*customsCargoReleaseControl.selectBlSnItems*/
+				BL.MF_DOC_ID													AS docNo,
+				BL_NO															AS blNo,
+				CMDT_CD 														AS cmdtCd,
+				CG_WGT 															AS docMt,
+				PKG_QTY 														AS docQty,
+				CG_VOL															AS docM3,
+				CASE 
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						  AND CUS.RELEASE_MT IS NULL 
+							THEN 0
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						  AND CUS.RELEASE_MT IS NOT NULL
+							THEN CG_WGT - CUS.RELEASE_MT
+					ELSE  CG_WGT
+				END 															AS balanceMt,   
+				CASE 
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						  AND CUS.RELEASE_QTY IS NULL 
+							THEN 0
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						  AND CUS.RELEASE_QTY IS NOT NULL 
+							THEN PKG_QTY - CUS.RELEASE_QTY
+					ELSE  PKG_QTY
+				END 															AS balanceQty,
+				CASE 
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						  AND CUS.RELEASE_M3 IS NULL 
+							THEN 0
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						  AND CUS.RELEASE_M3 IS NOT NULL 
+							THEN CG_VOL - CUS.RELEASE_M3
+					ELSE  CG_VOL
+				END 															AS balanceM3,
+				CASE 
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						  AND CUS.RELEASE_MT IS NULL 
+							THEN 0
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						  AND CUS.RELEASE_MT IS NOT NULL 
+							THEN CG_WGT - CUS.RELEASE_MT
+					ELSE CG_WGT
+				END 															AS releaseMt, 
+				CASE 
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						  AND CUS.RELEASE_QTY IS NULL 
+							THEN  0
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						  AND CUS.RELEASE_QTY IS NOT NULL 
+							THEN  PKG_QTY - CUS.RELEASE_QTY
+					ELSE PKG_QTY
+				END 															AS releaseQty,  
+				CASE 
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						  AND CUS.RELEASE_M3 IS NULL 
+							THEN  0
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						  AND CUS.RELEASE_M3 IS NOT NULL 
+								THEN CG_VOL - CUS.RELEASE_M3
+					ELSE CG_VOL
+				END 															AS releaseM3,  
+				CG_TP_CD 														AS cgTpCd
+			FROM	
+				TMT_BL 															BL
+			INNER JOIN 
+				TMT_VSL_SCH 													VS 
+				ON 
+					BL.VSL_CALL_ID 												= VS.VSL_CALL_ID
+			LEFT OUTER JOIN
+				(SELECT DISTINCT 
+					VSL_CALL_ID, 
+					DOC_NO,
+					REF_NO,
+					SUM(RELEASE_MT) 
+						OVER (PARTITION BY VSL_CALL_ID, DOC_NO, REF_NO) 		RELEASE_MT,
+					SUM(RELEASE_QTY) 
+						OVER (PARTITION BY VSL_CALL_ID, DOC_NO, REF_NO) 		RELEASE_QTY,
+					SUM(RELEASE_M3) 
+						OVER (PARTITION BY VSL_CALL_ID, DOC_NO, REF_NO) 		RELEASE_M3
+				FROM  
+					TMT_CUSTOMS_RELEASE
+				WHERE 
+					1 = 1
+					<if test="vslCallId != null and vslCallId != ''" >
+						AND REF_NO													= #{blNo}
+					</if> 
+					AND IX_CD IN ('IM', 'TS')
+				) 																CUS
+			ON 
+				VS.VSL_CALL_ID 													= CUS.VSL_CALL_ID
+				AND BL.MF_DOC_ID 												= CUS.DOC_NO
+				AND BL.BL_NO													= CUS.REF_NO
+			WHERE 	
+				1 = 1
+				<if test="vslCallId != null and vslCallId != ''" >
+					AND BL.BL_NO												= #{blNo}
+				</if> 
+				AND BL.CG_TP_CD 												NOT IN ('RMA')
+				<if test="vslCallId != null and vslCallId != ''" >
+					AND VS.VSL_CALL_ID 											= #{vslCallId}
+				</if>
+				<if test="vslManifestNo != null and vslManifestNo != ''" >
+					AND VS.VSL_CALL_ID 											= #{vslManifestNo}
+				</if>
+		</if>
+
+		<if test='categoryCd == "E" or categoryCd == "T"' >
+		 	SELECT /*customsCargoReleaseControl.selectBlSnItems*/
+				SHIPG_NOTE_NO 													AS snNo,
+				SN.MF_DOC_ID													AS docNo,
+				CMDT_CD 														AS cmdtCd,
+				CG_WGT 															AS docMt,
+				PKG_QTY 														AS docQty,
+				CG_VOL															AS docM3,
+				CASE 
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+							AND CUS.RELEASE_MT IS NULL 
+							THEN  0
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+							AND CUS.RELEASE_MT IS NOT NULL 
+							THEN  CG_WGT - CUS.RELEASE_MT
+					ELSE  CG_WGT
+				END 															AS balanceMt,
+				CASE 
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+							AND CUS.RELEASE_MT IS NULL 
+							THEN  0
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+							AND CUS.RELEASE_MT IS NOT NULL
+							THEN  PKG_QTY - CUS.RELEASE_QTY
+					ELSE  PKG_QTY
+				END 															AS balanceQty,
+				CASE 
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+							AND CUS.RELEASE_M3 IS NULL 
+							THEN  0
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+							AND CUS.RELEASE_M3 IS NOT NULL
+							THEN  CG_VOL - CUS.RELEASE_M3
+					ELSE  CG_VOL
+				END 															AS balanceM3,
+				CASE 
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+							AND CUS.RELEASE_MT IS NULL 
+								THEN  0
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+							AND CUS.RELEASE_MT IS NOT NULL 
+								THEN  CG_WGT - CUS.RELEASE_MT
+					ELSE  CG_WGT
+				END 															AS releaseMt,  
+				CASE 
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+							AND CUS.RELEASE_QTY IS NULL 
+							THEN  0
+					WHEN  CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+							AND CUS.RELEASE_QTY IS NOT NULL 
+							THEN  PKG_QTY - CUS.RELEASE_QTY
+					ELSE  PKG_QTY
+				END 															AS releaseQty,
+				CASE 
+					WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						 AND CUS.RELEASE_M3 IS NULL 
+							THEN  0
+					WHEN CUS.DOC_NO IS NOT NULL AND CUS.DOC_NO <![CDATA[<>]]>''
+						 AND CUS.RELEASE_M3 IS NOT NULL 
+							THEN  CG_VOL - CUS.RELEASE_M3
+					ELSE  CG_VOL
+				END 															AS releaseM3,
+				SN.CG_TP_CD 													AS cgTpCd
+			FROM	
+				TMT_SHIPG_NOTE SN
+			INNER JOIN 
+				TMT_VSL_SCH VS 
+			ON 
+				SN.VSL_CALL_ID					 								= VS.VSL_CALL_ID
+			LEFT OUTER JOIN
+				(SELECT DISTINCT 
+					VSL_CALL_ID, 
+					DOC_NO,
+					REF_NO,
+					SUM(RELEASE_MT) 
+						OVER (PARTITION BY VSL_CALL_ID, DOC_NO, REF_NO) 		AS RELEASE_MT,
+					SUM(RELEASE_QTY) 
+						OVER (PARTITION BY VSL_CALL_ID, DOC_NO, REF_NO) 		AS RELEASE_QTY,
+					SUM(RELEASE_M3) 
+						OVER (PARTITION BY VSL_CALL_ID, DOC_NO, REF_NO) 		AS RELEASE_M3
+				FROM  
+					TMT_CUSTOMS_RELEASE
+				WHERE 
+					1 = 1
+					<if test="vslCallId != null and vslCallId != ''" >
+						AND REF_NO												= #{snNo}
+					</if> 
+					AND IX_CD IN ('EX')
+				  )																CUS
+				ON 
+					VS.VSL_CALL_ID 												= CUS.VSL_CALL_ID
+					AND SN.MF_DOC_ID 											= CUS.DOC_NO
+			WHERE	
+				1 = 1
+				<if test="vslCallId != null and vslCallId != ''" >
+					AND SN.SHIPG_NOTE_NO										= #{snNo}
+				</if> 
+				AND SN.STAT_CD 													= 'AP'
+				<if test="vslCallId != null and vslCallId != ''" >
+					AND VS.VSL_CALL_ID 											= #{vslCallId}
+				</if>
+				<if test="vslManifestNo != null and vslManifestNo != ''" >
+					AND VS.VSL_CALL_ID 											= #{vslManifestNo}
+				</if>
+		 </if>
+	</select> 
+	
+</mapper>

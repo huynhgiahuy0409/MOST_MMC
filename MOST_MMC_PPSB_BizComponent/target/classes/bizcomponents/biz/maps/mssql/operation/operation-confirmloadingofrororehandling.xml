@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="confirmLoadingOfRORORehandling">
+	<resultMap 	id="resultComboList" 	type="confirmLoadingOfROROItem">
+   		<result property = "cd"			column = "CD"/>
+   		<result property = "cdNm"		column = "CD_NM"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultCargoMap" type="confirmLoadingOfROROItem">
+   		<result property = "vslCallId"			column = "VSL_CALL_ID"/>
+		<result property = "catgCd" 			column = "CATG_CD"/>
+		<result property = "catgNm" 			column = "CATG_NM"/>
+		<result property = "bookingNo" 			column = "MF_DOC_ID"/>
+		<result property = "shipgNoteNo" 		column = "CG_NO"/>
+		<result property = "brandCd" 			column = "BRAND_CD"/>
+		<result property = "brandNm" 			column = "BRAND_NM"/>
+		<result property = "modelCd" 			column = "MODEL_CD"/>
+		<result property = "modelNm" 			column = "MODEL_NM"/>
+		<result property = "delvTpCd" 			column = "DELV_TP_CD"/>
+		<result property = "delvTpNm" 			column = "DELV_TP_NM"/>
+		<result property = "cgTpCd" 			column = "CG_TP_CD"/>
+		<result property = "cgTpNm" 			column = "CG_TP_NM"/>
+		<result property = "nosOfUnit" 			column = "NOS_OF_VIN"/>
+		<result property = "nosOfGateIn" 		column = "NOS_OF_GI"/>
+		<result property = "nosOfHandlingIn" 	column = "NOS_OF_HI"/>
+		<result property = "nosOfYC" 			column = "NOS_OF_YC"/>
+		<result property = "nosOfLC" 			column = "NOS_OF_LC"/>
+		<result property = "toDoYC" 			column = "TODO_YC"/>
+		<result property = "toDoLC" 			column = "TODO_LC"/>
+		
+		<result property = "customsBalQty" 		column = "CUSTOMS_BAL_QTY"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultUnitMap" type="confirmLoadingOfROROItem">
+   		<result property = "vslCallId"		column = "VSL_CALL_ID"/>
+		<result property = "bookingNo" 		column = "MF_DOC_ID"/>
+		<result property = "shipgNoteNo" 	column = "CG_NO"/>
+		<result property = "unitNo" 		column = "CHAS_NO"/>
+		<result property = "roroSeq" 		column = "RORO_SEQ"/>
+		<result property = "rhdlNo" 		column = "RHDl_NO"/>
+		<result property = "rhdlMode" 		column = "RHDL_MODE"/>
+		<result property = "rhdlModeNm" 	column = "RHDL_MODE_NM"/>
+		<result property = "orgVslCallId" 	column = "ORG_VVD"/>
+		<result property = "orgCgNo" 		column = "ORG_CG_NO"/>
+		
+		<result property = "yardLoc" 		column = "LOC_ID"/>
+		<result property = "gateInDate" 	column = "GATE_IN_DTM"/>
+		<result property = "inDate" 		column = "IN_DTM"/>
+		<result property = "outDate" 		column = "OUT_DTM"/>
+		<result property = "loadingTime" 	column = "LOADING_DTM"/>
+		<result property = "delvTpCd" 		column = "DELV_TP_CD"/>
+		<result property = "delvTpNm" 		column = "DELV_TP_NM"/>
+		<result property = "statCd" 		column = "STAT_CD"/>
+		<result property = "statNm" 		column = "STAT_NM"/>
+		
+		<result property = "stevedoreId" 	column = "STEVEDORE_ID"/>
+		<result property = "ycRemarks" 		column = "YARD_RMK"/>
+		<result property = "crane" 			column = "CRANE"/>
+		<result property = "ldRemarks" 		column = "LOADING_RMK"/>
+		<result property = "gateTicketNo" 	column = "GATE_TICKET_NO"/>
+		<result property = "brandCd" 		column = "BRAND_CD"/>
+		<result property = "brandNm" 		column = "BRAND_NM"/>
+		<result property = "modelCd" 		column = "MODEL_CD"/>
+		<result property = "modelNm" 		column = "MODEL_NM"/>		
+		<result property = "brandDesc" 		column = "BRAND_DESC"/>
+		<result property = "cgTpCd" 		column = "CG_TP_CD"/>
+		<result property = "cgTpNm" 		column = "CG_TP_NM"/>
+		<result property = "catgCd" 		column = "CATG_CD"/>
+ 	</resultMap>
+
+ 	
+ 	<select id="selectBookingNoComboBoxItems" parameterType="confirmLoadingOfROROParm" resultMap="resultComboList">
+		SELECT	/* ConfirmLoadingOfRORORehandling.getBookingNoComboBoxItems */
+			DISTINCT
+			BOOKING_NO CD,
+			BOOKING_NO CD_NM
+		FROM	
+			TMT_SHIPG_NOTE
+		WHERE
+			VSL_CALL_ID = #{vslCallId}
+			AND STAT_CD = 'AP'
+			AND CG_TP_CD IN ('RCV')
+			AND CATG_CD IN ('T', 'R')
+	</select>
+	
+	<select id="selectShipgNoteNoComboBoxItems" parameterType="confirmLoadingOfROROParm" resultMap="resultComboList">
+		SELECT	/* ConfirmLoadingOfRORORehandling.selectShipgNoteNoComboBoxItems */
+			DISTINCT
+			SHIPG_NOTE_NO CD,
+			SHIPG_NOTE_NO CD_NM
+		FROM
+			TMT_SHIPG_NOTE
+		WHERE
+			VSL_CALL_ID = #{vslCallId}
+			AND STAT_CD = 'AP'
+			AND CG_TP_CD IN ('RCV')
+			AND CATG_CD IN ('T', 'R')
+		ORDER BY
+			SHIPG_NOTE_NO
+	</select>
+	<select id="selectCargoItems" parameterType="confirmLoadingOfROROParm" resultMap="resultCargoMap">
+		<include refid="getCargoItems"/>
+		<choose>
+			<when test="pageNo != 0"> 
+				SELECT /* ConfirmLoadingOfRORORehandling.selectCargoItems */
+					* 
+				FROM 
+					(SELECT 
+						inner_querry.*, ROW_NUMBER() OVER(ORDER BY MF_DOC_ID, CG_NO) row_num 
+					FROM  
+						getCargoItems AS inner_querry 
+					)inner_querry 
+				WHERE 
+					inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+					AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+			
+			</when>
+				
+			<otherwise> 
+				SELECT /* ConfirmLoadingOfRORORehandling.selectCargoItems */
+					*
+				FROM
+					getCargoItems
+			</otherwise>
+		</choose>
+	 </select>
+	 <select id="selectCargoItemsCount" parameterType="confirmLoadingOfROROParm" resultType="java.lang.String">
+		<include refid="getCargoItems"/>
+	 	SELECT /* ConfirmLoadingOfRORORehandling.selectCargoItemsCount */
+			COUNT(*)
+        FROM 
+			getCargoItems
+	 </select>
+	<sql id="getCargoItems">
+		WITH HI_INFO AS
+        (
+            SELECT    
+				VSL_CALL_ID
+				,MF_DOC_ID
+				,CG_NO
+				,IX_CD
+				,COUNT(CHAS_NO) AS NO_OF_HI
+            FROM
+				TMT_RORO_MST
+            WHERE
+				VSL_CALL_ID = #{vslCallId}
+				AND (IN_DTM IS NOT NULL AND IN_DTM <![CDATA[<>]]> '')
+            GROUP BY
+				VSL_CALL_ID
+				,MF_DOC_ID
+				,CG_NO
+				,IX_CD
+        )
+        , YC_INFO AS
+        (
+            SELECT    VSL_CALL_ID
+                    ,MF_DOC_ID
+                    ,CG_NO
+                    ,IX_CD
+                    ,COUNT(CHAS_NO) AS NO_OF_YC
+            FROM    TMT_RORO_MST
+            WHERE    VSL_CALL_ID = #{vslCallId}
+                    AND (OUT_DTM IS NOT NULL AND OUT_DTM <![CDATA[<>]]> '')
+            GROUP BY VSL_CALL_ID
+                    ,MF_DOC_ID
+                    ,CG_NO
+                    ,IX_CD
+        )
+        , LC_INFO AS
+        (
+            SELECT    VSL_CALL_ID
+                    ,MF_DOC_ID
+                    ,CG_NO
+                    ,IX_CD
+                    ,COUNT(CHAS_NO) AS NO_OF_LC
+            FROM    TMT_RORO_MST
+            WHERE    VSL_CALL_ID = #{vslCallId}
+                    AND (LOADING_DTM IS NOT NULL AND LOADING_DTM <![CDATA[<>]]> '')
+            GROUP BY VSL_CALL_ID
+                    ,MF_DOC_ID
+                    ,CG_NO
+                    ,IX_CD
+        ),
+		
+	getCargoItems AS (
+        SELECT    /* ConfirmLoadingOfRORORehandling.getCargoItems */
+			DISTINCT
+			S.VSL_CALL_ID,
+			R.MF_DOC_ID,
+			R.CG_NO,
+			S.CATG_CD,
+			DBO.F_CM_CODE_NM('MT', 'CATGTP', S.CATG_CD) 	AS CATG_NM,
+			S.DELV_TP_CD,
+			DBO.F_CM_CODE_NM('MT', 'DELVTP', S.DELV_TP_CD) 	AS DELV_TP_NM,
+			S.CG_TP_CD,
+			DBO.F_CM_CODE_NM('MT', 'CGTP', S.CG_TP_CD) 		AS CG_TP_NM,
+			B.BRAND_CD,
+			B.BRAND_NM,
+			M.MODEL_CD,
+			M.MODEL_NM,
+			COUNT(R.CHAS_NO) OVER (PARTITION BY R.CG_NO, R.MF_DOC_ID, R.VSL_CALL_ID, R.IX_CD) AS NOS_OF_VIN,
+
+			ISNULL(H.NO_OF_HI, 0)							AS NOS_OF_HI,
+			ISNULL(Y.NO_OF_YC, 0) 							AS NOS_OF_YC,
+			ISNULL(L.NO_OF_LC, 0) 							AS NOS_OF_LC,
+			ISNULL(H.NO_OF_HI, 0) - ISNULL(Y.NO_OF_YC, 0) 	AS TODO_YC,
+			ISNULL(Y.NO_OF_YC, 0) - (ISNULL(L.NO_OF_LC, 0)) AS TODO_LC
+                
+                
+        FROM    
+			TMT_SHIPG_NOTE S
+		INNER JOIN 
+			TMT_RORO_MST R
+		ON
+			S.VSL_CALL_ID 		= R.VSL_CALL_ID
+			AND S.SHIPG_NOTE_NO = R.CG_NO
+
+		LEFT OUTER JOIN 
+			HI_INFO H
+		ON
+			R.VSL_CALL_ID 	= H.VSL_CALL_ID
+			AND R.MF_DOC_ID = H.MF_DOC_ID
+			AND R.CG_NO 	= H.CG_NO
+			AND R.IX_CD 	= H.IX_CD
+		LEFT OUTER JOIN 
+			YC_INFO Y
+		ON	
+			R.VSL_CALL_ID 	= Y.VSL_CALL_ID
+			AND R.MF_DOC_ID = Y.MF_DOC_ID
+			AND R.CG_NO 	= Y.CG_NO
+			AND R.IX_CD 	= Y.IX_CD
+		
+		LEFT OUTER JOIN
+			LC_INFO L
+		ON
+			R.VSL_CALL_ID 	= L.VSL_CALL_ID
+			AND R.MF_DOC_ID = L.MF_DOC_ID
+			AND R.CG_NO 	= L.CG_NO
+			AND R.IX_CD 	= L.IX_CD
+		
+		LEFT OUTER JOIN 
+			TMT_BRAND B
+		ON
+			R.BRAND_CD 		= B.BRAND_CD
+		LEFT OUTER JOIN 
+			TMT_BRAND_DTL M
+		ON   
+			R.MODEL_CD 		= M.MODEL_CD
+			AND R.BRAND_CD 	= M.BRAND_CD
+        WHERE    
+			S.VSL_CALL_ID 	= #{vslCallId}
+			AND S.STAT_CD 	= 'AP'
+			AND R.IX_CD 	= 'X'
+			AND S.CATG_CD IN ('T', 'R')
+			<if test="bookingNo != null and bookingNo != ''">
+				AND R.MF_DOC_ID = #{bookingNo}
+			</if>
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				AND R.CG_NO = #{shipgNoteNo}
+			</if>
+			<if test="unitNo != null and unitNo != ''">
+				AND R.CHAS_NO LIKE CONCAT(#{unitNo}, '%')
+			</if>
+			
+			<choose>
+				<when test="cgTpCd != null and cgTpCd != ''">AND S.CG_TP_CD = #{cgTpCd}</when>
+				<otherwise>AND S.CG_TP_CD IN ('RCV')</otherwise>
+			</choose>
+		 )
+		
+	</sql>
+
+	<select id="selectUnitItems" parameterType="confirmLoadingOfROROParm" resultMap="resultUnitMap">
+	 	<include refid="getInDirectUnitItems"/>
+	 </select>
+
+	<sql id="getInDirectUnitItems">
+		SELECT    /* ConfirmLoadingOfRORORehandling.getInDirectUnitItems */
+			R.VSL_CALL_ID,
+			R.MF_DOC_ID,
+			R.CG_NO,
+			R.CHAS_NO,
+			R.RORO_SEQ,
+			R.LOC_ID,
+			
+			FORMAT(R.GATE_IN_DTM, 'dd/MM/yyyy mm:hh') 		AS GATE_IN_DTM,
+			FORMAT(R.IN_DTM, 'dd/MM/yyyy mm:hh') 			AS IN_DTM,
+			FORMAT(R.OUT_DTM, 'dd/MM/yyyy mm:hh') 			AS OUT_DTM,
+			FORMAT(R.LOADING_DTM, 'dd/MM/yyyy mm:hh') 		AS LOADING_DTM,
+		
+			R.DELV_TP_CD,
+			DBO.F_CM_CODE_NM('MT', 'DELVTP', R.DELV_TP_CD) 	AS DELV_TP_NM,
+			R.STAT_CD,
+			DBO.F_CM_CODE_NM('MT', 'CGSTATUS', R.STAT_CD) 	AS STAT_NM,
+			R.STEVEDORE_ID,
+			R.YARD_RMK,
+			R.CRANE,
+			R.LOADING_RMK,
+			R.CATG_CD,
+			R.RHDL_NO,
+			R.RHDL_MODE,
+			H.VSL_CALL_ID							 		AS ORG_VVD,
+			H.ORG_REF_NO AS ORG_CG_NO           
+        FROM    
+			TMT_SHIPG_NOTE S
+		INNER JOIN 
+			TMT_RORO_MST R
+		ON    
+			S.VSL_CALL_ID 		= R.VSL_CALL_ID
+			AND S.SHIPG_NOTE_NO = R.CG_NO
+		INNER JOIN 
+			TMT_RHDL_CG H 
+		ON
+			R.RHDL_NO 			= H.RHDL_NO
+			AND R.CG_NO 		= H.NX_REF_NO
+			AND R.VSL_CALL_ID 	= H.NX_VSL_CALL_ID
+        WHERE    
+			S.VSL_CALL_ID 	= #{vslCallId}
+			AND S.STAT_CD 	= 'AP'
+			AND S.CG_TP_CD IN ('RCV')
+			AND R.IX_CD 	= 'X'
+			AND (R.IN_DTM IS NOT NULL AND R.IN_DTM <![CDATA[<>]]> '')
+			AND (R.RHDL_NO IS NOT NULL AND R.RHDL_NO <![CDATA[<>]]> '')
+			AND R.CATG_CD IN ('T', 'R')
+			<if test="shipgNoteNo != null and shipgNoteNo != ''">
+				AND R.CG_NO = #{shipgNoteNo}
+			</if>
+			
+			<choose>
+				<when test="searcType != null and searcType != ''">
+					<if test="searcType == 'RehandlingLoadingHHT'">
+						AND R.STAT_CD == #{statCd}
+					</if>
+				</when>
+				<otherwise>
+					AND R.STAT_CD != 'RH'
+				</otherwise>
+			</choose>				
+		ORDER BY 
+			R.IN_DTM, R.CHAS_NO
+	</sql>
+	
+	<update id="updateLoadingOfRORORehandlingItems" parameterType="confirmLoadingOfROROItem">
+		UPDATE  /* ConfirmLoadingOfRORORehandling.updateLoadingOfRORORehandlingItems */
+			TMT_RORO_MST
+		SET     
+			STAFF_CD 		=  #{userId}
+			,UPDATE_TIME 	= SYSDATETIME()
+			,STAT_CD 		= #{statCd}
+			,OUT_DTM 		= CONVERT(DATETIME,#{outDate},103)
+			,YARD_RMK 		= #{ycRemarks}
+			,STEVEDORE_ID 	= #{stevedoreId}
+			
+			,LOADING_DTM 	= CONVERT(DATETIME,#{loadingTime},103)
+			,LOADING_RMK 	= #{ldRemarks}
+			,CRANE 			= #{crane}
+			,DELV_TP_CD 	= #{delvTpCd}
+		WHERE   
+			VSL_CALL_ID 	= #{vslCallId}
+			AND CG_NO 		= #{shipgNoteNo}
+			AND CHAS_NO 	= #{unitNo}
+			AND RORO_SEQ 	= #{roroSeq}
+	</update>
+	
+</mapper>

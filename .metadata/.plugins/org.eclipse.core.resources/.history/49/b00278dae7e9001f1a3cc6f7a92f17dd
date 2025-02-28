@@ -1,0 +1,901 @@
+/**
+ * View Utility
+ */
+var ViewUtil = function(){}
+
+ViewUtil.TOOL_PREVIEW = 'detailPreview'; // Added by Brian (2020/06/01)
+ViewUtil.TOOL_CREATE = 'detailcreate';
+ViewUtil.TOOL_SAVE = 'detailSave';
+ViewUtil.TOOL_DELETE = 'detailDelete';
+ViewUtil.POPUPTYPE_SINGLE = 'SINGLE';
+ViewUtil.POPUPTYPE_MULTI = 'MULTI';
+ViewUtil.MODE_SUMMARY = 'SUMMARY';
+
+// Code POPUP
+ViewUtil.openCodePopup = function(me, xtype, targetControl, params, afterSetCodePopupData, usercontrol, isModal){
+	if(isModal == undefined){
+		isModal = true;
+	}
+	var popupAlias = "popupAlias" + xtype;
+	var win = me.lookupReference(popupAlias);
+	var targetControlValue = null;
+	
+	if(targetControl){
+		targetControlValue = me.getValueTargetControlForCodePopup(me, targetControl);
+	}
+	
+	if (!win) {
+		var listeners = {
+			'close' : function(win) {
+				// Call only if there is a value to return
+				if(win.returnValue){
+					me.setCodePopupData(xtype, targetControl, win.returnValue);
+
+					if(afterSetCodePopupData){
+						afterSetCodePopupData(xtype, targetControl, win.returnValue, usercontrol, me);
+					}
+				}
+				
+				win.destroy();
+			},
+//			'move': function(win){
+//				if(arguments.length > 1){
+//					var config = win.config || {};
+//					var alias = config.reference;					
+//					if(alias != null && alias.indexOf("app-") > 0){
+//						if(arguments[1] == 'init'){
+//							win.setLocalY(0);
+//							win.setLocalX(64);
+//						}
+//					}
+//				}
+//			}
+			'move': function(win) {
+				if (Ext.platformTags.classic) {
+					if(win.getLocalY() < -10){
+						win.setLocalY(0);
+					}
+					if(win.getLocalY() > (window.innerHeight - win.getHeight()))
+					{
+						win.setLocalY((window.innerHeight - win.getHeight()));
+					}
+					if(win.getLocalX() < 0)
+					{
+						win.setLocalX(0);
+					}
+					if(win.getLocalX() > (window.innerWidth - win.getWidth())){
+						win.setLocalX((window.innerWidth - win.getWidth()));
+					}
+				}
+			}
+		}
+		
+		win = ViewUtil.createWindow(popupAlias, isModal, listeners, me.type);
+		win.tools = [];
+		win.tools.push({
+			xtype: 'button',
+			iconCls: 'fa fa-times',
+			text: 'Close',
+			name: 'detailClose',
+			itemId: 'btnDetailClose',
+			margin: '0 5 0 0',
+			listeners: {
+				click: function () {
+					this.up('window').close();
+				}
+			}
+		});
+		win.closable = false;
+		if (!Ext.platformTags.classic) {
+			if (!win.getClosable()) {
+				win.setClosable(true);
+			}
+		}
+		if(usercontrol && usercontrol.view.refs.ctlLocationTypeField && usercontrol.view.refs.ctlLocationTypeField.getValue() && !params){
+			params = usercontrol.view.refs.ctlLocationTypeField.getValue();
+		}
+
+		var bizView = ViewUtil.addBizView(win, xtype);
+		bizView.codeValue = targetControlValue;
+		bizView.recvData = params;
+		
+		if(params != null && params.title != null){
+			win.title = params.title;
+		}
+		
+		me.getView().add(win);
+	}
+	
+	win.parentView = me.getView();
+
+	if(win.y < 0)
+	{
+//		var pos = win.beforeSetPosition(0,0);
+//		win.setPosition(win.x, pos.y*(-1));
+		win.setPosition(win.x, 0);
+	}
+	
+	win.show();
+	win.toFront();
+	win.fireEvent('move', win, 'init');
+}
+ViewUtil.openCodePopup2 = function(me, xtype, targetControl, params, afterSetCodePopupData, usercontrol, isModal){
+	if(isModal == undefined){
+		isModal = true;
+	}
+	var popupAlias = "popupAlias" + xtype;
+	var win = me.lookupReference(popupAlias);
+	var targetControlValue = null;
+	
+	if(targetControl){
+		targetControlValue = me.getValueTargetControlForCodePopup(me, targetControl);
+	}
+	
+	if (!win) {
+		var listeners = {
+			'close' : function(win) {
+				// Call only if there is a value to return 
+				if(win.returnValue){
+					me.setCodePopupData(xtype, targetControl, win.returnValue);
+
+					if(afterSetCodePopupData){
+						afterSetCodePopupData(xtype, targetControl, win.returnValue, usercontrol, me);
+					}
+				}
+				
+				win.destroy();
+			}
+		}
+		
+		win = ViewUtil.createWindow(popupAlias, isModal, listeners, me.type);
+
+		var bizView = ViewUtil.addBizView(win, xtype);
+		bizView.codeValue = targetControlValue;
+		bizView.recvData = params;
+		
+		if(params != null && params.title != null){
+			win.title = params.title;
+		}
+		
+//		me.getView().add(win);
+	}
+	
+	win.parentView = me.getView();
+	if(win.y < 0)
+	{
+//		var pos = win.beforeSetPosition(0,0);
+//		win.setPosition(win.x, pos.y*(-1));
+		win.setPosition(win.x, 0);
+	}
+	win.show();
+	win.toFront();
+}
+// Pop-up without Save, Delete buttons - Only Retrieve
+ViewUtil.openRetrieveDetailPopup = function(me, record, userTitle, modal, userDetailViewAlias){
+	ViewUtil.openDetailPopup(me, record, userTitle, modal, true, userDetailViewAlias);
+}
+
+//User Detail View Alias Define
+ViewUtil.openViewAliasDetailPopup = function(me, record, userTitle, userDetailViewAlias, modal){
+	ViewUtil.openDetailPopup(me, record, userTitle, modal, false, userDetailViewAlias);
+}
+
+// Open Detail Popup
+ViewUtil.openDetailPopup = function(me, record, userTitle, isModal, isOnlyRetrieve, userDetailViewAlias){
+	if(isModal == undefined){
+		isModal = true;
+	}
+
+	if(isOnlyRetrieve == undefined){
+		isOnlyRetrieve = false;
+	}
+	
+	var title = Ext.String.format('{0} {1}', me.getView().getTitle(), TSB.locale.i18n.Bundle.instance.getMsg('detail'));
+	
+	if(userTitle){
+		title = userTitle;
+	}
+	
+	var bizViewAlias = me.getView().detailViewAlias;
+	
+	if(userDetailViewAlias){
+		bizViewAlias = userDetailViewAlias;
+	}
+	
+	if(bizViewAlias == null) return;
+	
+	var referenceName = bizViewAlias;	
+	var win = me.lookupReference(bizViewAlias);
+	var detailController = me;
+	
+	
+	if (!win) {
+		var listeners = {
+				'beforeclose' : function(win) {
+					var recvData = me.lookupReference(bizViewAlias).items.get(0).recvData;
+					
+					if(win.forcedClose){
+						return true;
+					} else if(recvData){
+						var hasChange = false;
+
+						if(me.changesToTheDetail){ 	// BizView Controller Define
+							hasChange = me.changesToTheDetail(bizViewAlias);
+						} else {
+							if(recvData.modified == null){
+								hasChange = false;
+							}else{
+								hasChange = recvData.dirty;
+							}
+							
+							if(hasChange !== true){
+								if(me.changesToTheDetailGrid && me.changesToTheDetailGrid()){ 	// BaseViewController
+									hasChange = true;
+								}
+							}
+						}
+						
+						if(hasChange && recvData.phantom){
+							MessageUtil.question('confirmation', 'modity_save_confirm_msg', title, 
+									function(button){
+										if (button === 'ok') {
+											if(recvData.reject)
+											{
+												recvData.reject();
+											}
+											win.forcedClose = true;
+											win.close();
+								        } else if(button === 'cancel'){
+								        	
+								        };
+									}
+								);
+							return false;
+						} else if(hasChange && !recvData.phantom){
+							MessageUtil.question('confirmation', 'modity_save_confirm_msg', title, 
+									function(button){
+										if (button === 'ok') {
+											if(recvData.reject)
+											{
+												recvData.reject();
+											}
+											win.forcedClose = true;
+											win.close();
+								        } else if(button === 'cancel'){
+								        	
+								        };
+									}
+								);
+							return false;
+						}else {
+							return true;
+						}
+					} else {
+						return true;
+					}
+				},
+				
+				'close' : function(win) {
+					win.destroy();
+				},
+				
+				'move': function(win){
+					if(arguments.length > 1){
+						if(arguments[1] == 'init'){
+							win.setLocalY(0);
+							win.setLocalX(64);
+						}
+					}
+					if(win.getHeight() >= window.innerHeight){
+						win.setHeight((window.innerHeight - 2));
+					}
+					
+					if(win.getWidth() >= window.innerWidth){
+						win.setWidth((window.innerWidth - 2));
+					}
+			
+					if(win.getLocalY() < -10 || (window.innerHeight - win.getLocalY() < 50) )
+					{
+						win.setLocalY(0);
+						win.setLocalX(64);
+					}
+					
+//					
+					if((win.getLocalX() + win.getWidth() < 50) || (window.innerWidth - win.getLocalX()  < 50)){
+						win.setLocalY(0);
+						win.setLocalX(64);
+					}
+				
+				},
+				
+				'resize': function(win){
+
+					if(win.getHeight() >= window.innerHeight){
+						win.setHeight((window.innerHeight - 2));
+					}
+					
+					if(win.getWidth() >= window.innerWidth){
+						win.setWidth((window.innerWidth - 2));
+					}
+					
+					if(win.getLocalY() > (window.innerHeight - win.getHeight()))
+					{
+						win.setLocalY((window.innerHeight - win.getHeight()));
+					}
+					
+					if(win.getLocalX() > (window.innerWidth - win.getWidth())){
+						win.setLocalX((window.innerWidth - win.getWidth()));
+					}
+				}
+			}
+		win = ViewUtil.createWindow(referenceName, isModal, listeners, me.type);
+		win.title = title;
+		var bizView = ViewUtil.addBizView(win, bizViewAlias, "ref" + referenceName, detailController);
+		
+		if(record){
+			bizView.recvData = record;
+		}
+		
+		win.parentView = me.getView();
+		me.getView().add(win);
+	} else {
+		var bizView = me.getDetailBizView();
+		
+		if(record){
+			if(bizView.items.length > 0){
+				if(bizView.items.get(0).recvData != null &&
+				   bizView.items.get(0).recvData.commit){
+					bizView.items.get(0).recvData.commit();
+				}
+				
+				bizView.items.get(0).recvData = record;
+			}
+		}
+		
+		var eventArgs = null;
+		var view = bizView.down("panel");
+		
+		if(view != null){
+			if(view.events.afterrender && view.events.afterrender.listeners && view.events.afterrender.listeners.length > 0){
+				eventArgs = view.events.afterrender.listeners[0].o;
+			}
+			
+			view.fireEvent('afterrender', view, eventArgs, record);
+		}
+	}
+	
+	if(win.down("panel") != null && win.down("panel").getController()){
+		detailController = win.down("panel").getController();
+	}
+	
+	if(!isOnlyRetrieve){ // Only Retrieve
+		win.tools = [];
+
+		//added by Brian (To make Create button on the detail screen,2020/12/26)
+		if(detailController.onDetailCreate && CONSTANTS.SYSTEM_CODE == 'KMDC'){ 
+			var visibleCreateButton = true;
+			
+			if(detailController.visibleDetailcreate){
+				visibleCreateButton = detailController.visibleDetailcreate(bizViewAlias); 
+			}
+			
+			
+			if(this.checkAccess(me, "insert", record)){
+				win.tools.push({
+					xtype: 'button',
+					iconCls: 'fa fa-plus-circle',
+					text: 'Create',
+					name: 'detailcreate',
+					itemId:'btnCreateRecord',
+					margin : '0 5 0 0',
+					//cls: 'save-button',
+					hidden : !visibleCreateButton,
+					listeners: {
+						click: function() {
+							var recvData = me.lookupReference(bizViewAlias).items.get(0).recvData;
+							if(recvData){
+								var hasChange = false;
+								
+								if(me.changesToTheDetail){ 	// BizView Controller Define
+									hasChange = me.changesToTheDetail(bizViewAlias);
+								} else {
+									if(recvData.modified == null){
+										hasChange = false;
+									}else{
+										hasChange = true;
+									}
+									
+									if(hasChange !== true){
+										if(me.changesToTheDetailGrid && me.changesToTheDetailGrid()){ 	// BaseViewController
+											hasChange = true;
+										}
+									}
+								}
+								
+								if(hasChange && recvData.phantom){
+									MessageUtil.question('confirmation', 'modity_save_confirm_msg', title, 
+											function(button){
+												if (button === 'ok') {
+													if(recvData.reject)
+													{
+														recvData.reject();
+														detailController.onDetailCreate();
+													}
+										        } else if(button === 'cancel'){
+										        	
+										        };
+											}
+										);
+								}else if(hasChange && !recvData.phantom){
+									MessageUtil.question('confirmation', 'modity_save_confirm_msg', title, 
+											function(button){
+												if (button === 'ok') {
+													if(recvData.reject)
+													{
+														recvData.reject();
+														detailController.onDetailCreate();
+													}
+										        } else if(button === 'cancel'){
+										        	
+										        };
+											}
+										);
+								}else{
+									detailController.onDetailCreate();
+								}
+							}
+							
+						}
+					}
+				});
+			}
+		}
+		
+		if(detailController.onDetailSave){
+			var visibleSaveButton = true;
+			
+			if(detailController.visibleDetailSave){
+				visibleSaveButton = detailController.visibleDetailSave(bizViewAlias); 
+			}
+			
+			if(this.checkAccess(me, "save", record)){
+				win.tools.push({
+					xtype: 'button',
+					iconCls: 'x-fa fa-save',
+					text: 'Save',
+					name: 'detailSave',
+					itemId:'btnDetailSave',
+					margin : '0 5 0 0',
+					//cls: 'save-button',
+					hidden : !visibleSaveButton,
+					listeners: {
+						click: function() {
+							detailController.onDetailSave();
+						}
+					}
+				});
+				
+			}
+			
+		}
+		
+		// In case of UPDATE, DELETE button is displayed.
+		if(detailController.onDetailRemove){ // Activated only when the function of the DELETE button is implemented
+			var visibleDeleteButton = true;
+			
+			if(detailController.visibleDetailDelete){
+				visibleDeleteButton = detailController.visibleDetailDelete(bizViewAlias); 
+			}
+			
+			if(record == null){
+				visibleDeleteButton = false;
+			}
+			if(this.checkAccess(me, "delete")){
+				win.tools.push({
+					xtype: 'button',
+					iconCls: 'x-fa fa-trash-o',
+					text: 'Delete',
+					name: 'detailDelete',
+					itemId:'btnDetailDelete',
+					margin : '0 5 0 0',
+	//				cls: 'delete-button',
+					hidden : !visibleDeleteButton,
+					listeners: {
+						click: function() {
+							detailController.onDetailRemove();
+						}
+					}
+		    	});
+			}
+		}
+		
+		//added by Brian (2020/06/01)
+		if(detailController.onPrintPDF){
+			var visiblePreviewButton = true;
+			
+			if(record == null){
+				visiblePreviewButton = false;
+			}
+		
+			if(this.checkAccess(me, "inquiry")){
+				win.tools.push({
+					xtype: 'button',
+					iconCls: 'x-fa fa-print',
+					text: 'Print',
+					name: 'detailPreview',
+					itemId:'btnDetailPreview',
+					margin : '0 5 0 0',
+	//				cls: 'preview-button',
+					hidden : !visiblePreviewButton,
+					listeners: {
+						click: function() {
+							detailController.onPrintPDF();
+						}
+					}
+		    	});
+			}
+		}
+		
+		if(detailController.onDetailDownload){
+			var visibleDownloadButton = true;
+			
+			if(detailController.visibleDetailPreview){
+				visibleDownloadButton = detailController.visibleDetailPreview(bizViewAlias); 
+			}
+			
+			if(record == null){
+				visibleDownloadButton = false;
+			}
+			if(this.checkAccess(me,"download", record)){
+				win.tools.push({
+					xtype: 'button',
+					iconCls: 'x-fa fa-file-pdf-o',
+					text: 'Download',
+					name: 'detailDownload',
+					itemId:'btnDetailDownload',
+					margin : '0 5 0 0',
+	//				cls: 'delete-button',
+					hidden : !visibleDownloadButton,
+					listeners: {
+						click: function() {
+							detailController.onDetailDownload();
+						}
+					}
+		    	});
+			}
+		}
+		
+		//added by Brian (2022/11/30)
+		var gridList = Ext.ComponentQuery.query('tsb-datagrid', me.getDetailBizView());
+		
+		if(gridList.length > 0){
+			win.tools.push({
+				xtype: 'button',
+				iconCls: 'x-fa fa-columns',
+				cls: 'column-setting-button',
+				text: ViewUtil.getLabel('column'),
+				margin : '0 5 0 0',
+				listeners: {
+					click: 'onColumnSettingPopup',
+					args: [null,CONSTANTS.SCREEN_MODE_DETAIL]
+				}
+	    	});
+		}
+
+	}
+	
+	win.show();
+	win.toFront();
+	win.fireEvent('move', win, 'init');
+}
+
+// Create Window
+ViewUtil.createWindow=function(referenceName, isModal, listeners, mainViewTypeName){
+	return Ext.create('Ext.window.Window', {
+		reference: referenceName,
+		layout: 'fit',
+		modal:isModal,
+		iconCls: 'x-fa fa-globe',
+		resizable: true,
+		resizeHandles: 'all', 
+		closeAction: 'destroy',
+		constrain: false,
+//		constrainHeader: true, //added by Brian (2019/09/04) : detail screen does not out of grid
+		maximizable : false,
+		scrollable: true,
+		stateId: 'state' + mainViewTypeName + referenceName,
+        stateful: true,
+		listeners:listeners
+	});
+}
+
+// Add BizView
+ViewUtil.addBizView=function(win, xtype, referenceName, detailController){
+	var className = Ext.ClassManager.getNameByAlias('widget.' + xtype);
+	var bizView = ViewUtil.getCreateBizView(className, referenceName, detailController);
+	
+	if(!StringUtil.isNullorEmpty(bizView.title)){
+		win.title = bizView.title;
+		bizView.title = "";
+	}
+	
+	win.width = bizView.width;
+	win.height = bizView.height;
+	
+	if(bizView.resizable){
+		win.resizable = bizView.resizable;
+	}
+	
+	if(bizView.constrain){
+		win.constrain = bizView.constrain;
+	}
+	
+	if(bizView.maximizable){
+		win.maximizable = bizView.maximizable;
+	}
+	
+	win.add(bizView);
+	
+	return bizView;
+}
+
+// Create BizView
+ViewUtil.getCreateBizView=function(className, referenceName, detailController){
+   var bizView = Ext.create(className, {
+		detailController: detailController
+   });
+      
+   if(referenceName){
+	   bizView.reference = referenceName;
+   }
+   
+   return bizView;
+}
+
+// Set ReadOnly Control
+ViewUtil.setReadOnlyForControl=function(me, readOnlyControls, isReadOnly){
+	if(isReadOnly == undefined){
+		isReadOnly = true;
+	}
+	
+	readOnlyControls.forEach(function(controlName){
+		var control = me.lookupReference(controlName);
+		
+		if(control != null && control.setReadOnly){
+			control.setReadOnly(isReadOnly);
+		}
+	});
+}
+
+// Open Window
+ViewUtil.openWindow=function(url){
+//	window.open(url, 'detail', 'location=no, scrollbars=yes, menubar=no, status=no, toolbar=no, resizeable=yes, left=0, top=0, width=1000, height=800');
+	window.open(url, 'detail');
+}
+
+ViewUtil.openPDFPreview=function(params){
+	var queryString = "?servletName="+CONSTANTS.SERVER_CONTEXT+"/ReportServlet"+
+	//"&printType=SAVE_PDF"+
+	"&printType="+ params['printType']+
+	"&file="+params['file']+
+	"&serviceId=" + params['serviceId']+
+	"&branchCode="+  params['branchCode']+
+	"&param1=" + params['param1']+
+	"&param2=" + params['param2']+
+	"&param3=" + params['param3']+
+	"&param4=" + params['param4']+
+	"&param5=" + params['param5']+
+	"&param6=" + params['param6']+
+	"&param7=" + params['param7']+
+	"&param8=" + params['param8']+
+	"&param9=" + params['param9']+
+	"&param10="+  params['param10'];
+		
+	if(CONSTANTS.ENV == "DEV"){
+		var prntWin =  window.open(CONSTANTS.SERVER_DNS + CONSTANTS.SERVER_CONTEXT +'/reportBuilder/PDFPreview.jsp'+queryString);
+	}else{
+		var prntWin =  window.open(window.location.origin + Locale.getContextPath() +'/reportBuilder/PDFPreview.jsp'+queryString);
+	}
+	
+//	Ext.Ajax.request({
+//		url : CONSTANTS.SERVER_DNS + '/'+CONSTANTS.SERVER_CONTEXT +'/CreateLoginSession',
+//		method : 'POST',
+//		 params : {
+//             tokenType: MOST.config.Token.getTokenType(),
+//             accessToken: MOST.config.Token.getAccessToken(),
+//			 branchCode: MOST.config.Token.getBranchCode()
+//         },
+//		scope : this,
+//		proxy: {
+//			showProgressBar : false
+//		},
+//		callback: function(record, operation, success) {
+//			if(success){
+//				console.log("Print PDF success");
+//			}else{
+//				console.log("Print PDF fail");
+//			}
+//		}
+//	})
+	
+			  
+}
+
+//Robert Add for Download Excel with JasperReport:
+ViewUtil.downloadExcel=function(params){
+	var queryString = "?servletName="+CONSTANTS.SERVER_CONTEXT+"/ReportServlet"+
+	"&printType=EXCEL"+
+	"&file="+params['file']+
+	"&serviceId=" + params['serviceId']+
+	"&branchCode="+  params['branchCode']+
+	"&param1=" + params['param1']+
+	"&param2=" + params['param2']+
+	"&param3=" + params['param3']+
+	"&param4=" + params['param4']+
+	"&param5=" + params['param5']+
+	"&param6=" + params['param6']+
+	"&param7=" + params['param7']+
+	"&param8=" + params['param8']+
+	"&param9=" + params['param9']+
+	"&param10="+  params['param10'];
+		
+	if(CONSTANTS.ENV == "DEV"){
+		var prntWin =  window.open(CONSTANTS.SERVER_DNS + CONSTANTS.SERVER_CONTEXT +'/reportBuilder/PDFPreview.jsp'+queryString);
+	}else{
+		var prntWin =  window.open(window.location.origin + Locale.getContextPath() +'/reportBuilder/PDFPreview.jsp'+queryString);
+	}
+}
+
+
+//added by Brian (2019/10/31) To check for access authority
+ViewUtil.checkAccess=function(me, value, record){
+	var accessBtn = MOST.config.Token.getAccessButtonAuthority();
+	
+    if(accessBtn != null){
+    	if(value=="save"){
+			if(accessBtn.save == "N" && record!=null){
+				return false;
+			}
+		}
+		if(value=="delete"){
+			if(accessBtn.delete == "N"){
+				return false;
+			}
+		}
+		if(value=="preview"){
+			if(accessBtn.preview == 'N' && record!=null){
+				return false;
+			}
+		}
+		if(value=="download"){
+			if(accessBtn.download == 'N' && record!=null){
+				return false;
+			}
+		}
+    }
+    return true;
+}
+
+ViewUtil.getLabel=function(key){
+	return TSB.locale.i18n.Bundle.instance.getMsg(key);	
+}
+
+ViewUtil.isReeferType=function(key){
+	var temp = false;
+	var code = StringUtil.trim(key);
+	var type = code.substr(2,1);
+	
+	if(type == CodeConstants.CONTAINERTYPE_REEFER){
+		temp = true;
+	}
+	return temp;
+}
+
+
+
+//HHT Biz POPUP (design is same with code popup, but will be changed)
+
+ViewUtil.openHhtPopup = function(me, xtype, targetControl, params, afterSetCodePopupData, usercontrol){
+	var popupAlias = "popupAlias" + xtype;
+	var win = me.lookupReference(popupAlias);
+	var targetControlValue = null;
+	
+	if(targetControl){
+		targetControlValue = me.getValueTargetControlForCodePopup(me, targetControl);
+	}
+	
+	if (!win) {
+		var listeners = {
+			'close' : function(win) {
+				// Call only if there is a value to return 
+				if(win.returnValue){
+					me.setCodePopupData(xtype, targetControl, win.returnValue);
+
+					if(afterSetCodePopupData){
+						afterSetCodePopupData(xtype, targetControl, win.returnValue, usercontrol, me);
+					}
+				}
+				win.destroy();
+			}
+		}
+		
+//		win = ViewUtil.createWindow(popupAlias, true, listeners, me.type);
+//		if(isScrollable == undefined){
+//			isScrollable = true;
+//		}
+		win = Ext.create('Ext.window.Window', {
+			reference: popupAlias,
+			ui: 'popup-panel',
+			layout: 'fit',
+			fullscreen: true,
+			modal:true,
+			iconCls: 'x-fa fa-globe',
+//			resizable: true,
+//			resizeHandles: 'all', 
+			closeAction: 'destroy',
+			maximizable : false,
+//			scrollable: false,
+			centered: false,
+			padding: 8,
+			left: 0,
+			top: 0,
+			listeners:listeners
+		});
+		
+		win.tools = [];
+		win.tools.push({
+			xtype: 'button',
+			iconCls: 'fa fa-times',
+			text: 'Close',
+			name: 'detailClose',
+			itemId: 'btnDetailClose',
+			margin: '0 5 0 0',
+			listeners: {
+				click: function () {
+					this.up('window').close();
+				}
+			}
+		});
+		
+		win.closable = false;
+		if (!Ext.platformTags.classic) {
+			if (!win.getClosable()) {
+				win.setClosable(true);
+			}
+		}
+		if(usercontrol && usercontrol.view.refs.ctlLocationTypeField && usercontrol.view.refs.ctlLocationTypeField.getValue() && !params){
+			params = usercontrol.view.refs.ctlLocationTypeField.getValue();
+		}
+
+		var bizView = ViewUtil.addBizView(win, xtype);
+		bizView.codeValue = targetControlValue;
+		bizView.recvData = params;
+		
+		if(params != null && params.title != null){
+			if (Ext.platformTags.classic) {
+				win.title = params.title;
+			} else {
+				win.setTitle(params.title)
+			}
+		}
+		
+		me.getView().add(win);
+	}
+	
+	win.parentView = me.getView();
+	win.show();
+	win.toFront();
+}
+
+ViewUtil.setMaskedHHT = function(me, referenceName, value){
+	var ctl = me.lookupReference(referenceName);
+	if(!value) {
+		ctl.setMasked(value);
+	}
+	else{
+		ctl.setMasked({
+			xtype: 'loadmask',
+			message: 'Processing...'
+		});
+	}
+}

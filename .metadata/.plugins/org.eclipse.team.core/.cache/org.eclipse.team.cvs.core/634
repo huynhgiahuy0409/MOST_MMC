@@ -1,0 +1,494 @@
+Ext.define('MOST.view.billing.TariffCodeDetail', {
+	extend: 'Ext.form.Panel',
+	alias: 'widget.app-tariffcodesdetail',
+	requires: [],
+
+	listeners: {
+		afterrender: 'onDetailLoad',
+	},
+
+	width: 880,
+	height: 660,
+	scrollable: true,
+
+	layout: { 
+		type: 'vbox', 
+		align: 'stretch' 
+	},
+
+	initComponent: function () {
+		var me = this;
+
+		Ext.apply(me, {
+			items: [
+				{
+					xtype: 'container',
+					reference: 'refPanel',
+					layout: {
+						type: 'vbox',
+						align: 'stretch',
+					},
+					items: [
+						{
+							xtype: 'fieldset',
+							layout: {
+								type: 'vbox',
+							},
+							reference: 'refTariffcodeFieldset',
+							margin: '5 5 0 5',
+							padding: '10 10 10 10',
+							defaults: {
+								margin: '5 0 0 0',
+								width: '100%'
+							},
+							items: [
+								{
+									xtype: 'container',
+									layout: {
+										type: 'hbox',
+										align: 'left',
+									},
+									margin: '0 0 0 0',
+									defaults: {
+										labelAlign: 'right',
+										labelWidth: 100,
+										enforceMaxLength: true,
+									},
+									items: [
+										{
+											xtype: 'textfield',
+											reference: 'txtTrfCd',
+											flex: 1,
+											fieldLabel: ViewUtil.getLabel('trfCd'),
+											maxLength: 10,
+											enforceMaxLength: true,
+											width: '',
+											allowBlank: false,
+											bind: {
+												value: '{theDetail.trfCd}',
+												editable: '{theDetail.phantom}',
+											},
+											listeners: {
+												change: function (field, newValue, oldValue) {
+													field.setValue(newValue.toUpperCase());
+												},
+											},
+										},
+										{
+											xtype: 'textfield',
+											reference: 'txtSubTrfCd',
+											flex: 1,
+											fieldLabel: ViewUtil.getLabel('subTrfCd'),
+											width: '',
+											maxLength: 10,
+											allowBlank: false,
+											bind: {
+												value: '{theDetail.subTrfCd}',
+												editable: '{theDetail.phantom}',
+											},
+											listeners: {
+												change: function (field, newValue, oldValue) {
+													field.setValue(newValue.toUpperCase());
+												},
+											},
+										},
+//										{
+//											xtype: 'combobox',
+//											reference: 'cmbProformaChk',
+//											flex: 1,
+//											fieldLabel: ViewUtil.getLabel('proformaYN'),
+//											queryMode: 'local',
+//											allowBlank: false,
+//											bind: {
+//												store: '{proformaYNComboStore}',
+//												value: '{theDetail.prfYn}',
+//											},
+//											displayField: 'codeName',
+//											valueField: 'code',
+//											editable: true,
+//											forceSelection: true,
+//											hidden: true
+//										},
+										{
+											xtype: 'button',
+											margin: '5 0 0 100',
+											text: me.btnSave,
+											ui: 'create-button',
+											iconCls: 'x-fa fa-save',
+											reference: 'refBtnSave',
+											hidden: true,
+											listeners: {
+												click: 'onDetailSave',
+											},
+										},
+									],
+								},
+								{
+									xtype: 'textfield',
+									reference: 'txtTariffDesc',
+									fieldLabel: ViewUtil.getLabel('descr'),
+									labelAlign: 'right',
+									labelWidth: 100,
+									maxLength: 100,
+									enforceMaxLength: true,
+									allowBlank: false,
+									editable: true,
+									bind: '{theDetail.descr}',
+								},
+								{
+									xtype: 'combobox',
+									reference: 'cmbTariffType',
+									fieldLabel: ViewUtil.getLabel('trfTpCd'),
+									labelAlign: 'right',
+									labelWidth: 100,
+									width: '50%',
+									queryMode: 'local',
+									allowBlank: false,
+									bind: {
+										store: '{tariffCodeDetailCombo}',
+										value: 'MGM',
+									},
+									displayField: 'scdNm',
+									valueField: 'scd',
+									disabled: true,
+									forceSelection: true,
+									emptyText: 'Select',
+									listeners: {
+										select: 'onChangeTariffType',
+									},
+								},
+							],
+						},
+						{
+							xtype: 'fieldset',
+							reference: 'refSubInfomration1Fieldset',
+							layout: {
+								type: 'vbox',
+							},
+							margin: '5 5 0 5',
+							padding: '10 10 10 10',
+							defaults: {
+								width: '100%'
+							},
+							items: [
+								{
+									xtype: 'container',
+									layout: {
+										type: 'hbox',
+									},
+									defaults: {
+										labelAlign: 'right',
+										labelWidth: 100,
+										flex: 1,
+									},
+									items: [
+										{
+											xtype: 'combobox',
+											queryMode: 'local',
+											reference: 'cmbSSRTariffType',
+											fieldLabel: ViewUtil.getLabel('ssrTp'),
+											bind: {
+												store: '{ssrTypeCombo}',
+												value: 'SSR_MGM',
+											},
+											displayField: 'scdNm',
+											valueField: 'scd',
+											disabled: true,
+											allowBlank: true,
+											forceSelection: true,
+											emptyText: 'Select',
+											hidden: true
+										},
+										{
+											xtype: 'combobox',
+											reference: 'cmbPayer',
+											fieldLabel: ViewUtil.getLabel('standardPayer'),
+											allowBlank: false,
+											queryMode: 'local',
+											bind: {
+												store: '{standardTraderCombo}',
+												value: 'CNS',
+											},
+											displayField: 'scdNm',
+											valueField: 'scd',
+											disabled: true,
+											forceSelection: true,
+											emptyText: 'Select',
+											hidden: true
+										},
+									],
+								},
+								{
+									xtype: 'container',
+									margin: '5 0 0 0',
+									layout: {
+										type: 'hbox',
+									},
+									defaults: {
+										labelAlign: 'right',
+										labelWidth: 100,
+										flex: 1,
+									},
+									items: [
+										{
+											xtype: 'combobox',
+											reference: 'refCostCenter',
+											fieldLabel: ViewUtil.getLabel('tariffCostCenter'),
+											allowBlank: true,
+											bind: {
+												store: '{costCenterCombo}',
+												value: 'T20',
+											},
+											listeners: {
+												change: 'onCostCenter_changeEvent',
+											},
+											queryMode: 'local',
+											displayField: 'costCntCd',
+											valueField: 'costCntCd',
+											disabled: true,
+											emptyText: 'Select',
+										},
+										{
+											xtype: 'combobox',
+											fieldLabel: ViewUtil.getLabel('tarifftGSTType'),
+											reference: 'CboVatCd',
+											displayField: 'gstTpCd',
+											valueField: 'scd',
+											queryMode: 'local',
+											bind: {
+												store: '{gstTypeCombo}',
+												value: '{theDetail.gstTpCd}',
+											},
+											listeners: {
+												select: 'onCboVatCdSelect',
+											},
+										},
+										{
+											xtype: 'textfield',
+											reference: 'txtGstRate',
+											fieldLabel: ViewUtil.getLabel('tariffGSTRate'),
+											bind: '{theDetail.gstRate}',
+											readOnly: true,
+										},
+//										{
+//											xtype: 'combobox',
+//											fieldLabel: ViewUtil.getLabel('financialCode'),
+//											allowBlank: true,
+//											bind: {
+//												store: '{financialCodeCombo}',
+//												value: '{theDetail.financialCode}',
+//											},
+//											queryMode: 'local',
+//											displayField: 'financialCode',
+//											valueField: 'financialCode',
+//											editable: true,
+//											emptyText: 'Select',
+//											hidden: true
+//										},
+										{
+											xtype: 'combobox',
+											fieldLabel: ViewUtil.getLabel('billingtype'),
+											allowBlank: false,
+											forceSelection: true,
+											disabled: true,
+											hidden: true,
+											queryMode: 'local',
+											bind: {
+												store: '{billingTypeCombo}',
+												value: 'VV',
+											},
+											displayField: 'scdNm',
+											valueField: 'scd',
+											emptyText: 'Select',
+										},
+										{
+											xtype: 'combobox',
+											fieldLabel: ViewUtil.getLabel('ivUnit1'),
+											bind: {
+												store: '{invoiceUnit1Combo}',
+												value: 'MT',
+											},
+											queryMode: 'local',
+											displayField: 'unitCd',
+											valueField: 'unitCd',
+											editable: false,
+											emptyText: 'Select',
+											hidden: true
+										},
+										{
+											xtype: 'combobox',
+											fieldLabel: ViewUtil.getLabel('ivUnit2'),
+											bind: {
+												store: '{invoiceUnit2Combo}',
+												value: '{theDetail.ivUnit2}',
+											},
+											queryMode: 'local',
+											displayField: 'unitCd',
+											valueField: 'unitCd',
+											editable: true,
+											emptyText: 'Select',
+											hidden: true
+										},
+										{
+											xtype: 'combobox',
+											fieldLabel: ViewUtil.getLabel('ivUnit3'),
+											bind: {
+												store: '{invoiceUnit3Combo}',
+												value: '{theDetail.ivUnit3}',
+											},
+											queryMode: 'local',
+											displayField: 'unitCd',
+											valueField: 'unitCd',
+											editable: true,
+											emptyText: 'Select',
+											hidden: true
+										},
+									],
+								},
+							],
+						},
+						{
+							xtype: 'fieldset',
+							reference: 'refSubInfomration2Fieldset',
+							layout: {
+								type: 'vbox',
+							},
+							margin: '5 5 0 5',
+							padding: '10 10 10 10',
+							defaults: {
+								width: '100%'
+							},
+							items: [
+								{
+									xtype: 'container',
+									layout: {
+										type: 'hbox',
+										align: 'middle',
+										pack: 'center',
+									},
+									defaults: {
+										labelAlign: 'right',
+										labelWidth: 100,
+										flex: 1,
+									},
+									items: [
+										{
+											xtype: 'numberfield',
+											reference: 'txtFromYear',
+											fieldLabel: ViewUtil.getLabel('fromYear'),
+											labelAlign: 'right',
+											labelWidth: 100,
+											maxLength: 100,
+											enforceMaxLength: true,
+											allowBlank: false,
+											editable: true,
+											minValue: 0,
+											maxValue: 999,
+											bind: '{theDetail.fromYear}',
+										},
+										{
+											xtype: 'numberfield',
+											reference: 'txtToYear',
+											fieldLabel: ViewUtil.getLabel('toYear'),
+											labelAlign: 'right',
+											labelWidth: 100,
+											maxLength: 100,
+											enforceMaxLength: true,
+											allowBlank: false,
+											editable: true,
+											minValue: 0,
+											maxValue: 999,
+											bind: '{theDetail.toYear}',
+										},
+										
+										
+									],
+								},
+								{
+									xtype: 'container',
+									layout: {
+										type: 'hbox',
+										align: 'middle',
+										pack: 'center',
+									},
+									defaults: {
+										labelAlign: 'right',
+										labelWidth: 100,
+										flex: 1,
+									},
+									items: [
+										{
+											xtype: 'combobox',
+											fieldLabel: ViewUtil.getLabel('handlingTon'),
+											reference: 'cmbHandlingTon',
+											bind: {
+												store: '{handlingTonCombo}',
+												value: '{theDetail.hdlLv}',
+											},
+											listeners: {
+												select: 'onChangeHandlingTon',
+											},
+											queryMode: 'local',
+											displayField: 'scdNm',
+											valueField: 'scd',
+											editable: true,
+											emptyText: 'Select',
+										},
+										{
+											xtype: 'combobox',
+											fieldLabel: ViewUtil.getLabel('glCd'),
+											reference: 'cmbGlCode',
+											bind: {
+												store: '{GLCombo}',
+												value: '{theDetail.glCd}',
+											},
+											queryMode: 'local',
+											displayField: 'scdNm',
+											valueField: 'scd',
+											disabled: true,
+											editable: false,
+											emptyText: 'Select',
+										},
+										{
+											xtype: 'textfield',
+											reference: 'txtHdlFrom',
+											fieldLabel: ViewUtil.getLabel('hdlFrom'),
+											labelAlign: 'right',
+											labelWidth: 100,
+											maxLength: 100,
+											enforceMaxLength: true,
+											allowBlank: false,
+											editable: true,
+											disable: true,
+											bind: '{theDetail.hdlFrom}',
+											hidden: true
+										},
+										{
+											xtype: 'textfield',
+											reference: 'txtHdlTo',
+											fieldLabel: ViewUtil.getLabel('hdlTo'),
+											labelAlign: 'right',
+											labelWidth: 100,
+											maxLength: 100,
+											enforceMaxLength: true,
+											allowBlank: false,
+											editable: true,
+											disable: true,
+											bind: '{theDetail.hdlTo}',
+											hidden: true
+										},
+										
+									],
+								},
+								
+							],
+						},
+					],
+				},
+//			
+			],
+		});
+
+		me.callParent();
+	},
+});

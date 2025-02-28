@@ -1,0 +1,632 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="WhRentalMap">
+
+  	<select id="selectWhRentalList"  parameterType="SearchWhRentalParm" resultType="WhRentalItem">
+		/*WhRentalMap.selectWhRentalList*/
+		WITH
+			LOC_CTE AS 
+				(
+					SELECT 
+						LOCRENT.CONTT_NO, 
+        				SUBSTRING(LOCRENT.CD_VAL, 1, ABS(CHARINDEX('-', LOCRENT.CD_VAL) - 1)) 						AS LOCID,
+        				ROW_NUMBER() OVER (PARTITION BY LOCRENT.CONTT_NO ORDER BY LOCRENT.CONTT_NO) 			AS curr,
+        				ROW_NUMBER() OVER (PARTITION BY LOCRENT.CONTT_NO ORDER BY LOCRENT.CONTT_NO) - 1 		AS prev
+    				FROM 
+        				TMT_RENT_DTL LOCRENT
+    				WHERE 
+        				SUBSTRING(LOCRENT.CD_VAL, 1, ABS(CHARINDEX('-', LOCRENT.CD_VAL) - 1)) IS NOT NULL
+        				AND (
+        					SELECT
+								COUNT(*)
+                        	FROM
+								TMT_LOC_DEF LD
+                        	WHERE
+								LD.LOC_ID = SUBSTRING(LOCRENT.CD_VAL, 1, ABS(CHARINDEX('-', LOCRENT.CD_VAL) - 1))) > 0
+    				GROUP BY 
+        				LOCRENT.CONTT_NO,
+						SUBSTRING(LOCRENT.CD_VAL, 1, ABS(CHARINDEX('-', LOCRENT.CD_VAL) - 1))
+				),
+			RecursiveCTE AS 
+				(
+					SELECT 
+						CONTT_NO, 
+        				LOCID, 
+        				curr, 
+        				prev,
+        				CAST(LOCID AS VARCHAR(MAX)) 										AS LOCID_PATH
+    				FROM 
+        				LOC_CTE 
+    				WHERE 
+        				curr = 1
+    				
+    				UNION ALL
+    				
+    				SELECT 
+        				loc.CONTT_NO, 
+        				loc.LOCID, 
+        				loc.curr, 
+        				loc.prev, 
+        				CAST(prior.LOCID_PATH + ',' + loc.LOCID AS VARCHAR(MAX)) 			AS LOCID_PATH
+    				FROM 
+        				LOC_CTE loc
+    						INNER JOIN RecursiveCTE prior 
+    							ON loc.prev = prior.curr 
+								AND loc.CONTT_NO = prior.CONTT_NO
+				)
+
+  		SELECT /*WhRentalMap.selectWhRentalList*/
+			UPPER(RT.CONTT_NO)										AS CONTTNO,
+			(CASE
+				WHEN RTL.LOCID IS NOT NULL OR RTL.LOCID != ''
+				    THEN SUBSTRING(RTL.LOCID, 1, LEN(RTL.LOCID))
+				ELSE ''
+			END)													AS LOCID,
+ 			<!-- NVL2(RTLOC.LOCID, SUBSTR(RTLOC.LOCID, 2, LENGTH(RTLOC.LOCID)), '') AS LOCID, -->
+			RT.REF_NO												AS REFNO,
+ 			(CASE
+				WHEN dbo.F_B_INTERVAL_OF_DATE('',  FORMAT(CONVERT(DATE, RT.TO_YMD), 'yyyyMMdd'), SYSDATETIME()) = 0
+				    THEN 'Valid'
+				ELSE 'Expired'
+			END)													AS STATUS,
+ 			<!-- DECODE(F_B_INTERVAL_OF_DATE('', TO_DATE(RT.TO_YMD,'YYYYMMDD'), SYSDATE), 0, 'Valid', 'Expired')	AS STATUS, -->
+			CONVERT(DATE, RT.FM_YMD, 103)							AS FMYMD,
+			CONVERT(DATE, RT.TO_YMD, 103)							AS TOYMD,
+			RT.RENT_TP_CD											AS RENTTPCD,
+			(CASE RT.RENT_TP_CD
+				WHEN 'SHT' THEN 'Short term'
+				WHEN 'LOT' THEN 'Long term'
+				WHEN 'LME' THEN 'LME'
+				ELSE ''
+			END)													AS RENTTPNM,
+			RT.PRD_TP_CD											AS PRDTPCD,
+			RT.PRD_VAL												AS PRDVAL,
+			RT.RENT_UNIT											AS RENTUNIT,
+			RT.USE_TP_CD											AS USETPCD,
+			RT.VLD_YN												AS VLDYN,
+			RT.TNNT													AS TNNT,
+			(SELECT TOP (1)
+				ENG_SNM
+			FROM
+				TMT_PTNR
+			WHERE
+				PTNR_CODE = RT.TNNT
+            
+            UNION
+			
+			SELECT TOP (1)
+				ENG_SNM
+			FROM
+				TMT_AGENCY_INFO
+			WHERE
+				AGENCY_CODE = RT.TNNT)   							AS TNNTNM,
+			RT.TNNT_TP_CD											AS TNNTTPCD,
+			RT.AREA													AS AREA,
+			RT.UNIT_PRC												AS UNITPRICE,
+			RT.CONTTR												AS CONTTR,
+			(SELECT TOP (1)
+				ENG_SNM
+			FROM
+				TMT_PTNR
+			WHERE
+				PTNR_CODE = RT.CONTTR
+            
+            UNION
+			
+			SELECT TOP (1)
+				ENG_SNM
+			FROM
+				TMT_AGENCY_INFO
+			WHERE
+				AGENCY_CODE = RT.CONTTR)   							AS CONTTRNM,
+			RT.CONTTR_TP_CD											AS CONTTRTPCD,
+			RT.PAYER												AS PAYER,
+			(SELECT TOP (1)
+				ENG_SNM
+			FROM
+				TMT_PTNR
+			WHERE
+				PTNR_CODE = RT.PAYER
+            
+            UNION
+			
+			SELECT TOP (1)
+				ENG_SNM
+			FROM
+				TMT_AGENCY_INFO
+			WHERE
+				AGENCY_CODE = RT.PAYER)   							AS PAYERNM,
+			RT.PAYER_TP_CD											AS PAYERTPCD,
+			RT.PAY_TP_CD											AS PAYTPCD,
+			RT.RMK													AS RMK,
+			ISNULL(RT.FREE_STRG_DAYS, '0')							AS FREESTRGDAYS,
+			RT.FONT_COLR											AS FONTCOLR,
+			RT.LINE_COLR											AS LINECOLR,
+			RT.VERSION												AS VERSION,
+			(CASE
+				WHEN
+					dbo.F_B_INTERVAL_OF_DATE('',
+											FORMAT(CONVERT(DATE, RT.TO_YMD), 'yyyyMMdd'),
+											SYSDATETIME()) != 0
+					OR (
+						((SELECT
+								PARAMETER_VALUE
+							FROM
+								TMT_MOST_PARAMETERS
+							WHERE
+								PARAMETER_CD = 'RENTAL_REMIND_CHK') != '')
+						AND
+							((SELECT
+								PARAMETER_VALUE
+							FROM
+								TMT_MOST_PARAMETERS
+							WHERE
+								PARAMETER_CD = 'RENTAL_REMIND_CHK') IS NOT NULL)
+						AND
+							((SELECT
+								PARAMETER_CHK
+							FROM
+								TMT_MOST_PARAMETERS
+							WHERE
+								PARAMETER_CD = 'RENTAL_REMIND_CHK') = 'Y')
+						AND
+							CONVERT(DATETIME,
+									DATEADD(MONTH,
+											TRY_CONVERT(INTEGER,
+														(SELECT
+															PARAMETER_VALUE
+														FROM
+															TMT_MOST_PARAMETERS
+														WHERE
+															PARAMETER_CD = 'RENTAL_REMIND_CHK')),
+											SYSDATETIME()))
+								>=
+							CONVERT(DATETIME, RT.TO_YMD))
+					THEN 'Y'
+				ELSE 'N'
+			END)              AS rentalRemind
+  		FROM
+  			TMT_RENT RT
+  				LEFT OUTER JOIN (
+  					SELECT
+						CONTT_NO AS CONTT_NO,
+						MAX(LOCID_PATH) AS LOCID 
+					FROM
+						RecursiveCTE
+					GROUP BY
+						CONTT_NO) RTL
+  					ON RT.CONTT_NO = RTL.CONTT_NO
+  					<!-- ,
+  			(SELECT
+				CONTT_NO									 		AS CONTT_NO,
+				MAX(PATH) AS LOCID
+			FROM
+			    RecursiveCTE
+			GROUP BY
+			    CONTT_NO
+			ORDER BY
+				CONTT_NO
+			) AS RTLOC -->
+		WHERE
+		    1 = 1
+
+			<if  test="alertYn eq 'Y'.toString()">
+				AND CONVERT(DATE, RT.TO_YMD, 112) > SYSDATETIME()
+			  	AND CONVERT(DATE, RT.TO_YMD, 112) - SYSDATETIME() &lt; 7
+			</if>
+
+			<if test="conttNo != null and conttNo != ''">
+				AND RT.CONTT_NO = #{conttNo}
+			</if>
+
+			<if test="refNo != null and refNo != ''">
+	  			AND RT.REF_NO = #{refNo}
+			</if>
+
+			<if test="rentTpCd != null and rentTpCd != ''">
+	  			AND RT.RENT_TP_CD = #{rentTpCd}
+			</if>
+
+			<if test="tenant != null and tenant != ''">
+	  			AND RT.TNNT = #{tenant}
+			</if>
+
+			<if test="expiredYn eq 'Y'.toString()">
+				<if test="vldYn eq 'N'.toString()">
+	   				AND <![CDATA[
+							(RT.VLD_YN = 'N'
+						 		OR (
+						 			CONVERT(DATE, RT.TO_YMD, 112) < SYSDATETIME()
+							 		OR CONVERT(DATE, RT.FM_YMD, 112) > SYSDATETIME()
+						 		)
+							)
+					]]>
+				</if>
+			</if>
+
+			<if test="expiredYn eq 'N'.toString()">
+				<if test="vldYn eq 'Y'.toString()">
+	   				AND <![CDATA[
+							(RT.VLD_YN = 'Y'
+						 		AND (
+						 			CONVERT(DATE, RT.TO_YMD, 112) >= SYSDATETIME()
+							 		AND CONVERT(DATE, RT.FM_YMD, 112) <= SYSDATETIME()
+						 		)
+							)
+					]]>
+				</if>
+			</if>
+
+			<if test="fmStYmd != null and fmStYmd != ''">
+	  			AND <![CDATA[
+					CONVERT(DATE, RT.FM_YMD, 112) >= CONVERT(DATE, #{fmStYmd}, 103)
+				]]>
+			</if>
+
+			<if test="fmEndYmd != null and fmEndYmd != ''">
+	  			AND <![CDATA[
+					CONVERT(DATE, RT.FM_YMD, 112) <= CONVERT(DATE, #{fmEndYmd}, 103)
+				]]>
+			</if>
+
+			<if test="toStYmd != null and toStYmd != ''">
+	  			AND <![CDATA[
+					CONVERT(DATE, RT.TO_YMD, 112) >= CONVERT(DATE, #{toStYmd}, 103)
+				]]>
+			</if>
+
+			<if test="toEndYmd != null and toEndYmd != ''">
+	  			AND <![CDATA[
+					CONVERT(DATE, RT.TO_YMD, 112) <= CONVERT(DATE, #{toEndYmd}, 103)
+				]]>
+			</if>
+
+			<if test="locId != null and locId != ''">
+	  			AND
+					RT.CONTT_NO IN (
+		    			SELECT
+							RENTDTL1.CONTT_NO
+						FROM
+							TMT_RENT_DTL RENTDTL1
+						WHERE
+							RENTDTL1.ITEM_DIV_CD = 'LO'
+							AND RENTDTL1.CD_VAL LIKE (#{locId} + '%')
+					)
+			</if>
+
+			<if test="jpvc != null and jpvc != ''">
+	  			AND
+	  				RT.CONTT_NO IN (
+		    			SELECT
+							RENTDTL2.CONTT_NO
+						FROM
+							TMT_RENT_DTL RENTDTL2
+						WHERE
+							RENTDTL2.ITEM_DIV_CD = 'VS'
+							AND RENTDTL2.CD_VAL = #{jpvc}
+					)
+			</if>
+    </select>
+
+  	<select id="selectWhRentalDtlList"  parameterType="SearchWhRentalParm" resultType="WhRentalItem">
+  		SELECT /*WhRentalMap.selectWhRentalDtlList*/
+  			CONTT_NO						AS CONTTNO,
+  			REF_NO							AS RENTNO,
+  			ITEM_DIV_CD						AS ITEMDIVCD,
+  			UNIT_DIV_CD						AS UNITDIVCD,
+  			UNIT_TP_CD						AS UNITTPCD,
+  			NO_VAL							AS NOVAL,
+  			CD_VAL							AS CDVAL,
+  			(CASE ITEM_DIV_CD
+  				WHEN 'CM' THEN
+  					(SELECT TOP (1)
+						CMDT_DESC
+  					FROM
+						TMT_CMDT
+  					WHERE
+  					    CMDT_CD = TMT_RENT_DTL.CD_VAL
+  					)
+				WHEN 'VS' THEN
+				    (SELECT TOP (1)
+						VSL_NM
+					FROM
+					    TMT_VSL_PART
+					WHERE
+						VSL_CD = TMT_RENT_DTL.CD_VAL
+					)
+				ELSE ITEM_DIV_CD
+  			END) 							AS CDVALNM,
+  		    VERSION							AS VERSION
+  		FROM
+  			TMT_RENT_DTL
+		WHERE
+			1=1
+			<if test="conttNo != null and conttNo != ''">
+   				AND CONTT_NO = #{conttNo}
+			</if>		
+			<if test="refNo != null and refNo != ''">
+   				AND REF_NO = #{refNo}
+			</if>		
+    </select>
+
+	<select id="selectChkDupliRentNo"  parameterType="SearchWhRentalParm" resultType="WhRentalItem">
+        SELECT /*WhRentalMap.selectChkDupliRentNo*/
+			COUNT(CONTT_NO) 		AS CNT
+		FROM
+			TMT_RENT
+		WHERE
+			CONTT_NO 				= #{conttNo}
+    </select>
+    
+    <select id="getRefNo"  parameterType="SearchWhRentalParm" resultType="WhRentalItem">
+    	SELECT /*WhRentalMap.getRefNo*/
+			MAX(REF_NO) 			AS REFNO
+		FROM
+			TMT_RENT
+		WHERE
+			CONTT_NO 				= #{conttNo}
+    </select>
+
+    <select id="getMaxRefNo"  parameterType="SearchWhRentalParm" resultType="WhRentalItem">
+		SELECT /*WhRentalMap.getMaxRefNo*/
+			FORMAT(SYSDATETIME(), 'yyyyMM') +
+            	(SELECT
+					RIGHT(
+						REPLICATE('0', 5) + CAST(ISNULL(COUNT(CONTT_NO) + 1, 0) AS VARCHAR(5)), 5)
+             	FROM
+					TMT_RENT
+             	<!-- WHERE
+					SUBSTRING(REF_NO, 0, 6) = FORMAT(SYSDATETIME(), 'yyyyMM') -->
+					) 	AS REFNO
+    </select>
+    
+    <insert id="insertWhRentalItems"  parameterType="WhRentalItem">
+		INSERT INTO /*WhRentalMap.insertWhRentalItems*/
+			TMT_RENT (
+				CONTT_NO,
+			    REF_NO
+				<if test="rentTpCd != null and rentTpCd != ''">
+					,RENT_TP_CD
+              	</if>
+              	<if test="fmYmd != null and fmYmd != ''">
+                	,FM_YMD
+              	</if>
+              	<if test="toYmd != null and toYmd != ''">
+                	,TO_YMD
+              	</if>
+              	<if test="tnnt != null and tnnt != ''">
+                	,TNNT
+              	</if>
+             	<if test="tnntTpCd != null and tnntTpCd != ''">
+                	,TNNT_TP_CD
+              	</if>
+              	<if test="conttr != null and conttr != ''">
+                	,CONTTR
+              	</if>
+              	<if test="conttrTpCd != null and conttrTpCd != ''">
+                	,CONTTR_TP_CD
+              	</if>
+              	<if test="payer != null and payer != ''">
+                	,PAYER
+              	</if>
+              	<if test="payerTpCd != null and payerTpCd != ''">
+                	,PAYER_TP_CD
+              	</if>
+              	<if test="payTpCd != null and payTpCd != ''">
+                	,PAY_TP_CD
+              	</if>
+              	, AREA,
+			    UNIT_PRC,
+			    PRD_TP_CD,
+			    PRD_VAL,
+			    RENT_UNIT,
+			    USE_TP_CD,
+			    VLD_YN,
+			    RMK,
+			    FREE_STRG_DAYS,
+			    FONT_COLR,
+			    LINE_COLR,
+			    UPDATE_TIME,
+			    VERSION,
+				STAFF_CD
+        	) VALUES (
+        				#{conttNo},
+						#{refNo},
+				  		<if test="rentTpCd != null and rentTpCd != ''">
+					 		#{rentTpCd},
+				  		</if>
+				  		<if test="fmYmd != null and fmYmd != ''">
+							CONVERT(VARCHAR(8), CONVERT(DATE, #{fmYmd}, 103), 112),
+				  		</if>
+				  		<if test="toYmd != null and toYmd != ''">
+							CONVERT(VARCHAR(8), CONVERT(DATE, #{toYmd}, 103), 112),
+				  		</if>
+				  		<if test="tnnt != null and tnnt != ''">
+							#{tnnt},
+				  		</if>
+				  		<if test="tnntTpCd != null and tnntTpCd != ''">
+							#{tnntTpCd},
+				  		</if>
+				  		<if test="conttr != null and conttr != ''">
+							#{conttr},
+				  		</if>
+				  		<if test="conttrTpCd != null and conttrTpCd != ''">
+							#{conttrTpCd},
+				  		</if>
+				  		<if test="payer != null and payer != ''">
+							#{payer},
+				  		</if>
+				  		<if test="payerTpCd != null and payerTpCd != ''">
+							#{payerTpCd},
+				  		</if>
+				  		<if test="payTpCd != null and payTpCd != ''">
+							#{payTpCd},
+				  		</if>
+			   			(CASE
+							WHEN #{area} IS NULL OR #{area} = '' THEN NULL
+							ELSE CAST(#{area} AS float)
+						END),
+        	          	(CASE
+							WHEN #{unitPrice} IS NULL OR #{unitPrice} = '' THEN NULL
+							ELSE CAST(#{unitPrice} AS float)
+						END),
+        	          	#{prdTpCd},
+        	          	(CASE
+							WHEN #{prdVal} IS NULL OR #{prdVal} = '' THEN NULL
+							ELSE CAST(#{prdVal} AS float)
+						END),
+        	          	#{rentUnit},
+        	          	#{useTpCd},
+			  			#{vldYn},
+        	          	#{rmk},
+        	          	(CASE
+							WHEN #{freeStrgDays} IS NULL OR #{freeStrgDays} = '' THEN NULL
+							ELSE CAST(#{freeStrgDays} AS int)
+						END),
+        	          	#{fontColr},
+        	          	#{lineColr},
+        	          	SYSDATETIME(),
+        	          	#{newVersion},
+        	          	#{userId}
+			)
+    </insert>
+    
+    <update id="updateWhRentalItems"  parameterType="WhRentalItem">
+		UPDATE /*WhRentalMap.updateWhRentalItems*/
+			TMT_RENT
+		SET
+			VLD_YN = #{vldYn}
+			<if test="rentTpCd != null and rentTpCd != ''">
+				,RENT_TP_CD = #{rentTpCd}
+			</if>
+			<if test="fmYmd != null and fmYmd != ''">
+				,FM_YMD = CONVERT(VARCHAR(8), CONVERT(DATE, #{fmYmd}, 103), 112)
+			</if>
+			<if test="toYmd != null and toYmd != ''">
+                ,TO_YMD = CONVERT(VARCHAR(8), CONVERT(DATE, #{toYmd}, 103), 112)      
+			</if>
+            <if test="tnnt != null and tnnt != ''">
+            	,TNNT = #{tnnt}
+            </if>
+            <if test="tnntTpCd != null and tnntTpCd != ''">
+            	,TNNT_TP_CD = #{tnntTpCd}
+            </if>
+            	,AREA = (CASE
+							WHEN #{area} IS NULL OR #{area} = '' THEN NULL
+							ELSE #{area}
+						END)
+            	,UNIT_PRC = (CASE
+								WHEN #{unitPrice} IS NULL OR #{unitPrice} = '' THEN NULL
+								ELSE #{unitPrice}
+							END)
+            	,PRD_TP_CD = #{prdTpCd}
+            	,PRD_VAL = (CASE
+								WHEN #{prdVal} IS NULL OR #{prdVal} = '' THEN NULL
+								ELSE #{prdVal}
+							END)
+            	,RENT_UNIT = #{rentUnit}
+            	,USE_TP_CD = #{useTpCd}
+            <if test="conttr != null and conttr != ''">
+            	,CONTTR = #{conttr}
+            </if>
+            <if test="conttrTpCd != null and conttrTpCd != ''">
+            	,CONTTR_TP_CD = #{conttrTpCd}
+            </if>
+            <if test="payer != null and payer != ''">
+            	,PAYER = #{payer}
+            </if>
+            <if test="payerTpCd != null and payerTpCd != ''">
+            	,PAYER_TP_CD = #{payerTpCd}
+            </if>
+            <if test="payTpCd != null and payTpCd != ''">
+            	,PAY_TP_CD = #{payTpCd}
+            </if>
+            	,RMK = #{rmk}
+            	,FREE_STRG_DAYS = (CASE
+										WHEN #{freeStrgDays} IS NULL OR #{freeStrgDays} = '' THEN NULL
+										ELSE #{freeStrgDays}
+									END)
+            	,FONT_COLR = #{fontColr}
+            	,LINE_COLR = #{lineColr}
+            	,UPDATE_TIME = SYSDATETIME()
+            	,VERSION= #{newVersion}
+        WHERE
+        	CONTT_NO 	= #{conttNo}
+        	AND REF_NO = #{refNo}
+			<if test="version != null and version != ''">
+    			AND
+            		VERSION = #{version}
+			</if>
+    </update>
+    
+    <delete id="deleteWhRentalItems"  parameterType="WhRentalItem">
+		DELETE /*WhRentalMap.deleteWhRentalItems*/
+			FROM
+				TMT_RENT
+			WHERE
+				CONTT_NO = #{conttNo}
+				<if test="refNo != null and refNo != ''">
+					AND REF_NO = #{refNo}
+				</if>
+				<if test="version != null and version != ''">
+					AND VERSION = #{version}
+				</if>
+    </delete>
+
+    <insert id="insertRentalDtlItems"  parameterType="WhRentalItem">
+        INSERT INTO /*WhRentalMap.insertRentalDtlItems*/
+			TMT_RENT_DTL (
+            	CONTT_NO,
+				REF_NO,
+				SEQ,
+				ITEM_DIV_CD,
+				UNIT_DIV_CD,
+				UNIT_TP_CD,
+				NO_VAL,
+				CD_VAL,
+				UPDATE_TIME,
+				STAFF_CD,
+				VERSION
+        	) VALUES (
+        		#{conttNo},
+        	    #{refNo},
+        	    (SELECT
+        	    	ISNULL(MAX(SEQ), 0) + 1
+        	    FROM
+        	        TMT_RENT_DTL),
+          		#{itemDivCd},
+        	    #{unitDivCd},
+        	    #{unitTpCd},
+        	    (CASE
+					WHEN #{noVal} IS NULL OR #{noVal} = '' THEN NULL
+					ELSE #{noVal}
+				END),
+        	    #{cdVal},
+        	    SYSDATETIME(),
+        	    #{userId},
+        	    #{newVersion}
+        	)
+    </insert>
+
+    <delete id="deleteRentalDtlItems"  parameterType="WhRentalItem">
+		DELETE FROM /*WhRentalMap.deleteRentalDtlItems*/
+			TMT_RENT_DTL
+        WHERE
+        	CONTT_NO = #{conttNo}
+            <if test="refNo != null and refNo != ''">
+                AND REF_NO = #{refNo}
+            </if>
+            <if test="itemDivCd == 'LO'">
+                AND ITEM_DIV_CD = 'LO'
+            </if>
+            <if test="itemDivCd == 'ALL'">
+                AND ITEM_DIV_CD IN ('VS', 'CM', 'LO')
+            </if>
+            <if test="itemDivCd != 'LO' and itemDivCd != 'ALL'">
+                AND ITEM_DIV_CD IN ('VS', 'CM')
+            </if>
+    </delete>
+</mapper>

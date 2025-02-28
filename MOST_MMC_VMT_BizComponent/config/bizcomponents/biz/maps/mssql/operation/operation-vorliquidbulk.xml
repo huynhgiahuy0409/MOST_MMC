@@ -1,0 +1,2132 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="vorLiquidBulk">
+	
+	<!--  ################ Query Statement Define ######################################### -->
+	<!--  ################ LIST SCREEN START ######################################### -->
+	<select id="selectBerthAndOperationItems"  parameterType="vorLiquidBulkParm" resultType="vorLiquidBulkItem">
+		WITH
+			SLPT AS (
+				SELECT /* vorLiquidBulk.selectBerthAndOperationItems*/
+					SLP.VSL_CALL_ID,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'LD' THEN ISNULL (SLP.CG_WGT, 0)
+							ELSE 0
+						END)
+					)     								AS LOADPLANMTG,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'DS' THEN ISNULL (SLP.CG_WGT, 0)
+							ELSE 0
+					END)
+					)     								AS DISPLANMTG,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'SL' THEN ISNULL (SLP.CG_WGT, 0)
+							ELSE 0
+						END)
+					)     								AS LOADPLANMTS,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'SD' THEN ISNULL (SLP.CG_WGT, 0)
+							ELSE 0
+						END)
+					)     								AS DISPLANMTS,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'TL' THEN ISNULL (SLP.CG_WGT, 0)
+							ELSE 0
+						END)
+					)     								AS LOADPLANMTT,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'TD' THEN ISNULL (SLP.CG_WGT, 0)
+							ELSE 0
+						END)
+					)     								AS DISPLANMTT
+				FROM
+					TMT_CONFM_SLP_DTL SLP
+				GROUP BY
+					SLP.VSL_CALL_ID
+				),
+			LQTOTAL AS (
+				SELECT
+            		OPESUM.VSL_CALL_ID					AS VSL_CALL_ID,
+            		SUM(
+						(CASE OPESUM.JOB_TP_CD
+							WHEN 'LD' THEN ISNULL (OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END)
+            		) 									AS LOADACTUALMTG,
+            		SUM(
+						(CASE OPESUM.JOB_TP_CD
+							WHEN 'DS' THEN ISNULL (OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END)
+            		) 									AS DISACTUALMTG,
+            		SUM(
+						(CASE OPESUM.JOB_TP_CD
+							WHEN 'SL' THEN ISNULL (OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END)
+            		) 									AS LOADACTUALMTS,
+            		SUM(
+						(CASE OPESUM.JOB_TP_CD
+							WHEN 'SD' THEN ISNULL (OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END)
+            		) 									AS DISACTUALMTS,
+            		SUM(
+						(CASE OPESUM.JOB_TP_CD
+							WHEN 'TL' THEN ISNULL (OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END)
+            		) 									AS LOADACTUALMTT,
+            		SUM(
+						(CASE OPESUM.JOB_TP_CD
+							WHEN 'TD' THEN ISNULL (OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END)
+            		) 									AS DISACTUALMTT
+				FROM
+					TMT_LQDCG_OPE OPESUM
+            	GROUP BY
+            		OPESUM.VSL_CALL_ID
+				)
+
+		SELECT
+				(CASE
+					WHEN (VS.ETA IS NOT NULL AND VS.ETA <![CDATA[<>]]> '')
+						THEN FORMAT(VS.ETA, 'dd/MM/yyyy HH:mm')
+					ELSE ''
+				END) 										AS ETA,
+				(CASE
+					WHEN (VS.ETW IS NOT NULL AND VS.ETW <![CDATA[<>]]> '')
+						THEN FORMAT(VS.ETW, 'dd/MM/yyyy HH:mm')
+					ELSE ''
+				END) 										AS ETW,
+				(CASE
+					WHEN (VS.ATA IS NOT NULL AND VS.ATA <![CDATA[<>]]> '')
+						THEN FORMAT(VS.ATA, 'dd/MM/yyyy HH:mm')
+					ELSE ''
+				END) 										AS ATA,
+				(CASE
+					WHEN (VS.ATB IS NOT NULL AND VS.ATB <![CDATA[<>]]> '')
+						THEN FORMAT(VS.ATB, 'dd/MM/yyyy HH:mm')
+					ELSE ''
+				END) 										AS ATB,
+				(CASE
+					WHEN (VS.ATU IS NOT NULL AND VS.ATU <![CDATA[<>]]> '')
+						THEN FORMAT(VS.ATU, 'dd/MM/yyyy HH:mm')
+					ELSE ''
+				END) 										AS ATU,
+				(CASE
+					WHEN (VS.ATD IS NOT NULL AND VS.ATD <![CDATA[<>]]> '')
+						THEN FORMAT(VS.ATD, 'dd/MM/yyyy HH:mm')
+					ELSE ''
+				END) 										AS ATD,
+				(CASE
+					WHEN (VS.ATW IS NOT NULL AND VS.ATW <![CDATA[<>]]> '')
+						THEN FORMAT(VS.ATW, 'dd/MM/yyyy HH:mm')
+					ELSE ''
+				END)										AS ATW,
+				(CASE
+					WHEN (VS.ATC IS NOT NULL AND VS.ATC <![CDATA[<>]]> '')
+						THEN FORMAT(VS.ATC, 'dd/MM/yyyy HH:mm')
+					ELSE ''
+				END) 										AS ATC,
+				ISNULL(SLPT.LOADPLANMTG, 0)					AS LOADPLANMTG,
+				ISNULL(SLPT.LOADPLANMTS, 0)					AS LOADPLANMTS,
+				ISNULL(SLPT.LOADPLANMTT, 0)					AS LOADPLANMTT,
+				ISNULL(SLPT.DISPLANMTG, 0)					AS DISPLANMTG,
+				ISNULL(SLPT.DISPLANMTS, 0)					AS DISPLANMTS,
+				ISNULL(SLPT.DISPLANMTT, 0)					AS DISPLANMTT,
+				ISNULL(LQTOTAL.LOADACTUALMTG, 0)			AS LOADACTUALMTG,
+				ISNULL(LQTOTAL.LOADACTUALMTS, 0)			AS LOADACTUALMTS,
+				ISNULL(LQTOTAL.LOADACTUALMTT, 0)			AS LOADACTUALMTT,
+				ISNULL(LQTOTAL.DISACTUALMTG, 0)				AS DISACTUALMTG,
+				ISNULL(LQTOTAL.DISACTUALMTS, 0)				AS DISACTUALMTS,
+				ISNULL(LQTOTAL.DISACTUALMTT, 0)				AS DISACTUALMTT
+		FROM
+				TMT_VSL_SCH VS
+				LEFT OUTER JOIN LQTOTAL 
+					ON VS.VSL_CALL_ID = LQTOTAL.VSL_CALL_ID
+				LEFT OUTER JOIN SLPT 
+					ON VS.VSL_CALL_ID = SLPT.VSL_CALL_ID
+		WHERE 	VS.VSL_CALL_ID = #{vslCallId}
+	</select>
+	
+	<select id="selectVORSummaryItems"  parameterType="vorLiquidBulkParm" resultType="vorLiquidBulkItem">
+		WITH
+		    LQT AS (
+		    	SELECT /* vorLiquidBulk.selectVORSummaryItems*/
+					VSL_CALL_ID,
+					WORK_YMD,
+					SHFT_ID,
+					FORMAT(MIN(LQ.HOSE_ON_DT), 'dd/MM/yyyy') 				AS HOSEONDT,
+					FORMAT(MAX(LQ.HOSE_OFF_DT), 'dd/MM/yyyy') 				AS HOSEOFFDT,
+					FORMAT(MIN(LQ.ST_DT), 'dd/MM/yyyy HH:mm') 				AS ATW,
+					FORMAT(MAX(LQ.END_DT), 'dd/MM/yyyy HH:mm') 				AS ATC,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'FLX' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'LD' THEN LQ.TON_HDL_AMT
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					)														AS TOTFLXLOADMT_G,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'FLX' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'DS' THEN LQ.TON_HDL_AMT
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTFLXDISMT_G,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'MLA' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'LD' THEN LQ.TON_HDL_AMT
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTARMLOADMT_G,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'MLA' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'DS' THEN LQ.TON_HDL_AMT
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTARMDISMT_G,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'FLX' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'SL' THEN LQ.TON_HDL_AMT
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTFLXLOADMT_S,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'FLX' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'SD' THEN LQ.TON_HDL_AMT
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTFLXDISMT_S,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'MLA' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'SL' THEN LQ.TON_HDL_AMT
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTARMLOADMT_S,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'MLA' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'SD' THEN LQ.TON_HDL_AMT
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTARMDISMT_S,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'FLX' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'TL' THEN LQ.TON_HDL_AMT
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTFLXLOADMT_T,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'FLX' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'TD' THEN LQ.TON_HDL_AMT
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTFLXDISMT_T,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'MLA' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'TL' THEN LQ.TON_HDL_AMT
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTARMLOADMT_T,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'MLA' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'TD' THEN LQ.TON_HDL_AMT
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTARMDISMT_T,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'FLX' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'LD' THEN LQ.LINE_NO
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTFLXLOADLN_G,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'FLX' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'DS' THEN LQ.LINE_NO
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTFLXDISLN_G,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'MLA' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'LD' THEN LQ.LINE_NO
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTARMLOADLN_G,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'MLA' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'DS' THEN LQ.LINE_NO
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTARMDISLN_G,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'FLX' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'SL' THEN LQ.LINE_NO
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTFLXLOADLN_S,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'FLX' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'SD' THEN LQ.LINE_NO
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTFLXDISLN_S,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'MLA' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'SL' THEN LQ.LINE_NO
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTARMLOADLN_S,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'MLA' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'SD' THEN LQ.LINE_NO
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTARMDISLN_S,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'FLX' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'TL' THEN LQ.LINE_NO
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTFLXLOADLN_T,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'FLX' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'TD' THEN LQ.LINE_NO
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTFLXDISLN_T,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'MLA' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'TL' THEN LQ.LINE_NO
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTARMLOADLN_T,
+					SUM(
+						(CASE LQ.HOSE_TP_CD
+							WHEN 'MLA' THEN
+							    (CASE LQ.JOB_TP_CD
+									WHEN 'TD' THEN LQ.LINE_NO
+									ELSE 0
+								END)
+							ELSE 0
+						END)
+					) 														AS TOTARMDISLN_T,
+					SUM(
+						(CASE LQ.JOB_TP_CD
+							WHEN 'LD' THEN LQ.TON_HDL_AMT
+							WHEN 'DS' THEN LQ.TON_HDL_AMT
+							ELSE 0
+						END)
+					) 														AS TONHDL_G,
+					SUM(
+						(CASE LQ.JOB_TP_CD
+							WHEN 'SL' THEN LQ.TON_HDL_AMT
+							WHEN 'SD' THEN LQ.TON_HDL_AMT
+							ELSE 0
+						END)
+					) 														AS TONHDL_S,
+					SUM(
+						(CASE LQ.JOB_TP_CD
+							WHEN 'TL' THEN LQ.TON_HDL_AMT
+							WHEN 'TD' THEN LQ.TON_HDL_AMT
+							ELSE 0
+						END)
+					) 														AS TONHDL_T
+				FROM
+					TMT_LQDCG_OPE LQ
+				WHERE
+					LQ.VSL_CALL_ID 											= #{vslCallId}
+				<if test="workYmd != null and workYmd != ''">
+					AND LQ.WORK_YMD 										= FORMAT(CONVERT(DATE, #{workYmd},103), 'yyyyMMdd')
+				</if>
+				<if test="shift != null and shift != ''">
+					AND LQ.SHFT_ID 											= #{shift}
+				</if>
+				<if test="opeTp != null and opeTp != ''">
+					AND LQ.OPE_TP 											= #{opeTp}
+				</if>
+				<if test="cgTpCd != null and cgTpCd != ''">
+					AND LQ.CG_TP_CD 										= #{cgTpCd}
+				</if>
+				GROUP BY
+					VSL_CALL_ID,
+					WORK_YMD,
+					SHFT_ID
+				),
+
+		    SLPT AS (
+		    	SELECT /* vorLiquidBulk.selectVORLiquidBulk SLPT*/
+					SLP.VSL_CALL_ID,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'LD' THEN ISNULL (SLP.CG_WGT, 0)
+							ELSE 0
+						END)
+					)														AS LOADPLANMTG,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'DS' THEN ISNULL (SLP.CG_WGT, 0)
+							ELSE 0
+						END)
+					)														AS DISPLANMTG,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'SL' THEN ISNULL (SLP.CG_WGT, 0)
+							ELSE 0
+						END)
+					)														AS LOADPLANMTS,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'SD' THEN ISNULL (SLP.CG_WGT, 0)
+							ELSE 0
+						END)
+					)														AS DISPLANMTS,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'TL' THEN ISNULL (SLP.CG_WGT, 0)
+							ELSE 0
+						END)
+					)														AS LOADPLANMTT,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'TD' THEN ISNULL (SLP.CG_WGT, 0)
+							ELSE 0
+						END)
+					)														AS DISPLANMTT,
+					ISNULL (HD.SHRE_TK,'')									AS TKNO,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'LD' THEN ISNULL (SLP.OPE_HR, 0)
+							WHEN 'DS' THEN ISNULL (SLP.OPE_HR, 0)
+							ELSE 0
+						END)
+					)														AS OPE_HR_G,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'SL' THEN ISNULL (SLP.OPE_HR, 0)
+							WHEN 'SD' THEN ISNULL (SLP.OPE_HR, 0)
+							ELSE 0
+						END)
+					)														AS OPE_HR_S,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'TL' THEN ISNULL (SLP.OPE_HR, 0)
+							WHEN 'TD' THEN ISNULL (SLP.OPE_HR, 0)
+							ELSE 0
+						END)
+					)														AS OPE_HR_T
+				FROM
+					TMT_CONFM_SLP_DTL SLP,
+					TMT_CONFM_SLP HD
+				WHERE
+					SLP.VSL_CALL_ID 										= HD.VSL_CALL_ID
+					AND SLP.VSL_CALL_ID 									= #{vslCallId}
+					<if test="cgTpCd != null and cgTpCd != ''">
+						AND SLP.CG_TP_CD 									= #{cgTpCd}
+					</if>
+				GROUP BY
+					SLP.VSL_CALL_ID,
+					HD.SHRE_TK
+				),
+		    LQTOTAL AS (
+		    	SELECT /* vorLiquidBulk.selectVORLiquidBulk LQTOTAL*/
+					OPESUM.VSL_CALL_ID										AS VSL_CALL_ID,
+					SUM((
+						CASE OPESUM.JOB_TP_CD
+							WHEN 'LD' THEN ISNULL (OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END)
+					)														AS LOADACTUALMTG,
+					SUM((
+						CASE OPESUM.JOB_TP_CD
+							WHEN 'DS' THEN ISNULL (OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END)
+					)														AS DISACTUALMTG,
+					SUM((
+						CASE OPESUM.JOB_TP_CD
+							WHEN 'SL' THEN ISNULL (OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END)
+					)														AS LOADACTUALMTS,
+					SUM((
+						CASE OPESUM.JOB_TP_CD
+							WHEN 'SD' THEN ISNULL (OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END)
+					)														AS DISACTUALMTS,
+					SUM((
+						CASE OPESUM.JOB_TP_CD
+							WHEN 'TL' THEN ISNULL (OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END)
+					)														AS LOADACTUALMTT,
+					SUM((
+						CASE OPESUM.JOB_TP_CD
+							WHEN 'TD' THEN ISNULL (OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END)
+					)														AS DISACTUALMTT
+				FROM
+					TMT_LQDCG_OPE OPESUM
+				<if test="cgTpCd != null and cgTpCd != ''">
+					WHERE
+						OPESUM.CG_TP_CD										= #{cgTpCd}
+				</if>
+				GROUP BY
+					OPESUM.VSL_CALL_ID
+				)
+
+		
+		SELECT /* vorLiquidBulk.selectVORLiquidBulk*/
+			(CASE
+				WHEN (VS.ETA IS NOT NULL AND VS.ETA <![CDATA[<>]]> '')
+					THEN FORMAT(VS.ETA, 'dd/MM/yyyy HH:mm')
+				ELSE ''
+			END)															AS ETA,
+		    (CASE
+				WHEN (VS.ETW IS NOT NULL AND VS.ETW <![CDATA[<>]]> '')
+					THEN FORMAT(VS.ETW, 'dd/MM/yyyy HH:mm')
+				ELSE ''
+			END)															AS ETW,
+		    (CASE
+				WHEN (VS.ATA IS NOT NULL AND VS.ATA <![CDATA[<>]]> '')
+					THEN FORMAT(VS.ATA, 'dd/MM/yyyy HH:mm')
+				ELSE ''
+			END)															AS ATA,
+		    (CASE
+				WHEN (VS.ATB IS NOT NULL AND VS.ATB <![CDATA[<>]]> '')
+					THEN FORMAT(VS.ATB, 'dd/MM/yyyy HH:mm')
+				ELSE ''
+			END)															AS ATB,
+		    (CASE
+				WHEN (VS.ATU IS NOT NULL AND VS.ATU <![CDATA[<>]]> '')
+					THEN FORMAT(VS.ATU, 'dd/MM/yyyy HH:mm')
+				ELSE ''
+			END)															AS ATU,
+		    (CASE
+				WHEN (VS.ATD IS NOT NULL AND VS.ATD <![CDATA[<>]]> '')
+					THEN FORMAT(VS.ATD, 'dd/MM/yyyy HH:mm')
+				ELSE ''
+			END)															AS ATD,
+			ISNULL(LQT.HOSEONDT, ' ')										AS HOSEONDT,
+			ISNULL(LQT.HOSEOFFDT, ' ')										AS HOSEOFFDT,
+			FORMAT(CONVERT(DATE, OPR.WORK_YMD,103), 'dd/MM/yyyy') 			AS WORKYMD,
+			OPR.SHFT_ID														AS SHFTID,
+			(SELECT
+			    ISNULL(SHFT_NM, '')
+			FROM
+			    TMT_SHFT
+			WHERE
+			    SHFT_ID														= OPR.SHFT_ID
+			)																AS SHFTNM,
+			OPR.OPE_TP														AS OPETP,
+			OPR.FENDER														AS FENDER,
+			LQT.ATW															AS ATW,
+			LQT.ATC															AS ATC,
+		    (CASE OPR.OPE_TP
+				WHEN 'GEN' THEN ISNULL (LQT.TONHDL_G, 0)
+				WHEN 'STS' THEN ISNULL (LQT.TONHDL_S, 0)
+				WHEN 'TLS' THEN ISNULL (LQT.TONHDL_T, 0)
+			END)															AS TONHDLAMT,
+		    (CASE OPR.OPE_TP
+				 WHEN 'GEN' THEN ISNULL (LQT.TOTFLXLOADLN_G, 0)
+				 WHEN 'STS' THEN ISNULL (LQT.TOTFLXLOADLN_S, 0)
+				 WHEN 'TLS' THEN ISNULL (LQT.TOTFLXLOADLN_T, 0)
+			END) 															AS TOTFLXLDQTY,
+		    (CASE OPR.OPE_TP
+		        WHEN 'GEN' THEN ISNULL (LQT.TOTFLXDISLN_G, 0)
+				WHEN 'STS' THEN ISNULL (LQT.TOTFLXDISLN_S, 0)
+				WHEN 'TLS' THEN ISNULL (LQT.TOTFLXDISLN_T, 0)
+			END)                         									AS TOTFLXDSQTY,
+		    (CASE OPR.OPE_TP
+				WHEN 'GEN' THEN ISNULL (LQT.TOTARMLOADLN_G, 0)
+				WHEN 'STS' THEN ISNULL (LQT.TOTARMLOADLN_S, 0)
+				WHEN 'TLS' THEN ISNULL (LQT.TOTARMLOADLN_T, 0)
+		    END)                         									AS TOTARMLDQTY,
+		    (CASE OPR.OPE_TP
+		    	WHEN 'GEN' THEN ISNULL (LQT.TOTARMDISLN_G, 0)
+				WHEN 'STS' THEN ISNULL (LQT.TOTARMDISLN_S, 0)
+				WHEN 'TLS' THEN ISNULL (LQT.TOTARMDISLN_T, 0)
+		    END)															AS TOTARMDSQTY,
+		    (CASE OPR.OPE_TP
+		    	WHEN 'GEN' THEN ISNULL (SLPT.LOADPLANMTG, 0)
+				WHEN 'STS' THEN ISNULL (SLPT.LOADPLANMTS, 0)
+				WHEN 'TLS' THEN ISNULL (SLPT.LOADPLANMTT, 0)
+		    END)															AS LOADPLANMT,
+		    (CASE OPR.OPE_TP
+		    	WHEN 'GEN' THEN ISNULL (SLPT.DISPLANMTG, 0)
+				WHEN 'STS' THEN ISNULL (SLPT.DISPLANMTS, 0)
+				WHEN 'TLS' THEN ISNULL (SLPT.DISPLANMTT, 0)
+		    END)															AS DISPLANMT,
+		    (CASE OPR.OPE_TP
+		    	WHEN 'GEN' THEN ISNULL (LQTOTAL.LOADACTUALMTG, 0)
+				WHEN 'STS' THEN ISNULL (LQTOTAL.LOADACTUALMTS, 0)
+				WHEN 'TLS' THEN ISNULL (LQTOTAL.LOADACTUALMTT, 0)
+		    END)															AS LOADACTUALMT,
+		    (CASE OPR.OPE_TP
+		    	WHEN 'GEN' THEN ISNULL (LQTOTAL.DISACTUALMTG, 0)
+				WHEN 'STS' THEN ISNULL (LQTOTAL.DISACTUALMTS, 0)
+				WHEN 'TLS' THEN ISNULL (LQTOTAL.DISACTUALMTT, 0)
+		    END)															AS DISACTUALMT,
+		    (CASE OPR.OPE_TP
+		    	WHEN 'GEN' THEN ISNULL (LQT.TOTFLXLOADMT_G, 0) + ISNULL (LQT.TOTARMLOADMT_G, 0)
+				WHEN 'STS' THEN ISNULL (LQT.TOTFLXLOADMT_S, 0) + ISNULL (LQT.TOTARMLOADMT_S, 0)
+				WHEN 'TLS' THEN ISNULL (LQT.TOTFLXLOADMT_T, 0) + ISNULL (LQT.TOTARMLOADMT_T, 0)
+		    END)															AS LOADTOTMT,
+		    (CASE OPR.OPE_TP
+		    	WHEN 'GEN' THEN ISNULL (LQT.TOTFLXDISMT_G, 0) + ISNULL (LQT.TOTARMDISMT_G, 0)
+				WHEN 'STS' THEN ISNULL (LQT.TOTFLXDISMT_S, 0) + ISNULL (LQT.TOTARMDISMT_S, 0)
+				WHEN 'TLS' THEN ISNULL (LQT.TOTFLXDISMT_T, 0) + ISNULL (LQT.TOTARMDISMT_T, 0)
+		    END)															AS DISTOTMT,
+		    ISNULL (OPR.EST_PDUCT_IN_HR, 0)                              	AS ESTPDUCTINHR,
+		    (SELECT
+		        MAX(OPE_HR)
+		    FROM
+		        TMT_CONFM_SLP_DTL
+		    WHERE
+		        VSL_CALL_ID 												= #{vslCallId}
+		    ) 																AS ESTHRFOROPE,
+
+		    (CASE OPR.OPE_TP
+				WHEN 'GEN' THEN ISNULL (LQT.TOTFLXLOADLN_G, 0)
+				WHEN 'STS' THEN ISNULL (LQT.TOTFLXLOADLN_S, 0)
+				WHEN 'TLS' THEN ISNULL (LQT.TOTFLXLOADLN_T, 0)
+		    END)
+				+
+			(CASE OPR.OPE_TP
+				WHEN 'GEN' THEN ISNULL (LQT.TOTFLXDISLN_G, 0)
+				WHEN 'STS' THEN ISNULL (LQT.TOTFLXDISLN_S, 0)
+				WHEN 'TLS' THEN ISNULL (LQT.TOTFLXDISLN_T, 0)
+			END)                         									AS FLXTOTLINE,
+		    (CASE OPR.OPE_TP
+	        	WHEN 'GEN' THEN ISNULL (LQT.TOTARMLOADLN_G, 0)
+	        	WHEN 'STS' THEN ISNULL (LQT.TOTARMLOADLN_S, 0)
+	        	WHEN 'TLS' THEN ISNULL (LQT.TOTARMLOADLN_T, 0)
+	        END) 
+		    	+
+	        (CASE OPR.OPE_TP
+	        	WHEN 'GEN' THEN ISNULL (LQT.TOTARMDISLN_G, 0)
+	        	WHEN 'STS' THEN ISNULL (LQT.TOTARMDISLN_S, 0)
+	        	WHEN 'TLS' THEN ISNULL (LQT.TOTARMDISLN_T, 0)
+	        END)                         									AS ARMTOTLINE,
+		    ISNULL (SLPT.TKNO,'')     										AS TKNO,
+		    OPR.CG_TP_CD         											AS CGTPCD,
+		    SLPT.VSL_CALL_ID    											AS VSLCALLID
+		FROM	TMT_LQDCG_OPE_MST OPR
+				LEFT OUTER JOIN TMT_VSL_SCH VS ON OPR.VSL_CALL_ID = VS.VSL_CALL_ID
+				LEFT OUTER JOIN TMT_VSL_PART VP ON VS.VSL_CD = VP.VSL_CD
+				LEFT OUTER JOIN LQT
+				   ON     OPR.VSL_CALL_ID = LQT.VSL_CALL_ID
+				      AND OPR.WORK_YMD = LQT.WORK_YMD
+				      AND OPR.SHFT_ID = LQT.SHFT_ID
+				LEFT OUTER JOIN SLPT ON VS.VSL_CALL_ID = SLPT.VSL_CALL_ID
+				LEFT OUTER JOIN LQTOTAL ON VS.VSL_CALL_ID = LQTOTAL.VSL_CALL_ID
+			
+		WHERE
+			VS.VSL_CALL_ID 													= #{vslCallId}
+
+		<if test="workYmd != null and workYmd != ''">
+		 	AND OPR.WORK_YMD 												= FORMAT(CONVERT(DATE, #{workYmd},103), 'yyyyMMdd')
+		</if>
+		<if test="shift != null and shift != ''">
+			AND OPR.SHFT_ID 												= #{shift}
+		</if>
+		<if test="opeTp != null and opeTp != ''">
+			AND OPR.OPE_TP 													= #{opeTp}
+		</if>
+		ORDER BY
+			OPR.WORK_YMD,
+			SHFTNM,
+			OPR.OPE_TP
+	</select>
+	
+	<select id="selectVORDelaySummaryItems" parameterType="vorLiquidBulkParm" resultType="vorLiquidBulkItem">
+		SELECT  /* vorLiquidBulk.selectVORDelaySummaryItems */ 
+				DLY.VSL_CALL_ID								AS VSLCALLID,
+				FORMAT( CONVERT(DATE, DLY.WORK_YMD,112) ,'dd/MM/yyyy')	 							AS WORKYMD,
+				DLY.SHFT_ID									AS SHFTID,
+				(SELECT
+					SHFT_NM 								AS SHFTNM
+			    FROM
+			        TMT_SHFT
+			    WHERE
+			    	SHFT_METH_CD = 'Standard'
+			        AND VLD_YN = 'Y'
+			        AND SHFT_ID = DLY.SHFT_ID
+			    )											AS SHFTNM,
+			    DLY.CG_TP_CD                          		AS CGTPCD,
+			    DLY.SEQ 	                         		AS SEQ,
+			    DLY.DLY_CD                          		AS DELAYCODE,
+			    (SELECT
+			    	DESCR
+				FROM
+					TMT_DLY_CD
+				WHERE
+					DLY_CD 									= DLY.DLY_CD
+					AND CG_TP 								= 'LQD'
+				)											AS DELAYDESC,
+			    FORMAT(DLY.ST_DT,'dd/MM/yyyy HH:mm')      	AS STARTTIME,
+			    FORMAT(DLY.END_DT,'dd/MM/yyyy HH:mm')	 	AS ENDTIME,
+				CAST((DATEDIFF(MINUTE, ST_DT,END_DT)/60) AS VARCHAR(200))
+					+ '/' + CAST((DATEDIFF(MINUTE, ST_DT,END_DT)%60) AS VARCHAR(200)) AS TIMEHOURMIN,
+				CAST(ROUND((DATEDIFF(MINUTE, ST_DT,END_DT)/60.0),2) AS NUMERIC(38,2))		AS TIMEHOURLY,
+				DLY.ACPT_DLY_YN                      		AS ACCDELAY,
+				ISNULL (DLY.RMK, ' ')						AS REMARK,
+				FORMAT(
+					ISNULL(
+						(DATEDIFF(DAY, ST_DT, END_DT) * 24)
+					, 0)
+				, '0.00') 									AS TOTALHRS
+				,DLY.ST_DT
+				,DLY.HATCH_NO as hatchNo
+		FROM 	TMT_DLY_SUM DLY LEFT OUTER JOIN TMT_VSL_SCH SCH
+					ON DLY.VSL_CALL_ID = SCH.VSL_CALL_ID
+		WHERE
+				DLY.VSL_CALL_ID = #{vslCallId}
+				<if test="workYmd != null and workYmd != ''">
+    				AND DLY.WORK_YMD = FORMAT(CONVERT(DATE, #{workYmd},103), 'yyyyMMdd')
+				</if>			
+				<if test="shift != null and shift != ''">
+    				AND DLY.SHFT_ID = #{shift}
+				</if>
+			ORDER BY DLY.ST_DT,SHFTNM ASC
+	</select>
+	
+	<select id="selectVORLiquidBulkCgOprType"  parameterType="vorLiquidBulkParm" resultType="vorLiquidBulkItem">
+		WITH LOADDISCHARGE AS
+		(
+			SELECT 	COUNT (*)						AS CNT
+	        FROM 	TMT_CONFM_SLP_DTL
+	        WHERE 	VSL_CALL_ID 					= #{vslCallId}
+	        		AND CG_TP_CD IN ('LQE','LQN','LQD')
+	        		AND CG_OPT_TP_CD IN ('LD', 'DS')
+	    )
+	    ,STS AS
+	    (	SELECT 	COUNT (*)						AS CNT
+	        FROM 	TMT_CONFM_SLP_DTL
+	        WHERE 	VSL_CALL_ID 					= #{vslCallId}
+	        		AND CG_TP_CD IN ('LQE','LQN','LQD')
+	        		AND CG_OPT_TP_CD IN ('SL', 'SD')
+	    )
+	    ,TRANSSHIPMENT AS
+	    (	SELECT 	COUNT (*)						AS CNT
+	        FROM 	TMT_CONFM_SLP_DTL
+	        WHERE 	VSL_CALL_ID = #{vslCallId}
+	        		AND CG_TP_CD IN ('LQE','LQN','LQD')
+	        		AND CG_OPT_TP_CD IN ('TL', 'TD')
+	    )
+		
+		SELECT /* vorLiquidBulk.selectVORLiquidBulkCgOprType */
+		    	(CASE G.CNT WHEN 0 THEN 'N' ELSE 'Y' END) AS GENOPRYN,
+				(CASE S.CNT WHEN 0 THEN 'N' ELSE 'Y' END) AS STSOPRYN,
+				(CASE T.CNT WHEN 0 THEN 'N' ELSE 'Y' END) AS TLSOPRYN
+	    FROM  	LOADDISCHARGE G
+				LEFT OUTER JOIN  STS S ON 1=1
+	        	LEFT OUTER JOIN  TRANSSHIPMENT T ON 1=1
+	</select>
+	<!--  ################ LIST SCREEN END ######################################### -->
+	
+	<!--  ################ DETAIL SCREEN START ######################################### -->
+	<select id="selectConfirmationSlipDetailItem"   parameterType="vorLiquidBulkParm" resultType="vorLiquidBulkItem">
+		WITH
+		    SLPT AS (
+				SELECT /* vorLiquidBulk.selectConfirmationSlipDetailItem */
+				    SLP.VSL_CALL_ID,
+	        	    SLP.CG_OPT_TP_CD,
+					SLP.CG_TP_CD,
+					SLP.TMNL_OPR,
+					MAX (SLP.CMDT_CD) 			AS CMDT_CD,
+					MAX (SLP.SHPR_CNSNE) 		AS SHPR_CNSNE,
+					MAX (SLP.CNSNE) 			AS CNSNE,
+					MAX (SLP.PKG_TP_CD) 		AS PKG_TP_CD,
+					MAX (SLP.BL_NO) 			AS BL_NO,
+					SLP.POL,
+					SLP.FDEST,
+					SLP.SEQ,
+					(CASE SLP.CG_OPT_TP_CD
+						WHEN 'LD' THEN ISNULL (SLP.CG_WGT, 0)
+						WHEN 'SL' THEN ISNULL (SLP.CG_WGT, 0)
+						WHEN 'TL' THEN ISNULL (SLP.CG_WGT, 0)
+						ELSE 0
+					END)						AS LOADPLANMTG,
+					(CASE SLP.CG_OPT_TP_CD
+						WHEN 'DS' THEN ISNULL (SLP.CG_WGT, 0)
+						WHEN 'SD' THEN ISNULL (SLP.CG_WGT, 0)
+						WHEN 'TD' THEN ISNULL (SLP.CG_WGT, 0)
+						ELSE 0
+					END)						AS DISPLANMTG
+
+				FROM
+					TMT_CONFM_SLP_DTL SLP
+				WHERE
+					SLP.VSL_CALL_ID 			= #{vslCallId}
+            		<if test="cmdtCd != null and cmdtCd != ''">
+						AND SLP.CMDT_CD 		= #{cmdtCd}
+					</if>
+				    <if test="seq != null and seq != ''">
+						AND SLP.SEQ 			= #{seq}
+					</if>
+				GROUP BY
+					VSL_CALL_ID,
+	        	    SLP.CG_OPT_TP_CD,
+	        	    SLP.CG_TP_CD,
+	        	    SLP.POL,
+	        	    SLP.FDEST,
+	        	    SLP.SEQ,
+	        	    SLP.TMNL_OPR,
+	        	    SLP.CG_WGT
+				),
+
+			OPACT AS (
+				SELECT
+					OPEACT.VSL_CALL_ID 			AS VSL_CALL_ID,
+	                SUM (
+        				(CASE OPEACT.JOB_TP_CD
+        					WHEN 'LD' THEN ISNULL (OPEACT.TON_HDL_AMT, 0)
+        					ELSE 0
+        				END)
+        			)							AS LOADACTUALMTG,
+	                SUM (
+		                (CASE OPEACT.JOB_TP_CD
+		                	WHEN 'DS' THEN ISNULL (OPEACT.TON_HDL_AMT, 0)
+		                	ELSE 0
+		                END)
+	                ) 							AS DISACTUALMTG,
+	                SUM (
+		                (CASE OPEACT.JOB_TP_CD
+		                	WHEN 'SL' THEN ISNULL (OPEACT.TON_HDL_AMT, 0)
+		                	ELSE 0
+		                END)
+	                ) 							AS LOADACTUALMTS,
+	                SUM (
+		                (CASE OPEACT.JOB_TP_CD
+		                	WHEN 'SD' THEN ISNULL (OPEACT.TON_HDL_AMT, 0)
+		                	ELSE 0
+		                END)
+	                ) 							AS DISACTUALMTS,
+	                SUM (
+		                (CASE OPEACT.JOB_TP_CD
+		                	WHEN 'TL' THEN ISNULL (OPEACT.TON_HDL_AMT, 0)
+		                	ELSE 0
+		                END)
+	                ) 							AS LOADACTUALMTT,
+	                SUM (
+		                (CASE OPEACT.JOB_TP_CD
+		                	WHEN 'TD' THEN ISNULL (OPEACT.TON_HDL_AMT, 0)
+		                	ELSE 0
+		                END)
+	                ) 							AS DISACTUALMTT
+				FROM
+					TMT_LQDCG_OPE OPEACT
+				    	LEFT OUTER JOIN TMT_CONFM_SLP_DTL tempSLP2
+				    		ON OPEACT.CG_TP_CD 			= tempSLP2.CG_TP_CD
+							AND OPEACT.JOB_TP_CD 		= tempSLP2.CG_OPT_TP_CD
+							AND OPEACT.VSL_CALL_ID 		= tempSLP2.VSL_CALL_ID
+							AND OPEACT.TK_OPR 			= tempSLP2.TMNL_OPR
+							AND OPEACT.SEQ_CS2 			= tempSLP2.SEQ,
+					TMT_CONFM_SLP_DTL SLP2
+	            WHERE
+	            	OPEACT.VSL_CALL_ID 			= #{vslCallId}
+					<if test="cmdtCd != null and cmdtCd != ''">
+						AND OPEACT.CMDT_CD 		= #{cmdtCd}
+					</if>
+					<if test="seq != null and seq != ''">
+						AND OPEACT.SEQ_CS2 		= #{seq}
+					</if>
+				GROUP BY
+					OPEACT.VSL_CALL_ID
+				)
+
+		SELECT /* vorLiquidBulk.selectConfirmationSlipDetailItem */
+			SLPT.VSL_CALL_ID 				AS VSLCALLID,
+			SLPT.CG_OPT_TP_CD 				AS OPETP,
+			SLPT.CG_OPT_TP_CD 				AS JOBTPCD,
+			SLPT.CG_TP_CD 					AS CGTPCD,
+			dbo.F_CM_CODE_NM('MT', 'CGTP', SLPT.CG_TP_CD) AS CGTPCDNM,
+			'SLPT.HOSE_TP_CD' 				AS HOSETPCD,
+			SLPT.TMNL_OPR 					AS TKOPR,
+			SLPT.CMDT_CD 					AS CMDTCD,
+			dbo.F_GET_CMDT_DESC(SLPT.CMDT_CD) AS CMDTCDNM,
+			SLPT.SHPR_CNSNE 				AS SHPRCNSNE,
+			SLPT.CNSNE 						AS CNSNE,
+			SLPT.PKG_TP_CD 					AS PKGTPCD,
+			SLPT.POL 						AS POL,
+			SLPT.FDEST 						AS FDEST,
+			SLPT.SEQ,
+			SLPT.BL_NO 						AS BLNO
+		<if test="opeTp != null and opeTp != ''">
+    		,(CASE #{opeTp}
+    			WHEN 'GEN' THEN ISNULL (SLPT.LOADPLANMTG, 0)
+				WHEN 'STS' THEN ISNULL (SLPT.LOADPLANMTG, 0)
+				WHEN 'TLS' THEN ISNULL (SLPT.LOADPLANMTG, 0)
+    		END) 							AS LOADPLANMT,
+    		(CASE #{opeTp}
+    			WHEN 'GEN' THEN ISNULL (SLPT.DISPLANMTG, 0)
+				WHEN 'STS' THEN ISNULL (SLPT.DISPLANMTG, 0)
+				WHEN 'TLS' THEN ISNULL (SLPT.DISPLANMTG, 0)
+    		END)							AS DISPLANMT,
+
+		    (CASE #{opeTp}
+		    	WHEN 'GEN' THEN ISNULL (OPACT.LOADACTUALMTG, 0)
+		        WHEN 'STS' THEN ISNULL (OPACT.LOADACTUALMTS, 0)
+		        WHEN 'TLS' THEN ISNULL (OPACT.LOADACTUALMTT, 0)
+		    END)							AS LOADACTUALMT,
+			(CASE #{opeTp}
+				WHEN 'GEN' THEN ISNULL (OPACT.DISACTUALMTG, 0)
+		        WHEN 'STS' THEN ISNULL (OPACT.DISACTUALMTS, 0)
+		        WHEN 'TLS' THEN ISNULL (OPACT.DISACTUALMTT, 0)
+			END) 							AS DISACTUALMT
+    	</if>
+
+		FROM 	SLPT
+		    	LEFT OUTER JOIN OPACT OPACT
+		     		ON SLPT.VSL_CALL_ID 	= OPACT.VSL_CALL_ID
+	</select>
+	
+	<select id="selectVORLiquidCargo"  parameterType="vorLiquidBulkParm" resultType="vorLiquidBulkItem">
+        WITH
+        	SLPT AS (
+        		SELECT /* vorLiquidBulk.selectVORLiquidCargo SLPT*/
+					SLP.VSL_CALL_ID,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'LD' THEN ISNULL(SLP.CG_WGT, 0)
+							ELSE 0
+						END)
+					) 														AS LOADPLANMTG,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'DS' THEN ISNULL(SLP.CG_WGT, 0)
+							ELSE 0
+						END)
+					) 														AS DISPLANMTG,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'SL' THEN ISNULL(SLP.CG_WGT, 0)
+							ELSE 0
+						END)
+					) 														AS LOADPLANMTS,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'SD' THEN ISNULL(SLP.CG_WGT, 0)
+							ELSE 0
+						END)
+					) 														AS DISPLANMTS,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'TL' THEN ISNULL(SLP.CG_WGT, 0)
+							ELSE 0
+						END)
+					) 														AS LOADPLANMTT,
+					SUM(
+						(CASE SLP.CG_OPT_TP_CD
+							WHEN 'TD' THEN ISNULL(SLP.CG_WGT, 0)
+							ELSE 0
+						END)
+					) 														AS DISPLANMTT
+				FROM
+					TMT_CONFM_SLP_DTL SLP
+				WHERE
+					SLP.VSL_CALL_ID 										= #{vslCallId}
+				GROUP BY
+					VSL_CALL_ID
+				),
+
+            LQTOTAL AS (
+            	SELECT /* vorLiquidBulk.selectVORLiquidCargo LQTOTAL*/
+					OPESUM.VSL_CALL_ID,
+					SUM(
+						(CASE OPESUM.JOB_TP_CD
+							WHEN 'LD' THEN ISNULL(OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END)
+					) 														AS LOADACTUALMTG,
+					SUM(
+						(CASE OPESUM.JOB_TP_CD
+							WHEN 'DS' THEN ISNULL(OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END)
+					) 														AS DISACTUALMTG,
+					SUM(
+						(CASE OPESUM.JOB_TP_CD
+							WHEN 'SL' THEN ISNULL(OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END)
+					) 														AS LOADACTUALMTS,
+					SUM(
+						(CASE OPESUM.JOB_TP_CD
+							WHEN 'SD' THEN ISNULL(OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END)
+					) 														AS DISACTUALMTS,
+					SUM(
+						(CASE OPESUM.JOB_TP_CD
+							WHEN 'TL' THEN ISNULL(OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END)
+					) 														AS LOADACTUALMTT,
+					SUM(
+						(CASE OPESUM.JOB_TP_CD
+							WHEN 'TD' THEN ISNULL(OPESUM.TON_HDL_AMT, 0)
+							ELSE 0
+						END)
+					) 														AS DISACTUALMTT
+				FROM
+					TMT_LQDCG_OPE OPESUM
+				WHERE
+					OPESUM.VSL_CALL_ID 										= #{vslCallId}
+				GROUP BY
+					OPESUM.VSL_CALL_ID
+				)
+
+		SELECT /* vorLiquidBulk.selectVORLiquidCargo */
+        	LQ.VSL_CALL_ID												AS VSLCALLID,
+        	FORMAT(CONVERT(DATE, LQ.WORK_YMD,103), 'dd/MM/yyyy')     	AS WORKYMD,
+        	LQ.SHFT_ID													AS SHFTID,
+        	LQ.OPE_TP													AS OPETP,
+        	LQ.JOB_TP_CD												AS JOBTPCD,
+        	LQ.SEQ														AS SEQ,
+        	LQ.CG_TP_CD													AS CGTPCD,
+        	LQ.HOSE_TP_CD												AS HOSETPCD,
+        	LQ.TK_OPR													AS TKOPR,
+        	LQ.SHPR														AS SHPRCNSNE,
+        	ISNULL (LQ.CNSNE, ' ')										AS CNSNE,
+        	LQ.TON_HDL_AMT												AS TONHDLAMT,
+        	LQ.PUMP_RATE												AS PUMPRATE,
+        	ISNULL(FORMAT(LQ.ST_DT, 'dd/MM/yyyy HH:mm'), ' ')			AS STDT,
+        	ISNULL(FORMAT(LQ.END_DT, 'dd/MM/yyyy HH:mm'), ' ')			AS ENDDT,
+        	LQ.JOB_CMPL_YN												AS JOBCMPLYN,
+        	ISNULL(FORMAT(LQ.HOSE_ON_DT, 'dd/MM/yyyy HH:mm'), ' ')		AS HOSEONDT,
+        	ISNULL(FORMAT(LQ.HOSE_OFF_DT, 'dd/MM/yyyy HH:mm'), ' ')		AS HOSEOFFDT,
+        	LQ.HOSE_CMPL_YN												AS HOSECMPLYN,
+        	ISNULL(LQ.CMDT_CD, ' ')										AS CMDTCD,
+			ISNULL (LQ.PKG_TP_CD, ' ')									AS PKGTPCD,
+			(CASE #{opeTp, jdbcType=VARCHAR}
+				WHEN 'GEN' THEN ISNULL(SLPT.LOADPLANMTG, 0)
+				WHEN 'STS' THEN ISNULL(SLPT.LOADPLANMTS, 0)
+				WHEN 'TLS' THEN ISNULL(SLPT.LOADPLANMTT, 0)
+			END)    													AS LOADPLANMT,
+            (CASE #{opeTp, jdbcType=VARCHAR}
+            	WHEN 'GEN' THEN ISNULL(SLPT.DISPLANMTG, 0)
+				WHEN 'STS' THEN ISNULL(SLPT.DISPLANMTS, 0)
+				WHEN 'TLS' THEN ISNULL(SLPT.DISPLANMTT, 0)
+            END)     													AS DISPLANMT,
+            (CASE #{opeTp, jdbcType=VARCHAR}
+            	WHEN 'GEN' THEN ISNULL(LQTOTAL.LOADACTUALMTG, 0)
+				WHEN 'STS'THEN ISNULL(LQTOTAL.LOADACTUALMTS, 0)
+				WHEN 'TLS' THEN ISNULL(LQTOTAL.LOADACTUALMTT, 0)
+            END)               											AS LOADACTUALMT,
+            (CASE #{opeTp, jdbcType=VARCHAR}
+            	WHEN 'GEN' THEN ISNULL(LQTOTAL.DISACTUALMTG, 0)
+				WHEN 'STS' THEN ISNULL(LQTOTAL.DISACTUALMTS, 0)
+				WHEN 'TLS' THEN ISNULL(LQTOTAL.DISACTUALMTT, 0)
+            END)                										AS DISACTUALMT,
+            (CASE LQ.JOB_TP_CD
+            	WHEN 'GEN' THEN ISNULL(LQ.TON_HDL_AMT, 0)
+				WHEN 'STS' THEN ISNULL(LQ.TON_HDL_AMT, 0)
+				WHEN 'TLS' THEN ISNULL(LQ.TON_HDL_AMT, 0)
+				ELSE 0
+            END)                      									AS LOADTOTMT,
+            (CASE LQ.JOB_TP_CD
+            	WHEN 'GEN' THEN ISNULL(LQ.TON_HDL_AMT, 0)
+				WHEN 'STS' THEN ISNULL(LQ.TON_HDL_AMT, 0)
+				WHEN 'TLS' THEN ISNULL(LQ.TON_HDL_AMT, 0)
+				ELSE 0
+            END)                      									AS DISTOTMT,
+            (ISNULL(RPT.LOAD_HOSE_QTY, 0)
+                 + ISNULL(RPT.DSCH_HOSE_QTY, 0)
+            )									     					AS FLXTOTLINE,
+            (ISNULL(RPT.LOAD_ARM_QTY, 0)
+                 + ISNULL(RPT.DSCH_ARM_QTY, 0)
+            )									       					AS ARMTOTLINE,
+            RPT.FENDER													AS FENDER,
+            ISNULL (LQ.LINE_NO, 0)										AS LINENUMBER,
+			LQ.SEQ_CS2													AS SEQCS2,
+			LQ.VSL_SHFT_SEQ												AS vslShiftingSeq,
+			LQ.EQ_FAC_NO												AS eqFacNo,
+			(CASE
+				WHEN (LQ.VSL_SHFT_SEQ IS NULL OR LQ.VSL_SHFT_SEQ = 0)
+					THEN (
+						SELECT
+							FORMAT(E.ATB, 'dd/MM/yyyy HH:mm')
+						FROM
+							TMT_VSL_SCH E
+						WHERE E.VSL_CALL_ID 							= LQ.VSL_CALL_ID
+						)
+		  		ELSE (
+		  			SELECT
+		  				FORMAT(E.ATB_DT, 'dd/MM/yyyy HH:mm')
+		  			FROM
+		  			    TMT_VSL_SHFT E
+		  			WHERE
+		  			    E.VSL_CALL_ID 									= LQ.VSL_CALL_ID
+		  			  	AND E.SEQ 										= LQ.VSL_SHFT_SEQ
+		  			)
+			END) 														AS ATB,
+        	(CASE
+        		WHEN (LQ.VSL_SHFT_SEQ IS NULL OR LQ.VSL_SHFT_SEQ = 0)
+					THEN (
+        				SELECT
+        					FORMAT(E.ATU, 'dd/MM/yyyy HH:mm')
+        				FROM
+        					TMT_VSL_SCH E
+        				WHERE
+        					E.VSL_CALL_ID 								= LQ.VSL_CALL_ID
+        				)
+				ELSE (
+					SELECT
+						FORMAT(E.ATU_DT, 'dd/MM/yyyy HH:mm')
+					FROM
+					    TMT_VSL_SHFT E
+					WHERE
+					    E.VSL_CALL_ID 									= LQ.VSL_CALL_ID
+					  	AND E.SEQ 										= LQ.VSL_SHFT_SEQ
+					)
+			END) 														AS ATU,
+        	(CASE ISNULL(LQ.VSL_SHFT_SEQ, 0)
+        		WHEN 0 THEN 'N'
+        		ELSE 'Y'
+        	END) 														AS vslShiftingYN,
+        	(SELECT TOP 1
+        		CASE WHEN SLP.BL_NO IS NOT NULL AND SLP.BL_NO != '' THEN SLP.BL_NO
+        		ELSE SLP.SHIPG_NOTE_NO
+        		END
+        	FROM
+        		TMT_CONFM_SLP_DTL SLP
+        	WHERE
+        		SLP.VSL_CALL_ID 										= LQ.VSL_CALL_ID
+        		AND SLP.SEQ 											= LQ.SEQ_CS2
+        	) 															AS docNo
+		FROM
+		    	TMT_LQDCG_OPE_MST RPT
+				LEFT OUTER JOIN TMT_LQDCG_OPE LQ
+		     		ON 	RPT.VSL_CALL_ID = LQ.VSL_CALL_ID
+						AND RPT.WORK_YMD = LQ.WORK_YMD
+						AND RPT.SHFT_ID = LQ.SHFT_ID
+						AND RPT.OPE_TP = LQ.OPE_TP
+            	LEFT OUTER JOIN SLPT ON  SLPT.VSL_CALL_ID = RPT.VSL_CALL_ID
+				LEFT OUTER JOIN LQTOTAL ON LQTOTAL.VSL_CALL_ID = RPT.VSL_CALL_ID
+		
+		WHERE
+		    SLPT.VSL_CALL_ID 											= #{vslCallId}
+		<if test="workYmd != null and workYmd != ''">
+			AND RPT.WORK_YMD 											= FORMAT(CONVERT(DATE, #{workYmd},103), 'yyyyMMdd')
+		</if>
+		<if test="shift != null and shift != ''">
+			AND RPT.SHFT_ID 											= #{shift}
+		</if>
+		<if test="opeTp != null and opeTp != ''">
+			AND RPT.OPE_TP 												= #{opeTp}
+		</if>
+              
+		<if test="searchType != 'AMT_INFO'">
+			AND (LQ.VSL_CALL_ID IS NOT NULL AND LQ.VSL_CALL_ID <![CDATA[<>]]> '')
+		</if>
+	</select>
+	
+		
+	<insert id="insertVORLiquidCargoItems" parameterType="vorLiquidBulkItem">
+		INSERT INTO /* vorLiquidBulk.insertVORLiquidCargoItems */
+			TMT_LQDCG_OPE (
+		    	VSL_CALL_ID,
+		    	SHIP_CALL_NO,
+		    	CG_NO,
+				SDO_NO,
+				GR_NO,
+		    	WORK_YMD,
+		    	SHFT_ID,
+		    	CG_TP_CD,
+		    	SEQ,
+		    	OPE_TP,
+		    	JOB_TP_CD,
+		    	HOSE_TP_CD,
+		    	TK_OPR,
+		    	PKG_TP_CD,
+		    	TON_HDL_AMT,
+		    	PUMP_RATE,
+		    	ST_DT,
+		    	END_DT,
+		    	HOSE_ON_DT,
+		    	HOSE_OFF_DT,
+		    	CMDT_CD,
+		    	JOB_CMPL_YN,
+		    	HOSE_CMPL_YN,
+		    	LINE_NO,
+		    	UPDATE_TIME,
+		    	STAFF_CD,
+		    	SHPR,
+		    	CNSNE,
+		    	VSL_SHFT_SEQ,
+		    	SEQ_CS2,
+		    	EQ_FAC_NO
+			) VALUES (
+				#{vslCallId},
+				(
+					SELECT TOP(1)
+						SHIP_CALL_NO
+					FROM TMT_VSL_SCH
+					WHERE VSL_CALL_ID = #{vslCallId}
+				),
+				#{blNo},
+      			#{sdoNo},
+      			#{grNo},
+				FORMAT(CONVERT(DATE, #{workYmd},103), 'yyyyMMdd'),
+				#{shftId},
+				#{cgTpCd},
+				(SELECT ISNULL(MAX(SEQ), 0) + 1 FROM TMT_LQDCG_OPE WHERE VSL_CALL_ID = #{vslCallId}),
+				#{opeTp},
+				#{jobTpCd},
+				#{hoseTpCd},
+				#{tkOpr},
+				#{pkgTpCd},
+				TRY_CONVERT(NUMERIC(15, 3), ISNULL(#{tonHdlAmt},0)),
+				TRY_CONVERT(NUMERIC(15, 3), ISNULL(#{pumpRate},0)),
+				CONVERT(DATETIME, #{stDt},103),
+				CONVERT(DATETIME, #{endDt},103),
+				CONVERT(DATETIME, #{hoseOnDt},103),
+				CONVERT(DATETIME, #{hoseOffDt},103),
+				#{cmdtCd},
+				#{jobCmplYn},
+				#{hoseCmplYn},
+				TRY_CONVERT(NUMERIC(5, 0), ISNULL(#{lineNumber},0)),
+				SYSDATETIME(),
+				<if test="userId != null and userId != ''">
+					#{userId}
+				</if>
+				<if test="userId == null or userId == ''">
+					'SYSTEM'
+				</if>
+				,#{shprCnsne}
+				,#{cnsne}
+				,CASE WHEN #{vslShiftingSeq} IS NULL OR #{vslShiftingSeq} = '' THEN NULL ELSE CAST(#{vslShiftingSeq} AS NUMERIC(6,0)) END
+				,CASE WHEN #{seqCS2} IS NULL OR #{seqCS2} = '' THEN NULL ELSE CAST(#{seqCS2} AS NUMERIC(18,0)) END
+				,#{eqFacNo}
+		)
+	</insert>
+	
+	<insert id="updateVORLiquidHoseLines" parameterType="vorLiquidBulkItem">
+		MERGE INTO /* vorLiquidBulk.updateVORLiquidHoseLines */
+		    TMT_LQDCG_OPE_MST A
+		USING (
+			SELECT /* vorLiquidBulk.updateVORLiquidHoseLines */
+			    '00000' 					AS vslCallId
+			) B
+		ON (
+			A.VSL_CALL_ID 					= #{vslCallId}
+			AND A.WORK_YMD 					= FORMAT(CONVERT(DATE, #{workYmd},103), 'yyyyMMdd')
+			AND A.SHFT_ID 					= #{shftId}
+			AND A.OPE_TP 					= #{opeTp}
+			AND B.vslCallId 				= '00000'
+		    )
+	    WHEN MATCHED THEN
+	    	UPDATE /* vorLiquidBulk.updateVORLiquidHoseLines */
+	    	SET
+	    		A.UPDATE_TIME 				= SYSDATETIME(),
+	    		A.LOAD_HOSE_QTY 			= ISNULL(CASE WHEN #{loadHoseQty} IS NULL OR #{loadHoseQty} = '' THEN 0 ELSE CAST(#{loadHoseQty} as numeric(30, 10)) END, 0),
+	    		A.DSCH_HOSE_QTY 			= ISNULL(CASE WHEN #{dschHoseQty} IS NULL OR #{dschHoseQty} = '' THEN 0 ELSE CAST(#{dschHoseQty} as numeric(30, 10)) END, 0),
+	    		A.LOAD_ARM_QTY 				= ISNULL(CASE WHEN #{loadArmQty} IS NULL OR #{loadArmQty} = '' THEN 0 ELSE CAST(#{loadArmQty} as numeric(30, 10)) END, 0),
+	    		A.DSCH_ARM_QTY 				= ISNULL(CASE WHEN #{dschArmQty} IS NULL OR #{dschArmQty} = '' THEN 0 ELSE CAST(#{dschArmQty} as numeric(30, 10)) END, 0),
+	    		A.EST_PDUCT_IN_HR 			= ( CASE WHEN #{tonHdlAmt} IS NULL OR #{tonHdlAmt} = '' THEN 0 ELSE
+													cast(#{tonHdlAmt} as numeric(30,10)) END)/
+													CASE( CASE WHEN #{loadHoseQty} IS NULL OR #{loadHoseQty} = '' THEN 0 ELSE
+													CAST(#{loadHoseQty} as numeric(30, 10)) END +
+													CASE WHEN #{dschHoseQty} IS NULL OR #{dschHoseQty} = '' THEN 0 ELSE
+													CAST(#{dschHoseQty} as numeric(30, 10)) END +
+													CASE WHEN #{loadArmQty} IS NULL OR #{loadArmQty} = '' THEN 0 ELSE
+													CAST(#{loadArmQty} as numeric(30, 10)) END +
+													CASE WHEN #{dschArmQty} IS NULL OR #{dschArmQty} = '' THEN 0 ELSE
+													CAST(#{dschArmQty} as numeric(30, 10)) END)
+													WHEN 0 THEN 1
+													ELSE(
+													CASE WHEN #{loadHoseQty} IS NULL OR #{loadHoseQty} = '' THEN 0 ELSE
+													CAST(#{loadHoseQty} as numeric(30, 10)) END +
+													CASE WHEN #{dschHoseQty} IS NULL OR #{dschHoseQty} = '' THEN 0 ELSE
+													CAST(#{dschHoseQty} as numeric(30, 10)) END +
+													CASE WHEN #{loadArmQty} IS NULL OR #{loadArmQty} = '' THEN 0 ELSE
+													CAST(#{loadArmQty} as numeric(30, 10)) END +
+													CASE WHEN #{dschArmQty} IS NULL OR #{dschArmQty} = '' THEN 0 ELSE
+													CAST(#{dschArmQty} as numeric(30, 10)) END ) END,
+	    		A.FENDER 					= CASE WHEN #{fender} IS NULL OR #{fender} = '' THEN 0 ELSE CAST(#{fender} as numeric(30, 10)) END
+			<if test="userId != null and userId != ''">
+				, A.STAFF_CD 				= #{userId}
+			</if>
+			<if test="userId == null or userId == ''">
+				, A.STAFF_CD 				= 'SYSTEM'
+			</if>
+	    WHEN NOT MATCHED THEN
+			INSERT ( /* vorLiquidBulk.updateVORLiquidHoseLines */
+				VSL_CALL_ID,
+				SHIP_CALL_NO,
+			    WORK_YMD,
+			    SHFT_ID,
+			    OPE_TP,
+			    CG_TP_CD,
+			    DELV_TP_CD,
+			    HHT_ST_DT,
+			    HHT_END_DT,
+			    RMK,
+			    EST_PDUCT_IN_HR,
+				EST_HR_FOR_OPE,
+			    DSCH_HOSE_QTY,
+			    LOAD_HOSE_QTY,
+			    DSCH_ARM_QTY,
+			    LOAD_ARM_QTY,
+			    FENDER,
+				UPDATE_TIME,
+			    STAFF_CD,
+			    VERSION
+			) VALUES (
+				#{vslCallId},
+				(
+					SELECT TOP(1) SHIP_CALL_NO
+					FROM TMT_VSL_SCH
+					WHERE VSL_CALL_ID = #{vslCallId}
+				),
+			    FORMAT(CONVERT(DATE, #{workYmd},103),'yyyyMMdd'),
+			    #{shftId},
+			    #{opeTp},
+			    #{cgTpCd},
+			    #{delvTpCd},
+			    NULL,
+			    NULL,
+			    'REMARK',
+			    NULL,
+				NULL,
+			    CASE WHEN #{dschHoseQty} IS NULL OR #{dschHoseQty} = '' THEN 0 ELSE CAST(#{dschHoseQty} as numeric(30, 10)) END,
+				CASE WHEN #{loadHoseQty} IS NULL OR #{loadHoseQty} = '' THEN 0 ELSE CAST(#{loadHoseQty} as numeric(30, 10)) END,
+				CASE WHEN #{dschArmQty} IS NULL OR #{dschArmQty} = '' THEN 0 ELSE CAST(#{dschArmQty} as numeric(30, 10)) END,
+				CASE WHEN #{loadArmQty} IS NULL OR #{loadArmQty} = '' THEN 0 ELSE CAST(#{loadArmQty} as numeric(30, 10)) END,
+				CASE WHEN #{fender} IS NULL OR #{fender} = '' THEN 0 ELSE CAST(#{fender} as numeric(30, 10)) END,
+				SYSDATETIME(),
+			    #{userId},
+				#{newVersion});
+	</insert>
+	
+	<update id="updateAtwAtc4LqVsl"  parameterType="vorLiquidBulkItem">
+		<if test="vslShiftingSeq != null and vslShiftingSeq != ''">
+			UPDATE /* vorLiquidBulk.updateAtwAtc4LqVsl */
+				TMT_VSL_SHFT
+			SET
+				ATW_DT = (
+					SELECT /* vorLiquidBulk.updateAtwAtc4LqVsl */
+						MIN(A.ATW)
+					FROM (
+						SELECT
+							RPT.VSL_CALL_ID  								AS VSLCALLID,
+						    RPT.WORK_ST_DT 									AS ATW
+						FROM
+						    TMT_VSL_OPE_RPT_DTL RPT
+						WHERE
+						    RPT.VSL_CALL_ID									= #{vslCallId}
+							AND RPT.VSL_SHFT_SEQ							= #{vslShiftingSeq}
+
+						UNION ALL
+
+						SELECT
+						    RPT.VSL_CALL_ID  								AS VSLCALLID,
+							RPT.ST_DT 										AS ATW
+						FROM
+						    TMT_LQDCG_OPE RPT
+						WHERE
+						    RPT.VSL_CALL_ID									= #{vslCallId}
+							AND RPT.VSL_SHFT_SEQ 							= #{vslShiftingSeq}
+						) A
+					GROUP BY
+						A.VSLCALLID
+					),
+
+			    ATC_DT = (
+			    	SELECT  /* vorLiquidBulk.updateAtwAtc4LqVsl */
+			    		MAX(B.ATC)
+					FROM (
+						SELECT
+			    			RPT.VSL_CALL_ID   								AS VSLCALLID,
+							RPT.WORK_END_DT  								AS ATC
+					  	FROM
+			    			TMT_VSL_OPE_RPT_DTL RPT
+					   	WHERE
+			    			RPT.VSL_CALL_ID									= #{vslCallId}
+					   		AND RPT.VSL_SHFT_SEQ 							= #{vslShiftingSeq}
+
+					   	UNION ALL
+
+					   	SELECT
+			    			RPT.VSL_CALL_ID   								AS VSLCALLID,
+					   		RPT.END_DT										AS ATC
+						FROM
+			    			TMT_LQDCG_OPE RPT
+						WHERE
+			    			RPT.VSL_CALL_ID									= #{vslCallId}
+							AND RPT.VSL_SHFT_SEQ							= #{vslShiftingSeq}
+					  	) B
+					GROUP BY B.VSLCALLID)
+			WHERE
+				VSL_CALL_ID													= #{vslCallId}
+				AND SEQ 													= #{vslShiftingSeq}
+		</if>
+		<if test="vslShiftingSeq == null or vslShiftingSeq == ''">
+			UPDATE /* vorLiquidBulk.updateAtwAtc4LqVsl */
+				TMT_VSL_SCH
+			SET
+				ATW = (
+					SELECT /* vorLiquidBulk.updateAtwAtc4LqVsl */
+						MIN(A.ATW)
+					FROM (
+						SELECT
+							RPT.VSL_CALL_ID 								AS VSLCALLID,
+						    RPT.WORK_ST_DT 									AS ATW
+						FROM
+						    TMT_VSL_OPE_RPT_DTL RPT
+						WHERE
+						    RPT.VSL_CALL_ID 								= #{vslCallId}
+							AND (RPT.VSL_SHFT_SEQ IS NULL OR RPT.VSL_SHFT_SEQ = 0)
+
+						UNION ALL
+
+						SELECT
+							RPT.VSL_CALL_ID 								AS VSLCALLID,
+							RPT.ST_DT 										AS ATW
+						FROM
+							TMT_LQDCG_OPE RPT
+						WHERE
+							RPT.VSL_CALL_ID									= #{vslCallId}
+							AND (RPT.VSL_SHFT_SEQ IS NULL OR RPT.VSL_SHFT_SEQ = 0)
+						) A
+					GROUP BY
+						A.VSLCALLID),
+			    ATC = (
+			    	SELECT /* vorLiquidBulk.updateAtwAtc4LqVsl */
+			    		MAX(B.ATC)
+					FROM (
+						SELECT
+							RPT.VSL_CALL_ID   								AS VSLCALLID,
+						    RPT.WORK_END_DT									AS ATC
+						FROM
+						    TMT_VSL_OPE_RPT_DTL RPT
+						WHERE
+						    RPT.VSL_CALL_ID									= #{vslCallId}
+							AND (RPT.VSL_SHFT_SEQ IS NULL OR RPT.VSL_SHFT_SEQ = 0)
+
+						UNION ALL
+
+						SELECT
+						    RPT.VSL_CALL_ID									AS VSLCALLID,
+							RPT.END_DT										AS ATC
+						FROM
+						    TMT_LQDCG_OPE RPT
+						WHERE
+						    RPT.VSL_CALL_ID									= #{vslCallId}
+							AND (RPT.VSL_SHFT_SEQ IS NULL OR RPT.VSL_SHFT_SEQ = 0)
+						) B
+					GROUP BY
+					    B.VSLCALLID
+					)
+			WHERE
+				VSL_CALL_ID 												= #{vslCallId}
+		</if>
+	</update>
+	<!--sMantis: 0167862 -->
+	<update id="updateVORLiquidCargoItems" parameterType="vorLiquidBulkItem">
+		UPDATE 	/* vorLiquidBulk.updateVORLiquidCargoItems */
+			TMT_LQDCG_OPE
+		SET
+			JOB_TP_CD 											= #{jobTpCd},
+			TK_OPR 												= #{tkOpr},
+			CG_TP_CD 											= #{cgTpCd},
+		    HOSE_TP_CD 											= #{hoseTpCd},
+			TON_HDL_AMT 										= TRY_CONVERT(NUMERIC(15,3), #{tonHdlAmt}),
+			PUMP_RATE 											= TRY_CONVERT(NUMERIC(15,3), #{pumpRate}),
+			ST_DT 												= 	CASE 
+																		WHEN #{stDt} IS NULL OR #{stDt} = '' THEN NULL 
+																		ELSE CONVERT(DATETIME, #{stDt}, 103) 
+																	END,
+			END_DT 												= 	CASE 
+																		WHEN #{endDt} IS NULL OR #{endDt} = '' THEN NULL 
+																		ELSE CONVERT(DATETIME, #{endDt}, 103) 
+																	END,
+			HOSE_ON_DT 											= 	CASE 
+																		WHEN #{hoseOnDt} IS NULL OR #{hoseOnDt} = '' THEN NULL 
+																		ELSE CONVERT(DATETIME, #{hoseOnDt}, 103) 
+																	END,
+			HOSE_OFF_DT 										= 	CASE 
+																		WHEN #{hoseOffDt} IS NULL OR #{hoseOffDt} = '' THEN NULL 
+																		ELSE CONVERT(DATETIME, #{hoseOffDt}, 103) 
+																	END,
+			JOB_CMPL_YN 										= #{jobCmplYn},
+			HOSE_CMPL_YN 										= #{hoseCmplYn},
+			CMDT_CD 											= #{cmdtCd},
+			SHPR 												= #{shprCnsne},
+			PKG_TP_CD 											= #{pkgTpCd},
+			LINE_NO 											= TRY_CONVERT(NUMERIC(5, 3), #{lineNumber}),
+			UPDATE_TIME 										= SYSDATETIME(),
+			CNSNE												= #{cnsne},
+			EQ_FAC_NO											= #{eqFacNo},
+			<if test="userId != null and userId != ''">
+				STAFF_CD 										= #{userId}
+			</if>
+			<if test="userId == null or userId == ''">
+				STAFF_CD 										= 'SYSTEM'
+			</if>
+		WHERE
+			VSL_CALL_ID											= #{vslCallId}
+			AND SEQ 											= TRY_CONVERT(NUMERIC(5, 3), #{seq})
+			<if test="workYmd != null and workYmd != ''">
+			  	AND WORK_YMD 									= FORMAT(CONVERT(DATE, #{workYmd},103), 'yyyyMMdd')
+			</if>
+			<if test="shftId != null and shftId != ''">
+				AND SHFT_ID 									= #{shftId}
+			</if>
+			<if test="opeTp != null and opeTp != ''">
+			  	AND OPE_TP 										= #{opeTp}
+			</if>
+	</update>
+	<!--sMantis: 0167862 -->
+	<update id="updateDblBnkActualTime"  parameterType="vorLiquidBulkItem">
+		UPDATE /* vorLiquidBulk.updateDblBnkActualTime */
+			TMT_DBL_BNK
+		SET
+		    SHIP1_ATW = (
+		    		SELECT /* vorLiquidBulk.updateDblBnkActualTime */
+		    		    MIN(A.ATW)
+					FROM (
+						SELECT
+							RPT.VSL_CALL_ID  		AS VSLCALLID,
+							RPT.ST_DT 				AS ATW
+						FROM
+							TMT_LQDCG_OPE RPT
+						WHERE
+							RPT.VSL_CALL_ID 		= #{vslCallId}
+						) A
+						GROUP BY
+						    A.VSLCALLID
+						),
+		    SHIP1_ATC = (
+		    		SELECT /* vorLiquidBulk.updateDblBnkActualTime */
+		    			MAX(B.ATC)
+					FROM (
+						SELECT
+							RPT.VSL_CALL_ID   		AS VSLCALLID,
+							RPT.END_DT  			AS ATC
+						FROM
+							TMT_LQDCG_OPE RPT
+						WHERE
+						    RPT.VSL_CALL_ID			= #{vslCallId}
+						) B
+					GROUP BY
+					    B.VSLCALLID
+					)
+		WHERE
+			DBL_BNK_SHIP1 							= #{vslCallId}
+			AND SEQ = (
+				SELECT
+					MAX(SEQ)
+				FROM
+				    TMT_DBL_BNK
+				WHERE
+				    DBL_BNK_SHIP1 					= #{vslCallId})
+	</update>
+	
+		
+	<insert id="insertVORLiquidDelayItems" parameterType="vorLiquidBulkItem">
+		INSERT INTO /* vorLiquidBulk.insertVORLiquidDelayItems */
+			TMT_DLY_SUM (
+				VSL_CALL_ID,
+				WORK_YMD,
+				SHFT_ID,
+		    	CG_TP_CD,
+				SEQ,
+				DLY_CD,
+				ST_DT,
+				END_DT,
+				ACPT_DLY_YN,
+				RMK,
+				UPDATE_TIME,
+				STAFF_CD,
+				HATCH_NO
+			) VALUES (
+				#{vslCallId},
+				FORMAT(CONVERT(DATE, #{workYmd},103),'yyyyMMdd'),
+				#{shftId},
+				#{cgTpCd},
+				(SELECT
+					ISNULL(MAX(SEQ), 0) + 1
+				FROM
+					TMT_DLY_SUM
+				),
+				#{delayCode},
+				CONVERT(DATETIME, #{startTime},103),
+				CONVERT(DATETIME, #{endTime},103),
+				#{accDelay},
+				#{remark},
+				SYSDATETIME(),
+				<if test="userId != null and userId != ''">
+					#{userId}
+				</if>
+				<if test="userId == null or userId == ''">
+					'SYSTEM'
+				</if>,
+				#{hatchNo}
+		)
+	</insert>
+	
+	<update id="updateVORLiquidDelayItems" parameterType="vorLiquidBulkItem">
+		UPDATE /* vorLiquidBulk.updateVORLiquidDelayItems */
+			TMT_DLY_SUM
+		SET
+			DLY_CD 						= #{delayCode},
+			CG_TP_CD 					= #{cgTpCd},
+			ST_DT 						= CONVERT(DATETIME, #{startTime},103),
+			END_DT 						= CONVERT(DATETIME, #{endTime},103),
+			ACPT_DLY_YN 				= #{accDelay},
+			RMK 						= #{remark},
+			UPDATE_TIME 				= SYSDATETIME(),
+			HATCH_NO					= #{hatchNo},
+			<if test="userId != null and userId != ''">
+		   		STAFF_CD = #{userId}
+			</if>
+			<if test="userId == null or userId == ''">
+		  		STAFF_CD = 'SYSTEM'
+			</if>
+		WHERE
+			VSL_CALL_ID					= #{vslCallId}
+			<if test="workYmd != null and workYmd != ''">
+				AND WORK_YMD 			= FORMAT(CONVERT(DATE, #{workYmd},103),'yyyyMMdd')
+			</if>
+			<if test="shftId != null and shftId != ''">
+				AND SHFT_ID 			= #{shftId}
+			</if>
+			<if test="seq != null and seq != ''">
+				AND SEQ 				= #{seq}
+			</if>
+	</update>
+
+	<delete id="deleteVORLiquidDelayItems" parameterType="vorLiquidBulkItem">
+		DELETE /* vorLiquidBulk.deleteVORLiquidDelayItems */
+		    TMT_DLY_SUM
+		WHERE
+			VSL_CALL_ID					= #{vslCallId}
+		<if test="workYmd != null and workYmd != ''">
+			AND WORK_YMD 				= FORMAT(CONVERT(DATE, #{workYmd},103),'yyyyMMdd')
+		</if>
+		<if test="shftId != null and shftId != ''">
+			AND SHFT_ID 				= #{shftId}
+		</if>
+		<if test="seq != null and seq != ''">
+			AND SEQ 					= #{seq}
+		</if>
+	</delete>
+	
+	<delete id="deleteVORLiquidCargoItems" parameterType="vorLiquidBulkItem">
+		DELETE /* vorLiquidBulk.deleteVORLiquidCargoItems */
+				TMT_LQDCG_OPE
+		WHERE
+				VSL_CALL_ID 				= #{vslCallId}
+
+				<if test="seq != null and seq != ''">
+					AND SEQ 					= #{seq}
+				</if>	
+				<if test="sdoNo != null and sdoNo != ''">
+					AND SDO_NO 					= #{sdoNo}
+				</if>
+				<if test="cgNo != null and cgNo != ''">
+					AND CG_NO 					= #{cgNo}
+				</if>
+				<if test="grNo != null and grNo != ''">
+					AND GR_NO 					= #{grNo}
+				</if>
+	</delete>
+	
+	<delete id="deleteVORLiquidItems" parameterType="vorLiquidBulkItem">
+		DELETE 	TMT_LQDCG_OPE_MST
+		WHERE 	VSL_CALL_ID=#{vslCallId}
+				<if test="workYmd != null and workYmd != ''">
+	   				AND WORK_YMD = FORMAT(CONVERT(DATE, #{workYmd},103),'yyyyMMdd')
+				</if>
+				<if test="shftId != null and shftId != ''">
+	   				AND SHFT_ID = #{shftId}
+				</if>	
+				<if test="opeTp != null and opeTp != ''">
+	   				AND OPE_TP = #{opeTp}
+				</if>	
+		</delete>
+	<select id="selectVORLiquidBulkCmdtList"  parameterType="vorLiquidBulkParm" resultType="vorLiquidBulkItem">
+		SELECT 
+		    SLPT.VSL_CALL_ID AS VSLCALLID,
+		    SLPT.CG_OPT_TP_CD AS OPETP,
+		    SLPT.CG_OPT_TP_CD AS JOBTPCD,
+		    SLPT.CG_TP_CD AS CGTPCD,
+		    (SELECT S_CD_NM
+		     FROM TMT_CD_MSTD
+		     WHERE L_CD = 'MT' AND M_CD = 'CGTP' AND S_CD = SLPT.CG_TP_CD) AS CGTPNM,
+		    'SLPT.HOSE_TP_CD' AS HOSETPCD,
+		    SLPT.TMNL_OPR AS TKOPR,
+		    SLPT.CMDT_CD AS CMDTCD, 
+		    (SELECT CMDT_DESC
+		     FROM TMT_CMDT
+		     WHERE CMDT_CD = SLPT.CMDT_CD) AS CMDTCDNM,
+		    SLPT.SHPR_CNSNE AS SHPRCNSNE,
+		    SLPT.CNSNE AS CNSNE,
+		    SLPT.PKGTPCD AS PKGTPCD,
+		    SLPT.POL AS POL,
+		    SLPT.FDEST AS FDEST,
+		    SLPT.SEQ,
+		    SLPT.SEQ AS NO
+		    <if test="opeTp != null and opeTp != ''">
+		      ,CASE #{opeTp}
+		          WHEN 'GEN' THEN ISNULL(SLPT.LOADPLANMTG, 0)
+		          WHEN 'STS' THEN ISNULL(SLPT.LOADPLANMTG, 0)
+		          WHEN 'TLS' THEN ISNULL(SLPT.LOADPLANMTG, 0)
+		       END AS LOADPLANMT,
+		       CASE #{opeTp}
+		          WHEN 'GEN' THEN ISNULL(SLPT.DISPLANMTG, 0)
+		          WHEN 'STS' THEN ISNULL(SLPT.DISPLANMTG, 0)
+		          WHEN 'TLS' THEN ISNULL(SLPT.DISPLANMTG, 0)
+		       END AS DISPLANMT,
+		       CASE #{opeTp}
+		          WHEN 'GEN' THEN ISNULL(OPACT.LOADACTUALMTG, 0)
+		          WHEN 'STS' THEN ISNULL(OPACT.LOADACTUALMTS, 0)
+		          WHEN 'TLS' THEN ISNULL(OPACT.LOADACTUALMTT, 0)
+		       END AS LOADACTUALMT,
+		       CASE #{opeTp}
+		          WHEN 'GEN' THEN ISNULL(OPACT.DISACTUALMTG, 0)
+		          WHEN 'STS' THEN ISNULL(OPACT.DISACTUALMTS, 0)
+		          WHEN 'TLS' THEN ISNULL(OPACT.DISACTUALMTT, 0)
+		       END AS DISACTUALMT
+		    </if>
+		  FROM (
+		      SELECT
+		        SLP.VSL_CALL_ID,
+		        SLP.CG_OPT_TP_CD,
+		        SLP.CG_TP_CD,
+		        SLP.TMNL_OPR,
+		        MAX(SLP.CMDT_CD) AS CMDT_CD,
+		        MAX(SLP.SHPR_CNSNE) AS SHPR_CNSNE,
+		        MAX(SLP.CNSNE) AS CNSNE,
+		        MAX(SLP.PKG_TP_CD) AS PKGTPCD,
+		        SLP.POL,
+		        SLP.FDEST,
+		        SLP.SEQ,
+		        CASE SLP.CG_OPT_TP_CD 
+		          WHEN 'LD' THEN ISNULL(SLP.CG_WGT, 0)
+		          WHEN 'SL' THEN ISNULL(SLP.CG_WGT, 0)
+		          WHEN 'TL' THEN ISNULL(SLP.CG_WGT, 0)
+		          ELSE 0
+		        END AS LOADPLANMTG,
+		        CASE SLP.CG_OPT_TP_CD 
+		          WHEN 'DS' THEN ISNULL(SLP.CG_WGT, 0)
+		          WHEN 'SD' THEN ISNULL(SLP.CG_WGT, 0)
+		          WHEN 'TD' THEN ISNULL(SLP.CG_WGT, 0)
+		          ELSE 0
+		        END AS DISPLANMTG
+		      FROM TMT_CONFM_SLP_DTL SLP
+		      WHERE SLP.VSL_CALL_ID = #{vslCallId}
+		        AND SLP.CMDT_CD IS NOT NULL
+		        AND SLP.CG_TP_CD IN ('LQE', 'LQN')
+		        AND SLP.CG_OPT_TP_CD IN ('DS', 'LD', 'SD', 'SL', 'TD', 'TL')
+		      GROUP BY 
+		        SLP.VSL_CALL_ID,
+		        SLP.CG_OPT_TP_CD,
+		        SLP.CG_TP_CD,
+		        SLP.POL,
+		        SLP.FDEST,
+		        SLP.SEQ,
+		        SLP.TMNL_OPR,
+		        SLP.CG_WGT
+		  ) SLPT
+		  LEFT JOIN (
+		    SELECT 
+		      OPEACT.VSL_CALL_ID,
+		      OPEACT.CMDT_CD,
+		      OPEACT.SEQ_CS2,
+		      SUM(CASE OPEACT.JOB_TP_CD 
+		          WHEN 'LD' THEN ISNULL(OPEACT.TON_HDL_AMT, 0)
+		          ELSE 0
+		      END) AS LOADACTUALMTG,
+		      SUM(CASE OPEACT.JOB_TP_CD 
+		          WHEN 'DS' THEN ISNULL(OPEACT.TON_HDL_AMT, 0)
+		          ELSE 0
+		      END) AS DISACTUALMTG,
+		      SUM(CASE OPEACT.JOB_TP_CD 
+		          WHEN 'SL' THEN ISNULL(OPEACT.TON_HDL_AMT, 0)
+		          ELSE 0
+		      END) AS LOADACTUALMTS,
+		      SUM(CASE OPEACT.JOB_TP_CD 
+		          WHEN 'SD' THEN ISNULL(OPEACT.TON_HDL_AMT, 0)
+		          ELSE 0
+		      END) AS DISACTUALMTS,
+		      SUM(CASE OPEACT.JOB_TP_CD 
+		          WHEN 'TL' THEN ISNULL(OPEACT.TON_HDL_AMT, 0)
+		          ELSE 0
+		      END) AS LOADACTUALMTT,
+		      SUM(CASE OPEACT.JOB_TP_CD 
+		          WHEN 'TD' THEN ISNULL(OPEACT.TON_HDL_AMT, 0)
+		          ELSE 0
+		      END) AS DISACTUALMTT
+		    FROM TMT_LQDCG_OPE OPEACT
+		    LEFT JOIN TMT_CONFM_SLP_DTL SLP2 
+		      ON OPEACT.CG_TP_CD = SLP2.CG_TP_CD
+		      AND OPEACT.JOB_TP_CD = SLP2.CG_OPT_TP_CD
+		      AND OPEACT.VSL_CALL_ID = SLP2.VSL_CALL_ID
+		      AND OPEACT.TK_OPR = SLP2.TMNL_OPR
+		      AND OPEACT.SEQ_CS2 = SLP2.SEQ
+		    WHERE OPEACT.VSL_CALL_ID = #{vslCallId}
+		      AND OPEACT.CMDT_CD IS NOT NULL
+		      AND OPEACT.SEQ_CS2 IS NOT NULL
+		    GROUP BY 
+		      OPEACT.VSL_CALL_ID, 
+		      OPEACT.CMDT_CD, 
+		      OPEACT.SEQ_CS2
+		  ) OPACT ON SLPT.VSL_CALL_ID = OPACT.VSL_CALL_ID
+		    AND SLPT.SEQ = OPACT.SEQ_CS2
+		    AND SLPT.CMDT_CD = OPACT.CMDT_CD
+	</select>
+	
+	<select id="selectVesselShiftingList"  parameterType="vorLiquidBulkParm" resultType="vorLiquidBulkItem">
+		SELECT 	/*shiftingDoubleBanking.selectVesselShiftingList*/
+			VSL_CALL_ID 								AS VSLCALLID,
+			SEQ 										AS SEQ,
+			A.REQR 										AS REQR,
+			A.PREV_BERTH_NO 							AS CURRWHARF,
+			PREV_WHARF_MARK_FM 							AS currWharfMakrFm,
+			PREV_WHARF_MARK_TO 							AS currWharfMakrTo,
+			CASE
+				WHEN PREV_ATU_DT IS NOT NULL THEN FORMAT(PREV_ATU_DT, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 										AS PREVATU,
+			CASE
+				WHEN ATU_DT IS NOT NULL THEN FORMAT(ATU_DT, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 										AS ATUDT,
+			CASE
+				WHEN PREV_ATB_DT IS NOT NULL THEN FORMAT(PREV_ATB_DT, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 										AS prevAtb,
+			CASE
+				WHEN ATB_DT IS NOT NULL THEN FORMAT(ATB_DT, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 										AS ATBDT,
+			NX_BERTH_NO 								AS NXBERTHNO,
+			A.WHARF_MARK_FM 							AS WHARFMARKFM,
+			A.WHARF_MARK_TO 							AS WHARFMARKTO,
+			CAST(A.WHARF_MARK_FM AS VARCHAR) + ' - ' + CAST(A.WHARF_MARK_TO AS VARCHAR) 	AS WHARFMARK,
+			CASE A.BERTH_ALONGSIDE
+				WHEN 'P' THEN 'PS'
+				WHEN 'S' THEN 'SB'
+				ELSE A.BERTH_ALONGSIDE
+			END 										AS BERTHALONGSIDE,
+			RSN_CD 										AS RSNCD,
+			(SELECT 
+				S_CD_NM
+			FROM 
+				TMT_CD_MSTD
+			WHERE
+				L_CD = 'MT' 
+				AND M_CD = 'SFTRSN' 
+				AND S_CD = RSN_CD) 						AS RSNNM,
+			RMK 										AS RMK,
+			CASE
+				WHEN ATW_DT IS NOT NULL THEN FORMAT(ATW_DT, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 										AS ATW,
+			CASE
+				WHEN ATC_DT IS NOT NULL THEN FORMAT(ATC_DT, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 										AS ATC,
+			'U' 										AS workingStatus
+		FROM 	
+			TMT_VSL_SHFT A
+		WHERE
+			A.VSL_CALL_ID = #{vslCallId}
+			AND (A.STAT_CD = 'AP' OR REQR IS NULL)
+	</select>
+	
+	<select id="selectOprTimeSetList"  parameterType="VORLiquidBulkParm" resultType="VORLiquidBulkItem">
+			SELECT 
+			    FORMAT(MIN(ST_DT), 'dd/MM/yyyy HH:mm') AS STDT,
+			    FORMAT(MAX(END_DT), 'dd/MM/yyyy HH:mm') AS ENDDT,
+			    FORMAT(MIN(HOSE_ON_DT), 'dd/MM/yyyy HH:mm') AS HOSEONDT,
+			    FORMAT(MAX(HOSE_OFF_DT), 'dd/MM/yyyy HH:mm') AS HOSEOFFDT
+			FROM TMT_LQDCG_OPE
+			WHERE VSL_CALL_ID = #{vslCallId}
+			    AND JOB_TP_CD = #{jobTpCd}
+			    AND CG_TP_CD = #{cgTpCd}
+			    <if test="tkOpr != null and tkOpr != ''">
+			       AND
+						    	TK_OPR = #{tkOpr}
+			    </if>
+			    <if test="hoseTpCd != null and hoseTpCd != ''">
+			       AND
+						    	HOSE_TP_CD = #{hoseTpCd}
+			    </if>
+			    <if test="cmdtCd != null and cmdtCd != ''">
+			       AND
+						    	CMDT_CD = #{cmdtCd}
+			    </if>
+	</select>
+	
+	<select id="selectDelayCodeList" parameterType="VORLiquidBulkParm" resultType="VORLiquidBulkItem">
+	    SELECT 
+	        DLY_CD AS SCD,
+	        DESCR AS SCDNM,
+	        CASE 
+	            WHEN ISNULL(CHAG_YN, 'N') = 'N' THEN 'N' 
+	            ELSE 'Y' 
+	        END AS ACPTYN,
+	        DLY_CATG_CD AS DLYCATGCD
+	    FROM 
+	        TMT_DLY_CD
+	    WHERE 
+	        1 = 1
+	        <if test="delayTpCd == 'CD'">
+	            <if test="delayCd != null and delayCd != ''">
+	                AND DLY_CD LIKE #{delayCd} + '%'
+	            </if>
+	        </if>
+	        <if test="delayCatgCd != null and delayCatgCd != ''"> <!-- For HHT -->
+	            AND DLY_CATG_CD = #{delayCatgCd}
+	        </if>
+	        <if test="delayCatgCd == 'NM'">
+	            <if test="delayCd != null and delayCd != ''">
+	                AND UPPER(DESCR) LIKE UPPER(#{delayCd} + '%')
+	            </if>
+	        </if>
+	        <if test="delayCgTp != null and delayCgTp != ''">
+	            AND 
+	            <if test="delayCgTp == 'LIQUIQ'">
+	                CG_TP = 'LQD'
+	            </if>
+	            <if test="delayCgTp != 'LIQUIQ'">
+	                <![CDATA[ CG_TP <> 'LQD' ]]>
+	            </if>
+	        </if>
+	    ORDER BY 
+	        DLY_CD, DESCR
+	</select>
+	
+	<select id="selectVORLiquidDelay"  parameterType="VORLiquidBulkParm" resultType="VORLiquidBulkItem">
+			<if test="reportId == 'RCS01005'">
+				<!-- SELECT  VSLCALLID, 
+				        WORKYMD, 
+				        SHFTID, 
+				        SHFTNM, 
+				        CGTPCD, 
+				        SEQ, 
+				        DELAYCODE, 
+				        DELAYDESC,
+				        TO_CHAR(STARTTIME, 'DD/MM/YYYY HH24:MI') AS STARTTIME,
+				        TO_CHAR(ENDTIME, 'DD/MM/YYYY HH24:MI') AS ENDTIME,
+				        TRUNC ( (ENDTIME - STARTTIME) * 24) || '/' || ROUND (MOD ( (ENDTIME - STARTTIME) * 24, 1) * 60) AS TIMEHOURMIN,
+				        ROUND ( (ENDTIME - STARTTIME) * 24, 2) AS TIMEHOURLY,
+				        ACCDELAY, 
+				        REMARK, 
+				        TO_CHAR (NVL ( ( (ENDTIME - STARTTIME) * 24), 0), '99999990.00') AS TOTALHRS
+				FROM 
+				(
+				    SELECT  DLY.VSL_CALL_ID AS VSLCALLID,
+				            TO_CHAR (TO_DATE (DLY.WORK_YMD, 'YYYYMMDD'), 'DD/MM/YYYY') AS WORKYMD,
+				            DLY.SHFT_ID AS SHFTID,
+				            (   SELECT  SHFT_NM AS SHFTNM
+				                FROM    TMT_SHFT
+				                WHERE     SHFT_METH_CD = 'Standard'
+				                AND VLD_YN = 'Y'
+				                AND SHFT_ID = DLY.SHFT_ID)  AS SHFTNM,
+				            DLY.CG_TP_CD AS CGTPCD,
+				            DLY.SEQ AS SEQ,
+				            DLY.DLY_CD AS DELAYCODE,
+				            (   SELECT DESCR
+				                FROM TCM_DLY_CD
+				                WHERE DLY_CD = DLY.DLY_CD AND CG_TP = 'LQD') AS DELAYDESC,
+				            CASE 
+				            	WHEN DLY.ST_DT > SCH.ATB + 0.0833333 THEN DLY.ST_DT 
+				            	ELSE SCH.ATB + 0.0833333 END AS STARTTIME,
+				            CASE 
+				            	WHEN DLY.END_DT >= SCH.ATC THEN SCH.ATC - 0.00001 
+				            	ELSE DLY.END_DT END AS ENDTIME,
+				            DLY.ACPT_DLY_YN AS ACCDELAY,
+				            NVL (DLY.RMK, ' ') AS REMARK
+				    FROM    TMT_DLY_SUM DLY, TVC_VSL_SCH SCH
+				    WHERE   DLY.VSL_CALL_ID = #{jpvcNo}
+				    AND     DLY.VSL_CALL_ID = SCH.JPVC_NO
+				    AND (
+				            (DLY.ST_DT <![CDATA[<=]]> SCH.ATB + 0.0833333 AND DLY.END_DT <![CDATA[>=]]> SCH.ATC)
+				            OR
+				            (DLY.ST_DT <![CDATA[>=]]> SCH.ATB + 0.0833333 AND DLY.END_DT <![CDATA[<=]]> SCH.ATC)
+				            OR
+				            (DLY.ST_DT <![CDATA[<=]]> SCH.ATB + 0.0833333 AND DLY.END_DT <![CDATA[<=]]> SCH.ATC)    
+				            OR
+				            (DLY.ST_DT <![CDATA[>=]]> SCH.ATB + 0.0833333 AND DLY.ST_DT <![CDATA[<=]]> SCH.ATC AND DLY.END_DT <![CDATA[>=]]> SCH.ATC)
+				        )  
+				    UNION ALL
+				    SELECT  DLY.VSL_CALL_ID AS VSLCALLID,
+				            TO_CHAR (TO_DATE (DLY.WORK_YMD, 'YYYYMMDD'), 'DD/MM/YYYY') AS WORKYMD,
+				            DLY.SHFT_ID AS SHFTID,
+				            (   SELECT SHFT_NM AS SHFTNM
+				                FROM TMT_SHFT
+				                WHERE     SHFT_METH_CD = 'Standard'
+				                AND VLD_YN = 'Y'
+				                AND SHFT_ID = DLY.SHFT_ID) AS SHFTNM,
+				            DLY.CG_TP_CD AS CGTPCD,
+				            DLY.SEQ AS SEQ,
+				            DLY.DLY_CD AS DELAYCODE,
+				            (   SELECT DESCR
+				                FROM TCM_DLY_CD
+				                WHERE DLY_CD = DLY.DLY_CD AND CG_TP = 'LQD') AS DELAYDESC,
+				            CASE WHEN DLY.ST_DT > SCH.ATC + 0.0416666 THEN  DLY.ST_DT ELSE SCH.ATC + 0.0416666 END AS STARTTIME,
+				            DLY.END_DT AS ENDTIME,
+				            DLY.ACPT_DLY_YN AS ACCDELAY,
+				            NVL (DLY.RMK, ' ') AS REMARK
+				    FROM TMT_DLY_SUM DLY, TVC_VSL_SCH SCH
+				    WHERE     DLY.VSL_CALL_ID = #{jpvcNo}
+				    AND DLY.VSL_CALL_ID = SCH.JPVC_NO
+				    AND DLY.END_DT <![CDATA[>=]]> SCH.ATC + 0.0416666    
+				)
+				WHERE  ROUND ( (ENDTIME - STARTTIME) * 24, 2) > 0 -->
+			</if>
+			<if test="reportId != 'RCS01005'">
+				SELECT /* VORLiquidBulk.xml  getVORLiquidDelay CT108 */
+				    DLY.VSL_CALL_ID AS VSLCALLID,
+				    FORMAT(CONVERT(DATE, DLY.WORK_YMD, 112), 'dd/MM/yyyy') AS WORKYMD,
+				    DLY.SHFT_ID AS SHFTID,
+				    (
+				      SELECT SHFT_NM
+				      FROM TMT_SHFT
+				      WHERE SHFT_METH_CD = 'Standard'
+				        AND VLD_YN = 'Y'
+				        AND SHFT_ID = DLY.SHFT_ID
+				    ) AS SHFTNM,
+				    DLY.CG_TP_CD AS CGTPCD,
+				    DLY.SEQ AS SEQ,
+				    DLY.DLY_CD AS DELAYCODE,
+				    (
+				      SELECT DESCR
+				      FROM TMT_DLY_CD
+				      WHERE DLY_CD = DLY.DLY_CD
+				        AND CG_TP = 'LQD'
+				    ) AS DELAYDESC,
+				    FORMAT(DLY.ST_DT, 'dd/MM/yyyy HH:mm') AS STARTTIME,
+				    FORMAT(DLY.END_DT, 'dd/MM/yyyy HH:mm') AS ENDTIME,
+				    CONVERT(VARCHAR, FLOOR(DATEDIFF(MINUTE, DLY.ST_DT, DLY.END_DT) / 60)) + '/' + 
+				    CONVERT(VARCHAR, DATEDIFF(MINUTE, DLY.ST_DT, DLY.END_DT) % 60) AS TIMEHOURMIN,
+				    ROUND(DATEDIFF(MINUTE, DLY.ST_DT, DLY.END_DT) / 60.0, 2) AS TIMEHOURLY,
+				    DLY.ACPT_DLY_YN AS ACCDELAY,
+				    ISNULL(DLY.RMK, ' ') AS REMARK,
+				    FORMAT(ISNULL((DATEDIFF(MINUTE, DLY.ST_DT, DLY.END_DT) / 60.0), 0), '########0.00') AS TOTALHRS
+			  FROM 
+			  	TMT_DLY_SUM DLY
+			  JOIN 
+			  	TMT_VSL_SCH SCH ON DLY.VSL_CALL_ID = SCH.VSL_CALL_ID
+			  WHERE 
+			  	DLY.VSL_CALL_ID = #{vslCallId}
+			  <if test="workYmd != null and workYmd != ''">
+			    AND DLY.WORK_YMD = FORMAT(CONVERT(DATE, #{workYmd}, 103), 'yyyyMMdd')
+			  </if>
+			  <if test="shift != null and shift != ''">
+			    AND DLY.SHFT_ID = #{shift}
+			  </if>
+			  ORDER BY DLY.ST_DT, SHFTNM ASC
+			</if>
+		</select>
+	
+	<!--  ################ DETAIL SCREEN END ######################################### -->
+</mapper>

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="terminalDefinition">
+	
+	<!--  ############################ Query Statement Define ############################# -->
+	<select id="selectTerminalDefinition"  resultType="TerminalDefinitionItem">
+		SELECT /*terminalDefinition.selectTerminalDefinition*/
+	   		TMNL_CD														AS PTYCD, 
+			TMNL_TP_CD 													AS TMNLTPCD,
+			TMNL_NM 													AS ENGPTYNM, 
+			COMP_REG_NO 												AS COMPREGNO, 
+			RPSTV 														AS RPSTVNM, 
+			TEL_NO 														AS TELNO, 
+	        FAX_NO 														AS FAXNO, 
+	        EMAIL 														AS EMAIL, 
+	        WEB_SITE 													AS WEBSITE,
+	        ADDR 														AS ADDR, 
+	        RMK 														AS RMK,
+            LO_LEN 														AS LOLEN,
+            LO_WTH 														AS LOWTH,
+            UNNO_CD 													AS UNNOCD,
+            VERSION 													AS VERSION,
+			FORMAT(CONVERT(DATE, CONTRACT_YEAR, 103), 'dd/MM/yyyy') 	AS CONTRACTYEAR
+	    FROM 
+			TMT_TMNL_DEF
+	    WHERE 
+			TMNL_TP_CD 											= 'OWN'
+	    <if test="ptyCd != null and ptyCd != ''"> 
+       		AND TMNL_CD 										= #{ptyCd}
+	    </if>
+	</select>
+
+	<insert id = "insertTerminalDefinition"  parameterType = "TerminalDefinitionItem">
+		INSERT /*terminalDefinition.insertTerminalDefinition*/
+		INTO TMT_TMNL_DEF (			
+			TMNL_CD, 
+			TMNL_TP_CD, 
+			TMNL_NM,
+			COMP_REG_NO,
+			RPSTV,
+			TEL_NO,
+			FAX_NO,
+			EMAIL,
+			WEB_SITE,
+			ADDR,
+			RMK,
+			LO_LEN,
+			LO_WTH,
+			UNNO_CD,
+			UPDATE_TIME,
+			STAFF_CD,
+			VERSION,
+			CONTRACT_YEAR
+		) VALUES (			
+			#{ptyCd},
+			#{tmnlTpCd},
+			#{engPtyNm},			
+			#{compRegNo},
+			#{rpstvNm},
+			#{telNo},
+			#{faxNo},
+			#{email},			
+			#{webSite},
+			#{addr},
+			#{rmk},
+			#{loLen},
+			#{loWth},
+			#{unnoCd},
+			SYSDATE,
+			#{userId},
+			#{newVersion},
+			CONVERT(DATETIME , #{contractYear}, 103)
+		)
+	</insert>    
+	
+  	<update id="updateTerminalDefinition"  parameterType="TerminalDefinitionItem">
+		UPDATE /*terminalDefinition.updateTerminalDefinition*/
+			TMT_TMNL_DEF 
+		SET
+			<if test="tmnlTpCd != null and tmnlTpCd != ''">
+				TMNL_TP_CD 										= #{tmnlTpCd},
+			</if>
+			<if test="engPtyNm != null and engPtyNm != ''">
+				TMNL_NM 										= #{engPtyNm},
+			</if>
+			<if test="compRegNo != null and compRegNo != ''">
+				COMP_REG_NO 									= #{compRegNo},
+			</if>
+			<if test="rpstvNm != null and rpstvNm != ''">
+				RPSTV 											= #{rpstvNm},
+			</if> 
+			<if test="telNo != null and telNo != ''">
+				TEL_NO 											= #{telNo},
+			</if>	
+			<if test="faxNo != null and faxNo != ''">
+				FAX_NO 											= #{faxNo},
+			</if>
+			<if test="email != null and email != ''">
+				EMAIL 											= #{email},
+			</if>
+			<if test="webSite != null and webSite != ''">
+				WEB_SITE 										= #{webSite},
+			</if>
+			<if test="addr != null and addr != ''">
+				ADDR 											= #{addr}, 
+			</if>
+			<if test="rmk != null and rmk != ''">
+				RMK 											= #{rmk},
+			</if>	
+			<if test="loLen != null and loLen != ''">
+				LO_LEN 											= #{loLen},
+			</if>
+			<if test="loWth != null and loWth != ''">
+				LO_WTH 											= #{loWth},
+			</if>
+			<if test="unnoCd != null and unnoCd != ''">
+				UNNO_CD 										= #{unnoCd},
+			</if>
+			<if test="newVersion != null and newVersion != ''">
+				VERSION 										= #{newVersion},	
+			</if>
+				UPDATE_TIME 									= SYSDATETIME(),
+			<if test="userId != null and userId != ''">
+				STAFF_CD 										= #{userId},
+			</if>
+			<if test="contractYear != null and contractYear != ''">
+			    CONTRACT_YEAR 								    = #{contractYear}
+			</if>		
+		WHERE 
+			TMNL_CD 											= #{ptyCd}
+			AND TMNL_TP_CD 										= 'OWN'
+    </update>     
+</mapper>

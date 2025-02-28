@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:lang="http://www.springframework.org/schema/lang"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/lang
+        http://www.springframework.org/schema/lang/spring-lang.xsd">
+        
+         
+  	<bean id="db1DataSource" class="com.tsb.most.framework.datasource.CustomBasicDataSource" destroy-method="close">
+		<property name="driverClassName"><value>${jdbc.driverClassName}</value></property>
+		<property name="url"><value>${jdbc.db1.url}</value></property>
+		<property name="username"><value>${jdbc.db1.username}</value></property>
+		<property name="password"><value>${jdbc.db1.password}</value></property>
+		<property name="databaseType"><value>${jdbc.db1.databaseType}</value></property>
+	</bean>
+
+	<bean id="mostDataSource" class="com.tsb.most.framework.datasource.RoutingDataSource" >
+		<property name="targetDataSources">
+	      <map>
+	         <entry key="JP_MOST_JPB" value-ref="db1DataSource"/>
+	      </map>
+   		</property>
+   		<property name="defaultTargetDataSource" ref="db1DataSource"/>
+ 	</bean> 
+	<!-- ####### transactionManager setup for MyBatis ######### -->
+  	<bean id="mostTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource"><ref bean="mostDataSource"/></property>
+	</bean>
+	
+	<bean id="mostTxProxyTemplate" abstract="true" class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+		<property name="transactionManager">
+			<ref bean="mostTransactionManager" />
+		</property>		
+		<property name="transactionAttributes">
+			<props>
+				<prop key="process*">PROPAGATION_REQUIRED,ISOLATION_READ_COMMITTED,-Exception</prop>
+				<prop key="insert*">PROPAGATION_REQUIRED,ISOLATION_READ_COMMITTED,-Exception</prop>
+				<prop key="update*">PROPAGATION_REQUIRED,ISOLATION_READ_COMMITTED,-Exception</prop>
+				<prop key="delete*">PROPAGATION_REQUIRED,ISOLATION_READ_COMMITTED,-Exception</prop>
+				<prop key="*">PROPAGATION_REQUIRED,readOnly,-Exception</prop>
+			</props>
+		</property>
+	</bean>
+</beans>

@@ -1,0 +1,467 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Thu Jun 18 09:34:21 ICT 2015-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="companyRegister">
+	
+	<resultMap id="ptrnInfoResult" 		type="companyRegisterItem">
+		<result property="companyCode" 	column="PTNR_CODE"/>
+		<result property="engSnm" 			column="ENG_SNM"/>
+		<result property="ptnrTp"        	column="PTNR_TP"/>
+		<result property="addr" 			column="ADDR"/>
+		<result property="telNo" 			column="TEL_NO"/>
+		<result property="faxNo" 			column="FAX_NO"/>
+		<result property="holdChk" 		column="HOLD_CHK"/>
+		<result property="accountHold" 	column="ACCOUNT_HOLD"/>
+		<result property="representative" 	column="REPRESENTATIVE"/>
+		<result property="taxCd" 			column="TAX_CD"/>
+		
+	</resultMap>	
+	
+	<resultMap id="ptnrTypeResultMap" 		type="companyRegisterItem">
+		<result property="ptnrType"   		column="PTNR_TYPE" />
+	</resultMap>
+	
+	<resultMap id="ptnrShp" 				type="companyRegisterItem">
+		<result property="companyCode" 	column="PTNR_CODE"/> 
+		<result property="ptnrType" 		column="PTNR_TYPE"/>
+		<result property="agencyType" 		column="AGENCY_TYPE"/>  
+		<result property="agencyCode" 		column="AGENCY_CODE"/>
+		<result property="shpNm" 			column="SHP_NM"/>
+	</resultMap>
+	
+	<resultMap	 id="accNoList" 			type="companyRegisterItem">
+		<result property = "companyCode" 	column = "PTNR_CODE"/> 
+		<result property = "ptnrType" 		column = "PTNR_TYPE"/>
+		<result property = "accNo"			column = "ACCOUNT_NO"/>
+		<result property = "paymentType"	column = "PAYMENT_TYPE"/>
+		<result property = "paymentTerm"	column = "PAYMENT_TERM"/>
+		<result property = "tmnl"			column = "TERMINAL"/>
+		<result property = "suspendChk"	column = "SUSPEND_ACCOUNT"/>
+		<result property = "rentalChk"		column = "RENTAL_ACCOUNT"/>
+	</resultMap>
+	
+	<select id="selectCompanyRegisterList" parameterType="companyRegisterParm" resultMap="ptrnInfoResult">
+		<if test="pageNo != 0"> 
+        	SELECT /*companyRegister.selectCompanyRegisterList*/
+            	*
+        	FROM (
+        		SELECT
+					inner_query.*,
+					ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num
+        	    FROM (
+		</if>
+				<include refid="getPtnrList"/>
+		<if test="pageNo != 0"> 
+				) inner_query
+			) inner_query
+			WHERE
+				inner_query.row_num <![CDATA[>]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT) - 1) * CAST(#{sizePerPage} AS INT)
+		  		AND inner_query.row_num <![CDATA[<=]]> (CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT)) * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<select id="selectCompanyRegisterListCount" parameterType="companyRegisterParm" resultType="java.lang.String" >
+    	SELECT /*companyRegister.selectCompanyRegisterListCount*/
+    	    COUNT(*)
+    	FROM
+    	    (<include refid="getPtnrList"/>)  			AS selectCompanyRegisterListCount
+	</select>
+	
+	<sql id="getPtnrList">
+		SELECT /*companyRegister.getPtnrList*/
+			PTNR.PTNR_CODE,
+			PTNR.ENG_SNM,
+			PTNR.ADDR, 
+			PTNR.TEL_NO, 
+        	PTNR.FAX_NO, 
+        	PTNR.HOLD_CHK, 
+        	PTNR.ACCOUNT_HOLD,
+			DBO.F_PTNR_TYPE_LIST((PTNR.PTNR_CODE), ',')	PTNR_TP,
+            PTNR.REPRESENTATIVE,
+	        PTNR.TAX_CD
+        FROM
+			(SELECT 
+				A.AGENCY_CODE 							AS PTNR_CODE,
+				A.PTNR_TYPE, 
+			 	A.ENG_SNM, 
+			 	A.ADDR, 
+			 	A.TEL_NO, 
+			 	A.ACC_NO, 
+	            A.FAX_NO, 
+	            A.HOLD_CHK, 
+	            A.ACCOUNT_HOLD , 
+	            A.REG_NO, 
+	            A.C_STATUS, 
+	            A.P_STATUS,
+	            A.INS_DT,
+	            A.REPRESENTATIVE,
+	            A.TAX_CD,
+	            A.BAL
+	        FROM
+	            TMT_AGENCY_INFO 						A
+	        WHERE
+	            A.PTNR_TYPE 							= 'SHA'
+
+	        UNION ALL
+
+	        SELECT 
+	        	B.PTNR_CODE, 
+	        	B.PTNR_TYPE, 
+	        	B.ENG_SNM, 
+	        	B.ADDR, 
+	        	B.TEL_NO, 
+	        	B.ACC_NO, 
+	            B.FAX_NO, 
+	            B.HOLD_CHK, 
+	            B.ACCOUNT_HOLD , 
+	            B.REG_NO,
+	            B.C_STATUS, 
+	            B.P_STATUS,
+	            B.INS_DT,
+	            B.REPRESENTATIVE,
+	            B.TAX_CD,
+	            B.BAL
+	        FROM
+	            TMT_PTNR 								B
+	        WHERE
+	            B.PTNR_TYPE 							!= 'SHA'
+				AND NOT EXISTS (
+					SELECT
+						1
+					FROM
+						TMT_AGENCY_INFO
+					WHERE
+						AGENCY_CODE 					= B.PTNR_CODE
+						AND PTNR_TYPE 					= 'SHA'
+					)
+	        	AND B.PTNR_TYPE = (SELECT
+										MIN(PTNR_TYPE)
+									FROM
+										TMT_PTNR
+									WHERE
+										PTNR_CODE 		= B.PTNR_CODE)
+			) 													PTNR
+			<if test="accNo != null and accNo != ''">
+				LEFT JOIN
+					TMT_PTNR_ACCOUNT							TPA
+				ON
+					PTNR.PTNR_CODE								= TPA.PTNR_CODE
+	        		AND PTNR.PTNR_TYPE							= TPA.PTNR_TYPE
+			</if>
+		<where>
+			<if test="companyCode != null and companyCode != ''">
+				AND UPPER(PTNR.PTNR_CODE) LIKE '%' + UPPER(#{companyCode}) + '%'
+			</if>
+			<if test="ptnrType!='' and ptnrType != null">
+				AND PTNR.PTNR_CODE IN (SELECT
+        									PTNR_CODE
+        								FROM
+        									TMT_PTNR
+        								WHERE
+        									PTNR_TYPE 	= #{ptnrType}
+
+        								UNION ALL
+
+        								SELECT
+        									AGENCY_CODE
+        								FROM
+        									TMT_AGENCY_INFO
+        								WHERE
+        									PTNR_TYPE 	= #{ptnrType})
+			</if>
+			<if test="engSnm!='' and engSnm != null">
+				AND UPPER(PTNR.ENG_SNM) LIKE '%' + UPPER(#{engSnm}) + '%'
+			</if>
+			<if test="regTimeFrom != null and regTimeFrom != ''">
+				AND FORMAT(#{regTimeFrom} + ' 00:00:01', 'dd/MM/yyyy HH24:MI:SS') <![CDATA[ <= ]]> (PTNR.INS_DT)
+                AND (PTNR.INS_DT) <![CDATA[ <= ]]> FORMAT(#{regTimeFrom} + ' 23:59:59', 'dd/MM/yyyy HH24:MI:SS')
+			</if>
+
+			<if test= "checkMember eq 'N'.toString()">
+			    AND SUBSTRING(PTNR.PTNR_CODE, 0, 4) 	= 'PTNR'
+        		AND LEN(PTNR.PTNR_CODE) 				= 10
+			</if>		
+			<if test="accNo != null and accNo != ''">
+				AND TPA.ACCOUNT_NO						LIKE '%' + UPPER(#{accNo}) + '%'
+			</if>
+			<if test="balRangeFrom != null and balRangeFrom != ''">
+				AND PTNR.BAL							<![CDATA[ >= ]]> CONVERT(NUMERIC(15,3), #{balRangeFrom})
+			</if>
+			<if test="balRangeTo != null and balRangeTo != ''">
+				AND PTNR.BAL							<![CDATA[ < ]]> CONVERT(NUMERIC(15,3), #{balRangeTo})
+			</if>
+		</where>  		
+		GROUP BY 
+			PTNR.PTNR_CODE, 
+			PTNR.PTNR_TYPE, 
+			PTNR.ENG_SNM, 
+			PTNR.ADDR, 
+			PTNR.TEL_NO, 
+			PTNR.ACC_NO, 
+        	PTNR.FAX_NO, 
+        	PTNR.HOLD_CHK, 
+        	PTNR.ACCOUNT_HOLD, 
+        	PTNR.REG_NO, 
+        	PTNR.C_STATUS, 
+        	PTNR.P_STATUS,
+        	PTNR.INS_DT,
+        	PTNR.REPRESENTATIVE,
+         	PTNR.TAX_CD
+	</sql>
+	
+	<select id="selectAgencyDetail" parameterType="companyRegisterParm" resultType="companyRegisterItem">
+		SELECT /*companyRegister.selectAgencyDetail*/
+			AGENCY_CODE 								AS companyCode,
+			AGENCY_CODE	 								AS ptnrCode,
+			AGENCY_CODE 								AS oldPtnrCode,
+			PTNR_TYPE 									AS ptnrType,
+			ENG_SNM 									AS engSnm,
+            REG_NO 										AS regNo,
+            REPRESENTATIVE 								AS representative,
+            TEL_NO 										AS telNo,
+            FAX_NO 										AS faxNo,
+            ADDR 										AS addr,
+            ZIP_CD 										AS zipCd,
+            AGENCY 										AS agency,
+            CURR 										AS curr,
+            PTNR_LEVEL 									AS ptnrLevel,
+            BERTH_NO 									AS berthNo,
+            PORT_OPR 									AS portOpr,
+            USER_CODE 									AS userCode,
+            CNSG_GROUP 									AS cnsgGroup,
+            HOLD_CHK 									AS holdChk,
+            OBHOLD_CHK 									AS obholdChk,
+            BOND_CHK 									AS bondChk,
+            PAYMENT_TYPE 								AS paymentType,
+            STAFF_CD 									AS staffCd,
+			FORMAT(UPDATE_TIME, 'dd-MM-yyyy') 			AS updDt,
+			FORMAT(CUSTOM_SDATE, 'MM-dd-yyyy')			AS customSdate,
+			FORMAT(CUSTOM_EDATE, 'MM-dd-yyyy')			AS customEdate,
+			FORMAT(CUSTOM_SDATE_NEW, 'dd-MM-yyyy')		AS customSdateNew,
+			FORMAT(CUSTOM_EDATE_NEW, 'dd-MM-yyyy')		AS customEdateNew,
+            ACCOUNT_HOLD 								AS accountHold,
+            ACC_NO 										AS accNo,
+            EMAIL 										AS email,
+            CREDIT_LIMIT 								AS creditLimit,
+            DEPOSIT_LIMIT								AS depositLimit,
+            C_STATUS 									AS companyStatus,
+       		P_STATUS 									AS profileStatus,
+       		CUST_CD										AS custCd,
+       		TAX_CD										AS taxCd,
+       		TIN											AS tin,
+			SST_NO										AS sstNo,
+			BAL											AS bal,
+			FORMAT(GST_REG_DT, 'dd-MM-yyyy') 			AS gstRegDt, 
+			FORMAT(GST_APPLY_DT, 'dd-MM-yyyy') 			AS gstApplyDt, 			
+			FORMAT(GST_EXPIRED_DT, 'dd-MM-yyyy') 		AS gstExpiredDt,
+			RMK											AS rmk,
+			CUSTOM_REF									AS customRef,
+			FINANCE_GRP									AS financeGrp,
+			GST_REF_ID									AS gstRefId,
+			GST_COMM_ID									AS gstCommId,
+			GST_STAT_CD									AS gstStatCd
+		FROM
+		    TMT_AGENCY_INFO 							
+		WHERE
+		    AGENCY_CODE 								= UPPER(#{companyCode})
+	</select>
+	
+	<select id="selectPtnrTypeList" parameterType="companyRegisterItem" resultMap="ptnrTypeResultMap">
+		SELECT /*companyRegister.selectPtnrTypeList*/
+			PTNR_TYPE 
+		FROM
+		    (SELECT
+		    	PTNR_TYPE,
+		    	PTNR_CODE
+		    FROM
+		        TMT_PTNR
+
+		    UNION ALL
+
+		    SELECT
+		        PTNR_TYPE,
+		        AGENCY_CODE
+		    FROM
+		        TMT_AGENCY_INFO) 						PTNR
+		<where>
+			PTNR_CODE 									= UPPER(#{companyCode})
+		</where>
+	</select>
+	
+	<select id="selectPtnrDetail" parameterType="companyRegisterParm" resultType="companyRegisterItem">
+		SELECT /*companyRegister.selectPtnrDetail*/
+			PTNR_CODE 									AS companyCode,
+			PTNR_CODE 									AS oldPtnrCode,
+			PTNR_TYPE 									AS ptnrType,
+			ENG_SNM 									AS engSnm,
+            REG_NO 										AS regNo,
+            REPRESENTATIVE 								AS representative,
+            TEL_NO 										AS telNo,
+            FAX_NO 										AS faxNo,
+            ADDR 										AS addr,
+            ZIP_CD 										AS zipCd,
+            HOLD_CHK 									AS holdChk,
+            PAYMENT_TYPE 								AS paymentType,
+            STAFF_CD 									AS staffCd,
+			FORMAT(UPDATE_TIME, 'dd-MM-yyyy')			AS updDt,
+            ACCOUNT_HOLD 								AS accountHold,
+            EMAIL 										AS email,
+            CREDIT_LIMIT 								AS creditLimit,
+            DEPOSIT_LIMIT								AS depositLimit,
+            C_STATUS 									AS companyStatus,
+       		P_STATUS 									AS profileStatus,
+       		CUST_CD										AS custCd,
+       		TAX_CD										AS taxCd,
+       		FORMAT(CUSTOM_SDATE, 'MM-dd-yyyy')			AS customSdate,
+			FORMAT(CUSTOM_EDATE, 'MM-dd-yyyy')			AS customEdate,
+			FORMAT(CUSTOM_SDATE_NEW, 'dd-MM-yyyy')		AS customSdateNew,
+			FORMAT(CUSTOM_EDATE_NEW, 'dd-MM-yyyy')		AS customEdateNew,
+			TIN											AS tin,
+			SST_NO										AS sstNo,
+			BAL											AS bal,
+			FORMAT(GST_REG_DT, 'dd-MM-yyyy') 			AS gstRegDt, 
+			FORMAT(GST_APPLY_DT, 'dd-MM-yyyy') 			AS gstApplyDt, 			
+			FORMAT(GST_EXPIRED_DT, 'dd-MM-yyyy') 		AS gstExpiredDt,
+			RMK											AS rmk,
+			CUSTOM_REF									AS customRef,
+			FINANCE_GRP									AS financeGrp,
+			GST_REF_ID									AS gstRefId,
+			GST_COMM_ID									AS gstCommId,
+			GST_STAT_CD									AS gstStatCd
+		FROM
+		    TMT_PTNR 									
+		WHERE
+		    PTNR_CODE 									= UPPER(#{companyCode})
+			AND PTNR_TYPE 								= #{ptnrType}
+	</select>	
+	
+	<select id="selectShpList" parameterType="companyRegisterParm" resultMap="ptnrShp">
+		SELECT /*companyRegister.selectShpList*/
+			AGNCY.PTNR_CODE,
+			AGNCY.PTNR_TYPE,
+			AGNCY.AGENCY_CODE,
+			'SHA'										AS AGENCY_TYPE,
+			PTNR.ENG_SNM 								AS SHP_NM
+		FROM
+		    TMT_PTNR_AGENCY 							AGNCY
+		LEFT JOIN
+		    TMT_PTNR 									PTNR
+		    	ON AGNCY.PTNR_CODE 						= PTNR.PTNR_CODE
+		WHERE
+		    AGNCY.AGENCY_CODE 							= UPPER(#{companyCode})
+			AND PTNR.PTNR_TYPE 							= 'SHP'
+	</select>
+	
+	<select id="selectPtnrImageDetail" parameterType="companyRegisterParm" resultType="companyRegisterItem">
+		SELECT /*companyRegister.selectPtnrImageDetail*/
+			PTNR_IMG 									AS ptnrImage
+		FROM
+		    TMT_PTNR
+		WHERE
+		    PTNR_CODE 									= #{companyCode}
+		  	AND PTNR_TYPE 								= #{ptnrType}
+	</select>
+	
+	<select id="selectAgencyImageDetail" parameterType="companyRegisterParm" resultType="companyRegisterItem">
+		SELECT /*companyRegister.selectAgencyImageDetail*/
+			PTNR_IMG 									AS ptnrImage 
+		FROM
+		    TMT_AGENCY_INFO
+		WHERE
+		    AGENCY_CODE 								= #{companyCode}
+	</select>
+	
+	<select id="selectPartnerCode"  parameterType="companyRegisterParm" resultType="companyRegisterItem">
+		SELECT /*companyRegister.selectPartnerCode*/
+			PTNR.PTNR_CODE            					PTNRCODE,
+			ENG_SNM          		 					ENGPTYNM,
+			(SELECT
+			    S_CD_NM
+			FROM
+			    TMT_CD_MSTD
+			WHERE
+				L_CD 									= 'CM'
+				AND M_CD 								= 'PTNRTP'
+				AND S_CD 								= PTNR.PTNR_TYPE
+			) 											AS PTYDIVNAME
+	   		<if test="ptnrType != 'VDPR'">
+	   			,PTNR_TYPE         		 				ptnrType
+	   			,ADDR                      				ADDR
+	   			,REPRESENTATIVE            				REPRESENTATIVE
+	   			,HOLD_CHK					 			HOLDCHK
+	   			,ACCOUNT_HOLD				 			ACCOUNTHOLD
+	   		</if>
+	 	FROM
+	 	    TMT_PTNR PTNR
+		WHERE
+		    1 = 1
+	    <if test="ptnrType != null and ptnrType != ''">
+			AND
+	        <if test="ptnrType == 'VDPR'">
+				PTNR_TYPE IN ('STV','CTT','TRM')
+			</if>
+			<if test="ptnrType != 'VDPR'">
+				PTNR_TYPE 								= #{ptnrType}
+			</if>
+		</if>
+		<if test="reqType == 'CD'">
+			<if test="ptnrCode != null and ptnrCode != ''">
+        		AND PTNR.PTNR_CODE LIKE #{ptnrCode} + '%'
+		  	</if>
+		</if>
+		<if test="reqType == 'NM'">
+			<if test="engPtyNm != null and engPtyNm != ''">
+        		AND (ENG_SNM LIKE #{engPtyNm} + '%' OR LOWER(ENG_SNM) LIKE LOWER(#{engPtyNm}) + '%')
+		  	</if>
+		</if>
+		GROUP BY 
+			PTNR.PTNR_CODE,
+		    ENG_SNM,
+		    PTNR_TYPE,
+		    ADDR,
+		    REPRESENTATIVE,
+		    HOLD_CHK,
+		    ACCOUNT_HOLD
+		ORDER BY
+		    ENGPTYNM ASC
+	</select>
+	
+	<!--s-MGR-008 PLUS – Company Register List and Detail screen -->
+	<select id="selectAccountNoList" parameterType="companyRegisterParm" resultMap="accNoList">
+		SELECT /*companyRegister.selectAccountNoList*/
+			TPA.PTNR_CODE,
+			TPA.PTNR_TYPE,
+			TPA.ACCOUNT_NO,
+			CASE TPA.PAYMENT_TYPE
+				WHEN 'C' THEN 'Credit'
+				ELSE 'Cash'
+			END													AS PAYMENT_TYPE,
+			TERMINAL,
+			TPA.PAYMENT_TERM,
+			TPA.SUSPEND_ACCOUNT,
+			TPA.RENTAL_ACCOUNT
+		FROM
+		    TMT_PTNR_ACCOUNT 									TPA
+		<choose>
+			<when test="ptnrType != null and ptnrType.equals('SHA')">
+				INNER JOIN 
+					 TMT_AGENCY_INFO							TAI
+				ON
+					TAI.AGENCY_CODE								= TPA.PTNR_CODE
+				WHERE
+					TPA.PTNR_CODE 								= #{companyCode}
+					AND TPA.PTNR_TYPE 							= #{ptnrType}
+			</when>
+			<otherwise>
+				INNER JOIN
+					TMT_PTNR									TP
+						ON TPA.PTNR_CODE						= TP.PTNR_CODE
+						AND TPA.PTNR_TYPE						= TP.PTNR_TYPE
+				WHERE
+					TPA.PTNR_CODE 								= #{companyCode}
+					AND TPA.PTNR_TYPE 							= #{ptnrType}
+			</otherwise>
+		</choose>
+	</select>
+	<!--e-MGR-008 PLUS – Company Register List and Detail screen -->
+</mapper>

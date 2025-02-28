@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+<mapper namespace="vesselDelay">
+	<sql id="getDelayRecordList">
+		SELECT 
+				A.VSL_CALL_ID AS VSLCALLID,
+				NVL(A.SEQ, 0)         AS SEQ,
+				TO_CHAR(A.ST_DT, 'DD/MM/YYYY HH24:MI')       AS STDT,
+				TO_CHAR(A.END_DT, 'DD/MM/YYYY HH24:MI')      AS ENDDT,
+				TO_CHAR(A.INPT_DT, 'DD/MM/YYYY')       AS INPTDT,
+				NVL(A.SHFT_ID, '')     AS SHFTID,
+				NVL((SELECT SHFT_NM AS SHFTNM
+				                     FROM TMT_SHFT
+				                     WHERE SHFT_METH_CD = 'Standard' AND VLD_YN = 'Y' AND SHFT_ID = A.SHFT_ID), ' ') AS SHFTNM,
+				NVL(A.HATCH_NO, '')    AS HATCHNO,
+				NVL(A.HATCH_DRT_CD, '')    AS HATCHDRTCD,
+				NVL(A.EQ_NO, '')       AS EQNO,
+				NVL(A.RSN_CD, '')      AS RSNCD,
+				DECODE(NVL(A.ACPT_YN, 'N'), 'N', 'N', 'Y')     AS ACPTYN,
+				A.RMK         AS RMK,
+				(
+					SELECT DESCR FROM TMT_DLY_CD WHERE DLY_CD = A.RSN_CD <!-- and CG_TP = 'BBK' -->
+				) AS RSNCDNM,
+				TO_CHAR( ROUND(NVL(F_INTERVAL_OF_HOUR('NR', END_DT,ST_DT) , 0)*100)/100  , '99999990.00')  AS TOTALHRS,
+				VERIFY_STATUS				AS VERIFYSTATUS,
+				VERIFY_BY 					AS VERIFYBY,
+				TO_CHAR(VERIFY_DATE,'DD/MM/YYYY HH24:MI') 	  AS VERIFYDATE
+			   	, A.OPE_COMP AS CONTRACTOR
+		FROM 	TMT_DLY_BRK A
+		WHERE	A.VSL_CALL_ID = #{vslCallId}
+				<if test="shftId != null and shftId != ''">
+	   				AND
+					A.SHFT_ID = #{shftId}
+				</if>
+				<if test="hatchNo != null and hatchNo != ''">
+	   				AND
+					A.HATCH_NO = #{hatchNo}
+				</if>
+			   	<if test="stDt != null and stDt != ''">
+	      			AND
+					TO_CHAR(A.ST_DT, 'DD/MM/YYYY HH24:MI') = #{stDt}
+				</if>
+
+		ORDER BY A.ST_DT ASC
+	</sql>
+		
+	<select id="selectEqNoList" parameterType = "vesselDelayParm" resultType="vesselDelayItem">
+			SELECT EQNO, EQNM, SUBSTR (MAX (SYS_CONNECT_BY_PATH (HATCHNO, ',')), 2) AS HATCHNO
+      		FROM (
+				SELECT	/*selectEqNoList*/ 
+						D.EQ_FAC_NO AS EQNO
+						, E.EQ_FAC_NM AS EQNM
+						,D.HATCH_NO AS HATCHNO
+	                    ,ROW_NUMBER ()
+	                      OVER (PARTITION BY D.EQ_FAC_NO ORDER BY D.HATCH_NO)
+	                      CNT
+	             FROM 	TMT_VSL_OPE_RPT V, TMT_VSL_OPE_RPT_DTL D, TMT_EQ_FAC E
+	             WHERE 	V.VSL_CALL_ID = D.VSL_CALL_ID(+)
+	                    AND      V.WORK_YMD = D.WORK_YMD(+)
+	                    AND      V.SHFT_ID = D.SHFT_ID(+)
+	                    AND D.EQ_FAC_NO = E.EQ_FAC_NO
+	                    AND D.EQ_FAC_NO IS NOT NULL
+						<if test="vslCallId != null and vslCallId != ''">
+							AND V.VSL_CALL_ID = #{vslCallId}
+						</if>
+						<if test="stDt != null and stDt != ''">
+							AND V.WORK_YMD = TO_CHAR( TO_DATE(#{stDt},'DD/MM/YYYY'), 'YYYYMMDD')
+						</if>
+						<if test="shftId != null and shftId != ''">
+							AND V.SHFT_ID = #{shftId}
+						</if>
+						<if test="hatchNo != null and hatchNo != ''">
+							AND D.HATCH_NO = #{hatchNo}
+						</if>
+				GROUP BY D.EQ_FAC_NO,
+	                   E.EQ_FAC_NM,
+	                   D.HATCH_NO
+            ) A
+			START WITH CNT = 1
+			CONNECT BY PRIOR CNT = CNT - 1 AND PRIOR EQNO = EQNO
+			  GROUP BY EQNO, EQNM
+	</select>
+
+	<select id="selectHatchNoList" parameterType = "vesselDelayParm" resultType="vesselDelayItem">
+		SELECT	/*selectHatchNoList*/ 
+				D.HATCH_NO HATCHNO,
+				D.HATCH_NO SCD,
+				D.HATCH_NO SCDNM
+		 FROM TMT_VSL_OPE_RPT V, TMT_VSL_OPE_RPT_DTL D
+		 WHERE V.VSL_CALL_ID = D.VSL_CALL_ID(+)
+				AND	  V.WORK_YMD = D.WORK_YMD(+)
+				AND	  V.SHFT_ID = D.SHFT_ID(+)
+				AND D.HATCH_NO IS NOT NULL
+				<if test="vslCallId != null and vslCallId != ''">
+					AND V.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="stDt != null and stDt != ''">
+					AND V.WORK_YMD = TO_CHAR( TO_DATE(#{stDt},'DD/MM/YYYY'), 'YYYYMMDD')
+				</if>
+				<if test="shftId != null and shftId != ''">
+					AND V.SHFT_ID = #{shftId}
+				</if>
+		GROUP BY D.HATCH_NO
+		ORDER BY D.HATCH_NO ASC
+	</select>
+	
+	<select id="selectVesselDelayList" parameterType="vesselDelayParm" resultType="vesselDelayItem">
+	 	<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getDelayRecordList"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	
+	<select id="selectVesselDelayListCount" parameterType="vesselDelayParm" resultType="java.lang.String">
+	 	SELECT COUNT(*)
+          FROM (<include refid="getDelayRecordList"/>)
+	</select>
+	
+	<select id="selectAcceptedDelayCode" parameterType="vesselDelayParm" resultType="vesselDelayItem">
+		SELECT 	DLY_CD             	 AS RSNCD,
+		       	DESCR        		 AS RSNCDNM,
+		       	DECODE(NVL(CHAG_YN, 'N'), 'N', 'N', 'Y')	AS 	ACPTYN
+		FROM 	TMT_DLY_CD
+		WHERE 	1=1
+				<if test="rsnCd != null and rsnCd != ''">
+	   				AND
+					DLY_CD = #{rsnCd}
+				</if>
+				<if test="bulkTp != null and bulkTp != ''">
+	   				AND
+					CG_TP = #{bulkTp}
+				</if>
+	</select>
+	
+	<select id="selectDelayCodeList"  parameterType="codeMasterParm" resultType="codeMasterItem">
+		SELECT 	DLY_CD             	 AS SCD,
+		       	DESCR        		 AS SCDNM,
+			   	DECODE(NVL(CHAG_YN, 'N'), 'N', 'N', 'Y')	AS 	ACPTYN	
+		FROM 	TMT_DLY_CD	
+		WHERE 	1=1  
+				<if test="tyCd == 'CD'">
+					<if test="scd != null and scd != ''">
+    		 			AND DLY_CD LIKE  #{scd} || '%'
+					</if>
+				</if>
+				<if test="col1 != null and col1 != ''"> 		<!--For HHT-->
+    				AND DLY_CATG_CD =  #{col1} 
+				</if>
+				<if test="tyCd == 'NM'">
+					<if test="scd != null and scd != ''">
+     					AND UPPER(DESCR) LIKE  UPPER(#{scd} || '%')
+					</if>
+				</if>
+				<if test="lcd != null and lcd != ''">
+    				AND
+					<if test="lcd == 'LIQUIQ'">
+						CG_TP = 'LQD'
+					</if>
+					<if test="lcd != 'LIQUIQ'">
+						<![CDATA[ CG_TP <>  'LQD'
+						]]> 
+					</if>
+				</if>
+		ORDER BY DLY_CD, DESCR
+	</select>
+	
+	<insert id="insertdelayRecordItems" parameterType="vesselDelayItem">
+		INSERT INTO TMT_DLY_BRK(
+			VSL_CALL_ID,
+			SEQ,
+			ST_DT,
+			END_DT,
+			INPT_DT,
+			SHFT_ID, 
+			HATCH_NO,
+			HATCH_DRT_CD,
+			EQ_NO,
+			RSN_CD,
+			ACPT_YN,
+			RMK,
+			UPDATE_TIME, 
+			STAFF_CD
+			,OPE_COMP
+		)VALUES(
+			#{vslCallId},
+			(SELECT DECODE(MAX(SEQ), NULL, 1, MAX(SEQ)+1) FROM TMT_DLY_BRK),
+			TO_DATE(#{stDt}, 'DD/MM/YYYY HH24:MI:SS'),
+			TO_DATE(#{endDt}, 'DD/MM/YYYY HH24:MI:SS'),
+			TO_DATE(#{inptDt}, 'DD/MM/YYYY'),
+			#{shftId},
+			#{hatchNo},
+			#{hatchDrtCd},
+			#{eqNo},
+			#{rsnCd},
+			DECODE(#{acptYN},'N','N','Y'),
+			#{rmk},
+			SYSDATE,
+			DECODE(#{userId}, NULL, 'Unknown', #{userId})
+			, #{contractor}
+		)
+		
+	</insert>
+	
+	<update id="updatedelayRecordItemsVerify"  parameterType="vesselDelayItem">
+		UPDATE 	TMT_DLY_BRK 
+	        SET VERIFY_STATUS =  #{verifyStatus},
+	            VERIFY_BY = #{verifyBy},
+	            VERIFY_DATE = SYSDATE,
+	            STAFF_CD = #{verifyBy},
+			    UPDATE_TIME = sysdate            
+        WHERE 	VSL_CALL_ID = #{vslCallId}
+               	AND SEQ = #{seq}
+	</update>
+	
+	<delete id="deletedelayRecordItems"  parameterType="vesselDelayItem">
+		DELETE 
+		FROM 	TMT_DLY_BRK
+		WHERE 	VSL_CALL_ID = #{vslCallId}
+		  		AND  	SEQ = #{seq}		
+	</delete>
+	
+	<update id="updatedelayRecordItems"  parameterType="vesselDelayItem">
+		UPDATE TMT_DLY_BRK
+		  SET   ST_DT 	= TO_DATE(#{stDt}, 'DD/MM/YYYY HH24:MI:SS'),		  	
+				END_DT  = TO_DATE(#{endDt}, 'DD/MM/YYYY HH24:MI:SS'),
+				INPT_DT = TO_DATE(#{inptDt}, 'DD/MM/YYYY'),
+				SHFT_ID = #{shftId},
+				HATCH_NO=#{hatchNo},
+				HATCH_DRT_CD=#{hatchDrtCd},
+				EQ_NO=#{eqNo},
+				RSN_CD=#{rsnCd},
+				ACPT_YN=DECODE(#{acptYN},'N','N','Y'),
+				RMK=#{rmk},
+				UPDATE_TIME= SYSDATE,
+				STAFF_CD = DECODE(#{userId}, NULL, 'Unknown', #{userId})
+				,OPE_COMP = #{contractor}
+		 WHERE 	VSL_CALL_ID = #{vslCallId}
+		  		AND  	SEQ = #{seq}		
+	</update>
+		
+</mapper>
+
+

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Thu Jun 18 08:43:11 ICT 2015-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="countryCode">
+
+	<resultMap id="countryCodeItemList" type="countryCodeItem">
+		<result property="cntryCd" column="CNTRY_CD"/>
+		<result property="cntryNm" column="CNTRY_NM"/>
+		<result property="isEuro" column="EU_YN"/>
+		<result property="flagState" column="FLAG_STATE"/>
+	</resultMap>
+	
+	<select id="selectContryCode" parameterType="countryCodeParm" resultMap="countryCodeItemList">
+		<if test="pageNo != 0"> 
+        	SELECT /* countryCode.selectContryCode */
+        		* 
+			FROM 
+				(SELECT 
+					inner_querry.*, ROW_NUMBER() OVER(ORDER BY UPPER(CNTRY_NM) ASC) row_num 
+				FROM ( 
+		</if>
+				<include refid="getContryCode"/>
+		<if test="pageNo != 0"> 
+				)inner_querry 
+			)inner_querry 
+			WHERE 
+				inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	 
+	<select id="selectContryCodeCount" parameterType="countryCodeParm" resultType="java.lang.String">
+		SELECT /* countryCode.selectContryCodeCount */
+			COUNT(*)
+    	FROM 
+			(<include refid="getContryCode"/>) AS getContryCode
+	</select>
+	
+	<sql id="getContryCode" >
+		SELECT /* countryCode.getContryCode */
+			CNTRY_CD 				AS	CNTRY_CD,
+			CNTRY_NM 				AS CNTRY_NM
+		FROM 
+			TMT_CNTRY_MST
+		<where>
+			1 = 1
+			<if test="cntryCd != null and cntryCd != ''">
+				AND CNTRY_CD LIKE '%' + #{cntryCd} + '%'
+			</if>
+			<if test="cntryNm != null and cntryNm != ''">
+				AND CNTRY_NM LIKE '%' + #{cntryNm} + '%'
+			</if>
+		</where>
+    	<!-- ORDER BY 
+			UPPER(CNTRY_NM) ASC
+		OFFSET 
+			(CASE WHEN #{pageNo} = '0' THEN 0 ELSE CAST(#{pageNo} AS INT) - 1 END) * CAST(#{sizePerPage} AS INT) ROWS
+		FETCH 
+			NEXT CAST(#{sizePerPage} AS INT) ROWS ONLY -->
+	</sql>
+	 
+	<select id="checkContryCode" parameterType="CountryCodeItem" resultType="java.lang.String">
+		SELECT /* countryCode.checkContryCode */
+			'1' 
+		FROM 
+			TMT_CNTRY_MST
+		WHERE 
+			CNTRY_CD 				= #{cntryCd}
+	</select>
+	
+	<select id="countryCodeDuplicateCheck" parameterType="countryCodeParm" resultType="countryCodeItem">
+	 	SELECT /* countryCode.countryCodeDuplicateCheck */
+	 		CNTRY_CD cntryCd
+		FROM 
+			TMT_CNTRY_MST
+		WHERE 
+			CNTRY_CD 				= #{cntryCd}
+	 </select>
+	
+	<insert id="insertContryCodeItem" parameterType="countryCodeItem">
+		INSERT /* countryCode.insertContryCodeItem */
+		INTO TMT_CNTRY_MST (
+			CNTRY_CD,
+			CNTRY_NM,
+			STAFF_CD,
+			UPDATE_TIME
+		) VALUES (
+			#{cntryCd},
+			#{cntryNm},
+			#{userId},
+			GETDATE()
+		)
+	</insert>
+
+	<update id="updateContryCodeItem" parameterType="countryCodeItem">
+		UPDATE /* countryCode.updateContryCodeItem */
+			TMT_CNTRY_MST 
+		SET 
+			CNTRY_CD 				= #{cntryCd},
+			CNTRY_NM 				= #{cntryNm},
+			STAFF_CD 				= #{userId},
+			UPDATE_TIME 			= GETDATE()
+		WHERE 
+			CNTRY_CD 				= #{cntryCd}
+	</update>
+
+	<delete id="deleteContryCodeItem" parameterType="countryCodeItem">
+		DELETE /* countryCode.deleteContryCodeItem */
+		FROM 
+			TMT_CNTRY_MST
+		WHERE 
+			CNTRY_CD 				= #{cntryCd}
+	</delete>
+	
+</mapper>

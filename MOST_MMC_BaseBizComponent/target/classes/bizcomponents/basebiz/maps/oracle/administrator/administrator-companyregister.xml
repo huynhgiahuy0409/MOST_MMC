@@ -1,0 +1,874 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Thu Jun 18 09:34:21 ICT 2015-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="companyRegister">
+	
+	<resultMap id="ptrnInfoResult" type="companyRegisterItem">
+		<result property="companyCode" 		column="PTNR_CODE"/>
+		<result property="engSnm" 			column="ENG_SNM"/>
+		<result property="ptnrTp"        	column="PTNR_TP"/>
+		<result property="addr" 			column="ADDR"/>
+		<result property="telNo" 			column="TEL_NO"/>
+		<result property="faxNo" 			column="FAX_NO"/>
+		<result property="holdChk" 			column="HOLD_CHK"/>
+		<result property="accountHold" 		column="ACCOUNT_HOLD"/>
+		<result property="representative" 	column="REPRESENTATIVE"/>
+		<result property="taxCd" 			column="TAX_CD"/>
+		
+	</resultMap>	
+	
+	<resultMap id="ptnrTypeResultMap" type="companyRegisterItem">
+		<result property="partnerType"   	column="PTNR_TYPE" />
+	</resultMap>
+	
+	<resultMap id="ptnrShp" type="companyRegisterItem">
+		<result property="companyCode" 		column="PTNR_CODE"/> 
+		<result property="ptnrType" 		column="PTNR_TYPE"/>
+		<result property="splType" 			column="PTNR_LEVEL"/>  
+		<result property="agencyCode" 		column="AGENCY_CODE"/>
+		<result property="shpNm" 			column="SHP_NM"/>
+	</resultMap>
+	
+	<resultMap 	id="codeMasterSmallCodeList" type="companyRegisterItem">
+		<result property = "lcd"			column = "L_CD"/>
+		<result property = "lcdNm"			column = "L_CD_NM"/>
+		<result property = "mcd"			column = "M_CD"/>
+		<result property = "mcdNm"			column = "M_CD_NM"/>
+		<result property = "scd"			column = "S_CD"/>
+		<result property = "scdNm"			column = "S_CD_NM"/>
+		<result property = "scdDesc"		column = "S_CD_DESC"/>
+		<result property = "useYn"			column = "S_CD_USE"/>
+	</resultMap>
+	
+	<select id="selectCompanyRegisterList" parameterType="companyRegisterParm" resultMap="ptrnInfoResult">
+		<if test="pageNo != 0"> 
+        	SELECT /*companyRegister.selectPtnrList*/
+            	* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getPtnrList"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	
+	<select id="selectCompanyRegisterListCount" parameterType="companyRegisterParm" resultType="java.lang.String" >
+    	SELECT COUNT(*)
+			FROM (<include refid="getPtnrList"/>)
+	</select>
+	
+	<sql id="getPtnrList">
+		SELECT 
+			PTNR.PTNR_CODE, 
+			PTNR.ENG_SNM,
+			PTNR.ADDR, 
+			PTNR.TEL_NO, 
+        	PTNR.FAX_NO, 
+        	PTNR.HOLD_CHK, 
+        	PTNR.ACCOUNT_HOLD, 
+        	F_CM_009('SELECT PTNR_TYPE FROM TMT_AGENCY_INFO WHERE  AGENCY_CODE = '''||PTNR.PTNR_CODE||''''|| 
+             ' UNION ALL' || 
+             ' SELECT PTNR_TYPE FROM TMT_PTNR WHERE PTNR_CODE = '''||PTNR.PTNR_CODE||'''', ',') PTNR_TP,
+            PTNR.REPRESENTATIVE,
+	        PTNR.TAX_CD
+        FROM
+			(SELECT 
+				A.AGENCY_CODE PTNR_CODE, 
+				A.PTNR_TYPE, 
+			 	A.ENG_SNM, 
+			 	A.ADDR, 
+			 	A.TEL_NO, 
+			 	A.ACC_NO, 
+	            A.FAX_NO, 
+	            A.HOLD_CHK, 
+	            A.ACCOUNT_HOLD , 
+	            A.REG_NO, 
+	            A.C_STATUS, 
+	            A.P_STATUS,
+	            A.INS_DT,
+	            A.REPRESENTATIVE,
+	            A.TAX_CD
+	        FROM TMT_AGENCY_INFO A 
+	        WHERE A.PTNR_TYPE = 'SHA' 
+	        UNION ALL 
+	        SELECT 
+	        	B.PTNR_CODE, 
+	        	B.PTNR_TYPE, 
+	        	B.ENG_SNM, 
+	        	B.ADDR, 
+	        	B.TEL_NO, 
+	        	B.ACC_NO, 
+	            B.FAX_NO, 
+	            B.HOLD_CHK, 
+	            B.ACCOUNT_HOLD , 
+	            B.REG_NO,
+	            B.C_STATUS, 
+	            B.P_STATUS,
+	            B.INS_DT,
+	            B.REPRESENTATIVE,
+	            B.TAX_CD
+	        FROM TMT_PTNR B 
+	        WHERE B.PTNR_TYPE != 'SHA' 
+	        AND NOT EXISTS (SELECT 1 FROM TMT_AGENCY_INFO WHERE  AGENCY_CODE = B.PTNR_CODE AND PTNR_TYPE = 'SHA') 
+	        AND B.PTNR_TYPE = (SELECT MIN(PTNR_TYPE) FROM TMT_PTNR WHERE  PTNR_CODE = B.PTNR_CODE) 
+	        ) PTNR
+		<where>
+			<if test="companyCode!='' and companyCode != null">
+				AND UPPER(PTNR.PTNR_CODE) LIKE '%' || UPPER(#{companyCode}) || '%'	
+			</if>
+			<if test="ptnrType!='' and ptnrType != null">
+				AND PTNR.PTNR_CODE IN ( SELECT PTNR_CODE FROM TMT_PTNR WHERE PTNR_TYPE = #{ptnrType} UNION ALL SELECT AGENCY_CODE FROM TMT_AGENCY_INFO WHERE PTNR_TYPE = #{ptnrType} )
+			</if>
+			<if test="engSnm!='' and engSnm != null">
+				AND UPPER(PTNR.ENG_SNM) LIKE '%' || UPPER(#{engSnm}) || '%'
+			</if>
+			<if test="regTimeFrom != null and regTimeFrom != ''">
+				AND TO_DATE(#{regTimeFrom} || '00:00:01', 'DD/MM/YYYY HH24:MI:SS') <![CDATA[ <= ]]> (PTNR.INS_DT) 
+                AND (PTNR.INS_DT) <![CDATA[ <= ]]> TO_DATE(#{regTimeFrom} || '23:59:59', 'DD/MM/YYYY HH24:MI:SS')
+			</if>
+
+			<if test= "checkMember eq 'N'.toString()">
+			    AND SUBSTR(PTNR.PTNR_CODE,0,4)='PTNR' AND LENGTH(PTNR.PTNR_CODE)=10
+			</if>		
+		</where>  		
+		GROUP BY 
+			PTNR.PTNR_CODE, 
+			PTNR.PTNR_TYPE, 
+			PTNR.ENG_SNM, 
+			PTNR.ADDR, 
+			PTNR.TEL_NO, 
+			PTNR.ACC_NO, 
+        	PTNR.FAX_NO, 
+        	PTNR.HOLD_CHK, 
+        	PTNR.ACCOUNT_HOLD, 
+        	PTNR.REG_NO, 
+        	PTNR.C_STATUS, 
+        	PTNR.P_STATUS,
+        	PTNR.INS_DT,
+        	PTNR.REPRESENTATIVE,
+         	PTNR.TAX_CD
+        ORDER BY PTNR.PTNR_CODE
+	</sql>
+	
+	<select id="selectCompanyCombo" parameterType="companyRegisterParm" resultMap="codeMasterSmallCodeList">
+		SELECT /*companyRegister.selectCompanyCombo*/
+			L_CD, 
+			M_CD, 
+			S_CD, 
+			S_CD_NM, 
+			S_CD_DESC
+		FROM TMT_CD_MSTD
+		WHERE 1=1
+		<if test="lcd != null"> 
+			AND L_CD = #{lcd}
+		</if>
+		<if test="mcd != null"> 
+			AND	M_CD = #{mcd}
+		</if>
+		<if test="scd != null"> 
+			AND	S_CD = #{scd}
+		</if>
+		<if test="scdUse != null"> 
+			AND	S_CD_USE = #{scdUse}
+		</if>
+	</select>
+	
+	<select id="selectAgencyDetail" parameterType="companyRegisterParm" resultType="companyRegisterItem">
+		SELECT /*companyRegister.selectAgencyDetail*/
+			AGENCY_CODE 						AS companyCode, 
+			AGENCY_CODE	 						AS ptnrCode, 
+			AGENCY_CODE 						AS oldPtnrCode,
+			PTNR_TYPE 							AS ptnrType, 
+			ENG_SNM 							AS engSnm,                 
+            REG_NO 								AS regNo,
+            REPRESENTATIVE 						AS representative, 
+            TEL_NO 								AS telNo, 
+            FAX_NO 								AS faxNo,
+            ADDR 								AS addr, 
+            ZIP_CD 								AS zipCd, 
+            AGENCY 								AS agency,
+            CURR 								AS curr, 
+            PTNR_LEVEL 							AS ptnrLevel, 
+            BERTH_NO 							AS berthNo,
+            PORT_OPR 							AS portOpr, 
+            USER_CODE 							AS userCode, 
+            CNSG_GROUP 							AS cnsgGroup, 
+            HOLD_CHK 							AS holdChk,   
+            OBHOLD_CHK 							AS obholdChk, 
+            BOND_CHK 							AS bondChk, 
+            PAYMENT_TYPE 						AS paymentType, 
+            STAFF_CD 							AS staffCd,         
+            TO_CHAR(UPDATE_TIME,'DD/MM/YYYY') 	AS updDt ,
+            TO_CHAR(CUSTOM_SDATE,'DD/MM/YYYY') customSdateSHA,
+			TO_CHAR(CUSTOM_EDATE,'DD/MM/YYYY') customEdateSHA,
+			TO_CHAR(CUSTOM_SDATE_NEW,'DD/MM/YYYY') customSdateNew,
+			TO_CHAR(CUSTOM_EDATE_NEW,'DD/MM/YYYY') customEdateNew,
+            ACCOUNT_HOLD 						AS accountHold, 
+            ACC_NO 								AS accNo,
+            EMAIL 								AS email, 
+            CREDIT_LIMIT 						AS creditLimit,
+            PTNR.C_STATUS 						AS companyStatus,
+       		PTNR.P_STATUS 						AS profileStatus,
+       		PTNR.CUST_CD						AS custCd,
+       		PTNR.TAX_CD							AS taxCd
+		FROM TMT_AGENCY_INFO PTNR
+		WHERE AGENCY_CODE = UPPER(#{companyCode})
+	</select>
+	
+	<select id="selectPtnrTypeList" parameterType="companyRegisterItem" resultMap="ptnrTypeResultMap">
+		SELECT /*companyRegister.selectPtnrTypeList*/
+			PTNR_TYPE 
+		FROM (SELECT PTNR_TYPE, PTNR_CODE FROM TMT_PTNR UNION ALL SELECT PTNR_TYPE, AGENCY_CODE FROM TMT_AGENCY_INFO ) PTNR
+		<where>
+			PTNR_CODE =  UPPER(#{companyCode})
+		</where>
+	</select>
+	
+	<select id="selectPtnrDetail" parameterType="companyRegisterParm" resultType="companyRegisterItem">
+		SELECT /*companyRegister.selectPtnrDetail*/
+			PTNR_CODE 							AS companyCode,
+			PTNR_CODE 							AS oldPtnrCode, 
+			PTNR_TYPE 							AS ptnrType, 
+			ENG_SNM 							AS engSnm,                 
+            REG_NO 								AS regNo, 
+            REPRESENTATIVE 						AS representative, 
+            TEL_NO 								AS telNo, 
+            FAX_NO 								AS faxNo,             
+            ADDR 								AS addr, 
+            ZIP_CD 								AS zipCd, 
+            HOLD_CHK 							AS holdChk, 
+            PAYMENT_TYPE 						AS paymentType, 
+            STAFF_CD 							AS staffCd,         
+            TO_CHAR(UPDATE_TIME,'DD/MM/YYYY')	AS updDt, 
+            ACCOUNT_HOLD 						AS accountHold, 
+            EMAIL 								AS email, 
+            PTNR.C_STATUS 						AS companyStatus,
+       		PTNR.P_STATUS 						AS profileStatus,
+       		PTNR.CUST_CD						AS custCd,
+       		PTNR.TAX_CD							AS taxCd
+		FROM TMT_PTNR PTNR
+		WHERE PTNR_CODE = UPPER(#{companyCode})
+		AND PTNR_TYPE = #{ptnrType}
+	</select>	
+	
+	<select id="selectShpList" parameterType="companyRegisterParm" resultMap="ptnrShp">
+		SELECT /*companyRegister.selectShpList*/
+			AGNCY.PTNR_CODE
+ 			,AGNCY.PTNR_TYPE 
+			,AGNCY.AGENCY_CODE
+			,PTNR.ENG_SNM AS SHP_NM
+		FROM TMT_PTNR_AGENCY AGNCY LEFT JOIN TMT_PTNR PTNR ON AGNCY.PTNR_CODE = PTNR.PTNR_CODE
+		WHERE AGNCY.AGENCY_CODE =  UPPER(#{companyCode})
+		AND PTNR.PTNR_TYPE = 'SHP'
+	</select>
+
+	<select id="checkPtnrCode" parameterType="companyRegisterParm" resultType="companyRegisterItem">
+		SELECT /*companyRegister.countPtnrCode*/
+			PTNR.ptnrCode, 
+			PTNR.ptnrType
+		FROM 
+			(SELECT 
+				AGENCY_CODE AS ptnrCode, 
+			 	PTNR_TYPE AS ptnrType
+			FROM TMT_AGENCY_INFO 
+		    WHERE UPPER(AGENCY_CODE) = UPPER(#{companyCode})
+			UNION ALL
+			SELECT 
+				PTNR_CODE AS ptnrCode, 
+				PTNR_TYPE AS ptnrType
+			FROM TMT_PTNR 
+		    WHERE UPPER(PTNR_CODE) = UPPER(#{companyCode})
+		) PTNR
+	</select>
+	
+	<select id="countPtnrNm" parameterType="companyRegisterParm" resultType="companyRegisterItem">
+		SELECT /*companyRegister.countPtnrNm*/
+			PTNR.ptnrCode, 
+			PTNR.ptnrType
+        FROM
+        	(SELECT 
+        		AGENCY_CODE AS ptnrCode, 
+        		PTNR_TYPE 	AS ptnrType
+            FROM TMT_AGENCY_INFO 
+            WHERE UPPER(ENG_SNM) = UPPER(#{engSnm}) 
+            AND UPPER(AGENCY_CODE) != UPPER(#{oldPtnrCode})
+        	UNION ALL
+        	SELECT 
+        		PTNR_CODE AS ptnrCode, 
+        		PTNR_TYPE AS ptnrType
+            FROM TMT_PTNR 
+            WHERE UPPER(ENG_SNM) = UPPER(#{engSnm}) 
+            AND UPPER(PTNR_CODE) != UPPER(#{oldPtnrCode})
+		) PTNR
+	</select>
+	
+	<select id="selectPtnrImageDetail" parameterType="companyRegisterParm" resultType="companyRegisterItem">
+		SELECT /*companyRegister.selectPtnrImageDetail*/
+			PTNR_IMG AS ptnrImage 
+		FROM TMT_PTNR
+		WHERE PTNR_CODE = #{companyCode} AND PTNR_TYPE = #{ptnrType}
+	</select>
+	
+	<select id="selectAgencyImageDetail" parameterType="companyRegisterParm" resultType="companyRegisterItem">
+		SELECT /*companyRegister.selectAgencyImageDetail*/
+			PTNR_IMG AS ptnrImage 
+		FROM TMT_AGENCY_INFO
+		WHERE AGENCY_CODE = #{companyCode}
+	</select>
+	
+	<select id="selectPartnerCode"  parameterType="companyRegisterParm" resultType="companyRegisterItem">
+		SELECT /*companyRegister.selectPartnerCode*/
+			PTNR.PTNR_CODE            PTNRCODE
+	   		,ENG_SNM          		 ENGPTYNM
+	   		,(SELECT S_CD_NM FROM TMT_CD_MSTD WHERE L_CD='CM' AND M_CD='PTNRTP' AND S_CD = PTNR.PTNR_TYPE) AS PTYDIVNAME
+	   		<if test="ptnrType != 'VDPR'">
+	   			,PTNR_TYPE         		 ptnrType
+	   			,ADDR                      ADDR
+	   			,REPRESENTATIVE            REPRESENTATIVE
+	   			,HOLD_CHK					 HOLDCHK
+	   			,ACCOUNT_HOLD				 ACCOUNTHOLD
+	   		</if>
+	 	FROM TMT_PTNR PTNR
+		WHERE 1=1
+	    <if test="ptnrType != null and ptnrType != ''">
+			AND
+	        <if test="ptnrType == 'VDPR'">
+				PTNR_TYPE IN ('STV','CTT','TRM')
+			</if>
+			<if test="ptnrType != 'VDPR'">
+				PTNR_TYPE =  #{ptnrType}
+			</if>
+		</if>
+		<if test="reqType == 'CD'">
+			<if test="ptnrCode != null and ptnrCode != ''">
+        		AND PTNR.PTNR_CODE LIKE  #{ptnrCode} || '%'
+		  	</if>
+		</if>
+		<if test="reqType == 'NM'">
+			<if test="engPtyNm != null and engPtyNm != ''">
+        		AND ( ENG_SNM LIKE #{engPtyNm} || '%' OR LOWER(ENG_SNM) LIKE LOWER(#{engPtyNm}) || '%') 
+		  	</if>
+		</if>
+		GROUP BY 
+			PTNR.PTNR_CODE
+		  	,ENG_SNM
+			,PTNR_TYPE
+	        ,ADDR
+	        ,REPRESENTATIVE
+	        ,HOLD_CHK
+	        ,ACCOUNT_HOLD
+		ORDER BY ENGPTYNM ASC       	  
+	</select>
+	
+	<update id="updatecompanyRegisterItem" parameterType="companyRegisterItem">
+		UPDATE  /*companyRegister.updatecompanyRegisterItem*/
+		TMT_PTNR SET 
+			PTNR_CODE = #{companyCode}
+			<if test="customSdate != '' and customSdate != null">
+				,PTNR_TYPE = #{ptnrType}
+			</if>
+			<if test="engSnm != '' and engSnm != null">
+				,ENG_SNM = #{engSnm}
+			</if>
+			<if test="engLnm != '' and engLnm != null">
+				,ENG_LNM = #{engLnm}
+			</if>
+			
+			<if test="representative != '' and representative != null">
+				,REPRESENTATIVE = #{representative}
+			</if>
+			<if test="telNo != '' and telNo != null">
+				,TEL_NO = #{telNo}
+			</if>
+			<if test="faxNo != '' and faxNo != null">
+				,FAX_NO = #{faxNo}
+			</if>
+			<if test="addr != '' and addr != null">
+				,ADDR = #{addr}
+			</if>
+			<if test="zipCd != '' and zipCd != null">
+				,ZIP_CD = #{zipCd}
+			</if>
+			
+			<if test="holdChk != '' and holdChk != null">
+				,HOLD_CHK = #{holdChk}
+			</if>
+			<if test="paymentType != '' and paymentType != null">
+				,PAYMENT_TYPE = #{paymentType}
+			</if>
+			<if test="userId != '' and userId != null">
+				,STAFF_CD = #{userId}
+			</if>
+			
+			<if test="accountHold != '' and accountHold != null">
+				,ACCOUNT_HOLD = #{accountHold}
+			</if>
+			<if test="accNo != '' and accNo != null">
+				,ACC_NO = #{accNo}
+			</if>
+			
+			<if test="email != '' and email != null">
+				,EMAIL = #{email}
+			</if>
+			<if test="remark != '' and remark != null">
+				,RMK = #{remark}
+			</if>
+			
+			<if test="companyStatus != '' and companyStatus != null">
+				,C_STATUS = #{companyStatus}
+			</if>
+			<if test="profileStatus != '' and profileStatus != null">
+				,P_STATUS = #{profileStatus}
+			</if>
+			<if test="customSdate != '' and customSdate != null">
+				,CUSTOM_SDATE = TO_DATE(#{customSdate}, 'DD/MM/YYYY')
+			</if>
+			<if test="customEdate != '' and customEdate != null">
+				,CUSTOM_EDATE = TO_DATE(#{customEdate}, 'DD/MM/YYYY')
+			</if>
+			<if test="custCd != '' and custCd != null">
+				,CUST_CD = #{custCd}
+			</if>
+			<if test="taxCd != '' and taxCd != null">
+				,TAX_CD = #{taxCd}
+			</if>
+			,PTNR_IMG = #{ptnrImage	,jdbcType=BLOB}
+			,UPDATE_TIME = SYSDATE
+		WHERE PTNR_CODE =  UPPER(#{companyCode})
+		AND   PTNR_TYPE = #{ptnrType}
+	</update>
+	
+	<update id="updateAgencyInfoItem" parameterType="companyRegisterItem">
+		UPDATE /*companyRegister.updateAgencyInfoItem*/
+		TMT_AGENCY_INFO SET 
+			 AGENCY_CODE = #{companyCode}
+			 <if test="customSdate != '' and customSdate != null">
+				,PTNR_TYPE = #{ptnrType}
+			</if>
+			<if test="engSnm != '' and engSnm != null">
+				,ENG_SNM = #{engSnm}
+			</if>
+			<if test="engLnm != '' and engLnm != null">
+				,ENG_LNM = #{engLnm}
+			</if>
+			
+			<if test="representative != '' and representative != null">
+				,REPRESENTATIVE = #{representative}
+			</if>
+			<if test="telNo != '' and telNo != null">
+				,TEL_NO = #{telNo}
+			</if>
+			<if test="faxNo != '' and faxNo != null">
+				,FAX_NO = #{faxNo}
+			</if>
+			<if test="addr != '' and addr != null">
+				,ADDR = #{addr}
+			</if>
+			<if test="zipCd != '' and zipCd != null">
+				,ZIP_CD = #{zipCd}
+			</if>
+			
+			<if test="ptnrLevel != '' and ptnrLevel != null">
+				,PTNR_LEVEL = #{ptnrLevel}
+			</if>
+			
+			<if test="holdChk != '' and holdChk != null">
+				,HOLD_CHK = #{holdChk}
+			</if>
+			
+			<if test="paymentType != '' and paymentType != null">
+				,PAYMENT_TYPE = #{paymentType}
+			</if>
+			<if test="staffCd != '' and staffCd != null">
+				,STAFF_CD = #{userId}
+			</if>
+			
+			<if test="customRef != '' and customRef != null">
+				,CUSTOM_REF = #{customRef}
+			</if>
+			<if test="customSdate != '' and customSdate != null">
+				,CUSTOM_SDATE = TO_DATE(#{customSdate}, 'DD/MM/YYYY')
+			</if>
+			<if test="customEdate != '' and customEdate != null">
+				,CUSTOM_EDATE = TO_DATE(#{customEdate}, 'DD/MM/YYYY')
+			</if>
+			
+			<if test="accountHold != '' and accountHold != null">
+				,ACCOUNT_HOLD = #{accountHold}
+			</if>
+			
+			<if test="email != '' and email != null">
+				,EMAIL = #{email}
+			</if>
+			<if test="remark != '' and remark != null">
+				,REMARK = #{remark}
+			</if>
+			
+			<if test="financeGrp != '' and financeGrp != null">
+				,FINANCE_GRP = #{financeGrp}
+			</if>
+			<if test="companyStatus != '' and companyStatus != null">
+				,C_STATUS = #{companyStatus}
+			</if>
+			<if test="profileStatus != '' and profileStatus != null">
+				,P_STATUS = #{profileStatus}
+			</if>
+			<if test="custCd != '' and custCd != null">
+				,CUST_CD = #{custCd}
+			</if>
+			<if test="taxCd != '' and taxCd != null">
+				,TAX_CD = #{taxCd}
+			</if>
+			,PTNR_IMG = #{ptnrImage	,jdbcType=BLOB}
+			,UPDATE_TIME = SYSDATE
+		WHERE AGENCY_CODE =  UPPER(#{companyCode})
+	</update>
+	
+	
+	
+	<insert id="insertPtrnAgncyItem" parameterType="companyRegisterItem">
+		INSERT /*companyRegister.insertPtrnAgncyItem*/
+		INTO TMT_PTNR_AGENCY (
+			 PTNR_CODE
+			,PTNR_TYPE
+			,AGENCY_CODE
+			<if test="fcontactDate != '' and fcontactDate != null">
+				,FCONTACT_DATE
+			</if>
+			<if test="tcontactDate != '' and tcontactDate != null">
+				,TCONTACT_DATE
+			</if>
+			,STAFF_CD
+			,UPDATE_TIME
+		) VALUES (
+			 UPPER(#{companyCode})
+			,#{ptnrType}
+			, UPPER(#{agencyCode})
+			<if test="fcontactDate != '' and fcontactDate != null">
+				, TO_DATE(#{fcontactDate},'DD/MM/YYYY')
+			</if>
+			<if test="tcontactDate != '' and tcontactDate != null">
+				, TO_DATE(#{tcontactDate},'DD/MM/YYYY')
+			</if>
+			,#{userId}
+			,SYSDATE
+		)
+	</insert>
+	
+	<insert id="insertCompanyRegisterItem" parameterType="companyRegisterItem">
+		INSERT /*companyRegister.insertCompanyRegisterItem*/
+		INTO TMT_PTNR (
+			PTNR_CODE
+			,PTNR_TYPE
+			,ENG_SNM
+			<if test="engLnm != '' and engLnm != null">
+				,ENG_LNM
+			</if>
+			,REG_NO
+			,REPRESENTATIVE
+			,TEL_NO
+			,FAX_NO
+			,ADDR
+			,ZIP_CD
+			,CUST_CD
+			
+			<if test="holdChk != '' and holdChk != null">
+				,HOLD_CHK
+			</if>
+			<if test="paymentType != '' and paymentType != null">
+				,PAYMENT_TYPE
+			</if>
+			
+			<if test="accountHold != '' and accountHold != null">
+				,ACCOUNT_HOLD
+			</if>
+			<if test="accNo != '' and accNo != null">
+				,ACC_NO
+			</if>
+
+			<if test="email != '' and email != null">
+				,EMAIL
+			</if>
+			<if test="remark != '' and remark != null">
+				,RMK
+			</if>
+			<if test="companyStatus != '' and companyStatus != null">
+				,C_STATUS
+			</if>
+			<if test="profileStatus != '' and profileStatus != null">
+				,P_STATUS
+			</if>
+			<if test="ptnrImage != '' and ptnrImage != null">
+				,PTNR_IMG
+			</if>
+			<if test="customSdate != '' and customSdate != null">
+				,CUSTOM_SDATE
+			</if>
+			<if test="customEdate != '' and customEdate != null">
+				,CUSTOM_EDATE
+			</if>
+			<if test="taxCd != '' and taxCd != null">
+				,TAX_CD
+			</if>
+			,STAFF_CD
+			,UPDATE_TIME
+			,INS_DT
+		) VALUES (
+			 UPPER(#{companyCode})
+			,#{ptnrType}
+			,#{engSnm}
+			<if test="engLnm != '' and engLnm != null">
+				,#{engLnm}
+			</if>
+			,#{regNo}
+			,#{representative}
+			,#{telNo}
+			,#{faxNo} 
+			,#{addr}
+			,#{zipCd}
+			,#{custCd}
+			
+			<if test="holdChk != '' and holdChk != null">
+				,#{holdChk}
+			</if>
+			<if test="paymentType != '' and paymentType != null">
+				,#{paymentType}
+			</if>
+			
+			<if test="accountHold != '' and accountHold != null">
+				,#{accountHold}
+			</if>
+			<if test="accNo != '' and accNo != null">
+				,#{accNo}
+			</if>
+			
+			<if test="email != '' and email != null">
+				,#{email}
+			</if>
+			<if test="remark != '' and remark != null">
+				,#{remark}
+			</if>
+			<if test="financeGrp != '' and financeGrp != null">
+				,#{financeGrp}
+			</if>
+			<if test="companyStatus != '' and companyStatus != null">
+				,#{companyStatus}
+			</if>
+			<if test="profileStatus != '' and profileStatus != null">
+				,#{profileStatus}
+			</if>
+			<if test="ptnrImage != '' and ptnrImage != null">
+				,#{ptnrImage}
+			</if>
+			<if test="customSdate != '' and customSdate != null">
+				,TO_DATE(#{customSdate},'DD/MM/YYYY')
+			</if>
+			<if test="customEdate != '' and customEdate != null">
+				,TO_DATE(#{customEdate},'DD/MM/YYYY')
+			</if>
+			<if test="taxCd != '' and taxCd != null">
+				,#{taxCd}
+			</if>
+			,#{userId}
+			,SYSDATE
+			,SYSDATE
+		)
+	</insert>
+	
+	<insert id="insertAgencyInfoItem" parameterType="companyRegisterItem">
+		INSERT /*companyRegister.insertAgencyInfoItem*/
+		INTO TMT_AGENCY_INFO (
+			AGENCY_CODE
+			,PTNR_TYPE
+			,ENG_SNM
+			<if test="engLnm != '' and engLnm != null">
+				,ENG_LNM
+			</if>
+			,REG_NO
+			,REPRESENTATIVE
+			,TEL_NO
+			,FAX_NO
+			,ADDR
+			,ZIP_CD
+			,PTNR_LEVEL
+			,CUST_CD
+			<if test="holdChk != '' and holdChk != null">
+				,HOLD_CHK
+			</if>
+			
+			<if test="paymentType != '' and paymentType != null">
+				,PAYMENT_TYPE
+			</if>
+			
+			<if test="customRef != '' and customRef != null">
+				,CUSTOM_REF
+			</if>
+			<if test="customSdate != '' and customSdate != null">
+				,CUSTOM_SDATE
+			</if>
+			<if test="customEdate != '' and customEdate != null">
+				,CUSTOM_EDATE
+			</if>
+			
+			<if test="accountHold != '' and accountHold != null">
+				,ACCOUNT_HOLD
+			</if>
+			<if test="accNo != '' and accNo != null">
+				,ACC_NO
+			</if>
+			
+			<if test="email != '' and email != null">
+				,EMAIL
+			</if>
+			<if test="remark != '' and remark != null">
+				,REMARK
+			</if>
+			<if test="financeGrp != '' and financeGrp != null">
+				,FINANCE_GRP
+			</if>
+			<if test="companyStatus != '' and companyStatus != null">
+				,C_STATUS
+			</if>
+			<if test="profileStatus != '' and profileStatus != null">
+				,P_STATUS
+			</if>
+			<if test="ptnrImage != '' and ptnrImage != null">
+				,PTNR_IMG
+			</if>
+			<if test="taxCd != '' and taxCd != null">
+				,TAX_CD
+			</if>
+			,STAFF_CD
+			,UPDATE_TIME
+		) VALUES (
+			 UPPER(#{companyCode})
+			,#{ptnrType}
+			,#{engSnm}
+			<if test="engLnm != '' and engLnm != null">
+				,#{engLnm}
+			</if>
+			,#{regNo}
+			,#{representative}
+			,#{telNo}
+			,#{faxNo} 
+			,#{addr}
+			,#{zipCd}
+			,#{ptnrLevel}
+			,#{custCd}
+			
+			<if test="holdChk != '' and holdChk != null">
+				,#{holdChk}
+			</if>
+			<if test="paymentType != '' and paymentType != null">
+				,#{paymentType}
+			</if>
+			
+			<if test="customRef != '' and customRef != null">
+				,#{customRef}
+			</if>
+			<if test="customSdate != '' and customSdate != null">
+				,TO_DATE(#{customSdate},'DD/MM/YYYY')
+			</if>
+			<if test="customEdate != '' and customEdate != null">
+				,TO_DATE(#{customEdate},'DD/MM/YYYY')
+			</if>
+			
+			<if test="accountHold != '' and accountHold != null">
+				,#{accountHold}
+			</if>
+			<if test="accNo != '' and accNo != null">
+				,#{accNo}
+			</if>
+			
+			<if test="email != '' and email != null">
+				,#{email}
+			</if>
+			<if test="remark != '' and remark != null">
+				,#{remark}
+			</if>
+			<if test="financeGrp != '' and financeGrp != null">
+				,#{financeGrp}
+			</if>
+			<if test="companyStatus != '' and companyStatus != null">
+				,#{companyStatus}
+			</if>
+			<if test="profileStatus != '' and profileStatus != null">
+				,#{profileStatus}
+			</if>
+			<if test="ptnrImage != '' and ptnrImage != null">
+				,#{ptnrImage}
+			</if>
+			<if test="taxCd != '' and taxCd != null">
+				,#{taxCd}
+			</if>
+			,#{userId}
+			,SYSDATE
+		)
+	</insert>
+	
+	<delete id="deleteAgencyInfoItem" parameterType="companyRegisterItem">
+		DELETE /*companyRegister.deleteAgencyInfoItem*/
+		FROM TMT_AGENCY_INFO
+		WHERE AGENCY_CODE = UPPER(#{companyCode})
+		AND   PTNR_TYPE = #{ptnrType}
+	</delete>
+	
+	<delete id="deletePtnrAgencyAllItem" parameterType="companyRegisterItem">
+		DELETE /*companyRegister.deletePtnrAgencyAllItem*/
+		FROM TMT_PTNR_AGENCY 
+		WHERE UPPER(AGENCY_CODE) = UPPER(#{companyCode})
+	</delete>
+	
+	<delete id="deleteAgencyInfoAllItem" parameterType="companyRegisterItem">
+		DELETE /*companyRegister.deleteAgencyInfoAllItem*/
+		FROM TMT_AGENCY_INFO 
+		WHERE UPPER(AGENCY_CODE) = UPPER(#{companyCode})
+	</delete>	
+	
+	<delete id="deletePtnrInfoAllItem" parameterType="companyRegisterItem">
+		DELETE /*companyRegister.deletePtnrInfoAllItem*/
+		FROM TMT_PTNR
+		WHERE UPPER(PTNR_CODE) = UPPER(#{companyCode})
+	</delete>
+	
+	<delete id="deleteUserAccessAllItem" parameterType="companyRegisterItem">
+		DELETE /*companyRegister.deleteUserAccessAllItem*/
+		FROM TMT_ACCESS_AUTH 
+		WHERE USER_ID IN (SELECT USER_ID FROM TMT_PTNR_USER WHERE UPPER(PTNR_CODE) = UPPER(#{companyCode}))
+	</delete>
+	
+	<delete id="deleteUserAuthAllItem" parameterType="companyRegisterItem">
+		DELETE /*companyRegister.deleteUserAuthAllItem*/
+		FROM TMT_USER_AUTH 
+		WHERE USER_ID IN (SELECT USER_ID FROM TMT_PTNR_USER  WHERE UPPER(PTNR_CODE) = UPPER(#{companyCode}))
+	</delete>
+	
+	<delete id="deleteUserAllItem" parameterType="companyRegisterItem">
+		DELETE /*companyRegister.deleteUserAllItem*/
+		FROM TMT_USER_INFO
+		WHERE USER_ID IN (SELECT USER_ID FROM TMT_PTNR_USER WHERE UPPER(PTNR_CODE) = UPPER(#{companyCode}))
+	</delete>
+	
+	<delete id="deletePtnrUserAllItem" parameterType="companyRegisterItem">
+		DELETE /*companyRegister.deletePtnrUserAllItem*/
+		FROM TMT_PTNR_USER 
+		WHERE UPPER(PTNR_CODE) = UPPER(#{companyCode})
+	</delete>
+	
+	<delete id="deletecompanyRegisterItem" parameterType="companyRegisterItem">
+		DELETE /*companyRegister.deletecompanyRegisterItem*/
+		FROM TMT_PTNR
+		WHERE PTNR_CODE = UPPER(#{companyCode})
+		AND   PTNR_TYPE = #{ptnrType}
+	</delete>
+	
+	<delete id="deletePtrnAgncyAllItem" parameterType="companyRegisterItem">
+		DELETE /*companyRegister.deletePtrnAgncyAllItem*/
+		FROM TMT_PTNR_AGENCY
+		WHERE UPPER(AGENCY_CODE) = UPPER(#{companyCode})
+		AND PTNR_TYPE = 'SHP'
+	</delete>
+	
+</mapper>

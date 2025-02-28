@@ -1,0 +1,480 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="menuRegister">
+	
+    <sql id="getMenuList">
+		SELECT /*menuRegister.getMenuList*/
+			SEQ 								AS seq,
+			PGM_ID 								AS pgmId,
+			PGM_NM 								AS pgmNm,
+			L_CLSF 								AS laClsf,
+			M_CLSF 								AS midClsf,
+			S_CLSF 								AS smClsf,
+			PGM_PATH 							AS pgmPath,
+			PGM_USE_YN 							AS pgmUseYn,
+			RMK 								AS rmk,
+			MENU_TYPE 							AS menuType,
+			MENU_CLSF 							AS menuClsf,
+			PGM_URL_QSTR 						AS pgmUrlQstr,
+			SCRN_PATH_ADDR 						AS scrnPathAddr,
+			SCRN_ICN_DEF_CD 					AS scrnIcnDefCd,
+			UPR_MENU_ID 						AS upperMenuId
+		FROM 
+			TMT_MENU_LIST
+		WHERE 
+			MENU_CLSF = '4'
+			<if test="pgmId != null and pgmId != ''">
+				AND PGM_ID like '%' + #{pgmId} + '%'
+			</if>
+			<if test="pgmNm != null and pgmNm != ''">
+				AND UPPER(PGM_NM) like '%' + #{pgmNm} + '%'
+			</if>
+	</sql>
+    
+    <select id="selectMenuList" resultType="menuRegisterItem" parameterType="menuRegisterParm">
+		<if test="pageNo != 0"> 
+        	SELECT /*menuRegister.selectMenuList*/
+        		* 
+			FROM (
+				SELECT
+					inner_query.*,
+					ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num
+				FROM ( 
+		</if>
+			<include refid="getMenuList"/>
+		<if test="pageNo != 0"> 
+				) inner_query
+			) inner_query
+			WHERE 
+				inner_query.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_query.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+    
+	<select id="selectMenuListCount" parameterType="menuRegisterParm" resultType="java.lang.String" >
+    	SELECT /*menuRegister.selectMenuListCount*/
+			COUNT(*)
+        FROM 
+			(<include refid="getMenuList"/>) 		AS selectMenuListCount
+	</select>
+    
+    <sql id="getProgramInfoList">
+		SELECT /*menuRegister.getProgramInfoList*/
+			PGM_ID 									AS pgmId,
+		    PGM_NM 									AS pgmNm,
+		    PGM_PATH 								AS pgmPath,
+		    RMK 									AS rmk,
+		    (CASE
+		    	WHEN (ISNULL(USE_YN, '') IS NULL OR ISNULL(USE_YN, '') = '') THEN 'false'
+	            WHEN USE_YN = 'N' THEN 'false'
+	            WHEN USE_YN ='Y' THEN 'true'
+	        END) 									AS useYn,
+	   	    (CASE
+		    	WHEN (ISNULL(CINQUIRY, '') IS NULL OR ISNULL(CINQUIRY, '') = '') THEN 'false'
+	            WHEN CINQUIRY = 'N' THEN 'false'
+	            WHEN CINQUIRY ='Y' THEN 'true'
+	        END) 									AS cInquiry,
+	   	    (CASE
+		     	WHEN (ISNULL(CCLEAR, '') IS NULL OR ISNULL(CCLEAR, '') = '') THEN 'false'
+	            WHEN CCLEAR = 'N' THEN 'false'
+	            WHEN CCLEAR ='Y' THEN 'true'
+	        END) 									AS cClear,
+	   	    (CASE
+		     	WHEN (ISNULL(CCREATE, '') IS NULL OR ISNULL(CCREATE, '') = '') THEN 'false'
+	            WHEN CCREATE = 'N' THEN 'false'
+	            WHEN CCREATE ='Y' THEN 'true'
+	        END) 									AS cCreate,
+	   	    (CASE
+		     	WHEN (ISNULL(CSAVE, '') IS NULL OR ISNULL(CSAVE, '') = '') THEN 'false'
+	            WHEN CSAVE = 'N' THEN 'false'
+	            WHEN CSAVE ='Y' THEN 'true'
+	        END)  									AS cSave,
+	   	    (CASE
+		     	WHEN (ISNULL(CDELETE, '') IS NULL OR ISNULL(CDELETE, '') = '') THEN 'false'
+	            WHEN CDELETE = 'N' THEN 'false'
+	            WHEN CDELETE ='Y' THEN 'true'
+	        END)  									AS cDelete,
+	   	    (CASE
+		     	WHEN (ISNULL(CDOWNLOAD, '') IS NULL OR ISNULL(CDOWNLOAD, '') = '') THEN 'false'
+	            WHEN CDOWNLOAD = 'N' THEN 'false'
+	            WHEN CDOWNLOAD ='Y' THEN 'true'
+	        END)  									AS cDownload,
+	   	    (CASE
+		     	WHEN (ISNULL(CPREVIEW, '') IS NULL OR ISNULL(CPREVIEW, '') = '') THEN 'false'
+	            WHEN CPREVIEW = 'N' THEN 'false'
+	            WHEN CPREVIEW ='Y' THEN 'true'
+	        END)  									AS cPreview,
+	   	    (CASE
+		     	WHEN (ISNULL(CPRINT, '') IS NULL OR ISNULL(CPRINT, '') = '') THEN 'false'
+	            WHEN CPRINT = 'N' THEN 'false'
+	            WHEN CPRINT ='Y' THEN 'true'
+	        END) 									AS cPrint,
+	   	    (CASE
+		     	WHEN (ISNULL(CHISTORY, '') IS NULL OR ISNULL(CHISTORY, '') = '') THEN 'false'
+	            WHEN CHISTORY = 'N' THEN 'false'
+	            WHEN CHISTORY ='Y' THEN 'true'
+	        END)  									AS cHistory,
+			CONVERT(VARCHAR, USE_START_DT, 103) 	AS useStartDt,
+			CONVERT(VARCHAR, USE_END_DT, 103) 		AS useEndDt,
+		    STAFF_CD 								AS insUserId,
+			CONVERT(VARCHAR, UPDATE_TIME, 103) 		AS insDt,
+		    STAFF_CD 								AS updUserId,
+		    CONVERT(VARCHAR, UPDATE_TIME, 103) 		AS updDt
+	 	FROM 
+			TMT_PROGRAM_INFO
+		WHERE
+		    1 = 1
+			<if test="pgmId != '' and  pgmId != null">
+				AND PGM_ID LIKE '%' + #{pgmId}
+			</if>
+		 	<if test="pgmNm != '' and  pgmNm != null">
+				AND PGM_NM LIKE #{pgmNm} + '%'
+			</if>
+		ORDER BY 
+			PGM_ID
+		OFFSET 
+			(CASE WHEN #{pageNo} = '0' THEN 0 ELSE CAST(#{pageNo} AS INT) - 1 END) * CAST(#{sizePerPage} AS INT) ROWS
+		FETCH 
+			NEXT CAST(#{sizePerPage} AS INT) ROWS ONLY
+	</sql>
+	
+    <select id="selectProgramInfoList" parameterType="menuRegisterParm" resultType="menuRegisterItem">
+		<if test="pageNo != 0"> 
+        	SELECT /*menuRegister.selectProgramInfoList*/
+        		* 
+			FROM (
+				SELECT
+					inner_query.*,
+					ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num
+				FROM ( 
+		</if>
+				<include refid="getProgramInfoList"/>
+		<if test="pageNo != 0"> 
+				) inner_query
+			) inner_query
+			WHERE 
+				inner_query.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_query.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<select id="selectProgramInfoListCount" parameterType="menuRegisterParm" resultType="java.lang.String" >
+        SELECT /*menuRegister.selectProgramInfoListCount*/
+			COUNT(*)
+    	FROM 
+			(<include refid="getProgramInfoList"/>) AS selectProgramInfoListCount
+	</select>
+    
+    <select id="selectMaxSeq" resultType="menuRegisterItem">
+    	SELECT /*menuRegister.selectMaxSeq*/
+    		MAX(CAST(SEQ AS INT)) 					AS seq
+    	FROM 
+			TMT_MENU_LIST
+    </select>
+    
+    <insert id="insertMenuList" parameterType="menuRegisterItem">
+    	INSERT /*menuRegister.insertMenuList*/
+    	INTO
+    		TMT_MENU_LIST (
+				SEQ,
+				PGM_ID,
+				PGM_NM,
+				L_CLSF,
+				M_CLSF,
+				S_CLSF,
+				PGM_PATH,
+				PGM_USE_YN,
+				RMK,
+				MENU_TYPE,
+				MENU_CLSF,
+				PGM_URL_QSTR,
+				SCRN_PATH_ADDR,
+				SCRN_ICN_DEF_CD,
+				UPR_MENU_ID,
+				STAFF_CD,
+				UPDATE_TIME
+    		) VALUES (
+				(SELECT
+					ISNULL(MAX(SEQ), 0) + 1
+				FROM
+					TMT_MENU_LIST
+				),
+				#{pgmId, jdbcType=VARCHAR},
+				#{pgmNm, jdbcType=VARCHAR},
+				#{laClsf, jdbcType=VARCHAR},
+				#{midClsf, jdbcType=VARCHAR},
+				#{smClsf, jdbcType=VARCHAR},
+				#{pgmPath, jdbcType=VARCHAR},
+				#{pgmUseYn, jdbcType=VARCHAR},
+				#{rmk, jdbcType=VARCHAR},
+				#{menuType, jdbcType=VARCHAR},
+				#{menuClsf, jdbcType=VARCHAR},
+				#{pgmUrlQstr, jdbcType=VARCHAR},
+				#{scrnPathAddr, jdbcType=VARCHAR},
+				#{scrnIcnDefCd, jdbcType=VARCHAR},
+				#{upperMenuId, jdbcType=VARCHAR},
+				#{userId, jdbcType=VARCHAR},
+				SYSDATETIME()
+			)
+    </insert>
+    
+	<insert id="insertProgramInfoList" parameterType="menuRegisterItem">
+		INSERT /*menuRegister.insertProgramInfoList*/
+ 		INTO
+ 			TMT_PROGRAM_INFO (
+				PGM_ID,
+				PGM_NM,
+				PGM_PATH,
+				RMK,
+				USE_YN,
+				CINQUIRY,
+				CCLEAR,
+				CCREATE,
+				CSAVE,
+				CDELETE,
+				CDOWNLOAD,
+				CPREVIEW,
+				CPRINT,
+				CHISTORY,
+				USE_START_DT,
+				USE_END_DT,
+				STAFF_CD,
+				UPDATE_TIME
+			) VALUES (
+				#{pgmId},
+				#{pgmNm},
+				#{pgmPath},
+				#{rmk, jdbcType=VARCHAR},
+				<choose>
+					<when test="useYn != null and useYn !='false' ">
+						'Y',
+					</when>
+					<otherwise>
+						'N',
+					</otherwise>
+				</choose>
+				<choose>
+					<when test="cInquiry != null and cInquiry !='false' ">
+						'Y',
+					</when>
+					<otherwise>
+						'N',
+					</otherwise>
+				</choose>
+				<choose>
+					<when test="cClear != null and cClear !='false' ">
+						'Y',
+					</when>
+					<otherwise>
+						'N',
+					</otherwise>
+				</choose>
+				<choose>
+					<when test="cCreate != null and cCreate !='false' ">
+						'Y',
+					</when>
+					<otherwise>
+						'N',
+					</otherwise>
+				</choose>
+				<choose>
+					<when test="cSave != null and cSave !='false' ">
+						'Y',
+					</when>
+					<otherwise>
+						'N',
+					</otherwise>
+				</choose>
+				<choose>
+					<when test="cDelete != null and cDelete !='false' ">
+						'Y',
+					</when>
+					<otherwise>
+						'N',
+					</otherwise>
+				</choose>
+				<choose>
+					<when test="cDownload != null and cDownload !='false' ">
+						'Y',
+					</when>
+					<otherwise>
+						'N',
+					</otherwise>
+				</choose>
+				<choose>
+					<when test="cPreview != null and cPreview !='false' ">
+						'Y',
+					</when>
+					<otherwise>
+						'N',
+					</otherwise>
+				</choose>
+				<choose>
+					<when test="cPrint != null and cPrint !='false' ">
+						'Y',
+					</when>
+					<otherwise>
+						'N',
+					</otherwise>
+				</choose>
+				<choose>
+					<when test="cHistory != null and cHistory !='false' ">
+						'Y',
+					</when>
+					<otherwise>
+						'N',
+					</otherwise>
+				</choose>
+				CONVERT(VARCHAR, CONVERT(DATE, #{useStartDt}, 103), 112),
+				CONVERT(VARCHAR, CONVERT(DATE, #{useEndDt}, 103), 112),
+				#{userId},
+				SYSDATETIME()
+		)	
+ 	</insert>
+    
+    <update id="updateMenuList" parameterType="menuRegisterItem">
+    	UPDATE /*menuRegister.updateMenuList*/
+			TMT_MENU_LIST 
+		SET
+    		PGM_NM 									= #{pgmNm},
+		    L_CLSF 									= #{laClsf},
+		    M_CLSF 									= #{midClsf},
+		    S_CLSF 									= #{smClsf},
+		    PGM_PATH 								= #{pgmPath},
+		    PGM_USE_YN 								= #{pgmUseYn},
+		    RMK 									= #{rmk},
+		    MENU_TYPE 								= #{menuType},
+		    MENU_CLSF 								= #{menuClsf},
+		    PGM_URL_QSTR 							= #{pgmUrlQstr},
+		    SCRN_PATH_ADDR 							= #{scrnPathAddr},
+		    SCRN_ICN_DEF_CD							= #{scrnIcnDefCd},
+		    UPR_MENU_ID 							= #{upperMenuId},
+		    STAFF_CD 								= #{userId},
+		    UPDATE_TIME 							= SYSDATETIME()
+		WHERE 
+			SEQ 									= #{seq}
+			AND PGM_ID 								= #{pgmId}
+    </update>
+    
+    <update id="updateProgramInfoList" parameterType="menuRegisterItem">
+		UPDATE /*menuRegister.updateProgramInfoList*/
+			TMT_PROGRAM_INFO 
+		SET
+			<if test="pgmNm != '' and  pgmNm != null">
+		   		PGM_NM 								= #{pgmNm},
+		   	</if> 
+			<if test="pgmPath != '' and  pgmPath != null">
+				PGM_PATH 							= #{pgmPath},
+			</if>
+			<if test="rmk != '' and  rmk != null">
+				RMK 								= #{rmk},
+			</if>   
+			<choose>
+				<when test="useYn != null and useYn !='false' ">
+					USE_YN 							= 'Y',
+				</when>
+				<otherwise>
+					USE_YN 							= 'N',
+				</otherwise>
+			</choose>
+			<choose>
+				<when test="cInquiry != null and cInquiry !='false' ">
+					CINQUIRY 						= 'Y',
+				</when>
+				<otherwise>
+					CINQUIRY 						= 'N',
+				</otherwise>
+			</choose>
+			<choose>
+				<when test="cClear != null and cClear !='false' ">
+					CCLEAR 							= 'Y',
+				</when>
+				<otherwise>
+					CCLEAR 							= 'N',
+				</otherwise>
+			</choose>
+	  			<choose>
+				<when test="cCreate != null and cCreate !='false' ">
+					CCREATE 						= 'Y',
+				</when>
+				<otherwise>
+					CCREATE 						= 'N',
+				</otherwise>
+			</choose>
+	  			<choose>
+				<when test="cSave != null and cSave !='false' ">
+					CSAVE 							= 'Y',
+				</when>
+				<otherwise>
+					CSAVE 							= 'N',
+				</otherwise>
+			</choose>
+	  			<choose>
+				<when test="cDelete != null and cDelete !='false' ">
+					CDELETE 						= 'Y',
+				</when>
+				<otherwise>
+					CDELETE 						= 'N',
+				</otherwise>
+			</choose>
+	  			<choose>
+				<when test="cDownload != null and cDownload !='false' ">
+					CDOWNLOAD 						= 'Y',
+				</when>
+				<otherwise>
+					CDOWNLOAD 						= 'N',
+				</otherwise>
+			</choose>
+	  			<choose>
+				<when test="cPreview != null and cPreview !='false' ">
+					CPREVIEW 						= 'Y',
+				</when>
+				<otherwise>
+					CPREVIEW 						= 'N',
+				</otherwise>
+			</choose>
+	  			<choose>
+				<when test="cPrint != null and cPrint !='false' ">
+					CPRINT 							= 'Y',
+				</when>
+				<otherwise>
+					CPRINT 							= 'N',
+				</otherwise>
+			</choose>
+	  			<choose>
+				<when test="cHistory != null and cHistory !='false' ">
+					CHISTORY 						= 'Y',
+				</when>
+				<otherwise>
+					CHISTORY 						= 'N',
+				</otherwise>
+			</choose>  
+			USE_START_DT 							= CONVERT(DATE, #{useStartDt}, 103),
+			USE_END_DT 								= CONVERT(DATE, #{useEndDt}, 103),
+		    STAFF_CD 								= #{userId},
+		    UPDATE_TIME 							= SYSDATETIME()
+		WHERE 
+			PGM_ID 									= #{pgmId}
+ 	</update>
+    
+    <delete id="deleteMenuList" parameterType="menuRegisterItem">
+    	DELETE /*menuRegister.deleteMenuList*/
+    	FROM 
+			TMT_MENU_LIST
+    	WHERE 
+			SEQ 									= #{seq}
+			AND PGM_ID 								= #{pgmId}
+    </delete>
+ 	
+ 	<delete id="deleteProgramInfoList" parameterType="menuRegisterItem">
+ 		DELETE /*menuRegister.deleteProgramInfoList*/
+ 		FROM 
+			TMT_PROGRAM_INFO
+ 		WHERE 
+			PGM_ID									= #{pgmId}
+ 	</delete>
+ 	
+</mapper>

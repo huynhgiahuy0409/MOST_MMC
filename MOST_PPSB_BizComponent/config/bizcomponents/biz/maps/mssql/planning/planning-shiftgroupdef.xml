@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="shiftGroupDef">
+    <select id="selectShiftDef"  parameterType="SearchShiftGroupDefParm" resultType="ShiftGroupDefItem">
+		SELECT /* shiftGroupDef.xml  selectShiftDef  PN106003*/
+		       SHFT_ID             SHFTID,
+		       SHFT_DIV_CD         SHFTDIVCD,
+		       SHFT_IDX            SHFTIDX,
+		       SHFT_METH_CD        SHFTMETHCD,
+		       SHFT_NM             SHFTNM,
+		       APLY_FM_YMD         APLYFMYMD,
+		       APLY_TO_YMD         APLYTOYMD,
+		       FM_HHMM             FMHHMM,
+		       TO_HHMM             TOHHMM,
+			   VLD_YN              USEYN,
+			   NVL(RMK, ' ')       RMK,
+			   VERSION             VERSION
+		FROM TMT_SHFT
+		WHERE VLD_YN = #{useYn}
+		<if test="divCd != null and divCd != ''">
+    		AND
+				SHFT_DIV_CD = #{divCd}
+		</if>
+		<if test="shftMethCd != null and shftMethCd != ''">
+    		AND
+				SHFT_METH_CD = #{shftMethCd}
+		</if>
+ 		 ORDER BY SHFT_IDX, SHFTNM
+	</select>
+	
+	<select id="selectGroupDef"  parameterType="SearchShiftGroupDefParm" resultType="ShiftGroupDefItem">
+		SELECT /* shiftGroupDef.xml  selectGroupDef  PN106003*/
+		       SHFT_GRP_CD         GROUPCD,
+		       SHFT_DIV_CD         SHFTDIVCD,
+		       SHFT_GRP_NM         GROUPNM,
+			   VLD_YN              USEYN,
+			   NVL(RMK, ' ')       RMK,
+			   VERSION             VERSION
+		FROM TMT_GROUP
+		WHERE VLD_YN = #{useYn}
+			AND SHFT_DIV_CD = #{divCd}
+ 		ORDER BY SHFT_GRP_CD, SHFT_DIV_CD
+	</select>
+	
+	<select id="selectShiftGroupDefShiftMega"  parameterType="SearchShiftGroupDefParm" resultType="ShiftGroupDefItem">
+		SELECT /* ShiftGroupDefMap.xml  selectShiftGroupDefShiftMega  PN105TAB*/
+		       SHFT_ID             SHFTID,
+		       SHFT_DIV_CD         SHFTDIVCD,
+		       SHFT_NM             SHFTNM,
+		       FM_HHMM             FMHHMM,
+		       TO_HHMM             TOHHMM,
+		       VERSION             VERSION
+		FROM TMT_SHFT
+		WHERE VLD_YN = 'Y'
+			<if test="divCd != null and divCd != ''">
+    		AND
+				SHFT_DIV_CD = #{divCd}
+			</if>
+		   	AND SHFT_METH_CD = #{shftMethCd}
+ 		ORDER BY SHFTNM
+	</select>
+</mapper>

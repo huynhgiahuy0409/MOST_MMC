@@ -1,0 +1,1215 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="creditNote">
+
+	<select id="selectCreditNoteList"	parameterType="creditNoteParm" 	resultType="creditNoteItem">
+		SELECT /* CreditNoteMap.selectCreditNote */
+		    I.IV_NO        										AS INVOICENO,
+			CRN.STAT_CD 										AS CRNSTATCD,
+			TCM.S_CD_NM 										AS CRNSTATNM,
+			I.ERP_STAT_CD 										AS ERPSTATCD,
+			CRN.IV_NO      										AS CREDITNOTENO,
+			I.VSL_CALL_ID										AS VSLCALLID,
+			VP.VSL_NM											AS VSLNM,
+			I.PAYER												AS PAYER,
+			dbo.F_PTNR_SNM(I.PAYER, I.PAYER_TP_CD) 				AS PAYERNM,
+			I.PAYER_TP_CD										AS PAYERTPCD,
+			I.PAY_TP_CD											AS PAYTPCD,
+			FORMAT(I.IV_DT, 'yyyy-MM-dd HH:mm')				AS IVDT,
+			ISNULL(I.IV_AMT, 0)									AS APLYAMT,
+			ISNULL(I.TAX_AMT, 0)								AS GSTAMT,
+			I.TOTAL_AMT											AS TOTALAMT,
+		    <!--  
+		    I.CRCY_CD											AS CRCYCD,
+		    ISNULL(
+				I.EXCHG_VAL,
+		    	dbo.F_GET_EXCHANGE_RATE(
+					ISNULL(I.CRCY_CD,'AED'), 
+					SYSDATETIME()
+				)
+		    )													AS EXRATE,
+		    I.ERP_IV_TP_CD										AS ERPIVTPCD,
+		    I.SYTM_ID,
+		    -->
+			CRN.RMK												AS REMARK,
+			CRN.INS_USER_ID										AS CREATEDBY,
+			FORMAT(CRN.INS_DT, 'yyyy-MM-dd HH:mm')				AS CREATEDDT,
+			CASE
+				WHEN (CRN.STAT_CD IS NULL OR CRN.STAT_CD = '')
+					THEN 'C'
+				ELSE 'R'
+			END 												AS WORKINGSTATUS,
+			I.IV_TP												AS IVTP
+		FROM 
+			TMT_B_IV 											I
+		LEFT JOIN 
+			TMT_B_CREDIT_NOTE 									CRN 
+				ON I.IV_NO 										= CRN.REF_IV_NO
+		INNER JOIN 
+			TMT_VSL_SCH 										SCH 
+				ON I.VSL_CALL_ID 								= SCH.VSL_CALL_ID
+		INNER JOIN 
+			TMT_VSL_PART 										VP 
+				ON SCH.VSL_CD 									= VP.VSL_CD
+		LEFT JOIN (
+			SELECT 
+				S_CD_NM,
+				S_CD 
+			FROM 
+				TMT_CD_MSTD 
+			WHERE 
+				M_CD 			= 'IVSTAT' 
+		)														TCM
+			ON CRN.STAT_CD										= TCM.S_CD
+		WHERE 
+			I.ERP_STAT_CD 										= ('Y') 
+			AND I.STAT_CD 										= ('IV')
+			<if test=' vslCallId != null and vslCallId != "" '>
+				AND I.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+			<if test=' ivNo != null and ivNo != "" '>
+				AND I.IV_NO 									LIKE '%' + #{ivNo} + '%'   
+			</if>
+			<if test=' searchType == "ivDt" '>
+				AND I.IV_DT 
+					BETWEEN CONVERT(DATETIME, #{fromDate}, 103) 
+						AND CONVERT(DATETIME, #{toDate}, 103)
+			</if>
+			<if test=' searchType == "erp" '>
+				AND I.EDI_SEND_DT 
+					BETWEEN CONVERT(DATETIME, #{fromDate}, 103) 
+						AND CONVERT(DATETIME, #{toDate}, 103)
+			</if>
+	</select>
+	
+	<select id="selectCreditNoteDetail"	parameterType="creditNoteParm" 	resultType="creditNoteItem">
+		SELECT /* CreditNoteMap.selectCreditNoteDetail */
+		    IV.IV_NO       										AS IVNO,
+			ISNULL(CRN.STAT_CD, 'CR')							AS CRNSTATCD,
+			(SELECT 
+				S_CD_NM 
+			FROM 
+				TMT_CD_MSTD 
+			WHERE 
+				M_CD 			= 'IVSTAT' 
+				AND S_CD 		= CRN.STAT_CD
+			)                                                   AS CRNSTATNM,
+			IV.VSL_CALL_ID 										AS VSLCALLID,
+			IV.TRF_CD      										AS TRFCD,
+			(SELECT 
+				S_CD_NM 
+			FROM 
+				TMT_CD_MSTD 
+			WHERE 
+				L_CD 			= 'MT' 
+				AND M_CD 		= 'TRFTP' 
+				AND S_CD 		= TRF_TP_CD
+			) 													AS TRFTPNM,
+			IV.SUB_TRF_CD  										AS SUBTRFCD,
+			TRF.TRF_TP_CD  										AS TRFTPCD,
+			IV.TRF_DESCR   										AS TRFDESCR,													
+			CASE
+				WHEN (CRN.IV_NO IS NOT NULL
+				          AND CRN.IV_NO <![CDATA[<>]]> '')
+					THEN CRN.UNIT1_VAL
+				ELSE IV.UNIT1_VAL
+			END 												AS UNIT1VAL,
+			TRF.IV_UNIT1										AS IVUNIT1,
+			CASE
+                WHEN (CRN.IV_NO IS NOT NULL
+                          AND CRN.IV_NO <![CDATA[<>]]> '')
+                    THEN CRN.UNIT2_VAL
+                ELSE IV.UNIT2_VAL
+			END                                                 AS UNIT2VAL,
+			TRF.IV_UNIT2										AS IVUNIT2,
+			CASE
+		        WHEN (CRN.IV_NO IS NOT NULL
+                          AND CRN.IV_NO <![CDATA[<>]]> '')
+                    THEN CRN.UNIT3_VAL
+                ELSE IV.UNIT3_VAL
+			END                                                 AS UNIT3VAL,
+			TRF.IV_UNIT3										AS IVUNIT3,
+            CASE
+		        WHEN (CRN.IV_NO IS NOT NULL
+                          AND CRN.IV_NO <![CDATA[<>]]> '')
+                    THEN CRN.APLY_RATE
+                ELSE -IV.APLY_RATE
+            END                                                 AS APLYRATE,
+            CASE
+		        WHEN (CRN.IV_NO IS NOT NULL
+                          AND CRN.IV_NO <![CDATA[<>]]> '')
+                    THEN CRN.APLY_AMT
+                ELSE -IV.APLY_AMT
+            END                                                 AS APLYAMT,
+			CASE
+		        WHEN (CRN.IV_NO IS NOT NULL
+                          AND CRN.IV_NO <![CDATA[<>]]> '')
+                    THEN CRN.GST_AMT
+                ELSE -IV.TAX_AMT
+			END                                                 AS GSTAMT,
+            CASE
+		        WHEN (CRN.IV_NO IS NOT NULL
+                          AND CRN.IV_NO <![CDATA[<>]]> '')
+                    THEN CRN.TOTAL_AMT
+                ELSE -IV.TOTAL_AMT
+            END                                                 AS TOTALAMT,
+            <!--  
+			CASE
+		        WHEN (CRN.IV_NO IS NOT NULL
+                          AND CRN.IV_NO <![CDATA[<>]]> '')
+                    THEN CRN.FRGN_AMT
+                ELSE -IV.FRGN_AMT
+			END                                                 AS FRGNAMT,
+			CASE
+		        WHEN (CRN.IV_NO IS NOT NULL
+                          AND CRN.IV_NO <![CDATA[<>]]> '')
+                    THEN CRN.FRGN_GST_AMT
+                ELSE -IV.FRGN_GST_AMT
+			END                                                 AS FRGNGSTAMT,
+			CASE
+				WHEN (CRN.IV_NO IS NOT NULL
+                          AND CRN.IV_NO <![CDATA[<>]]> '')
+                    THEN CRN.TOTAL_FRGN
+                ELSE -IV.TOTAL_FRGN
+			END 												AS FRGNTOTALAMT,
+			-->
+			IV.GATHER_NO           								AS GATHERNO,
+			FORMAT(IV.GATHER_DT, 'dd/MM/yyyy') 					AS GATHERDT,
+			IV.PAYER               								AS PAYER,
+			IV.PAYER_TP_CD         								AS PAYERTPCD,
+			IV.SCR_ID              								AS SCRID,
+			IV.IV_PRFX             								AS IVPRFX,
+			IV.BILL_TP_CD          								AS BILLTPCD,
+			IV.REF_NO1             								AS REFNO,
+			IV.REF_NO2             								AS REFNO2,
+			IV.TAX_TYPE            								AS GSTTPCD,
+			IV.TAX_VALUE         								AS GSTRATE,
+			<!-- 
+			IV.ERP_COST_CENT       								AS ERPSTATCD,
+			IV.REF_NO3             								AS REFNO3,
+			IV.REF_NO4             								AS REFNO4,
+			-->
+			IV.COST_CENT_CD        								AS COSTCENTCD,
+			IV.STD_RATE            								AS STDAMT,
+			IV.ADHOC_YN            								AS ADHOCYN
+			<!-- 
+			IV.SYS_CLONE_ID										AS SYSCLONEID,
+			IV.SVC_ID											AS SVCODRNO,
+			IV.SVC_SEQ											AS SVCSEQ,
+			IV.SYTM_ID											AS sytmId,
+			IV.SYTM_USE_ID										AS sytmUseId
+			 -->
+		FROM 
+			TMT_B_IV_DATA 										IV
+		INNER JOIN 
+			TMT_B_TRF_CD 										TRF 
+				ON IV.TRF_CD 									= TRF.TRF_CD 
+				AND IV.SUB_TRF_CD 								= TRF.SUB_TRF_CD
+		LEFT JOIN 
+			TMT_B_CREDIT_NOTE_DTL 								CRN 
+				ON IV.GATHER_NO 								= CRN.GATHER_NO
+		WHERE 
+			IV.IV_NO 											IS NOT NULL
+			AND IV.IV_NO 										= #{ivNo}
+	</select>
+	
+	<sql id="atbAtwAtcAtuForIv">
+		/* CreditNoteMap.atbAtwAtcAtuForIv */
+	    FORMAT (
+			CASE
+				WHEN /* IV cotains one shifting  => get from Shift */
+					(SELECT 
+						COUNT (DISTINCT(REF_NO4))
+					FROM 
+						TMT_B_CREDIT_NOTE_DTL 	DT, 
+						TMT_B_TRF_CD 			TR
+					WHERE 
+						TR.TRF_CD 				= DT.TRF_CD 
+						AND TR.SUB_TRF_CD 		= DT.SUB_TRF_CD
+						AND TR.TRF_TP_CD 		= 'DC' 
+						AND DT.IV_NO 			= CRN.IV_NO
+					) = 1
+					THEN
+						(SELECT 
+							ATB_DT
+						FROM 
+							TMT_VSL_SHFT 			SHFT
+						WHERE     
+							SHFT.VSL_CALL_ID 		= CRN.VSL_CALL_ID
+							AND SHFT.SEQ 			= 	
+								(SELECT 
+									MAX (DISTINCT (REF_NO4))
+								FROM 
+									TMT_B_CREDIT_NOTE_DTL 	DT, 
+									TMT_B_TRF_CD 			TR
+								WHERE TR.TRF_CD 			= DT.TRF_CD 
+									AND TR.SUB_TRF_CD 		= DT.SUB_TRF_CD
+									AND TR.TRF_TP_CD 		= 'DC' 
+									AND DT.IV_NO			= CRN.IV_NO
+									AND DT.VSL_CALL_ID 		= CRN.VSL_CALL_ID
+								)
+						)
+				WHEN /* IV cotains more than one shifting  => get from last Shift */
+					(SELECT 
+						COUNT (DISTINCT(REF_NO4))
+					FROM 
+						TMT_B_CREDIT_NOTE_DTL 				DT, 
+						TMT_B_TRF_CD 						TR
+					WHERE 
+						TR.TRF_CD 							= DT.TRF_CD 
+						AND TR.SUB_TRF_CD 					= DT.SUB_TRF_CD
+						AND TR.TRF_TP_CD 					= 'DC' 
+						AND DT.IV_NO 						= CRN.IV_NO
+					) > 1
+					THEN
+						(SELECT 
+							ATB_DT
+						FROM 
+							TMT_VSL_SHFT SHFT
+						WHERE     
+							SHFT.VSL_CALL_ID 				= CRN.VSL_CALL_ID
+							AND SHFT.SEQ 					=
+								(SELECT 
+									MAX (REF_NO4)
+								FROM 
+									TMT_B_CREDIT_NOTE_DTL 	DT, 
+									TMT_B_TRF_CD 			TR
+								WHERE 
+									TR.TRF_CD 				= DT.TRF_CD 
+									AND TR.SUB_TRF_CD 		= DT.SUB_TRF_CD
+									AND TR.TRF_TP_CD 		= 'DC' 
+									AND DT.IV_NO 			= CRN.IV_NO
+									AND DT.VSL_CALL_ID 		= CRN.VSL_CALL_ID
+								)
+						)
+				WHEN  /* IV does not  contain shifting*/
+					(SELECT 
+						COUNT (DISTINCT (REF_NO4))
+					FROM 
+						TMT_B_CREDIT_NOTE_DTL 				DT, 
+						TMT_B_TRF_CD 						TR
+					WHERE 
+						TR.TRF_CD 							= DT.TRF_CD 
+						AND TR.SUB_TRF_CD 					= DT.SUB_TRF_CD
+						AND TR.TRF_TP_CD 					= 'DC' 
+						AND DT.IV_NO 						= CRN.IV_NO
+					) = 0
+					THEN
+						CASE
+							WHEN /* IV does not contain Normal Dockage AND VSL has shifting => get from last Shift */
+								(SELECT 
+									COUNT (DISTINCT (TRF_TP_CD))
+								FROM (
+									SELECT 
+										TRF_TP_CD
+									FROM 
+										TMT_B_TRF_CD 			TR, 
+										TMT_B_CREDIT_NOTE_DTL 	DT
+									WHERE     
+										TR.TRF_CD 				= DT.TRF_CD
+										AND TR.SUB_TRF_CD 		= DT.SUB_TRF_CD
+										AND TR.TRF_TP_CD 		= 'DC'
+										AND DT.IV_NO 			= CRN.IV_NO
+								)) = 0
+								AND (
+									SELECT 
+										COUNT (SEQ)
+									FROM 
+										TMT_VSL_SHFT 			SHFT
+									WHERE 
+										SHFT.VSL_CALL_ID 		= CRN.VSL_CALL_ID
+										AND SHFT.ATB_DT IS NOT NULL 
+										AND SHFT.ATW_DT IS NOT NULL 
+										AND SHFT.ATC_DT IS NOT NULL 
+										AND SHFT.ATU_DT IS NOT NULL
+								) > 0
+							THEN
+								(SELECT 
+									ATB_DT
+								FROM 
+									TMT_VSL_SHFT 			SHFT
+								WHERE     
+									SHFT.VSL_CALL_ID 		= CRN.VSL_CALL_ID
+									AND SHFT.SEQ 			=
+										(SELECT 
+											MAX (SEQ)
+										FROM 
+											TMT_VSL_SHFT 	SHFT2
+										WHERE 
+											SHFT2.VSL_CALL_ID = CRN.VSL_CALL_ID
+											AND SHFT2.ATB_DT IS NOT NULL 
+											AND SHFT2.ATW_DT IS NOT NULL 
+											AND SHFT2.ATC_DT IS NOT NULL 
+											AND SHFT2.ATU_DT IS NOT NULL
+										)
+								)
+							ELSE
+							(SELECT MAX (ATB)
+								FROM TMT_VSL_SCH VSCH
+								WHERE VSCH.VSL_CALL_ID = CRN.VSL_CALL_ID)                     
+						END
+			END,
+            'dd-MM-yyyy HH:mm'
+        ) 														AS ATB,
+		FORMAT (
+			CASE
+				WHEN /* IV cotains one shifting  => get from Shift */
+					(SELECT 
+						COUNT(DISTINCT(REF_NO4))
+					FROM 
+						TMT_B_CREDIT_NOTE_DTL 					DT, 
+						TMT_B_TRF_CD 							TR
+					WHERE 
+						TR.TRF_CD 								= DT.TRF_CD 
+						AND TR.SUB_TRF_CD 						= DT.SUB_TRF_CD
+						AND TR.TRF_TP_CD 						= 'DC' 
+						AND DT.IV_NO 							= CRN.IV_NO
+					) = 1
+					THEN
+						(SELECT 
+							ATW_DT
+						FROM 
+							TMT_VSL_SHFT 						SHFT
+						WHERE     
+							SHFT.VSL_CALL_ID 					= CRN.VSL_CALL_ID
+							AND SHFT.SEQ = 
+								(SELECT 
+									MAX(DISTINCT(REF_NO4))
+								FROM 
+									TMT_B_CREDIT_NOTE_DTL 		DT, 
+									TMT_B_TRF_CD 				TR
+								WHERE 
+									TR.TRF_CD 					= DT.TRF_CD 
+									AND TR.SUB_TRF_CD 			= DT.SUB_TRF_CD
+									AND TR.TRF_TP_CD 			= 'DC' 
+									AND DT.IV_NO 				= CRN.IV_NO
+									AND DT.VSL_CALL_ID 			= CRN.VSL_CALL_ID
+								)
+						)
+				WHEN /* IV cotains more than one shifting  => get from last Shift */
+					(SELECT 
+						COUNT(DISTINCT(REF_NO4))
+					FROM 
+						TMT_B_CREDIT_NOTE_DTL 					DT, 
+						TMT_B_TRF_CD 							TR
+					WHERE 
+						TR.TRF_CD 								= DT.TRF_CD 
+						AND TR.SUB_TRF_CD 						= DT.SUB_TRF_CD
+						AND TR.TRF_TP_CD 						= 'DC' 
+						AND DT.IV_NO 							= CRN.IV_NO
+					) > 1
+					THEN (
+						SELECT 
+							ATW_DT
+						FROM 
+							TMT_VSL_SHFT 						SHFT
+						WHERE     
+							SHFT.VSL_CALL_ID 					= CRN.VSL_CALL_ID
+							AND SHFT.SEQ =
+								(SELECT 
+									MAX (REF_NO4)
+								FROM 
+									TMT_B_CREDIT_NOTE_DTL  		DT, 
+									TMT_B_TRF_CD 				TR
+								WHERE 
+									TR.TRF_CD 					= DT.TRF_CD 
+									AND TR.SUB_TRF_CD 			= DT.SUB_TRF_CD
+									AND TR.TRF_TP_CD 			= 'DC' 
+									AND DT.IV_NO 				= CRN.IV_NO
+									AND DT.VSL_CALL_ID 			= CRN.VSL_CALL_ID
+								)
+						)
+				WHEN  /* IV does not  contain shifting*/
+					(SELECT 
+						COUNT(DISTINCT(REF_NO4))
+					FROM 
+						TMT_B_CREDIT_NOTE_DTL 					DT, 
+						TMT_B_TRF_CD 							TR
+					WHERE 
+						TR.TRF_CD 								= DT.TRF_CD 
+						AND TR.SUB_TRF_CD 						= DT.SUB_TRF_CD
+						AND TR.TRF_TP_CD 						= 'DC' 
+						AND DT.IV_NO 							= CRN.IV_NO
+					) = 0
+						THEN
+							CASE                    
+								WHEN /* IV does not contain Normal Dockage AND VSL has shifting => get from last Shift */
+									(SELECT 
+										COUNT(DISTINCT(TRF_TP_CD))
+									FROM (
+										SELECT 
+											TRF_TP_CD
+										FROM 
+											TMT_B_TRF_CD 		TR, 
+											TMT_B_CREDIT_NOTE_DTL DT
+										WHERE     
+											TR.TRF_CD 			= DT.TRF_CD
+											AND TR.SUB_TRF_CD 	= DT.SUB_TRF_CD
+											AND TR.TRF_TP_CD 	= 'DC'
+											AND DT.IV_NO 		= CRN.IV_NO
+									)
+									) = 0
+									AND (
+										SELECT 
+											COUNT(SEQ)
+										FROM 
+											TMT_VSL_SHFT 		SHFT
+										WHERE 
+											SHFT.VSL_CALL_ID 	= CRN.VSL_CALL_ID
+											AND SHFT.ATB_DT 	IS NOT NULL 
+											AND SHFT.ATW_DT 	IS NOT NULL 
+											AND SHFT.ATC_DT 	IS NOT NULL 
+											AND SHFT.ATU_DT 	IS NOT NULL
+									) > 0
+										THEN(SELECT 
+												ATW_DT
+											FROM 
+												TMT_VSL_SHFT 	SHFT
+											WHERE     
+												SHFT.VSL_CALL_ID = CRN.VSL_CALL_ID
+												AND SHFT.SEQ = (
+													SELECT 
+														MAX (SEQ)
+													FROM 
+														TMT_VSL_SHFT SHFT2
+													WHERE 
+														SHFT2.VSL_CALL_ID = CRN.VSL_CALL_ID
+														AND SHFT2.ATB_DT IS NOT NULL 
+														AND SHFT2.ATW_DT IS NOT NULL 
+														AND SHFT2.ATC_DT IS NOT NULL 
+														AND SHFT2.ATU_DT IS NOT NULL
+												)
+										)
+								ELSE (
+									SELECT 
+										MAX (ATW)
+									FROM 
+										TMT_VSL_SCH 			VSCH
+									WHERE 
+										VSCH.VSL_CALL_ID 		= CRN.VSL_CALL_ID
+								)                     
+							END
+			END,
+			'dd-MM-yyyy HH:mm'
+		) 														AS ATW,  /*ATC*/
+		FORMAT (
+			CASE
+				WHEN /* IV cotains one shifting  => get from Shift */
+					(SELECT 
+						COUNT(DISTINCT (REF_NO4))
+					FROM 
+						TMT_B_CREDIT_NOTE_DTL 					DT, 
+						TMT_B_TRF_CD 							TR
+					WHERE 
+						TR.TRF_CD 								= DT.TRF_CD 
+						AND TR.SUB_TRF_CD 						= DT.SUB_TRF_CD
+						AND TR.TRF_TP_CD 						= 'DC' 
+						AND DT.IV_NO 							= CRN.IV_NO
+					) = 1
+					THEN (
+						SELECT 
+							ATC_DT
+						FROM 
+							TMT_VSL_SHFT 						SHFT
+						WHERE     
+							SHFT.VSL_CALL_ID 					= CRN.VSL_CALL_ID
+							AND SHFT.SEQ 						= 
+								(SELECT 
+									MAX (DISTINCT (REF_NO4))
+								FROM 
+									TMT_B_CREDIT_NOTE_DTL 		DT, 
+									TMT_B_TRF_CD 				TR
+								WHERE 
+									TR.TRF_CD 					= DT.TRF_CD 
+									AND TR.SUB_TRF_CD			= DT.SUB_TRF_CD
+									AND TR.TRF_TP_CD 			= 'DC' 
+									AND DT.IV_NO 				= CRN.IV_NO
+									AND DT.VSL_CALL_ID 			= CRN.VSL_CALL_ID
+								)
+					)
+				WHEN /* IV cotains more than one shifting  => get from last Shift */
+					(SELECT 
+						COUNT (DISTINCT (REF_NO4))
+					FROM 
+						TMT_B_CREDIT_NOTE_DTL 					DT, 
+						TMT_B_TRF_CD 							TR
+					WHERE 
+						TR.TRF_CD 								= DT.TRF_CD 
+						AND TR.SUB_TRF_CD 						= DT.SUB_TRF_CD
+						AND TR.TRF_TP_CD 						= 'DC' 
+						AND DT.IV_NO 							= CRN.IV_NO
+					) > 1
+					THEN (
+						SELECT 
+							ATC_DT
+						FROM 
+							TMT_VSL_SHFT 						SHFT
+						WHERE     
+							SHFT.VSL_CALL_ID 					= CRN.VSL_CALL_ID
+								AND SHFT.SEQ =
+									(SELECT 
+									MAX (REF_NO4)
+									FROM 
+										TMT_B_CREDIT_NOTE_DTL 	DT, 
+										TMT_B_TRF_CD 			TR
+									WHERE TR.TRF_CD 			= DT.TRF_CD 
+										AND TR.SUB_TRF_CD 		= DT.SUB_TRF_CD
+										AND TR.TRF_TP_CD 		= 'DC' 
+										AND DT.IV_NO 			= CRN.IV_NO
+										AND DT.VSL_CALL_ID 		= CRN.VSL_CALL_ID
+									)
+						)
+				WHEN  /* IV does not  contain shifting*/
+					(SELECT 
+						COUNT (DISTINCT(REF_NO4))
+					FROM 
+						TMT_B_CREDIT_NOTE_DTL 					DT, 
+						TMT_B_TRF_CD  							TR
+					WHERE 
+						TR.TRF_CD 								= DT.TRF_CD 
+						AND TR.SUB_TRF_CD  						= DT.SUB_TRF_CD
+						AND TR.TRF_TP_CD  						= 'DC' 
+						AND DT.IV_NO  							= CRN.IV_NO
+					) = 0
+					THEN
+						CASE                    
+							WHEN /* IV does not contain Normal Dockage AND VSL has shifting => get from last Shift */
+								(SELECT 
+									COUNT(DISTINCT(TRF_TP_CD))
+								FROM (
+									SELECT 
+										TRF_TP_CD
+									FROM 
+										TMT_B_TRF_CD 			TR, 
+										TMT_B_CREDIT_NOTE_DTL 	DT
+									WHERE     
+										TR.TRF_CD 				= DT.TRF_CD
+										AND TR.SUB_TRF_CD 		= DT.SUB_TRF_CD
+										AND TR.TRF_TP_CD 		= 'DC'
+										AND DT.IV_NO 			= CRN.IV_NO
+								)) = 0
+								AND (
+									SELECT 
+										COUNT (SEQ)
+									FROM 
+										TMT_VSL_SHFT SHFT
+									WHERE 
+										SHFT.VSL_CALL_ID 		= CRN.VSL_CALL_ID
+										AND SHFT.ATB_DT IS NOT NULL 
+										AND SHFT.ATW_DT IS NOT NULL 
+										AND SHFT.ATC_DT IS NOT NULL 
+										AND SHFT.ATU_DT IS NOT NULL
+								) > 0
+									THEN (
+										SELECT 
+											ATC_DT
+										FROM 
+											TMT_VSL_SHFT SHFT
+										WHERE     
+											SHFT.VSL_CALL_ID 		= CRN.VSL_CALL_ID
+											AND SHFT.SEQ =
+												(SELECT 
+													MAX (SEQ)
+												FROM 
+													TMT_VSL_SHFT 	SHFT2
+												WHERE 
+													SHFT2.VSL_CALL_ID = CRN.VSL_CALL_ID
+													AND SHFT2.ATB_DT IS NOT NULL 
+													AND SHFT2.ATW_DT IS NOT NULL 
+													AND SHFT2.ATC_DT IS NOT NULL 
+													AND SHFT2.ATU_DT IS NOT NULL
+												)
+									)
+							ELSE (
+								SELECT 
+									MAX(ATC)
+								FROM 
+									TMT_VSL_SCH 				VSCH
+								WHERE 
+									VSCH.VSL_CALL_ID 			= CRN.VSL_CALL_ID
+							)                     
+						END
+			END,
+			'dd-MM-yyyy HH:mm'
+		) 														AS ATC, 
+		FORMAT( /*ATD*/
+			(SELECT
+				MAX(ATD)
+			FROM
+				TMT_VSL_SCH 			VSCH
+			WHERE
+				VSCH.VSL_CALL_ID 		= CRN.VSL_CALL_ID
+			),
+			'dd-MM-yyyy HH:mm'
+		) 														AS ATD, 
+		FORMAT (/*ATU*/
+			CASE
+				WHEN /* IV cotains one shifting  => get from Shift */
+					(SELECT 
+						COUNT(DISTINCT(REF_NO4))
+					FROM 
+						TMT_B_CREDIT_NOTE_DTL 					DT, 
+						TMT_B_TRF_CD 							TR
+					WHERE 
+						TR.TRF_CD 								= DT.TRF_CD 
+						AND TR.SUB_TRF_CD 						= DT.SUB_TRF_CD
+						AND TR.TRF_TP_CD 						= 'DC' 
+						AND DT.IV_NO 							= CRN.IV_NO
+					) = 1
+					THEN (
+						SELECT 
+							ATU_DT
+						FROM 
+							TMT_VSL_SHFT 						SHFT
+						WHERE     
+							SHFT.VSL_CALL_ID 					= CRN.VSL_CALL_ID
+							AND SHFT.SEQ = 
+								(SELECT 
+									MAX(DISTINCT(REF_NO4))
+								FROM 
+									TMT_B_CREDIT_NOTE_DTL 		DT, 
+									TMT_B_TRF_CD 				TR
+								WHERE 
+									TR.TRF_CD 					= DT.TRF_CD 
+									AND TR.SUB_TRF_CD 			= DT.SUB_TRF_CD
+									AND TR.TRF_TP_CD 			= 'DC' 
+									AND DT.IV_NO 				= CRN.IV_NO
+									AND DT.VSL_CALL_ID 			= CRN.VSL_CALL_ID
+								)
+					)
+				WHEN /* IV cotains more than one shifting  => get from last Shift */
+					(SELECT COUNT (DISTINCT (REF_NO4))
+					FROM TMT_B_CREDIT_NOTE_DTL DT, TMT_B_TRF_CD TR
+					WHERE TR.TRF_CD = DT.TRF_CD 
+						AND TR.SUB_TRF_CD = DT.SUB_TRF_CD
+						AND TR.TRF_TP_CD = 'DC' 
+						AND DT.IV_NO = CRN.IV_NO
+					) > 1
+						THEN (
+							SELECT 
+								ATU_DT
+							FROM 
+								TMT_VSL_SHFT 					SHFT
+							WHERE     
+								SHFT.VSL_CALL_ID 				= CRN.VSL_CALL_ID
+								AND SHFT.SEQ =
+									(SELECT 
+										MAX (REF_NO4)
+									FROM 
+										TMT_B_CREDIT_NOTE_DTL 	DT, 
+										TMT_B_TRF_CD 			TR
+									WHERE 
+										TR.TRF_CD 				= DT.TRF_CD 
+										AND TR.SUB_TRF_CD 		= DT.SUB_TRF_CD
+										AND TR.TRF_TP_CD 		= 'DC' 
+										AND DT.IV_NO 			= CRN.IV_NO
+										AND DT.VSL_CALL_ID 		= CRN.VSL_CALL_ID
+									)
+						)
+				WHEN  /* IV does not  contain shifting*/
+					(SELECT 
+						COUNT(DISTINCT (REF_NO4))
+					FROM 
+						TMT_B_CREDIT_NOTE_DTL 					DT, 
+						TMT_B_TRF_CD 							TR
+					WHERE 
+						TR.TRF_CD 								= DT.TRF_CD 
+						AND TR.SUB_TRF_CD 						= DT.SUB_TRF_CD
+						AND TR.TRF_TP_CD 						= 'DC' 
+						AND DT.IV_NO 							= CRN.IV_NO
+					) = 0
+					THEN
+						CASE                    
+							WHEN /* IV does not contain Normal Dockage AND VSL has shifting => get from last Shift */
+								(SELECT 
+									COUNT(DISTINCT(TRF_TP_CD))
+								FROM (
+									SELECT 
+										TRF_TP_CD
+									FROM 
+										TMT_B_TRF_CD 			TR, 
+										TMT_B_CREDIT_NOTE_DTL 	DT
+									WHERE     
+										TR.TRF_CD 				= DT.TRF_CD
+										AND TR.SUB_TRF_CD 		= DT.SUB_TRF_CD
+										AND TR.TRF_TP_CD 		= 'DC'
+										AND DT.IV_NO 			= CRN.IV_NO
+								)
+								) = 0
+								AND (
+									SELECT 
+										COUNT(SEQ)
+									FROM 
+										TMT_VSL_SHFT 			SHFT
+									WHERE 
+										SHFT.VSL_CALL_ID 		= CRN.VSL_CALL_ID
+										AND SHFT.ATB_DT IS NOT NULL 
+										AND SHFT.ATW_DT IS NOT NULL 
+										AND SHFT.ATC_DT IS NOT NULL 
+										AND SHFT.ATU_DT IS NOT NULL
+								) > 0
+								THEN (
+									SELECT 
+										ATU_DT
+									FROM 
+										TMT_VSL_SHFT SHFT
+									WHERE     
+										SHFT.VSL_CALL_ID 		= CRN.VSL_CALL_ID
+										AND SHFT.SEQ =
+											(SELECT 
+												MAX (SEQ)
+											FROM 
+												TMT_VSL_SHFT 	SHFT2
+											WHERE 
+												SHFT2.VSL_CALL_ID = CRN.VSL_CALL_ID
+												AND SHFT2.ATB_DT IS NOT NULL 
+												AND SHFT2.ATW_DT IS NOT NULL 
+												AND SHFT2.ATC_DT IS NOT NULL 
+												AND SHFT2.ATU_DT IS NOT NULL
+											)
+								)
+							ELSE (
+								SELECT 
+									MAX(ATU)
+								FROM 
+									TMT_VSL_SCH 				VSCH
+								WHERE 
+									VSCH.VSL_CALL_ID 			= CRN.VSL_CALL_ID
+							)                     
+						END
+			END,
+			'dd-MM-yyyy HH:mm'
+		) 														AS ATU
+	</sql>
+	
+	<select id="selectCreditNoteReport" parameterType="creditNoteParm" resultType="creditNoteItem">
+		SELECT /* CreditNoteMap.selectCreditNoteReport */
+		    CRN.crcy_cd                                         AS crcyCd,
+		    CRN.exchg_val    									AS exrate,
+		    CRN.iv_no         									AS creditNoteNo,
+		    CRN_DATA.trf_cd       								AS trfcd,
+		    CRN_DATA.sub_trf_cd   								AS subtrfcd,
+		    CRN_DATA.trf_descr    								AS trfdescr,
+		    (
+		        SELECT
+		            trf_tp_cd
+		        FROM
+		            TMT_B_TRF_CD t
+		        WHERE
+		            t.trf_cd 			= CRN_DATA.trf_cd
+		            AND t.sub_trf_cd 	= CRN_DATA.sub_trf_cd
+		    ) 													AS trftpcd,
+		    (SELECT
+				B.S_CD_NM
+			 FROM
+				TMT_B_TRF_CD 			A
+			 JOIN
+				TMT_CD_MSTD  			B 
+				ON A.TRF_TP_CD 			= B.S_CD
+			 WHERE
+				A.TRF_CD 				= CRN_DATA.TRF_CD
+				AND A.SUB_TRF_CD 		= CRN_DATA.SUB_TRF_CD
+				AND B.M_CD 				= 'TRFTP'
+				AND B.L_CD 				= 'MT'
+			) 													AS trftpNM,
+		    CRN_DATA.unit1_val    								AS crnUnit1Val,
+		    CRN_DATA.unit2_val    								AS crnUnit2Val,
+		    CRN_DATA.unit3_val    								AS crnUnit3Val,
+		    CRN_DATA.aply_rate    								AS crnApplyRate,
+		    CRN_DATA.std_rate    								AS stdrate,
+		    CRN_DATA.aply_amt     								AS crnApplyAmt,
+		    CRN.stat_cd       									AS statcd,
+			CASE CRN_DATA.total_amt
+				WHEN '' THEN 0
+				ELSE CRN_DATA.total_amt
+			END 												AS crnTotalAmt,
+		    ISNULL(CRN_DATA.gst_amt, 0) 						AS crnGstAmt,
+		    CRN_DATA.gst_type     								AS gsttype,
+		    ISNULL(gst_percent * 100, 0) 						AS gstrate,			
+			CASE CRN_DATA.scr_id
+				WHEN 'STR' THEN CRN_DATA.ref_no3
+				WHEN 'SSR' THEN 
+					ISNULL(
+						ISNULL(
+							CASE CRN_DATA.rmk
+								WHEN '-' THEN ' ',
+								ELSE CRN_DATA.rmk
+							END,
+							CRN_DATA.ref_no1
+						),
+						(SELECT TOP(1)
+							REF_NO
+						FROM
+							TMT_B_SSR
+						WHERE
+							VSL_CALL_ID 		= CRN_DATA.VSL_CALL_ID
+							AND CRN_DATA.REF_NO2 = SSR_NO
+						)
+					)
+				ELSE 
+					ISNULL(
+						ISNULL(
+							CASE CRN_DATA.rmk
+								WHEN '-' THEN ' '
+								ELSE CRN_DATA.rmk
+							END 
+							CRN_DATA.ref_no1
+						), 
+						CRN_DATA.ref_no2
+					)
+			END 												AS refno,
+		    CRN_DATA.REF_NO2 									AS REFNO2,
+		    CRN_DATA.adhoc_yn     								AS adhocyn,
+		    CRN_DATA.payer        								AS ptnrcd,
+		    CRN_DATA.payer        								AS payer,
+		    CASE
+		        WHEN CRN.PAYER_TP_CD = 'SHA' THEN (
+		            SELECT TOP(1)
+		                A1.GST_REF_ID
+		            FROM
+		                TMT_AGENCY_INFO 	A1
+		            WHERE
+		                A1.AGENCY_CODE 		= CRN.PAYER
+		        )
+		        ELSE (
+		            SELECT TOP(1)
+		                A1.GST_REF_ID
+		            FROM
+		                TMT_PTNR A1
+		            WHERE
+		                A1.PTNR_CODE 		= CRN.PAYER
+		                AND A1.PTNR_TYPE 	= CRN.PAYER_TP_CD
+		        )
+		    END 												AS payertaxno,
+		    <!-- 
+		    dbo.F_GET_PARTNET_INFO(CRN.payer, 'ENG_SNM') 		AS engsnm,
+		    dbo.F_GET_PARTNET_INFO(CRN.payer, 'ACC_NO') 		AS accno,
+		    dbo.F_GET_PARTNET_INFO(CRN.payer, 'ADDR') 			AS addr,
+		    dbo.F_GET_PARTNET_INFO(CRN.payer, 'TEL') 			AS telno,
+		    dbo.F_GET_PARTNET_INFO(CRN.payer, 'TEL') 			AS telno,
+		    dbo.F_GET_PARTNET_INFO(CRN.payer, 'GST_REG_NO') 	AS gstrefid,
+		     -->
+		    CRN.rmk           									AS remark,
+		    FORMAT(CRN.CRN_DT, 'dd-MM-yyyy') 					AS crnIvDt,
+    		FORMAT(CRN.CRN_DUE_DT, 'dd-MM-yyyy') 				AS crnIvduedt,
+		    TVS.ARRV_SA_ID    									AS arrvsaid,
+		    TVS.BERTH_LOC     									AS berthloc,
+		    TVP.VSL_NM        									AS vslnm,
+		    TVS.VSL_CALL_ID   									AS vslcallid,
+		    <include refid="atbAtwAtcAtuForIv"/>,
+		    TMNL.TMNL_NM 										AS tmnlnm,
+		    TMNL.ADDR 											AS tmnladdr,
+		    TMNL.TEL_NO 										AS tmnltel,
+		    TMNL.FAX_NO 										AS tmnlfax,
+		    TMNL.COMP_REG_NO 									AS tmnlRegNo,
+		    CRN.REF_IV_NO 										AS ivNo,
+		    CRN.IV_FRGN_AMT 									AS ivApplyAmt,
+		    CRN.IV_FRGN_GST_AMT 								AS ivGstAmt,
+		    FORMAT(CRN.IV_DT, 'dd-MM-yyyy') 					AS IVDT,
+		    CRN.IV_RMK 											AS IVRMK
+		FROM (
+		    SELECT
+		        TMP_CRN.IV_NO,
+		    	TMP_CRN.REF_IV_NO,
+		    	TMP_CRN.PAYER,
+		    	TMP_CRN.IV_PRFX,
+		    	TMP_CRN.STAT_CD,
+		    	TMP_CRN.VSL_CALL_ID,
+		    	TMP_CRN.IV_FM_YMD,
+		    	TMP_CRN.IV_TO_YMD,
+		    	TMP_CRN.IV_AMT     								AS CRN_AMT,
+		    	TMP_CRN.IV_DT       							AS CRN_DT,
+		    	TMP_CRN.IV_DUE_DT   							AS CRN_DUE_DT,
+		    	TMP_CRN.VW_DT,
+		    	TMP_CRN.VW_USER_ID,
+		    	TMP_CRN.TAX_PRTG,
+		    	TMP_CRN.TAX_AMT,
+		    	TMP_CRN.COMS_PRTG,
+		    	TMP_CRN.COMS_AMT,
+		    	TMP_CRN.SURCHG_PRTG,
+		    	TMP_CRN.SURCHG_AMT,
+		    	TMP_CRN.DISCNT_PRTG,
+		    	TMP_CRN.DISCNT_AMT,
+		    	TMP_CRN.REVS_AMT,
+		    	TMP_CRN.RMK,
+		    	TMP_CRN.FST_OPEN_DT,
+		    	TMP_CRN.FST_OPEN_BY,
+		    	TMP_CRN.EDI_SEND_YN,
+		    	TMP_CRN.EDI_SEND_DT,
+		    	TMP_CRN.PR_USER_ID,
+		    	TMP_CRN.PR_DT,
+		    	TMP_CRN.CRCY_CD,
+		    	TMP_CRN.PAY_TP_CD,
+		    	TMP_CRN.ERP_STAT_CD,
+		    	TMP_CRN.FRGN_AMT,
+		    	TMP_CRN.EXCHG_VAL,
+		    	TMP_CRN.PAID_ST,
+		    	TMP_CRN.GST_AMT,
+		    	TMP_CRN.FRGN_GST_AMT,
+		    	TMP_CRN.TOTAL_AMT,
+		    	TMP_CRN.GST_STAT_CD,
+		    	TMP_CRN.ERP_SCH_SENT_DT,
+		    	TMP_CRN.ERP_SCH_VER,
+		    	TMP_CRN.IV_TP,
+		    	TMP_CRN.PAYER_TP_CD,
+		    	TMP_CRN.ADD_CREDIT_IV_NO,
+		    	TMP_CRN.ERP_COL_TP_CD,
+		    	TMP_CRN.ERP_PAY_DT,
+		    	TMP_CRN.ERP_PAY_NO,
+		    	TMP_CRN.ERP_REC_NO,
+		    	TMP_CRN.BANK_NM,
+		    	TMP_CRN.ERP_IV_TP_CD,
+		    	TMP_CRN.INS_USER_ID,
+		    	TMP_CRN.INS_DT,
+		    	TMP_CRN.SYTM_ID,
+		    	TMP_CRN.STAFF_CD,
+		    	TMP_CRN.UPDATE_TIME,
+		    	TMP_CRN.VERSION,
+		    	IV.FRGN_AMT AS IV_FRGN_AMT,
+		    	IV.FRGN_GST_AMT AS IV_FRGN_GST_AMT,
+		    	IV.iv_DT AS IV_DT,
+		    	IV.RMK AS IV_RMK
+		    FROM 
+				TMT_B_CREDIT_NOTE 								TMP_CRN
+		    INNER JOIN 
+				TMT_B_IV IV 
+					ON TMP_CRN.REF_IV_NO 						= IV.IV_NO 
+		    WHERE 
+				TMP_CRN.IV_NO 									= #{creditNoteNo}
+		) 														CRN
+		INNER JOIN 
+			TMT_B_CREDIT_NOTE_DTL 								CRN_DATA 
+				ON CRN.IV_NO 									= CRN_DATA.IV_NO
+		INNER JOIN 
+			TMT_VSL_SCH 										TVS 
+				ON CRN.VSL_CALL_ID 								= TVS.VSL_CALL_ID
+		LEFT JOIN 
+			TMT_VSL_PART 										TVP 
+				ON TVP.VSL_CD 									= TVS.VSL_CD
+		LEFT JOIN 
+			TMT_TMNL_DEF 										TMNL 
+				ON TMNL.TMNL_TP_CD 								= 'OWN' 
+				AND ROWNUM 									= 1
+		WHERE 
+			CRN_DATA.STAT_CD NOT IN ('RJ')
+	</select>
+	
+	<select id="generateInvoiceNo" parameterType="creditNoteParm" resultType="java.lang.String">
+	 	SELECT /* CreditNoteMap.generateInvoiceNo */ 
+			(#{ivPrfx} 
+				+ (
+					CASE #{branchCode}
+						WHEN 'MOST_ZPGC1' THEN '01'
+						WHEN 'MOST_KPGC1' THEN '02'
+						WHEN 'MOST_MPGC1' THEN '03'
+						WHEN 'MOST_FPGC1' THEN '04'
+						WHEN 'MOST_FPFT1' THEN '05'
+						ELSE ''
+					END
+				)
+				+ FORMAT(SYSDATETIME(), 'yyMM') 
+				+ TRIM(
+					FORMAT(
+						ISNULL(
+							MAX(CONVERT(NUMERIC(20, 0), RIGHT(IV_NO, 5)) + 1), 
+							1
+						),
+						'00000'
+					)
+				)
+			) 													AS ivNo
+		FROM 
+			TMT_B_CREDIT_NOTE
+		WHERE 
+			IV_NO LIKE 
+				#{ivPrfx} 
+				+ (
+					CASE #{branchCode}
+						WHEN 'MOST_ZPGC1' THEN '01'
+						WHEN 'MOST_KPGC1' THEN '02'
+						WHEN 'MOST_MPGC1' THEN '03'
+						WHEN 'MOST_FPGC1' THEN '04'
+						WHEN 'MOST_FPFT1' THEN '05'
+						ELSE ''
+					END
+				)
+				+ FORMAT(SYSDATETIME(), 'yy') + '%'
+	 </select>
+	
+	<insert id="insertCreditNote" 								parameterType="creditNoteItem">
+		INSERT /* CreditNoteMap.insertCreditNote */ 
+		INTO TMT_B_CREDIT_NOTE (
+		    IV_NO,
+			STAT_CD,
+			PAYER,
+			PAYER_TP_CD,
+			PAY_TP_CD,
+			VSL_CALL_ID,
+			IV_PRFX,
+			GST_AMT,
+			TOTAL_AMT,
+			CRCY_CD,
+			EXCHG_VAL,
+			FRGN_AMT,
+			FRGN_GST_AMT,
+			IV_AMT,
+			IV_DT,
+			IV_DUE_DT,
+			REF_IV_NO,
+			RMK,
+			STAFF_CD,
+			UPDATE_TIME,
+			VERSION,
+			INS_USER_ID,
+			INS_DT
+		) VALUES (
+		    #{creditNoteNo},
+			#{crnStatCd},
+			#{payer},
+			#{payerTpCd},
+			#{payTpCd},
+			#{vslCallId},
+			#{ivPrfx},
+			#{gstAmt},
+			#{totalAmt},
+			#{crcyCd},
+			#{exRate},
+			#{frgnAmt},
+			#{frgnGstAmt},
+			#{ivAmt},
+			SYSDATETIME(),
+			DATEADD(DAY, 30, SYSDATETIME()),
+			#{invoiceNo},
+			#{remark},
+			#{userId},
+			SYSDATETIME(),
+			#{newVersion},
+			#{userId},
+			SYSDATETIME()
+		)
+	</insert>
+	
+	<insert id="insertCreditNoteDetail" 						parameterType="creditNoteItem">
+		INSERT /* CreditNoteMap.insertCreditNoteDetail */ 
+		INTO TMT_B_CREDIT_NOTE_DTL (
+			GATHER_NO,
+			TRF_CD,
+			SUB_TRF_CD,
+			PAYER,
+			BILL_TP_CD,
+			IV_PRFX,
+			VSL_CALL_ID,
+			TRF_DESCR,
+			UNIT1_VAL,
+			UNIT2_VAL,
+			UNIT3_VAL,
+			STAT_CD,
+			IV_NO,
+			GATHER_DT,
+			APLY_RATE,
+			APLY_AMT,
+			STD_RATE,
+			ADHOC_YN,
+			UPDATE_TIME,
+			STAFF_CD,
+			VERSION,
+			REF_NO1,
+			REF_NO2,
+			REF_NO3,
+			REF_NO4,
+			SCR_ID,
+			COST_CENT_CD,
+			GST_AMT ,
+			TOTAL_AMT,
+			GST_TYPE,
+			GST_PERCENT,
+			FRGN_AMT,
+			FRGN_GST_AMT,
+			TOTAL_FRGN,
+			PAYER_TP_CD,
+			SYTM_ID,
+			SYTM_USE_ID
+		) VALUES (
+			#{gatherNo},
+			#{trfCd},
+			#{subTrfCd},
+			#{payer},
+			#{billTpCd},
+			#{ivPrfx},
+			#{vslCallId},
+			#{trfDescr},
+			ISNULL(#{unit1Val}, 0),
+			ISNULL(#{unit2Val}, 0),
+			ISNULL(#{unit3Val}, 0),
+			#{crnStatCd},
+			#{creditNoteNo},
+			CONVERT(DATETIME, #{gatherDt}, 103),
+			#{aplyRate},
+			ISNULL(#{aplyAmt}, 0),
+			#{stdRate},
+			#{adhocYn},
+			SYSDATETIME(),
+			#{userId},
+			#{newVersion},
+			#{refNo},
+			#{refNo2},
+			#{refNo3},
+			#{refNo4},
+			#{scrId},
+			#{costCentCd},
+			#{gstAmt},
+			#{totalAmt},
+			#{gstTpCd},
+			#{gstRate},
+			#{frgnAmt},
+			#{frgnGstAmt},
+			#{frgnTotalAmt},
+			#{payerTpCd},
+			#{sytmUseId},
+			#{sytmUseId}
+		)
+	</insert>
+
+	<update id="updateCreditNote" 								parameterType="creditNoteItem">
+		UPDATE /* CreditNoteMap.updateCreditNote */ 
+			TMT_B_CREDIT_NOTE 
+		SET
+		    STAT_CD												= #{crnStatCd},
+		    GST_AMT												= #{gstAmt},
+		    TOTAL_AMT											= #{totalAmt},
+		    FRGN_AMT											= #{frgnAmt},
+		    FRGN_GST_AMT										= #{frgnGstAmt},
+		    IV_AMT												= #{ivAmt},
+		    IV_DT												= SYSDATETIME(),
+		    IV_DUE_DT											= DATEADD(DAY, 30, SYSDATETIME()),
+		    RMK													= #{remark},
+		    STAFF_CD											= #{userId},
+		    UPDATE_TIME											= SYSDATETIME(),
+		    VERSION												= #{newVersion}
+		WHERE 
+			IV_NO 												= #{creditNoteNo}
+	</update>
+	
+	<update id="updateCreditNoteDetail" 						parameterType="creditNoteItem">
+		UPDATE /* CreditNoteMap.updateCreditNoteDetail */ 
+			TMT_B_CREDIT_NOTE_DTL
+		SET
+		    STAT_CD												= #{crnStatCd},
+		    UNIT1_VAL											= ISNULL(#{unit1Val}, 0),
+		    UNIT2_VAL											= ISNULL(#{unit2Val}, 0),
+		    UNIT3_VAL											= ISNULL(#{unit3Val}, 0),
+		    APLY_AMT											= ISNULL(#{aplyAmt}, 0),
+		    GST_AMT												= #{gstAmt},
+		    TOTAL_AMT											= #{totalAmt},
+		    FRGN_GST_AMT										= #{frgnAmt},
+		    FRGN_AMT											= #{frgnGstAmt},
+		    TOTAL_FRGN											= #{frgnTotalAmt},
+		    UPDATE_TIME											= SYSDATETIME(),
+		    STAFF_CD											= #{userId},
+		    VERSION												= #{newVersion}
+		WHERE 
+			GATHER_NO											= #{gatherNo}
+	</update>
+</mapper>

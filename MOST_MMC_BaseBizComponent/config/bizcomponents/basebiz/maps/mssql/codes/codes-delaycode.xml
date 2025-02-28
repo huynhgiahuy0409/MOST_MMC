@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="delayCode">
+	
+	<!--  ################ Query Statement Define ######################################### -->
+	<select id="selectDelayCodeList"   parameterType="delayCodeParm"  resultType="DelayCodeItem">
+		<if test="pageNo != 0"> 
+        	SELECT /*delayCode.selectDelayCodeList*/
+            	* 
+			FROM 
+				(SELECT 
+					inner_querry.*, ROW_NUMBER() OVER(ORDER BY DLYCD) row_num 
+				FROM ( 
+		</if>
+				<include refid="getDelayCode"/>
+		<if test="pageNo != 0"> 
+				)inner_querry 
+			)inner_querry 
+			WHERE 
+				inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+				AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<select id="selectDelayCodeListCount"   parameterType="delayCodeParm"  resultType="java.lang.String">
+    	SELECT /*delayCode.selectDelayCodeListCount*/
+			COUNT(*)
+        FROM 
+			(<include refid="getDelayCode"/>) AS getDelayCode
+	</select>
+	
+	<sql id="getDelayCode">
+		SELECT /*delayCode.getDelayCode*/
+	   		ISNULL(DLY_CD, ' ')  		AS DLYCD,
+			ISNULL(DLY_CATG_CD, ' ') 	AS DLYCATGCD,
+			ISNULL(DESCR, ' ')      	AS DESCR,
+			ISNULL(CHAG_YN, ' ')     	AS CHAGYN,
+			ISNULL(STAFF_CD, ' ') 		AS USERID,
+			UPDATE_TIME					AS UPDDT,
+			ISNULL(SYTM_ID, ' ')     	AS SYTMID,
+			ISNULL(CG_TP, '')     		AS BULKTP,
+			CASE 
+				WHEN ISNULL(CG_TP, '') 	= 'BRK' THEN 'Break/Dry Bulk'
+				WHEN ISNULL(CG_TP, '') 	= 'LQD' THEN 'Liquid Bulk'
+				ELSE ''
+			END 						AS BULKTPNM,
+			ISNULL(VERSION, ' ') 					AS VERSION,
+			ISNULL(UPDATE_BY, ' ')					AS UPDBY,
+			ISNULL(DLY_OP, ' ')                     AS OPUSEYN,
+			ISNULL(DLY_NON_OP, ' ')                 AS NONOPUSEYN,
+			ISNULL(DLY_TYPE, ' ')					AS DLYTP
+		FROM 
+			TMT_DLY_CD
+		WHERE 	1=1
+			<if test="dlyCd != null and dlyCd != ''">
+	   			AND DLY_CD LIKE '%' + #{dlyCd} + '%'
+			</if>
+			<if test="dlyCatgCd != null and dlyCatgCd != ''">
+	   			AND DLY_CATG_CD 		= #{dlyCatgCd}
+			</if>		
+			<if test="chagYN != null and chagYN != ''">
+	   			AND CHAG_YN 			= #{chagYN}
+			</if>
+			<if test="bulkTp != null and bulkTp != ''">
+	   			AND CG_TP 				= #{bulkTp}
+			</if>
+			<if test="dlyTp != null and dlyTp != ''">
+				AND DLY_TP = #{dlyTp}
+			</if>
+			<if test="opUseYn != null and opUseYn != ''">
+				AND DLY_OP = #{opUseYn}
+			</if>
+			<if test="nonOpUseYn != null and nonOpUseYn != ''">
+				AND DLY_NON_OP = #{nonOpUseYn}
+			</if>
+		<!--ORDER BY 
+				DLY_CD	  -->		
+	</sql>
+	
+	<insert id = "insertDelayCodeItem"  parameterType = "DelayCodeItem">
+		INSERT /*delayCode.insertDelayCodeItem*/
+		INTO TMT_DLY_CD (
+			DLY_CD,
+			<!-- DLY_CATG_CD, -->
+			DESCR,
+			<!-- CHAG_YN, -->
+			STAFF_CD,
+			UPDATE_TIME,
+			<!-- SYTM_ID, -->
+			<!-- CG_TP,	 -->
+			VERSION,
+			UPDATE_BY,
+			DLY_TYPE,
+			DLY_OP,
+			DLY_NON_OP
+		) VALUES (
+			#{dlyCd},
+			<!-- #{dlyCatgCd}, -->
+			#{descr},
+			<!-- #{chagYN}, -->
+			#{userId},
+			GETDATE(),
+			<!-- #{sytmId}, -->
+			<!-- #{bulkTp}, -->
+			GETDATE(),
+			#{userId},
+			#{dlyTp},
+			#{opUseYn},
+			#{nonOpUseYn}
+		)
+	</insert>  
+	
+	<update id = "updateDelayCodeItem"  parameterType = "DelayCodeItem">
+		UPDATE /*delayCode.updateDelayCodeItem*/
+			TMT_DLY_CD 
+		SET 
+			DLY_CD 						= #{dlyCd},
+			<!-- DLY_CATG_CD					= #{dlyCatgCd}, -->
+			DESCR						= #{descr},
+			<!-- CHAG_YN						= #{chagYN}, -->
+			UPDATE_TIME					= GETDATE(),
+			<!-- SYTM_ID						= #{sytmId}, -->
+			<!-- CG_TP						= #{bulkTp}, -->
+			VERSION 					= #{newVersion},
+			UPDATE_BY					= #{userId},
+			DLY_TYPE					= #{dlyTp},
+			DLY_OP						= #{opUseYn},
+			DLY_NON_OP					= #{nonOpUseYn}
+		WHERE 
+			DLY_CD 						= #{oldDlyCd} 
+			<!-- AND CG_TP					= #{bulkTp} -->
+	</update>  
+	
+	<delete id = "deleteDelayCodeItem"  parameterType = "DelayCodeItem">
+		DELETE /*delayCode.deleteDelayCodeItem*/ 
+		FROM 
+			TMT_DLY_CD 
+		WHERE 
+			DLY_CD 						= #{dlyCd}
+	</delete>  
+	
+</mapper>

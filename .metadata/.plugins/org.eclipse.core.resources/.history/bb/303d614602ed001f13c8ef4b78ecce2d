@@ -1,0 +1,3554 @@
+Ext.define('MOST.view.document.BLController', {
+	extend: 'MOST.view.foundation.BaseViewController',
+	alias: 'controller.bl',
+	
+	/**
+	 * =========================================================================================================================
+	 * CONSTANT START
+	 */
+	SHIPPING_AGENCY : "SHA",		//UserConfig.SHIPPING_AGENCY
+	isCheckBLNo: false,
+	isBLNoDup: false,
+	mblEditable: true,
+	blNo:'',
+	cgWgt: 0,
+	cgVol: 0,
+	MAIN_GRID_REF_NAME: 'refBLListGrid',				// Main Grid Name 
+	MAIN_STORE_NAME: 'bllist',
+	PARAMETTER_VESSEL_ASSIGNED_COMBOBOX_STORE: 'jpvcAsignComboStore',
+	PARAMETTER_MANIFESTED_COMBOBOX_STORE: 'nilComboStore',
+	PARAMETTER_CHECK_DELIVERY_MODE_COMBOBOX_STORE: 'delvModeCombo',
+	BL_CARGO_STORE: 'blCargo',
+	CG_TYPE_STORE: 'cgType',
+	GROSS_WEIGHT_STORE: 'grossWeight',
+	RORO_BRAND_STORE: 'roroBrandStore',
+	RORO_MODEL_STORE: 'roroModelStore',
+	UNIT_LIST_STORE: 'unitList',
+	MANIFEST_TYPE_STORE: 'manifestTypeCombo',
+	CHECK_DO_STORE: 'checkDO',
+	CHECK_TRUCK_STORE: 'checkTruck',
+	CHECK_OPERATION_STORE: 'checkOperation',
+	CHECK_GATEIN_STORE: 'checkGateIn',
+	CHECK_SPLIT_EXIST_STORE: 'checkSplitExist',
+	BL_CONTAINER_STORE: 'blContainer',
+	CHECK_BLNO_STORE: 'checkBLNo',
+	HATCH_NO_STORE: 'hatchNo',
+	CATEGORY_STORE: 'categoryCombo',
+	MAX_HATCH_NO: 11,
+	TYPE_CARGO_STORE: 'typeCargoCombo',
+	VSLCALLID_STORE: 'vslCallIdStore',
+	SPLIT_WGT_CHECK: 'checkSplitWgt',
+	OPERATION_TYPE_STORE: 'operationTypeCombo',
+	FILE_GRID_REF_NAME : 'refBLFileUploadGrid', // File Grid Name  
+	FILE_UPLOAD_STORE_NAME : 'blFileUpload', // File Store Name
+	FILE_DOWNLOAD_STORE_NAME : 'blFileDownload', // File Store Name
+	
+	DO_STORE : 'listOfDeliveryOrder',
+	
+	PACKAGE_DETAIL_GRID_REF_NAME: 'refPkgDetailGrid',
+	PACKAGE_DETAIL_STORE: 'blPkgDetail',
+	SPLIT_PACKAGE_DETAIL_STORE: 'blSplitPkgDetail',
+	CARGO_GRID_REF_NAME: 'refBlCargoGrid',
+	SDO_TOTAL_WEIGHT_STORE: 'sdoWeightList',
+	/**
+	 * CONSTANT END
+	 * =========================================================================================================================
+	 */
+	onLoad:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var userAgency = MOST.config.Token.getAgencyCode();
+		var loginUserTp = MOST.config.Token.getUserType();
+		var isSHA = me.existsPatnerType(CodeConstants.CM_PTNRTP_SHA);
+		var searchParm = Ext.create('MOST.model.document.SearchBLParm');
+		
+		me.setComboBoxWithLocalCache(CacheServiceConstants.MANIFEST_TYPE_COMBOBOX, me.MANIFEST_TYPE_STORE);
+		me.setComboBoxWithLocalCache(CacheServiceConstants.DELIVERY_MODE_COMBOBOX, me.PARAMETTER_CHECK_DELIVERY_MODE_COMBOBOX_STORE);
+		me.setComboBoxWithLocalCache(CacheServiceConstants.CATEGORY_IMPORT_TRANSHIPMENT_COMBOBOX, me.CATEGORY_STORE);
+		
+		if(loginUserTp == 'E'){	
+			if(isSHA){
+				refs.ctlPartner.setValue(MOST.config.Token.getAgencyCode());
+				refs.ctlPartner.setEditable(false);
+				refs.ctlPartner.refs.ctlOpenPopupButton.setDisabled(true);
+			}
+		}
+		
+		me.setSearchParm(searchParm); // Settings Model Data Change
+		me.getViewModel().setData({theSearch:searchParm});
+		me.updateViewStyle(me.getView());
+		searchParm.set('progress', 'N');
+		
+		//detail
+		var cargoTypeStore = me.getStore(me.TYPE_CARGO_STORE);
+		var cgType = me.getStore(me.CG_TYPE_STORE);
+		var grossWeight = me.getStore(me.GROSS_WEIGHT_STORE);
+		cgType.load();
+		grossWeight.load();
+		cargoTypeStore.load();
+	},
+	
+	onSearch: function(){
+		var me = this;
+		var store = me.getStore(me.MAIN_STORE_NAME);
+		var refs = me.getReferences();
+		var params = me.getSearchCondition();
+		
+		store.load({
+			params: params,
+			callback: function(records, operation, success){
+				if(success){
+					if(records!=undefined && records.length == 0){
+						MessageUtil.noMatchData();
+					}
+				}
+			}
+		});
+	},
+	
+	onRowDbClick: function(grid, record, tr, rowIndex, e, eOpts){
+		var me = this;
+		var store = me.getStore(me.MAIN_STORE_NAME); 
+		var refs = me.getReferences();
+		var selection = refs.refBLListGrid.getSelection() == null ? null : refs.refBLListGrid.getSelection()[0];
+		
+		if (selection == null) {
+			return;
+		}
+		
+		selection.data.crud = 'U';
+		me.getViewModel().set('theBL', selection);
+				
+		me.openDetailPopup(selection);
+	},
+	
+	onAfterRender:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var view = me.getView();
+		var searchParm = me.getViewModel().get('theSearch');
+		var manifestTypeCombo = me.getStore('manifestTypeCombo');
+		
+	  	if (manifestTypeCombo.loadCount <= 0) {
+	  		manifestTypeCombo.load({
+				callback: function(records, operation, success) {
+					if (view.getIsPopup() == 'Y'){
+						theSearch.set('blDocId', docId);
+						
+						refs.cmbDocId.setReadOnly(true);
+						refs.cmbDocId.setFieldStyle('background-Color: #E3E5E4');
+					}
+				}
+			});
+	  	}
+	},
+	
+	onDetailLoad: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailView = me.getDetailBizView();
+		var theBL = me.getViewModel().get('theBL');
+		var recvBl = theBL.clone();
+		
+		var roroBrandStore = me.getStore(me.RORO_BRAND_STORE);
+		var unitList = me.getStore(me.UNIT_LIST_STORE);
+		
+		var cargoTypeStore = me.getStore(me.TYPE_CARGO_STORE);
+		var cgType = me.getStore(me.CG_TYPE_STORE);
+		var grossWeight = me.getStore(me.GROSS_WEIGHT_STORE);
+		var blCargo = me.getStore(me.BL_CARGO_STORE);
+		var fileUpload= me.getStore(me.FILE_UPLOAD_STORE_NAME);
+		var pkgDetailList = me.getStore(me.PACKAGE_DETAIL_STORE);
+		var operationTypeCombo = me.getStore(me.OPERATION_TYPE_STORE);
+		var sdoWeightList = me.getStore(me.SDO_TOTAL_WEIGHT_STORE);
+		pkgDetailList.clearFilter();
+		//pkgDetailList.removeAll();
+		
+		var splitPkgDetailList = me.getStore(me.SPLIT_PACKAGE_DETAIL_STORE);
+		
+		roroBrandStore.load();
+		cgType.load();
+		grossWeight.load();
+		cargoTypeStore.load();
+		operationTypeCombo.load();
+		blCargo.load({
+			params:{
+				vslCallId: theBL.get('vslCallId'),
+				mfDocId: theBL.get('mfDocId'),
+				blNo: theBL.get('blNo')
+			}
+		});
+		sdoWeightList.load({
+			params:{
+				vslCallId: theBL.get('vslCallId'),
+				mfDocId: theBL.get('mfDocId'),
+				blNo: theBL.get('blNo')
+			}
+		});
+		
+		me.onHatchDataSet();
+		
+		var filekeyId = theBL.get('vslCallId') +"_"+ theBL.get('mfDocId')+"_"+ theBL.get('blNo');
+		var qty = 0;
+		var mt = 0;
+		var vol = 0;
+		
+		var cnsneChk;
+		var shaChk;
+		
+		if(theBL.data.crud == 'C'){
+			refs.refTxtWeght.setValue(0);
+			refs.refTxtNoOfPackage.setValue(0);
+			refs.refTxtVol.setValue(0);
+		}
+		
+		//Controls configuration in case of Split BL
+		if(theBL.get('orgBlNo')){
+			me.editSetting();
+		}
+		
+		if(theBL.get('cgTpCd') == CodeConstants.MT_CGTP_BBK && theBL.get('projectCargo') == 'Y'){
+			pkgDetailList.load({
+				params:{
+					vslCallId: theBL.get('vslCallId'),
+					mfDocId: theBL.get('mfDocId'),
+					blNo: theBL.get('blNo'),
+					orgBlNo: theBL.get('orgBlNo'),
+				},
+				callback: function(records, operation, success) {
+					if(success){
+						if(theBL.get('orgBlNo') == null || theBL.get('orgBlNo') == ''){
+							var countPkg = 0;
+							for(var i = 0; i < records.length; i++){
+								countPkg += 1;
+							}
+							theBL.set('pkgQty', (Number(theBL.get('orgPkgQty')) - Number(theBL.get('splitPkgQty'))));
+						}
+						if(records.length == 0){
+							theBL.set('vol', 0);
+							theBL.set('wgt', 0);
+							theBL.set('pkgQty', 0);
+							refs.ctlSplit.setHidden(true);
+						}
+					}
+				}
+			});
+		
+			if(refs.refSplitChk.getValue()){
+				refs.ctlSplit.setHidden(true);
+			}
+		}
+		
+		fileUpload.load({
+			params: {
+				pgmId: FileConstant.BL_SCREEN_PGM_ID,
+				catgCd: filekeyId
+			},
+			callback: function(records, operation, success) {
+				if(success) {
+					if(theBL.get('orgBlNo')){
+						me.editSetting();
+					}
+				}
+			}
+		});
+	
+		if(theBL.get('cgTpCd') == CodeConstants.MT_CGTP_RCV){
+			unitList.load({
+				params:{
+					vslCallId: theBL.get('vslCallId'),
+					mfDocId: theBL.get('mfDocId'),
+					blNo: theBL.get('blNo')
+				},
+				
+				callback: function(records, operation, success) {
+					if(success){
+						//fileUpload load
+						fileUpload.load({
+							params: {
+								pgmId: FileConstant.BL_SCREEN_PGM_ID,
+								catgCd: filekeyId
+							},
+							callback: function(records, operation, success) {
+								if(success) {
+									if(theBL.get('orgBlNo')){
+										me.editSetting();
+									}
+								}
+							}
+						});
+					}
+				}
+			});
+		}
+
+		if(theBL.data.crud == 'C'){
+			refs.ctlSplit.setHidden(true);
+			refs.ctlSubmit.setHidden(false);
+		} else if(theBL.data.crud == 'U'){
+			if(MOST.config.Token.getUserType() == CodeConstants.USER_TYPE_INTERNAL){
+				if(theBL.get('cgTpCd') == CodeConstants.MT_CGTP_BBK  || theBL.get('cgTpCd') == CodeConstants.MT_CGTP_DBN){
+					if(theBL.get('docStatCd') == CodeConstants.MT_DOCSTAT_AP || theBL.get('docStatCd') == CodeConstants.MT_DOCSTAT_SP){
+						if(Number(theBL.get('vol')) != 0 || Number(theBL.get('wgt')) != 0 || Number(theBL.get('pkgQty')) != 0 ){
+							refs.ctlSplit.setHidden(false);
+						}
+					}
+				} else {
+					refs.ctlSplit.setHidden(true);
+				}
+				
+				if(theBL.get('docStatCd') == CodeConstants.MT_IVSTAT_ST){
+					refs.ctlConfirm.setHidden(true);
+					refs.ctlApproval.setHidden(false);
+				} else if(theBL.get('docStatCd') == CodeConstants.MT_DOCSTAT_AP){
+//					refs.ctlConfirm.setHidden(false);
+				}
+			}
+			
+			if(MOST.config.Token.getPatnerInfos()){
+				for(var i = 0; i < MOST.config.Token.getPatnerInfos().length; i++){
+					if(MOST.config.Token.getPatnerInfos().at(i) == CodeConstants.MT_PTNRTP_CNS){
+						cnsneChk = true;
+					}
+				}
+			}
+			
+			if(cnsneChk){
+				refs.ctlSubmit.setHidden(false);
+			}
+			
+			if(MOST.config.Token.getPatnerInfos()){
+				for(var i = 0; i < MOST.config.Token.getPatnerInfos().length; i++){
+					if(MOST.config.Token.getPatnerInfos().at(i) == CodeConstants.MT_PTNRTP_SHA){
+						shaChk = true;
+					}
+				}
+			}
+			
+			if(shaChk || MOST.config.Token.getUserType() == CodeConstants.USER_TYPE_INTERNAL){
+				if(theBL.get('docStatCd') == CodeConstants.MT_IVSTAT_ST){
+					//refs.ctlConfirm.setHidden(false);
+					refs.ctlApproval.setHidden(false);
+				}
+			}
+			
+			var cargoType = me.getViewModel().get("cargoType");
+			if(cargoType) {
+				cargoType.set('cgTpCd', theBL.get('cgTpCd'));
+			}
+		}
+		
+		refs.refProjectCargo.setDisabled(theBL.get('cgTpCd') == CodeConstants.MT_CGTP_BBK ? false : true);
+		refs.fsForwAgent.setValue(theBL.get('fwdCd'));
+		refs.refProjectCargo.checked = theBL.get('projectCargo') == 'Y' ? true : false;
+		refs.refWeightChk.checked = theBL.get('wgtChk') == 'N' ? true : false;
+		refs.refBondedWhYn.checked = theBL.get('bondedWhYn') == 'Y' ? true : false;
+		
+		var infoForm = detailView.down('form').getForm();
+		infoForm.isValid();		
+		//me.onTabSetting();
+		
+		if(theBL.get('orgBlNo') == null || theBL.get('orgBlNo') == ''){
+			refs.refTxtWeght.setValue(Number(theBL.get('orgWgt')));
+			refs.refTxtVol.setValue(Number(theBL.get('orgVol')));
+			refs.refTxtNoOfPackage.setValue(Number(theBL.get('orgPkgQty')));
+		}
+	},
+	
+	onCreate: function(btn){
+		var me = this;
+	   	var refs = me.getReferences();
+	   	var store = me.getStore(me.MAIN_STORE_NAME); 
+	   	var cargoStore = me.getStore(me.BL_CARGO_STORE);
+	   	var vslCallIdStore = me.getStore(me.VSLCALLID_STORE);
+	   	var blItem = Ext.create('MOST.model.document.BL');
+	   	var unitList = me.getStore(me.UNIT_LIST_STORE);
+	   
+	   	if(MOST.config.Token.getUserType() == 'E'){
+	   		var isSHA = me.existsPatnerType(CodeConstants.CM_PTNRTP_SHA);
+	   		
+	   		if(isSHA){
+	   			if((refs.txtVslCallId.getValue() != null && refs.txtVslCallId.getValue() != '')){
+	   				vslCallIdStore.load({
+	   					params:{
+	   						mode: 'textfield',
+	   						vslCallId: refs.txtVslCallId.getValue()
+	   					},
+	   					callback: function(records, operation, success){
+	   						if(success){
+	   							if(refs.ctlPartner.getValue() != records.at(0).data.arrvSaId){
+	   								MessageUtil.warning('warning_msg','external_user_create_bl_msg');
+	   								return;
+	   							}else{
+	   								blItem.set("crud","C");
+	   								blItem.set("cgInOutTp","I");
+	   								blItem.set("cgClassCd","0");
+	   								blItem.set("volUnit","MTQ");
+	   								blItem.set("vslCd", records.at(0).data.vslCd);
+	   								blItem.set("callSign", records.at(0).data.callSign);
+	   								blItem.set("callSeq", records.at(0).data.callSeq);
+	   								blItem.set("callYear", records.at(0).data.callYear);
+	   								blItem.set("vslNm", records.at(0).data.vslNm);
+	   								blItem.set("inbVoy", records.at(0).data.inbVoy);
+	   								blItem.set("outbVoy", records.at(0).data.outbVoy);
+	   								blItem.set("eta", records.at(0).data.eta);
+	   								blItem.set("etd", records.at(0).data.etd);
+	   								blItem.set("voyage", records.at(0).data.voyage);
+	   								blItem.set("arrvSaId", records.at(0).data.arrvSaId);
+	   								blItem.set("berthLoc", records.at(0).data.berthLoc);
+	   								blItem.set("locCd", records.at(0).data.locCd);
+	   								blItem.set("shaCd", MOST.config.Token.getPtnrCode());
+	   								blItem.set("shaNm", MOST.config.Token.getPtnrNm());
+	   								blItem.set("pod", CONSTANTS.PORT_CODE);
+	   								blItem.set("podNm", CONSTANTS.PORT_NAME);
+	   								
+	   						   		unitList.removeAll();
+	   						   		unitList.commitChanges();
+	   								
+	   								if(refs.txtVslCallId.getValue() != null && refs.txtVslCallId.getValue() != ''){
+	   									blItem.set("vslCallId", refs.txtVslCallId.getValue());
+	   								}
+	   								
+	   								me.getViewModel().setData({theBL:blItem});
+	   								me.openDetailPopup(blItem);
+	   							}
+	   						}
+	   					}
+	   				});
+	   			}else{
+	   				blItem.set("crud","C");
+	   				blItem.set("cgInOutTp","I");
+	   				blItem.set("cgClassCd","0");
+	   				blItem.set("volUnit","MTQ");
+	   				blItem.set("shaCd", MOST.config.Token.getPtnrCode());
+	   				blItem.set("shaNm", MOST.config.Token.getPtnrNm());
+	   				blItem.set("pod", CONSTANTS.LAIP_PORT_CODE);
+	   				blItem.set("podNm", CONSTANTS.LAIP_PORT_NAME);
+	   				
+	   		   		unitList.removeAll();
+	   		   		unitList.commitChanges();
+	   				
+	   				if(refs.txtVslCallId.getValue() != null && refs.txtVslCallId.getValue() != ''){
+	   					blItem.set("vslCallId", refs.txtVslCallId.getValue());
+	   				}
+	   				
+	   				me.getViewModel().setData({theBL:blItem});
+	   				me.openDetailPopup(blItem);
+	   			}	
+	   		}
+	   	}else{
+	   		cargoStore.removeAll();
+	   		cargoStore.commitChanges();
+	   		
+	   		unitList.removeAll();
+	   		unitList.commitChanges();
+	   		
+	   		if(refs.txtVslCallId.getValue() != null && refs.txtVslCallId.getValue() != ''){
+	   			vslCallIdStore.load({
+	   				params:{
+	   					mode: 'textfield',
+	   					vslCallId: refs.txtVslCallId.getValue()
+	   				},
+	   				callback: function(records, operation, success){
+	   					if(success){
+	   						blItem.set("crud","C");
+	   						blItem.set("cgInOutTp","I");
+	   						blItem.set("cgClassCd","0");
+	   						blItem.set("volUnit","MTQ");
+	   						blItem.set("vslCd", records.at(0).data.vslCd);
+	   						blItem.set("callSign", records.at(0).data.callSign);
+	   						blItem.set("callSeq", records.at(0).data.callSeq);
+	   						blItem.set("callYear", records.at(0).data.callYear);
+	   						blItem.set("vslNm", records.at(0).data.vslNm);
+	   						blItem.set("inbVoy", records.at(0).data.inbVoy);
+	   						blItem.set("outbVoy", records.at(0).data.outbVoy);
+	   						blItem.set("eta", records.at(0).data.eta);
+	   						blItem.set("etd", records.at(0).data.etd);
+	   						blItem.set("voyage", records.at(0).data.voyage);
+	   						blItem.set("arrvSaId", records.at(0).data.arrvSaId);
+	   						blItem.set("berthLoc", records.at(0).data.berthLoc);
+	   						blItem.set("shaCd", MOST.config.Token.getPtnrCode());
+	   						blItem.set("shaNm", MOST.config.Token.getPtnrNm());
+	   						blItem.set("pod", CONSTANTS.PORT_CODE);
+	   						blItem.set("podNm", CONSTANTS.LAIP_PORT_NAME);
+	   						
+	   						if(refs.txtVslCallId.getValue() != null && refs.txtVslCallId.getValue() != ''){
+	   							blItem.set("vslCallId", refs.txtVslCallId.getValue());
+	   						}
+	   						
+	   						me.getViewModel().setData({theBL:blItem});
+	   						me.openDetailPopup(blItem);
+	   					}
+	   				}
+	   			});
+	   		} else {
+	   			blItem.set("crud","C");
+	   			blItem.set("cgInOutTp","I");
+	   			blItem.set("cgClassCd","0");
+	   			blItem.set("volUnit","MTQ");
+	   			blItem.set("shaCd", MOST.config.Token.getPtnrCode());
+	   			blItem.set("shaNm", MOST.config.Token.getPtnrNm());
+	   			blItem.set("pod", CONSTANTS.LAIP_PORT_CODE);
+	   			blItem.set("podNm", CONSTANTS.LAIP_PORT_NAME);
+	   			
+		   		unitList.removeAll();
+		   		unitList.commitChanges();
+	   			
+	   			if(refs.txtVslCallId.getValue() != null && refs.txtVslCallId.getValue() != ''){
+	   				blItem.set("vslCallId", refs.txtVslCallId.getValue());
+	   			}
+	   			
+	   			me.getViewModel().setData({theBL:blItem});
+	   			me.openDetailPopup(blItem);
+	   		}
+	   	}
+	   	
+	},
+	
+	onDetailSave: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var checkBLNo = me.getStore('checkBLNo');
+		var blNo = refs.refSubBLNo.getValue();
+		var vslCallId = refs.refVslCallId.getValue();
+		var mfDocId = refs.refUserRefNo.getValue();
+		var txtPolCd = refs.txtPolCd.getValue();
+		
+		var tsptTpCd = refs.ctlModeofOperation.getValue();
+		var delvTpCd = refs.ctlDeliveryMode.getValue();
+		var cgTpCd = refs.ctlTypeofCargo.getValue();
+		
+		var unitStore = me.getStore(me.UNIT_LIST_STORE);
+		var pkgStore = me.getStore(me.PACKAGE_DETAIL_STORE);
+		var theBL = me.getViewModel().get('theBL');
+		var unitArr = new Array();
+		var pkgArr = new Array();
+		var qty = 0;
+		var mt = 0;
+		var m3 = 0;
+		
+		refs.refCategory.focus(true);
+		refs.txtTypeOfPackages.focus(true);
+		refs.ctlCommodityGroup.focus(true);
+		refs.ctlCommodity.focus(true);
+		refs.fsForwAgentName.focus(true);
+		refs.fsForwAgent.focus(true);
+		refs.refUserRefNo.focus(true);
+		refs.txtPolCd.focus(true);
+		refs.txtPolCdName.focus(true);
+		refs.refSubBLNo.focus(true);
+		refs.refVslCallId.focus(true);
+		
+		
+				
+		if(refs.txtLength.getValue() < 0 || refs.txtWidth.getValue() < 0 || refs.txtHeight.getValue() < 0){
+			MessageUtil.warning('warning_msg','Length, Width and Height can not be negative, please recheck');
+			return;
+		}
+		
+		if(theBL.get('cgTpCd') == CodeConstants.MT_CGTP_RCV){
+			for(var i = 0; i < unitStore.data.length; i++){
+				unitArr.push(unitStore.data.items[i].data);
+				if(unitStore.data.items[i].data.action != WorkingStatus.DELETE){
+					qty += 1;
+					mt += Number(unitStore.data.items[i].data.roroMt);
+				}
+			}
+			
+			if(Number(theBL.get('pkgQty')) != qty){
+				MessageUtil.warning("roro", "msgDM1230049");
+				return;
+			}
+			
+			// if(Number(theBL.get('wgt')) != mt){
+			// 	MessageUtil.warning("roro", "msgDM1230049");
+			// 	return;
+			// }
+			
+			// if(Number(theBL.get('wgt')) != mt && Number(theBL.get('vol')) != m3){
+			// 	MessageUtil.warning("Warning", "msgDM1230049");
+			// 	return;
+			// }
+			
+			theBL.set('pkgQty', qty);
+			theBL.set('unitItems', unitArr);
+		}
+		if(theBL.get('cgTpCd') == CodeConstants.MT_CGTP_LQN){
+			if(theBL.get('vol') == null || Number(theBL.get('vol')) == 0){
+				MessageUtil.warning("Warning", "shippingNoteInquiry_DM101026");
+				return;
+			}
+		}
+		if(theBL.get('cgTpCd') == CodeConstants.MT_CGTP_BBK){
+			if(refs.refProjectCargo.getValue()){
+				if(theBL.get('orgBlNo') == null || theBL.get('orgBlNo') == ''){
+					// Create BL
+					for(var i = 0; i < pkgStore.data.length; i++){
+						if(pkgStore.data.items[i].data.action != 'D'){
+							pkgArr.push(pkgStore.data.items[i].data);
+							qty += 1;
+							mt += Number(pkgStore.data.items[i].data.pkgMt);
+							m3 += Number(pkgStore.data.items[i].data.pkgM3);
+						}
+					}
+				}else{
+					// Split BL
+					var gridPkgDetail = me.lookupReference(me.PACKAGE_DETAIL_GRID_REF_NAME);
+					var selection = gridPkgDetail.getSelection() == null ? null : gridPkgDetail.getSelection();
+					if(selection != null){
+						for(var i = 0; i < selection.length; i++){
+							if(selection.at(i).data.action != 'D'){
+								pkgArr.push(selection.at(i).data);
+								qty += 1;
+								mt += Number(selection.at(i).data.pkgMt);
+								m3 += Number(selection.at(i).data.pkgM3);
+							}
+						}
+					}
+				}
+//				if(Number(theBL.get('wgt')) != mt){
+//					MessageUtil.warning("Package Detail", "msgDifferentTons");
+//					return false;
+//				}
+				
+				theBL.set('pkgQty', qty);
+				theBL.set('pkgItems', pkgArr);
+			}
+		}
+		
+		if(theBL.data.crud == 'C'){
+			theBL.set('docStatCd', 'ST');
+			
+			if(StringUtil.isNullorEmpty(delvTpCd)){
+				MessageUtil.warning('warning_msg','Please select delivery Mode');
+				return;
+			}
+			
+			if(StringUtil.isNullorEmpty(tsptTpCd)){
+				MessageUtil.warning('warning_msg','Please select mode of Operation');
+				return;
+			}
+			
+			if(StringUtil.isNullorEmpty(vslCallId)){
+				MessageUtil.warning('warning_msg','Please select Vessel Call Id');
+				refs.refVslCallId.focus(true);
+				return false;
+			}
+			
+			if (StringUtil.isNullorEmpty(txtPolCd)) {
+				MessageUtil.warning('warning_msg', 'Please select POL');
+				return false;
+			} 
+			
+			if(StringUtil.isNullorEmpty(blNo)){
+				MessageUtil.warning('warning_msg','blinquiry_blNo_blank');
+				refs.refSubBLNo.focus(true);
+				return false;
+			}
+			
+			if(refs.refCategory.getValue() == 'I' && refs.ctlCnsnee.getValue() == ''){
+				MessageUtil.warning("Warning", "Please select Consignee");
+				return;
+			}
+			
+			if(StringUtil.isNullorEmpty(cgTpCd)){
+				MessageUtil.warning("Warning", "Please select Cargo Type");
+				return;
+			}else if(cgTpCd == "BBK"){
+				if(StringUtil.isNullorEmpty(refs.refTxtWeght.getValue()) || refs.refTxtWeght.getValue() <= 0){
+					MessageUtil.warning("Warning", "Please select Weight greater than 0");
+					return;
+				}
+				
+				if(StringUtil.isNullorEmpty(refs.refTxtNoOfPackage.getValue()) || refs.refTxtNoOfPackage.getValue() <= 0){
+					MessageUtil.warning("Warning", "Please select Quantity greater than 0");
+					return;
+				}
+				
+			} else if(cgTpCd == "DBN" || cgTpCd == "DBE"){
+				if(StringUtil.isNullorEmpty(refs.refTxtWeght.getValue()) || refs.refTxtWeght.getValue() <= 0){
+					MessageUtil.warning("Warning", "Please select Weight greater than 0");
+					return;
+				}
+			} else if(cgTpCd == "LQN" || cgTpCd == "LQE"){
+				if(StringUtil.isNullorEmpty(refs.refTxtVol.getValue()) || refs.refTxtVol.getValue() <= 0){
+					MessageUtil.warning("Warning", "Please select Measurement greater than 0");
+					return;
+				}
+			}
+
+			if (StringUtil.isNullorEmpty(refs.refCategory.getValue())) {
+				MessageUtil.warning('warning_msg', 'Please select Category');
+				return false;
+			}
+			
+			if(refs.ctlCommodityGroup.getValue() == '' || refs.ctlCommodityGroup.getValue() == null){
+				MessageUtil.warning("Warning", "Please select Commodity Group");
+				return;
+			}
+			
+			if(refs.ctlCommodity.getValue() == '' || refs.ctlCommodity.getValue() == null){
+				MessageUtil.warning("Warning", "Please select Commodity");
+				return;
+			}
+			
+			if(refs.txtTypeOfPackages.getValue() == '' || refs.txtTypeOfPackages.getValue() == null){
+				MessageUtil.warning("Warning", "Please select Package Type");
+				return;
+			}
+			
+			checkBLNo.load({
+				params:{
+					vslCallId: vslCallId,
+					mfDocId: mfDocId,
+					blNo: blNo
+				},
+				callback:function(records, operation, success){
+					if(success){
+						if(records.length == 0){
+							me.mblEditable = true;
+							me.fileUpload();
+						}else{
+							me.mblEditable = false;
+							MessageUtil.error('warning_msg','blinquiry_bl_dup_true');
+						}
+					}
+				}
+			})
+		} else if(theBL.data.crud == 'U') {
+			if((theBL.get('doNo') != null && theBL.get('doNo') != '') && theBL.get('docStatCd') == 'AP'
+				&& (Number(theBL.get('orgWgt')) != Number(theBL.get('wgt')) || Number(theBL.get('orgVol')) != Number(theBL.get('vol')) || Number(theBL.get('orgPkgQty')) != Number(theBL.get('pkgQty')))){
+				MessageUtil.warning("Warning", "bl_validate_update_do_exist");
+				return;
+			}
+			
+			if(refs.refCategory.getValue() == 'I' && theBL.get('cnsne') == ''){
+				MessageUtil.warning("Warning", "Please select Consignee");
+				return;
+			}
+
+			if (StringUtil.isNullorEmpty(refs.refCategory.getValue())) {
+				MessageUtil.warning('warning_msg', 'Please select Category');
+				return false;
+			}
+			
+			if(refs.ctlCommodityGroup.getValue() == '' || refs.ctlCommodityGroup.getValue() == null){
+				MessageUtil.warning("Warning", "Please select Commodity Group");
+				return;
+			}
+			
+			if(refs.ctlCommodity.getValue() == '' || refs.ctlCommodity.getValue() == null){
+				MessageUtil.warning("Warning", "Please select Commodity");
+				return;
+			}
+			
+			if(refs.txtTypeOfPackages.getValue() == '' || refs.txtTypeOfPackages.getValue() == null){
+				MessageUtil.warning("Warning", "Please select Package Type");
+				return;
+			}
+
+			me.onCheckCmdtGroupAndCgTp(cgTpCd).then(function(records) {
+				if(records.length > 0) {
+					if(theBL.get('blNo') != theBL.get('oldBlNo')){
+						checkBLNo.load({
+							params:{
+								vslCallId: vslCallId,
+								mfDocId: mfDocId,
+								blNo: blNo
+							},
+							callback:function(records, operation, success){
+								if(success){
+									if(records.length == 0){
+										me.fileUpload();
+									}else{
+										MessageUtil.error('warning_msg','blinquiry_bl_dup_true');
+									}
+								}
+							}
+						})
+					}else {				
+						me.fileUpload();				
+					}
+				} else {
+					MessageUtil.warning("Warning", "differenceCargoType");
+				}
+			}, function(err) {
+				MessageUtil.warning("Warning", "Something went wrong!");
+			})
+		
+		} else {
+			if(StringUtil.isNullorEmpty(blNo)){
+				MessageUtil.warning('warning_msg','blinquiry_blNo_blank');
+				refs.refSubBLNo.focus(true);
+				return false;
+			}
+			
+			var splitQtyCheck = Number(theBL.get('orgPkgQty')) - Number(theBL.get('disPkgQty'));
+			var splitVolCheck = Number(theBL.get('orgVol')) - Number(theBL.get('disVol'));
+			var splitMtCheck = Number(theBL.get('orgWgt')) - Number(theBL.get('disWgt'));
+			
+			var eachWeightCheck  = splitMtCheck / splitQtyCheck;
+			var eachVolumeCheck = splitVolCheck / splitQtyCheck;
+			var eachWeight = theBL.get('wgt') / theBL.get('pkgQty');
+			var eachVolume = theBL.get('vol') / theBL.get('pkgQty');
+			
+			if (splitQtyCheck < theBL.get('pkgQty') || splitVolCheck < theBL.get('vol') ||  splitMtCheck < theBL.get('wgt') || 
+					eachWeightCheck != eachWeight || eachVolumeCheck != eachVolume) {
+				var warningMessage = ``;
+			    if (splitQtyCheck < theBL.get('pkgQty')) {
+			        warningMessage += `Pkg Quantity cannot exceed ${splitQtyCheck} \n`;
+			    }
+			    if (splitVolCheck < theBL.get('vol')) {
+			        warningMessage += `Measurement cannot exceed ${splitVolCheck} \n`;
+			    }
+			    if (splitMtCheck < theBL.get('wgt')) {
+			        warningMessage += `Weight cannot exceed ${splitMtCheck} \n`;
+			    }
+			    if (eachWeightCheck != eachWeight) {
+			        warningMessage += `Each Weight must be ${eachWeightCheck} \n`;
+			    }
+			    if (eachVolumeCheck != eachVolume) {
+			        warningMessage += `Each Volume must be ${eachVolumeCheck}`;
+			    }
+			    
+			    MessageUtil.warning("Warning", warningMessage.replace(/\n/g, '<br>'));
+				return false;
+			}
+			
+			
+			if(theBL.get('blNo') != theBL.get('oldBlNo')){
+				checkBLNo.load({
+					params:{
+						vslCallId: vslCallId,
+						mfDocId: mfDocId,
+						blNo: blNo
+					},
+					callback:function(records, operation, success){
+						if(success){
+							if(records.length == 0){
+								me.saveProcess();
+							}else{
+								MessageUtil.error('warning_msg','blinquiry_bl_dup_true');
+							}
+						}
+					}
+				})
+			}
+		}
+	},
+
+	onCheckChange:function(view, rowIndex, checked, eOpts){
+		if (checked == true) {
+    		var me = this;
+    		var store = this.getStore(me.MAIN_STORE_NAME);
+    		var record = store.getAt(rowIndex);
+    		
+    		if (record.get('mfDocId') != '' || record.get('mfJobNo') != ''){
+    			Ext.Msg.alert('Remove', TSB.locale.i18n.Bundle.instance.getMsg('B/L is part of existing Manifest.'));
+    			record.set('check',false);
+    		} 
+    	}
+    },
+	
+    onFileGridAdd: function(btn, fileField) {
+		var me = this;
+		var detailItem = me.getViewModel().get('theBL');
+		var store = me.getStore(me.FILE_UPLOAD_STORE_NAME);
+    	var input = document.querySelector("input[id='blFileUpload-button-fileInputEl']");
+		var keyId = detailItem.get('vslCallId') +"_"+ detailItem.get('mfDocId')+"_"+ detailItem.get('blNo')
+		 
+		if(detailItem.get('mfDocId') === "" || detailItem.get('blNo') === ""){
+			MessageUtil.mandatoryFieldInValid();
+			return null;
+		}
+		
+    	for(var i=0; i<input.files.length; i++){
+    		var record = Ext.create('MOST.model.common.FileUpload');
+    		file = input.files[i];
+    		
+    		record.set('pgmId', FileConstant.BL_SCREEN_PGM_ID);
+    		record.set('catgCd', keyId);
+    		record.set('fileStream', file);
+    		record.set('fileName', file.name);
+    		record.set('fileSize', file.size);
+    		record.set('workingStatus', WorkingStatus.INSERT);
+    		store.insert(0, record);
+    	}
+	},
+	
+	onRemoveForFileUpload: function() {
+		var me = this;
+		var grid = me.lookupReference(me.FILE_GRID_REF_NAME);
+		var store = me.getStore(me.FILE_UPLOAD_STORE_NAME);		
+		var selection = grid.getSelection() == null ? null : grid.getSelection();
+		
+		if(selection == null) return;
+		
+		Ext.each(selection, function (record) {
+			record.set('workingStatus', WorkingStatus.DELETE);
+			store.remove(record);
+		});
+	},
+	
+	onFileDownloadDblClick: function() {
+		var me = this;
+		var detailView = me.getDetailBizView();
+		var detailItem = me.getViewModel().get('theBL');
+		var grid = me.lookupReference(me.FILE_GRID_REF_NAME);
+		var store = me.getStore(me.FILE_DOWNLOAD_STORE_NAME);	
+		
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+		
+		if(selection == null) return;
+		
+		if(detailItem.get('mfDocId') === "" || detailItem.get('blNo') === ""){
+			MessageUtil.mandatoryFieldInValid();
+			return null;
+		}
+			
+		var keyId = detailItem.get('vslCallId') +"_"+ detailItem.get('mfDocId')+"_"+ detailItem.get('blNo')
+		
+		store.load({
+			params : {
+				'pgmId' : FileConstant.BL_SCREEN_PGM_ID,
+				'catgCd' : keyId,
+				'ufileNm' : selection.get('ufileName')
+			},
+			callback: function(records, operation, success) {
+				if (success) {
+					var content = records[0].data.content.replace(/&lt;/gi,'<').replace(/&gt;/gi,'>');
+		        	Ext.exporter.File.saveBinaryAs(content, records[0].data.fileName);
+				}
+			}
+		})
+	},
+	
+	onRORODetailExcelUpload: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var theBL = me.getViewModel().get('theBL');
+		var title = {type: 'bundle', key: 'rorodetaillist'};
+		var popupAlias = "app-rorodetailuploadlist";
+		
+		if(theBL.get('brandCd') && theBL.get('modelCd')){
+			me.openViewAliasDetailPopup(null, title, popupAlias);
+		} else {
+			MessageUtil.warning("warning_msg", "selectBrandModel");
+			return;
+		}
+	},
+	
+	onPackageDetailExcelUpload: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var theBL = me.getViewModel().get('theBL');
+		var title = {type: 'bundle', key: 'packagedetaillist'};
+		var popupAlias = "app-packagedetaillist";
+		
+		me.openViewAliasDetailPopup(null, title, popupAlias);
+	},
+	
+	openFwdPopup: function(btn, e, eOpts){
+		var me = this;
+		var refs = me.getReferences();
+		
+		var params = {
+			ptnrType: CodeConstants.CM_PTNRTP_FWD
+		}
+		
+		me.openCodePopup('popup-partnercdpopup', 'fsForwAgent', params);
+	},
+	
+	openCnsnorPopup: function(btn, e, eOpts){
+		var me = this;
+		var refs = me.getReferences();
+		
+		var params = {
+			ptnrType: CodeConstants.CM_PTNRTP_CNS
+		}
+		
+		me.openCodePopup('popup-partnercdpopup', 'ctlCnsnor', params);
+	},
+	
+	openCnsneePopup: function(btn, e, eOpts){
+		var me = this;
+		var refs = me.getReferences();
+		
+		var params = {
+			ptnrType: CodeConstants.CM_PTNRTP_CNS
+		}
+		
+		me.openCodePopup('popup-partnercdpopup', 'ctlCnsnee', params);
+	},
+	
+	openPackagePopup: function(btn, e, eOpts){
+		var me = this;
+		var refs = me.getReferences();
+		var cmdtCd = refs.ctlCommodity.getValue();
+		var params;
+		var theBL = me.getViewModel().get('theBL');
+		
+		if(theBL.get("cmdtCd") != null || theBL.get("cmdtCd") != ''){
+			params = {
+				commCd: theBL.get("cmdtCd")
+			}
+		}
+		
+		me.openCodePopup('app-packagepopup', 'refBtnPackagePopup',params);
+	},
+	
+	openUnnoPopup: function(btn, e, eOpts){
+		var me = this;
+		var refs = me.getReferences();
+
+		me.openCodePopup('popup-unnoclasspopup', 'refBtnUnnoPopup');
+	},
+	
+	onComboBoxChange:function(field, newValue, oldValue){
+		var me = this;
+		var refs = me.getReferences();
+		var theBL = me.getViewModel().get('theBL');
+		
+		if(theBL.data.crud == 'C'){				
+			if(refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_BBK || refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_RCV){
+				if(refs.refTxtWeght.getValue() == 0 || refs.refTxtWeght.getValue() == '' || refs.refTxtWeght.getValue() == null){
+					refs.refTxtWeght.setValue('');
+				}
+				if(refs.refTxtNoOfPackage.getValue() == 0 || refs.refTxtNoOfPackage.getValue() == '' || refs.refTxtNoOfPackage.getValue() == null){
+					refs.refTxtNoOfPackage.setValue('');
+				}
+			}
+			
+			if(refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_DBN ){
+				if(refs.refTxtWeght.getValue() == 0 || refs.refTxtWeght.getValue() == '' || refs.refTxtWeght.getValue() == null){					
+					refs.refTxtWeght.setValue('');
+				}
+				if(refs.refTxtNoOfPackage.getValue() == 0 || refs.refTxtNoOfPackage.getValue() == '' || refs.refTxtNoOfPackage.getValue() == null){
+					refs.refTxtNoOfPackage.setValue(0);
+				}
+			}
+		}
+		
+		if(theBL.data.crud == 'U'){
+			var store = me.getStore(me.DO_STORE);
+			
+			if(theBL.get('blNo') != null && theBL.get('blNo') != ''){
+				store.load({
+					params: {
+						blno: theBL.get('blNo'),
+						vslCallId: theBL.get('vslCallId')
+					},
+					callback: function(records, operation, success) {
+						if (success) {
+							if (records.length > 0 && records[0].data.dono != null && records[0].data.dono != "") {
+								MessageUtil.warning("warning_msg", "This BL already has a DO/SDO, please delete it before changing the Type of Cargo or Commodity Group/Commodity Code/Type of packages.");
+								theBL.set('cgTpCd', records[0].data.cgtpcd);
+								refs.ctlCommodityGroup.setDisabled(true);
+								refs.ctlTypeofCargo.setDisabled(true);
+								refs.ctlCommodity.setDisabled(true);
+								refs.txtTypeOfPackages.setDisabled(true);
+								return;
+							} else {
+								theBL.set('cmdtGrpCd', '');
+								theBL.set('cmdtGrpNm', '');
+								theBL.set('cmdtCd', '');
+								theBL.set('cmdtCdNm', '');
+								theBL.set('pkgTpCd', '');
+								theBL.set('pkgTpNm', ''); 
+							}
+						}
+					}
+				});
+			}
+		}
+		
+		if(MOST.config.Token.getUserType() == CodeConstants.USER_TYPE_INTERNAL){
+			if(theBL.get('cgTpCd') == CodeConstants.MT_CGTP_BBK || theBL.get('cgTpCd') == CodeConstants.MT_CGTP_DBN){
+				if(theBL.get('docStatCd') == CodeConstants.MT_DOCSTAT_AP){
+					refs.ctlSplit.setHidden(false);
+				}
+			} else {
+				refs.ctlSplit.setHidden(true);
+			}
+		}
+		if(theBL.get('cgTpCd') == CodeConstants.MT_CGTP_LQN){
+//			refs.ctlModeofOperation.setValue('PL');
+			if(refs.refTxtWeght.getValue() == 0 || refs.refTxtWeght.getValue() == '' || refs.refTxtWeght.getValue() == null){
+				refs.refTxtWeght.setValue(0);
+			}
+			if(refs.refTxtNoOfPackage.getValue() == 0 || refs.refTxtNoOfPackage.getValue() == '' || refs.refTxtNoOfPackage.getValue() == null){
+				refs.refTxtNoOfPackage.setValue(0);
+			}
+			if(refs.refTxtWeght.getValue() == 0 || refs.refTxtWeght.getValue() == '' || refs.refTxtWeght.getValue() == null){
+				refs.refTxtVol.setValue('');
+			}
+		}
+		refs.refProjectCargo.setDisabled(theBL.get('cgTpCd') == CodeConstants.MT_CGTP_BBK ? false : true);
+		
+		//Refresh Each Weight, Each Volume when select Cargo type combo		
+		if(refs.refEachWeight.disabled == true){
+			refs.refEachWeight.setDisabled(false);
+		}
+		if(refs.refEachVolume.disabled == true){
+			refs.refEachVolume.setDisabled(false);
+		}
+	},
+	
+	onChangePackageType:function(obj, newVal, oldVal){
+		var me = this;
+		var refs = me.getReferences();
+		var detailItem = me.getViewModel().get('theBL');
+		var params;
+		
+		if(refs.ctlCommodity.getValue() != null || refs.ctlCommodity.getValue() != ''){
+			params = {
+					searchType: 'CMDT',
+					pkgTypeCd: detailItem.get('pkgTpCd')
+			}
+			refs.ctlCommodity.setParams(params);
+		}
+	},
+	
+	onChangeCommodityCode:function(obj, newVal, oldVal){
+		var me = this;
+		var refs = me.getReferences();
+		var detailItem = me.getViewModel().get('theBL');
+		var params;
+		
+		if(refs.ctlTypeofCargo.getValue() != null || refs.ctlTypeofCargo.getValue() != ''){
+			params = {
+					searchType: 'CMDT_GRP',
+					searchDivCd: detailItem.get('cmdtCd')
+			}
+			refs.ctlCommodityGroup.setParams(params);
+		}
+		
+		if (refs.ctlCommodityGroup.getValue() != '' && refs.txtTypeOfPackages.getValue() != '') {
+			refs.ctlCommodityGroup.setValue('');
+			refs.ctlCommodityGroupName.setValue('');
+		}
+	},
+	
+	onChangeLWH: function (ctl) {
+		var me = this;
+		var refs = me.getReferences();
+		var theBL = me.getViewModel().get('theBL');
+		var cgLen = 0, cgWth = 0, cgHgt = 0, wgt = 0, vol = 0;
+
+		cgLen = refs.txtLength.getValue();
+		cgWth = refs.txtWidth.getValue();
+		cgHgt = refs.txtHeight.getValue();
+		
+		var m3 = cgLen * cgWth * cgHgt;
+
+		if(m3 > 0){
+			refs.refTxtVol.suspendEvents();
+			refs.refTxtVol.setValue(m3);
+			refs.refTxtVol.resumeEvents();
+		}
+		
+		wgt = refs.refTxtWeght.getValue();
+		vol = refs.refTxtVol.getValue();
+		
+		if((wgt - vol) > 0){
+			if(wgt > m3){
+				refs.refFreighTon.setValue(Number(wgt).toFixed(3));
+			} else {
+				refs.refFreighTon.setValue(Number(m3).toFixed(3));
+			}
+		} else {
+			if(wgt > m3){
+				refs.refFreighTon.setValue(Number(wgt).toFixed(3));
+			} else {
+				refs.refFreighTon.setValue(Number(vol).toFixed(3));
+			}
+		}
+	},
+	
+	onLWHChange: function (ctl) {
+		var me = this;
+		var refs = me.getReferences();
+		var theBL = me.getViewModel().get('theBL');
+		var cgLen = 0, cgWth = 0, cgHgt = 0;
+		
+		cgLen = refs.refLength.getValue();
+		cgWth = refs.refWidth.getValue();
+		cgHgt = refs.refHeight.getValue();
+		
+		var m3 = cgLen * cgWth * cgHgt;
+
+		if(m3 > 0){
+			refs.refMsrmt.suspendEvents();
+			refs.refMsrmt.setValue(m3);
+			refs.refMsrmt.resumeEvents();
+		} else {
+			refs.refMsrmt.suspendEvents();
+			refs.refMsrmt.setValue(0);
+			refs.refMsrmt.resumeEvents();
+		}
+	},
+	
+	onWeightChange: function(field, button, e){
+		var me = this;
+		var refs = me.getReferences();
+		var eachWgt = '';
+		
+		var qty = refs.refTxtNoOfPackage.getValue();
+		
+		if(refs.refProjectCargo.getValue() == false){
+			if(qty > 0){
+				eachWgt = refs.refTxtWeght.getValue()/qty;
+				refs.refEachWeight.setValue(Number(eachWgt).toFixed(3));
+			}else{
+				refs.refEachWeight.setValue(0);
+			}	
+		}
+		
+		var mt = Number(refs.refTxtWeght.getValue()).toFixed(3);
+		var m3 = Number(refs.refTxtVol.getValue()).toFixed(3);
+
+		if((mt - m3) > 0){
+			refs.refFreighTon.setValue(mt);
+		}else{
+			refs.refFreighTon.setValue(m3);
+		}
+	},
+	
+	onMeasurementChange: function(field, button, e){
+		var me = this;
+		var refs = me.getReferences();
+		var eachVol = '';
+
+		var qty = refs.refTxtNoOfPackage.getValue();
+		
+		if(refs.refProjectCargo.getValue() == false){
+			if(qty > 0){
+				eachVol = refs.refTxtVol.getValue()/qty;
+				refs.refEachVolume.setValue(Number(eachVol).toFixed(3));
+			}else{
+				refs.refEachVolume.setValue(0);
+			}	
+		}
+		
+		var mt = Number(refs.refTxtWeght.getValue()).toFixed(3);
+		var m3 = Number(refs.refTxtVol.getValue()).toFixed(3);
+
+		if((mt - m3) > 0){
+			refs.refFreighTon.setValue(mt);
+		}else{
+			refs.refFreighTon.setValue(m3);
+		}
+		
+		if(e != null){
+			refs.txtLength.setValue(0);
+			refs.txtWidth.setValue(0);
+			refs.txtHeight.setValue(0);
+		}
+		
+	},
+	
+	onStrgCheck: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var theBL = me.getViewModel().get('theBL');
+		
+		if(theBL.get('vslCallId') != CodeConstants.VESSEL_SCHEDULE_STRG){
+			if(theBL.get('opClassCd') == CodeConstants.MT_CATGTP_S){
+				MessageUtil.error('warning_msg','strgSelectMsg');
+				
+				theBL.set('opClassCd', CodeConstants.MT_CATGTP_I);
+				return;
+			}
+		}
+	},
+	
+	onSubmit: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var theBL = me.getViewModel().get('theBL');
+		
+		theBL.set('docStatCd', 'ST');
+		
+		me.onDetailSave();
+	},
+	
+	onConfirmDelivery: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailView = me.getDetailBizView();
+		var detailItem = me.getViewModel().get('theBL');
+		detailItem.set('userId', MOST.config.Token.getUserId());
+		
+		var store = me.getStore("confirmDelivery");
+		
+		var updateParm = Ext.create('MOST.model.foundation.parm.UpdateBizParm');
+		updateParm.getProxy().url = store.getProxy().url;
+		updateParm.phantom = false;
+		updateParm.set(WorkingStatus.UPDATE);
+		updateParm.set('item', detailItem.data);
+
+		updateParm.save({
+			success : function(records,success){
+				MessageUtil.show(Ext.Msg.INFO,'success_msg' ,'savesuccess_msg','',
+					function(button){
+						if (button === 'ok') {
+							detailItem.commit();
+							detailView.close();
+						}
+					}
+				);
+			}
+		});
+	},
+	
+	onApproval: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var theBL = me.getViewModel().get('theBL');
+		
+		theBL.set('docStatCd', CodeConstants.MT_DOCSTAT_AP);
+		theBL.set('tmnlHoldFlag', 'Y');
+		
+		me.onDetailSave();
+	},
+	
+	onSplitBL:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var theBL = me.getViewModel().get('theBL');
+		
+		var bLOprStore = me.getStore("getDataBLOperation");
+		var deliverOrderStore = me.getStore(me.DO_STORE);
+		
+		deliverOrderStore.load({
+			params:{
+				blno: theBL.get('blNo'),
+				vslCallId: theBL.get('vslCallId')
+			},
+			callback: function(DOrecords, operation, success) {
+				if(success){
+					if(DOrecords.length > 0 && DOrecords[0].data.tsptr != null && DOrecords[0].data.tsptr != ''){
+						refs.ctlSplit.setHidden(true);
+						MessageUtil.warning('warning_msg','cannotSplitWhenDoCreated');
+					} else {
+						theBL.set('saveType', 'split');
+						theBL.set('orgBlNo', theBL.get('blNo'));
+						theBL.set('crud', null);
+						theBL.set('blNo', null);
+						
+						bLOprStore.load({
+							params: {
+								blNo: theBL.get('orgBlNo'),
+								vslCallId: theBL.get('vslCallId')
+							},
+							callback: function(records, operation, success) {
+								if (success) {
+									if(records.length > 0){
+										theBL.set('disWgt', records[0].data.dMt);
+										theBL.set('disVol', records[0].data.dM3);
+										theBL.set('disPkgQty', records[0].data.dQty);
+
+										//Amount
+										var disMt = Number(theBL.get('disWgt'));
+										var disVol = Number(theBL.get('disVol'));
+										var disQty = Number(theBL.get('disPkgQty'));
+										
+										theBL.set('pkgQty', Number(theBL.get('orgPkgQty')) - disQty);
+										theBL.set('vol', Number(theBL.get('orgVol')).toFixed(3) - disVol);
+										theBL.set('wgt', Number(theBL.get('orgWgt')).toFixed(3) - disMt);
+										
+										//Package
+										var pkgDetailList = me.getStore(me.PACKAGE_DETAIL_STORE);
+										if(pkgDetailList != null){
+											pkgDetailList.clearFilter();
+											pkgDetailList.filter([{
+												filterFn: function(item) {
+											    	return (StringUtil.isNullorEmpty(item.get('orgBlNo')));
+											    }
+									    	}]);
+										}
+										
+										me.editSetting();
+									}
+								}
+							}
+						});
+					}
+				}
+			}
+		});
+	},
+	
+	onCount : function (model, record, index, eOpts) {
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference(me.PACKAGE_DETAIL_GRID_REF_NAME);
+		var pkgStore = me.getStore(me.PACKAGE_DETAIL_STORE);
+		var selection = grid.getSelection() == null ? null : grid.getSelection();
+		var theBL = me.getViewModel().get('theBL');
+		var pkgArr = new Array();
+		
+		for(var i = 0; i < selection.length; i++){
+			pkgArr.push(grid.getSelection().at(i).data);
+		}
+		
+		theBL.set('pkgItems', pkgArr);
+    },
+	
+	onTabSetting: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var theBL = me.getViewModel().get('theBL');
+		var cargoType = me.getViewModel().get("cargoType");
+		var pkgStore = me.getStore(me.PACKAGE_DETAIL_STORE);
+		
+     	refs.refROROTab.setDisabled(true);
+     	refs.refPackageDetailTab.setDisabled(true);
+//     	refs.refWeightChk.setDisabled(true);
+        
+        if(theBL.data.crud == 'C'){				
+			if(refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_BBK || refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_RCV){
+				if(refs.refTxtWeght.getValue() == 0 || refs.refTxtWeght.getValue() == '' || refs.refTxtWeght.getValue() == null){
+					refs.refTxtWeght.setValue('');
+				}
+				if(refs.refTxtNoOfPackage.getValue() == 0 || refs.refTxtNoOfPackage.getValue() == '' || refs.refTxtNoOfPackage.getValue() == null){
+					refs.refTxtNoOfPackage.setValue('');
+				}
+			}
+			
+			if(refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_DBN || refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_LQN){
+				if(refs.refTxtWeght.getValue() == 0 || refs.refTxtWeght.getValue() == '' || refs.refTxtWeght.getValue() == null){					
+					refs.refTxtWeght.setValue('');
+				}
+				if(refs.refTxtNoOfPackage.getValue() == 0 || refs.refTxtNoOfPackage.getValue() == '' || refs.refTxtNoOfPackage.getValue() == null){
+					refs.refTxtNoOfPackage.setValue(0);
+				}
+			}
+		}
+     	
+     	//Fixing issue Package detail grid do not refresh after untick project cargo
+     	if(refs.refProjectCargo.getValue() == false && refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_BBK){
+     		pkgStore.removeAll();
+     		refs.refPackageNo.setValue('');
+     		refs.refPackageDesc.setValue('');
+     		refs.refWgt.setValue('');
+     		refs.refMsrmt.setValue('');
+     		refs.refPkgRmk.setValue('');
+     		refs.refLength.setValue('');
+     		refs.refWidth.setValue('');
+     		refs.refHeight.setValue('');     				
+     	}
+     	
+     	//Refresh fields when tick/untick Project Cargo checkbox
+     	if(refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_BBK && 
+     		(theBL.data.crud == 'C' || (refs.refProjectCargo.dirty == true && theBL.data.crud == 'U'))){
+     		refs.refTxtWeght.setValue(0);
+     		refs.refEachWeight.setValue(0);
+     		refs.refTxtVol.setValue(0);
+     		refs.refEachVolume.setValue(0);
+     		refs.refTxtNoOfPackage.setValue(0);
+     	}
+     	
+		if(refs.ctlTypeofCargo.getValue() == '' ) {
+			var me = this;
+			var refs = me.getReferences();
+			var theBL = me.getViewModel().get("theBL");
+			
+			theBL.set("cmdtGrpCd", "");
+			theBL.set("cmdtGrpNm", "");
+			
+			theBL.set("cmdtCd", "");
+			theBL.set("cmdtNm", "");
+			
+			theBL.set("pkgTpCd", "");
+			theBL.set("pkgTpNm", "");
+		}
+
+//		if(theBL.data.crud == 'U'){
+//			refs.refVslCallId.lookupReference('ctlField').focus(true);
+//		}
+		
+     	if(theBL){
+     		if(refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_RCV){
+    			refs.refROROTab.setDisabled(false);
+    			refs.ctlDeliveryMode.setValue(CodeConstants.MT_CATGTP_I);
+    			refs.ctlDeliveryMode.setDisabled(true);
+    		} else {
+     			refs.ctlDeliveryMode.setDisabled(false);
+     		}
+     	}
+     	
+     	if(refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_BBK){
+			refs.txtPackageNumber.setAllowBlank(false);
+			refs.txtTypeOfPackages.setAllowBlank(false);
+			refs.refProjectCargo.setDisabled(false);
+			refs.txtPackageNumber.focus(true);
+			
+//			refs.refWeightChk.setDisabled(MOST.config.Token.getUserType() == CodeConstants.USER_TYPE_INTERNAL ? false : true);
+			
+//			if(Number(theBL.get('splitPkgQty')) > 0){
+//				refs.refProjectCargo.setValue(true);
+//			}
+			
+			refs.refPackageDetailTab.setDisabled(refs.refProjectCargo.getValue() == true ? false : true);
+		}else if (refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_DBN){
+			refs.txtPackageNumber.setAllowBlank(true);
+			refs.txtTypeOfPackages.setAllowBlank(false);
+			
+			refs.txtPackageNumber.focus(false);
+//			refs.refWeightChk.setDisabled(true);
+
+//			theBL.set('wgtChk', 'Y');
+			theBL.set('projectCargo', 'N');
+			refs.refProjectCargo.setDisabled(true);
+			}else{
+				refs.txtPackageNumber.setAllowBlank(true);
+				refs.txtTypeOfPackages.setAllowBlank(true);
+			
+				refs.txtPackageNumber.focus(false);
+//				refs.refWeightChk.setDisabled(true);
+			
+//				theBL.set('wgtChk', 'Y');
+				theBL.set('projectCargo', 'N');
+				refs.refProjectCargo.setDisabled(true);
+			}
+     	
+     	if(theBL.get('delvTpCd') == CodeConstants.MT_DELVTP_D){
+     		refs.refAdditionalChk.setHidden(true);
+     	}
+
+		if(cargoType && cargoType.get('cgTpCd') != '' && refs.ctlTypeofCargo.getValue() != '' && refs.ctlCommodityGroup.getValue() != '' ) {
+			if (refs.ctlTypeofCargo.getValue() != cargoType.get('cgTpCd')) {
+				MessageUtil.warning('warning_msg','differenceCargoType');
+				refs.ctlTypeofCargo.setValue(cargoType.get('cgTpCd'));				
+				return;
+			}
+		}
+		
+		if(refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_BBK){
+			if(refs.refProjectCargo.getValue() == true){
+				refs.refEachWeight.setValue(0);
+	     		refs.refEachVolume.setValue(0);
+				refs.refEachWeight.setDisabled(true);
+				refs.refEachVolume.setDisabled(true);
+				refs.refTxtNoOfPackage.setReadOnly(true);
+				refs.refTxtVol.setReadOnly(true);
+				refs.refTxtWeght.setReadOnly(true);
+			}else {
+				refs.refEachWeight.setValue(0);
+	     		refs.refEachVolume.setValue(0);
+				refs.refEachWeight.setDisabled(false);
+				refs.refEachVolume.setDisabled(false);
+				refs.refTxtNoOfPackage.setReadOnly(false);
+				refs.refTxtVol.setReadOnly(false);
+				refs.refTxtWeght.setReadOnly(false);
+			}	
+		}
+	},
+
+	onTabSetting1: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var theBL = me.getViewModel().get('theBL');
+		var cargoType = me.getViewModel().get("cargoType");
+		var pkgStore = me.getStore(me.PACKAGE_DETAIL_STORE);
+		
+     	refs.refROROTab.setDisabled(true);
+     	refs.refPackageDetailTab.setDisabled(true);
+     	
+     	var mtMandatory = ['DBN', 'DBE'];
+     	var mtQtyMandatory = ['BBK', 'RCV'];
+     	var m3Mandatory = ['LQE', 'LQN'];
+     	
+//     	refs.refWeightChk.setDisabled(true);
+        
+//        if(theBL.data.crud == 'C'){				
+//			if(refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_BBK || refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_RCV){
+//				if(refs.refTxtWeght.getValue() == 0 || refs.refTxtWeght.getValue() == '' || refs.refTxtWeght.getValue() == null){
+//					refs.refTxtWeght.setValue('');
+//				}
+//				if(refs.refTxtNoOfPackage.getValue() == 0 || refs.refTxtNoOfPackage.getValue() == '' || refs.refTxtNoOfPackage.getValue() == null){
+//					refs.refTxtNoOfPackage.setValue('');
+//				}
+//			}
+//			
+//			if(refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_DBN || refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_LQN){
+//				if(refs.refTxtWeght.getValue() == 0 || refs.refTxtWeght.getValue() == '' || refs.refTxtWeght.getValue() == null){					
+//					refs.refTxtWeght.setValue('');
+//				}
+//				if(refs.refTxtNoOfPackage.getValue() == 0 || refs.refTxtNoOfPackage.getValue() == '' || refs.refTxtNoOfPackage.getValue() == null){
+//					refs.refTxtNoOfPackage.setValue(0);
+//				}
+//			}
+//		}
+     	
+     	if(theBL.data.crud == 'C'){
+     		if(mtMandatory.includes(refs.ctlTypeofCargo.getValue()) || mtQtyMandatory.includes(refs.ctlTypeofCargo.getValue())){
+     			if(mtMandatory.includes(refs.ctlTypeofCargo.getValue())){
+     				refs.refTxtVol.setValue(0);
+     				refs.refTxtNoOfPackage.setValue(0);
+     				refs.refTxtWeght.setValue('');
+     			} else if (mtQtyMandatory.includes(refs.ctlTypeofCargo.getValue())){
+     				refs.refTxtWeght.setValue('');
+     				refs.refTxtNoOfPackage.setValue('');
+     				refs.refTxtVol.setValue(0);
+	    		  }
+	    	  } else if(m3Mandatory.includes(refs.ctlTypeofCargo.getValue())){
+	    		  refs.refTxtVol.setValue('');
+	    		  refs.refTxtNoOfPackage.setValue(0);
+	    		  refs.refTxtWeght.setValue(0);
+	    	  } else {
+	    		  refs.refTxtVol.setValue(0);
+	    		  refs.refTxtNoOfPackage.setValue(0);
+	    		  refs.refTxtWeght.setValue(0);
+	    	  }
+     	}
+     	
+		if(refs.ctlTypeofCargo.getValue() == '' ) {
+			var me = this;
+			var refs = me.getReferences();
+			var theBL = me.getViewModel().get("theBL");
+			
+			theBL.set("cmdtGrpCd", "");
+			theBL.set("cmdtGrpNm", "");
+			
+			theBL.set("cmdtCd", "");
+			theBL.set("cmdtNm", "");
+			
+			theBL.set("pkgTpCd", "");
+			theBL.set("pkgTpNm", "");
+		}
+		
+     	if(theBL){
+     		if(refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_RCV){
+    			refs.refROROTab.setDisabled(false);
+				// refs.ctlDeliveryMode.setValue(CodeConstants.MT_CATGTP_I);
+				// refs.ctlDeliveryMode.setDisabled(true);
+    		} else {
+     			refs.ctlDeliveryMode.setDisabled(false);
+     		}
+     	}
+     	
+     	if(refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_BBK){
+			refs.txtPackageNumber.setAllowBlank(false);
+			refs.txtTypeOfPackages.setAllowBlank(false);
+			refs.refProjectCargo.setDisabled(false);
+			refs.txtPackageNumber.focus(true);
+			
+			// refs.refWeightChk.setDisabled(MOST.config.Token.getUserType() == CodeConstants.USER_TYPE_INTERNAL ? false : true);
+			
+			refs.refPackageDetailTab.setDisabled(refs.refProjectCargo.getValue() == true ? false : true);
+		}else if (refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_DBN){
+			refs.txtPackageNumber.setAllowBlank(true);
+			refs.txtTypeOfPackages.setAllowBlank(false);
+			
+			refs.txtPackageNumber.focus(false);
+			// refs.refWeightChk.setDisabled(true);
+			// refs.refWeightChk.setDisabled(MOST.config.Token.getUserType() == CodeConstants.USER_TYPE_INTERNAL ? false : true);
+			// theBL.set('wgtChk', 'Y');
+			theBL.set('projectCargo', 'N');
+			refs.refProjectCargo.setDisabled(true);
+		} else {
+				refs.txtPackageNumber.setAllowBlank(true);
+				refs.txtTypeOfPackages.setAllowBlank(true);
+			
+				refs.txtPackageNumber.focus(false);
+				//refs.refWeightChk.setDisabled(true);
+//				refs.refWeightChk.setDisabled(MOST.config.Token.getUserType() == CodeConstants.USER_TYPE_INTERNAL ? false : true);
+			
+//				theBL.set('wgtChk', 'Y');
+				theBL.set('projectCargo', 'N');
+				refs.refProjectCargo.setDisabled(true);
+		}
+     	
+     	if(theBL.get('delvTpCd') == CodeConstants.MT_DELVTP_D){
+     		refs.refAdditionalChk.setHidden(true);
+     	}
+
+		if(cargoType && cargoType.get('cgTpCd') != '' && refs.ctlTypeofCargo.getValue() != '' && refs.ctlCommodityGroup.getValue() != '' ) {
+			if (refs.ctlTypeofCargo.getValue() != cargoType.get('cgTpCd')) {
+				MessageUtil.warning('warning_msg','differenceCargoType');
+				refs.ctlTypeofCargo.setValue(cargoType.get('cgTpCd'));				
+				return;
+			}
+		}
+		
+		//Fixing issue Package detail grid do not refresh
+     	if(refs.refProjectCargo.getValue() == false && refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_BBK){
+     		pkgStore.removeAll();
+     		refs.refPackageNo.setValue('');
+     		refs.refPackageDesc.setValue('');
+     		refs.refWgt.setValue('');
+     		refs.refMsrmt.setValue('');
+     		refs.refPkgRmk.setValue('');
+     		refs.refLength.setValue('');
+     		refs.refWidth.setValue('');
+     		refs.refHeight.setValue('');     				
+     	}
+	},
+	
+	//-----START RORO
+	onCboROROBrand_change: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var roroModelStore = me.getStore(me.RORO_MODEL_STORE);
+     	
+     	if(!StringUtil.isNullorEmpty(refs.refCboROROBrand.getValue())){
+     		roroModelStore.load({
+    			params : {
+    				brandCd: refs.refCboROROBrand.getValue()
+    			},
+    			
+    			callback: function(records, operation, success) {
+    				if (success) {
+    					if(records.length > 0){
+    					}
+    				}
+    			}
+    		});
+     	} else {
+     		roroModelStore.loadData([],false);
+			refs.refCboROROModel.reset();
+     	}
+	},
+	
+	onAddRORO: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var theBL = me.getViewModel().get('theBL');
+     	var store = me.getStore(me.UNIT_LIST_STORE);
+     	var record = Ext.create('MOST.model.document.BL');
+     	var strValidation = "";
+     	var qty = 0;
+		var wgt = 0;
+		var msrmt = 0;
+		
+		var newWgt = refs.refROROMt.getValue();
+     	var newMsrmt = refs.refROROCbm.getValue();
+     	
+		if(StringUtil.isNullorEmpty(refs.refROROUnitNo.getValue())){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('unitNo');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('unitNo');
+		}
+		
+		if(StringUtil.isNullorEmpty(refs.refCboROROBrand.getValue())){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('brand');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('brand');
+		}
+		
+		if(StringUtil.isNullorEmpty(refs.refCboROROModel.getValue())){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('model');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('model');
+		}
+		
+		if(StringUtil.isNullorEmpty(refs.refROROMt.getValue())){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('mt');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('mt');
+		}
+		
+		if(StringUtil.isNullorEmpty(theBL.get('vslCallId'))){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('vslcallid');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('vslcallid');
+		}
+		
+		if(StringUtil.isNullorEmpty(theBL.get('blNo'))){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('blNo');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('blNo');
+		}
+		
+		if(!StringUtil.isNullorEmpty(strValidation)){
+			MessageUtil.warning("warning_msg", "mandatoryField_msg", strValidation);
+			return;
+		}
+		for(var i = 0; i < store.data.length; i++){
+			if(store.data.items[i].data.action != 'D'){
+				qty += 1;
+				wgt += Number(store.data.items[i].data.roroMt);
+				msrmt += Number(store.data.items[i].data.cbm);
+			}
+		}
+     	record.set('vslCallId', theBL.get('vslCallId'));
+     	record.set('vslCd', theBL.get('vslCd'));
+     	record.set('callSeq', theBL.get('callSeq'));
+     	record.set('callYear', theBL.get('callYear'));
+     	record.set('mfDocId', theBL.get('mfDocId'));
+     	record.set('blNo', theBL.get('blNo'));
+     	record.set('cgTpCd', theBL.get('cgTpCd'));
+     	record.set('opClassCd', theBL.get('opClassCd'));
+     	record.set('unitNo', refs.refROROUnitNo.getValue());
+     	record.set('roroMt', refs.refROROMt.getValue());
+     	record.set('cbm', refs.refROROCbm.getValue());
+     	record.set('brandCd', refs.refCboROROBrand.getValue());
+     	record.set('brandNm', refs.refCboROROBrand.getValue());
+     	record.set('modelCd', refs.refCboROROModel.getValue());
+     	record.set('modelNm', refs.refCboROROModel.getValue());
+     	record.set('newYn', (refs.refNewCarYn.getValue() == true) ? 'Y' : 'N');
+     	record.set('ixCd', 'I');
+     	record.set('userId', Token.getUserId());
+     	record.set('workingStatus', WorkingStatus.INSERT);
+     	record.set('action', WorkingStatus.INSERT);
+     	
+		if(me.onRORODuplicatedValidation(refs.refROROUnitNo.getValue()) && me.onROROMatchedInfoValidation(refs.refCboROROBrand.getValue(), refs.refCboROROModel.getValue())){
+			store.insert(0, record);
+			theBL.set('wgt', wgt + newWgt);
+			theBL.set('vol', msrmt + newMsrmt);
+			theBL.set('pkgQty', store.data.length);
+		}
+	},
+	
+	onRemoveRORO: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var store = me.getStore(me.UNIT_LIST_STORE);
+     	var grid = me.lookupReference('refROROGrid');
+     	var theBL = me.getViewModel().get('theBL');
+		var selectionArr = grid.getSelection() == null ? null : grid.getSelection();
+		
+		if(selectionArr == null) return;
+		
+		var qty = theBL.get('pkgQty');
+		var wgt = theBL.get('wgt');
+		var vol = theBL.get('vol');
+		
+		Ext.each(selectionArr, function (record) {
+			if(record.get('workingStatus') == WorkingStatus.INSERT)
+				store.remove(record);
+			else {
+				for(var i = 0; i < store.data.length; i++){
+					if(store.data.items[i].data.unitNo ==  record.data.unitNo && record.get('workingStatus') != WorkingStatus.DELETE && record.get('action') != WorkingStatus.DELETE){
+						
+						record.set('workingStatus', WorkingStatus.DELETE);
+						record.set('action', WorkingStatus.DELETE);
+						
+						qty -= 1;
+						wgt -= Number(store.data.items[i].data.roroMt);
+						vol -= Number(store.data.items[i].data.cbm);
+
+						theBL.set('wgt', wgt);
+						theBL.set('vol', vol);
+						theBL.set('pkgQty', qty);
+					}
+				}
+			}
+		});
+	},
+	
+	onClearRORO: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	
+     	refs.refROROUnitNo.setValue();
+     	refs.refROROMt.setValue();
+     	refs.refROROCbm.setValue();
+     	refs.refCboROROBrand.setValue();
+     	refs.refCboROROModel.setValue();
+     	refs.refNewCarYn.setValue(false);
+     	refs.refROROGrid.setSelection(null);
+     	refs.refBtnAddRORO.setDisabled(false);
+     	refs.refBtnUpdateRORO.setDisabled(true);
+     	refs.refBtnRemoveRORO.setDisabled(true);
+	},
+	
+	onUpdateRORO: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var theBL = me.getViewModel().get('theBL');
+     	var grid = me.lookupReference('refROROGrid');
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+		var currUnitNo = selection.get('unitNo');
+		var strValidation = "";
+		
+		if(selection == null) return;
+     	
+		if(StringUtil.isNullorEmpty(refs.refROROUnitNo.getValue())){
+			if(StringUtil.isNullorEmpty(strValidation)){
+				strValidation += ViewUtil.getLabel('unitNo');
+			}else{
+				strValidation = strValidation + ", " + ViewUtil.getLabel('unitNo');
+			}
+		}
+		
+		if(StringUtil.isNullorEmpty(refs.refCboROROBrand.getValue())){
+			if(StringUtil.isNullorEmpty(strValidation)){
+				strValidation += ViewUtil.getLabel('brand');
+			}else{
+				strValidation = strValidation + ", " + ViewUtil.getLabel('brand');
+			}
+		}
+		
+		if(StringUtil.isNullorEmpty(refs.refCboROROModel.getValue())){
+			if(StringUtil.isNullorEmpty(strValidation)){
+				strValidation += ViewUtil.getLabel('model');
+			}else{
+				strValidation = strValidation + ", " + ViewUtil.getLabel('model');
+			}
+		}
+		
+		if(StringUtil.isNullorEmpty(refs.refROROMt.getValue())){
+			if(StringUtil.isNullorEmpty(strValidation)){
+				strValidation += ViewUtil.getLabel('mt');
+			}else{
+				strValidation = strValidation + ", " + ViewUtil.getLabel('mt');
+			}
+		}
+		
+		if(StringUtil.isNullorEmpty(theBL.get('vslCallId'))){
+			if(StringUtil.isNullorEmpty(strValidation)){
+				strValidation += ViewUtil.getLabel('vslcallid');
+			}else{
+				strValidation = strValidation + ", " + ViewUtil.getLabel('vslcallid');
+			}
+		}
+		
+		if(StringUtil.isNullorEmpty(theBL.get('blNo'))){
+			if(StringUtil.isNullorEmpty(strValidation)){
+				strValidation += ViewUtil.getLabel('blNo');
+			}else{
+				strValidation = strValidation + ", " + ViewUtil.getLabel('blNo');
+			}
+		}
+		
+		if(!StringUtil.isNullorEmpty(strValidation)){
+			MessageUtil.warning("warning_msg", "mandatoryField_msg", strValidation);
+			return;
+		}
+		
+		if(currUnitNo != refs.refROROUnitNo.getValue()){
+			if(me.onRORODuplicatedValidation(refs.refROROUnitNo.getValue()) && me.onROROMatchedInfoValidation(refs.refCboROROBrand.getValue(), refs.refCboROROModel.getValue())){
+				selection.set('unitNo', refs.refROROUnitNo.getValue());
+				selection.set('roroMt', refs.refROROMt.getValue());
+				selection.set('cbm', refs.refROROCbm.getValue());
+				selection.set('brandCd', refs.refCboROROBrand.getValue());
+				selection.set('brandNm', refs.refCboROROBrand.getValue());
+				selection.set('modelCd', refs.refCboROROModel.getValue());
+				selection.set('modelNm', refs.refCboROROModel.getValue());
+				selection.set('newYn', (refs.refNewCarYn.getValue() == true) ? 'Y' : 'N');
+				selection.set('ixCd', 'I');
+				selection.set('userId', Token.getUserId());
+				selection.set('workingStatus', WorkingStatus.UPDATE);
+				selection.set('action', WorkingStatus.UPDATE);
+			}
+		} else {
+			if(me.onROROMatchedInfoValidation(refs.refCboROROBrand.getValue(), refs.refCboROROModel.getValue())){
+				
+				var oldWgt = theBL.get('wgt');
+				var oldVol = theBL.get('vol');
+
+				theBL.set('wgt', (oldWgt - selection.data.roroMt) + refs.refROROMt.getValue());
+				theBL.set('vol', (oldVol - selection.data.cbm) + refs.refROROCbm.getValue());
+				
+				selection.set('unitNo', refs.refROROUnitNo.getValue());
+				selection.set('roroMt', refs.refROROMt.getValue());
+				selection.set('cbm', refs.refROROCbm.getValue());
+				selection.set('brandCd', refs.refCboROROBrand.getValue());
+				selection.set('brandNm', refs.refCboROROBrand.getValue());
+				selection.set('modelCd', refs.refCboROROModel.getValue());
+				selection.set('modelNm', refs.refCboROROModel.getValue());
+				selection.set('newYn', (refs.refNewCarYn.getValue() == true) ? 'Y' : 'N');
+				selection.set('ixCd', 'I');
+				selection.set('userId', Token.getUserId());
+				selection.set('workingStatus', WorkingStatus.UPDATE);
+				selection.set('action', WorkingStatus.UPDATE);
+			}
+		}
+	},
+	
+	onROROGridItemClick:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference('refROROGrid');
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+		
+		if(selection == null) return;
+		
+		//Binding
+		refs.refROROUnitNo.setValue(selection.get('unitNo'));
+     	refs.refROROMt.setValue(selection.get('roroMt'));
+     	refs.refROROCbm.setValue(selection.get('cbm'));
+     	refs.refCboROROBrand.setValue(selection.get('brandCd'));
+     	refs.refCboROROModel.setValue(selection.get('modelCd'));
+     	refs.refNewCarYn.setValue(selection.get('newYn') == 'Y'? true : false);
+		refs.refBtnAddRORO.setDisabled(true);
+     	refs.refBtnUpdateRORO.setDisabled(false);
+     	refs.refBtnRemoveRORO.setDisabled(false);
+	},
+	
+	onRORODuplicatedValidation: function (unitNo){
+		var me = this;
+		var refs = me.getReferences();
+		var store = me.getStore(me.UNIT_LIST_STORE);
+		
+		if(store.data.length == 0){
+			return true;
+		}
+		
+		for(var j = 0; j < store.data.length; j++){
+			if(unitNo === store.data.items[j].get('unitNo')){
+				MessageUtil.warning('warning_msg', 'duplicatedata_msg');
+				return false;
+			}
+		}
+		
+		return true;
+	},
+	
+	onROROMatchedInfoValidation: function (brand, model){
+		var me = this;
+		var refs = me.getReferences();
+		var store = me.getStore(me.UNIT_LIST_STORE);
+		
+		if(store.data.length == 0){
+			return true;
+		}
+		
+		for(var j = 0; j < store.data.length; j++){
+			if(brand != store.data.items[j].get('brandCd') || model != store.data.items[j].get('modelCd')){
+				MessageUtil.warning('warning_msg', 'msgDM1230016');
+				return false;
+			}
+		}
+		return true;
+	},
+	
+	onClearPackage: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var theBL = me.getViewModel().get('theBL');
+     	
+     	theBL.set('pkgNo', '');
+     	theBL.set('pkgDesc', '');
+     	theBL.set('pkgMt', '');
+     	theBL.set('pkgM3', '');
+     	theBL.set('width', '');
+     	theBL.set('height', '');
+     	theBL.set('length', '');
+     	
+     	refs.refBlPkgDetailGrid.setSelection(null);
+     	refs.refBtnClearPackage.setDisabled(false);
+     	refs.refBtnAddPackage.setDisabled(false);
+     	refs.refBtnUpdatePackage.setDisabled(true);
+     	refs.refBtnRemovePackage.setDisabled(true);
+	},
+	
+	onAddPackage: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var theBL = me.getViewModel().get('theBL');
+     	var store = me.getStore(me.PACKAGE_DETAIL_STORE);
+     	var record = Ext.create('MOST.model.document.BL');
+     	var strValidation = "";
+     	var itemArr = new Array();
+		var pkgArr = new Array();
+     	var qty = 0;
+		var pkgMt = 0;
+		var pkgM3 = 0;
+		
+		var newPkgMt = refs.refWgt.getValue();
+     	var newPkgM3 = refs.refMsrmt.getValue();
+     	
+     	if(StringUtil.isNullorEmpty(theBL.get('pkgNo'))){
+			if(StringUtil.isNullorEmpty(strValidation)){
+				strValidation += ViewUtil.getLabel('packageNo');
+			} else{
+				strValidation = strValidation + ", " + ViewUtil.getLabel('packageNo');
+			}
+		}
+     	
+     	if(StringUtil.isNullorEmpty(theBL.get('pkgMt'))){
+			if(StringUtil.isNullorEmpty(strValidation)){
+				strValidation += ViewUtil.getLabel('mt');
+			}else{
+				strValidation = strValidation + ", " + ViewUtil.getLabel('mt');
+			}
+		}
+     	
+//     	if(StringUtil.isNullorEmpty(theBL.get('pkgM3'))){
+//			if(StringUtil.isNullorEmpty(strValidation)){
+//				strValidation += ViewUtil.getLabel('m3');
+//			}else{
+//				strValidation = strValidation + ", " + ViewUtil.getLabel('m3');
+//			}
+//		}
+     	
+     	if(StringUtil.isNullorEmpty(theBL.get('vslCallId'))){
+			if(StringUtil.isNullorEmpty(strValidation)){
+				strValidation += ViewUtil.getLabel('vslcallid');
+			}else{
+				strValidation = strValidation + ", " + ViewUtil.getLabel('vslcallid');
+			}
+		}
+		
+		if(StringUtil.isNullorEmpty(theBL.get('mfDocId'))){
+			if(StringUtil.isNullorEmpty(strValidation)){
+				strValidation += ViewUtil.getLabel('mfDocId');
+			}else{
+				strValidation = strValidation + ", " + ViewUtil.getLabel('mfDocId');
+			}
+		}
+		
+		if(!StringUtil.isNullorEmpty(strValidation)){
+			MessageUtil.warning("warning_msg", "mandatoryField_msg", strValidation);
+			return;
+		}
+     	
+     	
+		for(var i = 0; i < store.data.length; i++){
+			if(store.data.items[i].data.action != 'D'){
+				itemArr.push(store.data.items[i].data);
+				qty += 1;
+				pkgMt += Number(store.data.items[i].data.pkgMt);
+				pkgM3 += Number(store.data.items[i].data.pkgM3);
+			}
+		}
+		
+//     	if(!StringUtil.isNullorEmpty(pkgMt) || !StringUtil.isNullorEmpty(theBL.get('wgt'))){
+//     		if( (pkgMt + Number(newPkgMt)) > Number(theBL.get('wgt')) ){
+//    			MessageUtil.warning("warning_msg", "msgDifferentTons");
+//    			return;
+//    		}
+//     	}
+//     	
+//		if(!StringUtil.isNullorEmpty(pkgM3) || !StringUtil.isNullorEmpty(theBL.get('vol'))){
+//			if( (pkgM3 + Number(newPkgM3)) > Number(theBL.get('vol'))){
+//    			MessageUtil.warning("warning_msg", "msgDifferentTons");
+//    			return;
+//    		}
+//		}
+		
+     	record.set('vslCallId', theBL.get('vslCallId'));
+     	record.set('vslCd', theBL.get('vslCd'));
+     	record.set('callSeq', theBL.get('callSeq'));
+     	record.set('callYear', theBL.get('callYear'));
+     	record.set('mfDocId', theBL.get('mfDocId'));
+     	record.set('blNo', theBL.get('blNo'));
+     	record.set('pkgNo', theBL.get('pkgNo'));
+     	record.set('pkgDesc', theBL.get('pkgDesc'));
+     	record.set('pkgMt', theBL.get('pkgMt'));
+     	//record.set('pkgM3', theBL.get('pkgM3'));
+     	record.set('length', theBL.get('length'));
+     	record.set('width', theBL.get('width'));
+     	record.set('height', theBL.get('height'));
+     	record.set('userId', Token.getUserId());
+     	record.set('workingStatus', WorkingStatus.INSERT);
+     	record.set('action', WorkingStatus.INSERT);
+     	record.set('pkgRmk', theBL.get('pkgRmk'));
+     	
+     	if(theBL.get('pkgM3') == null || theBL.get('pkgM3') == ''){    		
+     		record.set('pkgM3', 0);
+     	}else {
+     		record.set('pkgM3', theBL.get('pkgM3'));
+     	}
+     	
+     	//2.Douplication check
+		if(me.onPkgDuplicatedValidation(refs.refPackageNo.getValue())){
+			store.insert(0, record);
+			theBL.set('wgt', pkgMt + newPkgMt);
+			theBL.set('vol', pkgM3 + newPkgM3);
+			theBL.set('pkgQty', store.data.length);
+		}
+	},
+	
+	onUpdatePackage: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var theBL = me.getViewModel().get('theBL');
+     	var grid = me.lookupReference(me.PACKAGE_DETAIL_GRID_REF_NAME);
+     	var store = grid.getStore();
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+		var currPkgNo = selection.get('pkgNo');
+     	var strValidation = "";
+     	var theBL = me.getViewModel().get('theBL');
+     	
+     	if(selection == null) return;
+     	
+     	if(StringUtil.isNullorEmpty(theBL.get('pkgNo'))){
+			if(StringUtil.isNullorEmpty(strValidation)){
+				strValidation += ViewUtil.getLabel('packageNo');
+			}else{
+				strValidation = strValidation + ", " + ViewUtil.getLabel('packageNo');
+			}
+		}
+     	
+     	if(StringUtil.isNullorEmpty(theBL.get('pkgMt'))){
+			if(StringUtil.isNullorEmpty(strValidation)){
+				strValidation += ViewUtil.getLabel('mt');
+			}else{
+				strValidation = strValidation + ", " + ViewUtil.getLabel('mt');
+			}
+		}
+     	
+//     	if(StringUtil.isNullorEmpty(theBL.get('pkgM3'))){
+//			if(StringUtil.isNullorEmpty(strValidation)){
+//				strValidation += ViewUtil.getLabel('m3');
+//			}else{
+//				strValidation = strValidation + ", " + ViewUtil.getLabel('m3');
+//			}
+//     	}
+     	
+		if(StringUtil.isNullorEmpty(theBL.get('vslCallId'))){
+			if(StringUtil.isNullorEmpty(strValidation)){
+				strValidation += ViewUtil.getLabel('vslcallid');
+			}else{
+				strValidation = strValidation + ", " + ViewUtil.getLabel('vslcallid');
+			}
+		}
+		
+		if(StringUtil.isNullorEmpty(theBL.get('mfDocId'))){
+			if(StringUtil.isNullorEmpty(strValidation)){
+				strValidation += ViewUtil.getLabel('mfDocId');
+			}else{
+				strValidation = strValidation + ", " + ViewUtil.getLabel('mfDocId');
+			}
+		}
+		
+		if(!StringUtil.isNullorEmpty(strValidation)){
+			MessageUtil.warning("warning_msg", "mandatoryField_msg", strValidation);
+			return;
+		}
+		
+		if(currPkgNo != theBL.get('pkgNo')){
+			if(me.onPkgDuplicatedValidation(refs.refPackageNo.getValue())){
+				selection.set('pkgNo', refs.refPackageNo.getValue());
+				selection.set('pkgDesc', refs.refPackageDesc.getValue());
+				selection.set('pkgMt', refs.refWgt.getValue());
+				//selection.set('pkgM3', refs.refMsrmt.getValue());
+				selection.set('length', refs.refLength.getValue());
+				selection.set('width', refs.refWidth.getValue());
+				selection.set('height', refs.refHeight.getValue());
+				selection.set('userId', Token.getUserId());
+				selection.set('workingStatus', WorkingStatus.UPDATE);
+				selection.set('action', WorkingStatus.UPDATE);
+				selection.set('pkgRmk', refs.refPkgRmk.getValue());
+				if(refs.refMsrmt.getValue() == null || refs.refMsrmt.getValue() == ''){    		
+					selection.set('pkgM3', 0);
+		     	}else {
+		     		selection.set('pkgM3', refs.refMsrmt.getValue());
+		     	}
+			}
+		} else {
+			selection.set('pkgNo', refs.refPackageNo.getValue());
+			selection.set('pkgDesc', refs.refPackageDesc.getValue());
+			selection.set('pkgMt', refs.refWgt.getValue());
+			//selection.set('pkgM3', refs.refMsrmt.getValue());
+			selection.set('length', refs.refLength.getValue());
+			selection.set('width', refs.refWidth.getValue());
+			selection.set('height', refs.refHeight.getValue());
+			selection.set('userId', Token.getUserId());
+			selection.set('workingStatus', WorkingStatus.UPDATE);
+			selection.set('action', WorkingStatus.UPDATE);
+			selection.set('pkgRmk', refs.refPkgRmk.getValue());
+			if(refs.refMsrmt.getValue() == null || refs.refMsrmt.getValue() == ''){    		
+				selection.set('pkgM3', 0);
+	     	}else {
+	     		selection.set('pkgM3', refs.refMsrmt.getValue());
+	     	}
+		}
+		
+		var pkgMt = 0;
+		var pkgM3 = 0;
+		
+        store.each(function (rec) { pkgMt += Number(rec.get('pkgMt')); });
+        store.each(function (rec) { pkgM3 += Number(rec.get('pkgM3')); });
+        
+        theBL.set('wgt', pkgMt);
+        theBL.set('vol', pkgM3);
+        theBL.set('pkgQty', store.data.length);
+	},
+	
+	onRemovePackage: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var store = me.getStore(me.PACKAGE_DETAIL_STORE);
+		var grid = me.lookupReference(me.PACKAGE_DETAIL_GRID_REF_NAME);
+		var selectionArr = grid.getSelection() == null ? null : grid.getSelection();
+		var theBL = me.getViewModel().get('theBL');
+		
+		if(selectionArr == null) return;
+		
+		Ext.each(selectionArr, function (record) {
+			if(record.get('workingStatus') == WorkingStatus.INSERT){
+				store.remove(record);
+			} else {
+				record.set('workingStatus', WorkingStatus.DELETE);
+				record.set('action', WorkingStatus.DELETE);
+			}
+		});
+		
+		var pkgMt = 0;
+		var pkgM3 = 0;
+		
+		store.each(function (rec) { pkgMt += Number(rec.get('pkgMt')); });
+        store.each(function (rec) { pkgM3 += Number(rec.get('pkgM3')); });
+        		
+        theBL.set('wgt', pkgMt);
+        theBL.set('vol', pkgM3);
+        theBL.set('pkgQty', store.data.length);
+	},
+
+	onPkgGridItemClick:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference(me.PACKAGE_DETAIL_GRID_REF_NAME);
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+		var theBL = me.getViewModel().get('theBL');
+		
+		if(selection == null) return;
+		
+		theBL.set('pkgNo', selection.get('pkgNo'));
+		theBL.set('pkgDesc', selection.get('pkgDesc'));
+		theBL.set('pkgMt', selection.get('pkgMt'));
+		theBL.set('pkgM3', selection.get('pkgM3'));
+		theBL.set('length', selection.get('length'));
+		theBL.set('width', selection.get('width'));
+		theBL.set('height', selection.get('height'));
+		theBL.set('pkgRmk', selection.get('pkgRmk'));
+		
+     	if(!refs.refBtnClearRORO.disabled){
+			refs.refBtnAddRORO.setDisabled(true);
+     	    refs.refBtnUpdateRORO.setDisabled(false);
+     	    refs.refBtnRemoveRORO.setDisabled(false);
+		}
+	},
+	
+	onPkgDuplicatedValidation: function (pkgNo){
+		var me = this;
+		var refs = me.getReferences();
+		var store = me.getStore(me.PACKAGE_DETAIL_STORE);
+		
+		if(store.data.length == 0){
+			return true;
+		}
+		
+		for(var j = 0; j < store.data.length; j++){
+			if(pkgNo === store.data.items[j].get('pkgNo')){
+				MessageUtil.warning('warning_msg', 'validate_duplicate_package_no');
+				return false;
+			}
+		}
+		
+		return true;
+	},
+	
+	//added by Brian (upload excel data) - 2021/09/07
+	onGeneralCargoDischargingListUpload:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var title = {type: 'bundle', key: 'generalcargodischarginglist'};
+		var popupAlias = "app-generalcargodischarginglist";
+		
+		me.openViewAliasDetailPopup(null, title, popupAlias);
+	},
+	
+	onRORODischargingListUpload:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var title = {type: 'bundle', key: 'rorodischarginglist'};
+		var popupAlias = "app-rorodischarginglist";
+		
+		me.openViewAliasDetailPopup(null, title, popupAlias);
+	},
+	
+	openSAgentPopup:function(){
+		var me = this;
+		me.openCodePopup('popup-sagentpopup', 'txtSAgent');
+	},
+	
+	onHatchDataSet: function(){
+		var me = this;
+		var store = me.getStore(me.HATCH_NO_STORE);
+		
+		store.removeAll();
+		
+		for(var i = 0; i < me.MAX_HATCH_NO; i++){
+			store.insert(i+1, [{cdNm: 'H' + (i+1),cd: 'H' + (i+1)}])
+		}
+		
+		store.commitChanges();
+	},
+	
+	onNoOfPkgChange: function(field, button, e){
+		var me = this;
+		var refs = me.getReferences();
+		var eachWgt = '';
+		var eachVol = '';
+		var qty = refs.refTxtNoOfPackage.getValue();
+		
+		if(refs.refProjectCargo.getValue() == false){	
+			if(qty > 0){
+				eachWgt = refs.refTxtWeght.getValue()/qty;
+				refs.refEachWeight.setValue(Number(eachWgt).toFixed(3));
+			}else{
+				refs.refEachWeight.setValue(0);
+			}
+			
+			if(qty > 0){
+				eachVol = refs.refTxtVol.getValue()/qty;
+				refs.refEachVolume.setValue(Number(eachVol).toFixed(3));
+			}else{
+				refs.refEachVolume.setValue(0);
+			}
+		}
+	},
+	
+	onRemove: function(){
+    	var me = this;
+    	var refs = me.getReferences();
+		var grid = me.lookupReference(me.MAIN_GRID_REF_NAME);
+		var store = me.getStore(me.MAIN_STORE_NAME);
+		var selection = grid.getSelection() === null ? null : grid.getSelection();
+		
+		if(selection === null) return;
+
+		if(selection.length > 0 && (selection[0].data.docStatCd != 'AP' && selection[0].data.docStatCd != 'SP')){
+			
+			for(var i = 0; i < selection.length; i++){
+				selection[i].data.splitCgWgt = Number(selection[i].data.splitCgWgt);
+			}
+			
+			MessageUtil.question('remove', 'bl_delete_msg', null,
+					function(button){
+				if (button === 'ok') {
+					store.remove(selection);
+					store.sync({
+						success: function(){
+							MessageUtil.saveSuccess(); // Success Message
+						}
+					});
+				}
+			});
+		}else{			
+			for(var i = 0; i < selection.length; i++){
+				if(selection[i].data.docStatCd == 'AP'){
+					MessageUtil.error('warning_msg','approvedBl_msg');
+				}
+				if(selection[i].data.docStatCd == 'SP'){
+					MessageUtil.error('warning_msg','blremoveChk');
+				}
+			}
+		}
+			
+//			var checkDO = me.getStore(me.CHECK_DO_STORE);
+//			var checkTruck = me.getStore(me.CHECK_TRUCK_STORE);
+//			var checkOperation = me.getStore(me.CHECK_OPERATION_STORE);
+//			var checkGateIn = me.getStore(me.CHECK_GATEIN_STORE);
+//			//var checkSplitExist = me.getStore(me.CHECK_SPLIT_EXIST_STORE);
+//			var blNo = selection[0].data.blNo;
+//			var vslCallId = selection[0].data.vslCallId;
+//			checkOperation.load({
+//				params:{
+//					vslCallId: vslCallId,
+//					blNo: blNo
+//				},
+//				callback:function(records, operation, success){
+//					if(success){
+//						if(records.length == 0){
+//							checkGateIn.load({
+//								params:{
+//									vslCallId: vslCallId,
+//									blNo: blNo
+//								},
+//								callback:function(records, operation, success){
+//									if(success){
+//										if(records.length == 0){
+//											checkDO.load({
+//												params:{
+//													vslCallId: vslCallId,
+//													blNo: blNo
+//												},
+//												callback:function(records, operation, success){
+//													if(success){
+//														if(records.length == 0){
+//															checkTruck.load({
+//																params:{
+//																	vslCallId: vslCallId,
+//																	blNo: blNo
+//																},
+//																callback:function(records, operation, success){
+//																	if(success){
+//																		if(records.length == 0){																		
+//																			MessageUtil.question('remove', 'bl_delete_msg', null,
+//																					function(button){
+//																				if (button === 'ok') {
+//																					store.remove(selection);
+//																					store.sync({
+//																						success: function(){
+//																							MessageUtil.saveSuccess(); // Success Message
+//																						}
+//																					});
+//																				}
+//																			});
+//																		}else{
+//																			MessageUtil.error('warning_msg','truckExist_remove_msg');
+//																		}
+//																	}
+//																}
+//															})
+//														}else{
+//															MessageUtil.error('warning_msg','doExist_remove_msg_2');
+//														}
+//													}
+//												}
+//											}
+//											)
+//										}else{
+//											MessageUtil.error('warning_msg','gateinExist_remove_msg_2');
+//										}
+//									}
+//								}
+//							})
+//						}else{
+//							MessageUtil.error('warning_msg','operationExist_remove_msg_2');
+//						}
+//					}				
+//				}
+//			})
+    },
+    
+    onAdditionalChkSetting: function(){
+    	var me = this;
+		var refs = me.getReferences();
+		var theBL = me.getViewModel().get('theBL');
+		
+//		if(theBL.get('delvTpCd') == 'D'){
+//			refs.refAdditionalChk.setHidden(true);
+//		} else {
+//			refs.refAdditionalChk.setHidden(false);
+//		}
+    },
+	
+	afterSetCodePopupData:function(xtype, targetControl, returnValue, me, parent){
+		var me = this;
+		var refs = me.getReferences();
+		var theBL = me.getViewModel().get('theBL');
+		var cargoType = me.getViewModel().get("cargoType");
+		
+		var store = me.getStore(me.DO_STORE);
+
+		if(theBL != null && (theBL.get('blNo') != null && theBL.get('blNo') != '')){
+			store.load({
+				params: {
+					blno: theBL.get('blNo'),
+					vslCallId: theBL.get('vslCallId')
+				},
+				callback: function(records, operation, success) {
+					if (success) {
+						if (records.length > 0 
+								&& ((theBL.get('cmdtGrpCd') != records[0].data.cmdtGroupCd) 
+								   || (theBL.get('cmdtCd') != records[0].data.cmdtcd)
+								   || (theBL.get('pkgTpCd') != records[0].data.pkgtpcd)) 
+								   && records[0].data.dono != null && records[0].data.dono != "") {
+							MessageUtil.warning("warning_msg", "This BL already has a DO/SDO, please delete it before changing the Type of Cargo or Commodity Group/Commodity Code/Type of packages.");
+							theBL.set('pkgTpCd', records[0].data.pkgtpcd);
+							theBL.set('cmdtCd', records[0].data.cmdtcd);
+							theBL.set('cmdtGrpCd', records[0].data.cmdtGroupCd);
+							theBL.set('cgTpCd', records[0].data.cgtpcd);
+							refs.ctlCommodityGroup.setDisabled(true);
+							refs.ctlTypeofCargo.setDisabled(true);
+							refs.ctlCommodity.setDisabled(true);
+							refs.txtTypeOfPackages.setDisabled(true);
+							return;
+						} else {
+							if(targetControl == 'ctlCommodityGroup'){
+								me.getViewModel().setData({cargoType:returnValue.item});
+								var cargoType = me.getViewModel().get("cargoType");
+								
+								if(returnValue){
+									cargoType.set('cgTpCd', returnValue.item.get("cmmdTpCd"));
+									theBL.set('cgTpCd', returnValue.item.get("cmmdTpCd"));
+									theBL.set("cmdtGrpCd", returnValue.item.get("cmmdGrpCode"));
+									theBL.set("cmdtGrpNm", returnValue.item.get("cmmdGrpName"));
+								} else {
+									cargoType.set('cgTpCd', "");				
+									theBL.set('cgTpCd', "");
+									theBL.set("cmdtGrpCd", "");
+									theBL.set("cmdtGrpNm", "");
+								}
+							} else if(targetControl == 'ctlCommodity'){
+								me.getViewModel().setData({cargoType:returnValue.item});
+									
+								var cargoType = me.getViewModel().get("cargoType");
+									
+								if(returnValue){
+									cargoType.set('cgTpCd',returnValue.item.get("cmmdTpCd"));
+										
+									theBL.set('cgTpCd',returnValue.item.get("cmmdTpCd"));
+									theBL.set("cmdtCd",returnValue.item.get("code"));
+									theBL.set("cmdtCdNm",returnValue.item.get("codeName"));
+									theBL.set("cmdtGrpCd",returnValue.item.get("cmmdGrpCode"));
+									theBL.set("cmdtGrpNm",returnValue.item.get("cmmdGrpName"));
+								} else {
+									cargoType.set('cgTpCd', "");
+										
+									theBL.set('cgTpCd', "");
+									theBL.set("cmdtCd", "");
+									shipNote.set("cmdtCdNm", "");
+									theBL.set("cmdtGrpCd", "");
+									theBL.set("cmdtGrpNm", "");
+									}
+							} else if(targetControl == 'txtTypeOfPackages') {
+								if(returnValue){
+									theBL.set("pkgTpCd", returnValue.item.get("code"));
+									theBL.set("pkgTpNm", returnValue.item.get("codeName"));
+								} else {
+									theBL.set("pkgTpCd", "");
+									theBL.set("pkgTpNm", "");
+								}
+							}
+						}
+					}
+				}
+			});
+		}
+		
+		// Remove MasterBL && BLNo if Vsl_CALL_ID is empty
+		if(targetControl == 'txtVslCallId' && returnValue == null){
+			var masterBlStore  = me.getStore('masterBlCombo');
+			var blStore = me.getStore('blCombo');
+			var masterBlCombo = me.lookupReference('txtMasterBlNo');
+			var blCombo = me.lookupReference('txtBlNo');
+			
+			masterBlCombo.setValue('');
+			blCombo.setValue('');
+			masterBlStore.setData([]);
+			blStore.setData([]);
+		}
+		
+		if(returnValue == null) return;
+		
+		if(targetControl == 'txtPolCd'){
+			theBL.set("pol",returnValue.item.get("portCode"));
+			theBL.set('polNm', returnValue.item.get('portName'));
+		}else if(targetControl == 'fsForwAgent'){
+			theBL.set("fwdCd",returnValue.item.get("ptnrCode"));
+			theBL.set('fwdNm', returnValue.item.get('ptnrName'));
+		}else if(targetControl == 'txtFndCd'){
+			theBL.set("fnlPortCd", returnValue.item.get("portCode"));
+			theBL.set('fnlPortNm', returnValue.item.get('portName'));
+		}else if(targetControl == 'txtImdgNo'){
+			if(returnValue){
+				theBL.set("unno",returnValue.item.get("code"));
+				theBL.set("imdgClass",returnValue.item.get("codeName"));
+			} else {
+				theBL.set("unno","");
+				theBL.set("imdgClass","");
+			}
+		}else if(targetControl == 'ctlCnsnor'){
+			theBL.set('shprNm', returnValue.item.get('ptnrName'));
+			theBL.set('shprAddr', returnValue.item.get('addr'));
+		}else if(targetControl == 'ctlCnsnee'){
+			theBL.set('cnsneNm', returnValue.item.get('ptnrName'));
+			theBL.set('cnsneAddr', returnValue.item.get('addr'));
+		}else if(targetControl == 'txtVslCallId'){
+			
+			if(returnValue){
+				var masterBlCombo = me.getStore('masterBlCombo');
+				
+				masterBlCombo.load({
+					params: {
+						vslCallId: returnValue.item.get('vslCallId')
+					}
+				});
+				
+//				theBL.set('vslCallId', returnValue.item.get('vslCallId'));
+//				theBL.set('vslCd', returnValue.item.get('vslCd'));
+//				theBL.set('vslNm', returnValue.item.get('vslNm'));
+//				theBL.set('callYear', returnValue.item.get('callYear'));
+//				theBL.set('callSeq', returnValue.item.get('callSeq'));
+//				theBL.set('voyage', returnValue.item.get('voyage'));
+//				theBL.set('berthLoc', returnValue.item.get('berthLoc'));
+//				theBL.set('arrvSaId', returnValue.item.get('arrvSaId'));
+//				theBL.set('eta', Ext.Date.format(returnValue.item.get('eta'), MOST.config.Locale.getDefaultDateFormatWithNoSeconds()));
+//				theBL.set('etd', Ext.Date.format(returnValue.item.get('etd'), MOST.config.Locale.getDefaultDateFormatWithNoSeconds()));
+//				
+//				if(returnValue.item.get('vslTp') == CodeConstants.VC_VSLTP_BRGE || returnValue.item.get('vslCallId') == CodeConstants.VESSEL_SCHEDULE_STRG){
+//					refs.refDomesticChk.setValue(true);
+//				} else {
+//					refs.refDomesticChk.setValue(false);
+//				}
+			}
+		}else if(targetControl == 'refVslCallId'){
+			theBL.set('vslCallId', returnValue.item.get('vslCallId'));
+			theBL.set('vslCd', returnValue.item.get('vslCd'));
+			theBL.set('vslNm', returnValue.item.get('vslNm'));
+			theBL.set('callYear', returnValue.item.get('callYear'));
+			theBL.set('callSeq', returnValue.item.get('callSeq'));
+			theBL.set('voyage', returnValue.item.get('voyage'));
+			theBL.set('berthLoc', returnValue.item.get('berthLoc'));
+			theBL.set('arrvSaId', returnValue.item.get('arrvSaId'));
+			theBL.set('locCd', returnValue.item.get('locCd'));
+			theBL.set('eta', Ext.Date.format(returnValue.item.get('eta'), MOST.config.Locale.getDefaultDateFormatWithNoSeconds()));
+			theBL.set('etd', Ext.Date.format(returnValue.item.get('etd'), MOST.config.Locale.getDefaultDateFormatWithNoSeconds()));
+			theBL.set('scn', returnValue.item.get('scn'));
+			
+			if(returnValue.item.get('vslTp') == CodeConstants.VC_VSLTP_BRGE || returnValue.item.get('vslCallId') == CodeConstants.VESSEL_SCHEDULE_STRG){
+				refs.refDomesticChk.setValue(true);
+			} else {
+				refs.refDomesticChk.setValue(false);
+			}
+			
+			if(MOST.config.Token.getUserType() == 'E'){
+				if(returnValue.item.get('arrvSaId') != MOST.config.Token.getAgencyCode()){
+					MessageUtil.warning("warning_msg", "external_user_create_bl_msg");
+					theBL.set('vslCallId', '');
+					theBL.set('scn', '');
+					theBL.set('vslCd', '');
+					theBL.set('vslNm', '');
+					theBL.set('callYear', '');
+					theBL.set('callSeq', '');
+					theBL.set('voyage', '');
+					theBL.set('berthLoc', '');
+					theBL.set('arrvSaId', '');
+					theBL.set('locCd', '');
+					theBL.set('eta', '');
+					theBL.set('etd', '');
+					refs.refDomesticChk.setValue(false);
+					refs.refVslCallId.setValue('');
+					return;
+				}
+			}
+		} else if(targetControl == 'txtBlHsCd'){
+			theBL.set("hsCode", returnValue.item.get("hsCode"));
+			theBL.set('hsNm', returnValue.item.get('hsNm'));
+		} else if(targetControl === 'ctlScn'){ 
+			if(returnValue){
+				refs.ctlScn.setValue(returnValue.code);
+
+				if(!StringUtil.isNullorEmpty(returnValue.item.get('vslCallId'))){
+					var masterBlCombo = me.getStore('masterBlCombo');
+					var blCombo = me.getStore('blCombo');
+					
+					masterBlCombo.load({
+						params: {
+							scn: returnValue.code,
+							vslCallId: returnValue.item.get('vslCallId')
+						}
+					});
+			     	
+			     	blCombo.load({
+			     		params: {
+			     			scn: returnValue.code,
+			     			vslCallId: returnValue.item.get('vslCallId')
+			     		}
+			     	});
+					
+					refs.txtVslCallId.setValue(returnValue.item.get('vslCallId'));
+					me.getViewModel().setData({theBL:returnValue.item});
+					me.onSearch();
+				}else {
+					var masterBlStore  = me.getStore('masterBlCombo');
+					var blStore = me.getStore('blCombo');
+					
+					refs.txtVslCallId.setValue('');
+					me.getViewModel().setData({theBL:null});
+					
+					masterBlStore.load({
+						params: {
+							scn: returnValue.code
+						}
+					});
+			     	
+					blStore.load({
+			     		params: {
+			     			scn: returnValue.code
+			     		}
+			     	});
+				}
+			} 
+		}  else if(targetControl === 'refBlDetailScn'){ 
+			if(returnValue){
+				refs.refBlDetailScn.setValue(returnValue.code);
+
+				if(!StringUtil.isNullorEmpty(returnValue.item.get('vslCallId'))){
+					theBL.set('vslCallId', returnValue.item.get('vslCallId'));
+					theBL.set('vslCd', returnValue.item.get('vslCd'));
+					theBL.set('vslNm', returnValue.item.get('vslNm'));
+					theBL.set('callYear', returnValue.item.get('callYear'));
+					theBL.set('callSeq', returnValue.item.get('callSeq'));
+					theBL.set('voyage', returnValue.item.get('voyage'));
+					theBL.set('berthLoc', returnValue.item.get('berthLoc'));
+					theBL.set('arrvSaId', returnValue.item.get('arrvSaId'));
+					theBL.set('locCd', returnValue.item.get('locCd'));
+					theBL.set('eta', Ext.Date.format(returnValue.item.get('eta'), MOST.config.Locale.getDefaultDateFormatWithNoSeconds()));
+					theBL.set('etd', Ext.Date.format(returnValue.item.get('etd'), MOST.config.Locale.getDefaultDateFormatWithNoSeconds()));
+					theBL.set('scn', returnValue.item.get('scn'));
+					/*refs.refVslCallId.setValue(returnValue.item.get('vslCallId'));
+					me.getViewModel().setData({theBL:returnValue.item});*/
+				}else {
+					refs.refVslCallId.setValue('');
+					/*me.getViewModel().setData({theBL:null});*/
+				}
+			} 
+		}
+	},
+
+	onSelectMasterBlCombo: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var blCombo = me.getStore('blCombo');
+     	
+     	blCombo.load({
+     		params: {
+     			vslCallId: refs.txtVslCallId.getValue(),
+     			mfDocNo: refs.txtMasterBlNo.getValue()
+     		}
+     	});
+	},
+	
+	getSearchCondition:function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var store = me.getStore(me.MAIN_STORE_NAME);
+		var grid = me.lookupReference(me.MAIN_GRID_REF_NAME);
+		var pageNo = store.currentPage;
+		var sizePerPage = CommonConstants.PAGE_SIZE;
+		var searchParm = me.getViewModel().get('theSearch');
+		var params = me.createParam(searchParm);
+		var docStatFromDateVal = '';
+		var docStatToDateVal = '';
+		
+		if(MOST.config.Token.getUserType() == 'E'){
+			var isCNS = me.existsPatnerType(CodeConstants.CM_PTNRTP_CNS);
+			var isSHA = me.existsPatnerType(CodeConstants.CM_PTNRTP_SHA);
+			
+			if(searchParm.data.docStatFromDate != '' && searchParm.data.docStatFromDate != null){
+				docStatFromDateVal = Ext.Date.format(new Date(searchParm.data.docStatFromDate), 'd/m/Y')
+			}
+			
+			if(searchParm.data.docStatToDate != '' && searchParm.data.docStatToDate != null){
+				docStatToDateVal = Ext.Date.format(new Date(searchParm.data.docStatToDate), 'd/m/Y')
+			}
+			
+			if(refs.refSplitChk.getValue()){
+				params['splitChk'] = 'Y';
+			}
+			
+			params['vslCallId'] = searchParm.data.vslCallId;
+			params['docStatFromDate'] = docStatFromDateVal;
+			params['docStatToDate'] = docStatToDateVal;
+			params['ptnrCd'] = searchParm.data.shaCd;
+			params['blNo'] = searchParm.data.blNo;
+			params['mfDocId'] = searchParm.data.mfDocId;
+			params['docStatCd'] = searchParm.data.docStatCd;
+			params['userDefNo'] = searchParm.data.userDefNo;
+			params['pageNo'] = pageNo;
+			params['sizePerPage'] = sizePerPage;
+			
+			if(isFWD && isSHA){	
+				params['shaCd'] = refs.ctlPartner.getValue();
+			}
+			
+			if(isSHA || isFWD){
+				params['shaCd'] = refs.ctlPartner.getValue();
+			}
+		}else{	
+			if(searchParm.data.docStatFromDate != '' && searchParm.data.docStatFromDate != null){
+				docStatFromDateVal = Ext.Date.format(new Date(searchParm.data.docStatFromDate), 'd/m/Y')
+			}
+			
+			if(searchParm.data.docStatToDate != '' && searchParm.data.docStatToDate != null){
+				docStatToDateVal = Ext.Date.format(new Date(searchParm.data.docStatToDate), 'd/m/Y')
+			}
+			
+			if(refs.refSplitChk.getValue()){
+				params['splitChk'] = 'Y';
+			}
+			
+			params['vslCallId'] = searchParm.data.vslCallId;
+			params['docStatFromDate'] = docStatFromDateVal;
+			params['docStatToDate'] = docStatToDateVal;
+			params['ptnrCd'] = searchParm.data.shaCd;
+			params['blNo'] = searchParm.data.blNo;
+			params['mfDocId'] = searchParm.data.mfDocId;
+			params['docStatCd'] = searchParm.data.docStatCd;
+			params['userDefNo'] = searchParm.data.userDefNo;
+			params['pageNo'] = pageNo;
+			params['sizePerPage'] = sizePerPage;
+			params['shaCd'] = refs.ctlPartner.getValue();
+		}
+		
+		return params;
+	},
+	
+	fileUpload: function(formData){
+		var me = this;
+		var refs = me.getReferences();
+		var detailView = me.getDetailBizView();
+		var store = me.getStore(me.FILE_UPLOAD_STORE_NAME);
+		//var infoForm = detailView.down('form').getForm();
+		
+		//if(!infoForm.isValid()){
+		
+		var formData = new FormData();
+		
+		var xhr = new XMLHttpRequest();
+    	
+		store.getModifiedRecords().forEach(function(record, index, array){
+			formData.append(record.data.fileName, record.data.fileStream);
+    	});
+    	
+    	xhr.addEventListener('loadend', function(){
+    		if(xhr.status === 200){
+    			var rtnData = JSON.parse(xhr.responseText);
+    			
+    			store.getModifiedRecords().forEach(function(record, index, array){
+    	    		record.set('ufileName', rtnData[record.get('fileName')]);
+    	    	});
+    			
+    			me.saveProcess();
+  
+    		}else{
+    			MessageUtil.warning('warning_msg', 'fail_msg');
+    		}
+    		
+    		Ext.MessageBox.hide();
+    	});
+    	
+    	xhr.open('POST',MOST.config.Locale.getRestApiDestUrl() + '/file/manage/fileupload');
+    	xhr.setRequestHeader('Authorization', MOST.config.Token.getTokenType() + ' ' + MOST.config.Token.getAccessToken());
+    	xhr.send(formData);
+		//}
+//		else {
+//			me.saveProcess();
+//		}
+		  	
+    	var msgBox = Ext.MessageBox.show({
+			msg: 'Uploading your data...',
+			progressText: 'Progressing...',
+			width:300,
+			wait:true,
+			waitConfig: {interval:200}
+		});
+	},
+	
+    saveProcess: function(){
+    	var me = this;
+    	var refs = me.getReferences();
+		var cargoArr = new Array();
+		var uploadItems = new Array();
+    	var updateParm = Ext.create('MOST.model.foundation.parm.UpdateBizParm');
+    	var detailItem = me.getViewModel().get('theBL');
+    	var detailView = me.getDetailBizView();
+    	
+		var isCreated = detailItem.phantom;
+		var orgWgt = 0;
+		var orgQty = 0;
+		var qty = 0;
+		var mt = 0;
+		var sdoWgt = 0;
+		var sdoVol = 0;
+		var sdoQty = 0;
+		var checkSdoWeight = true;
+		
+		var store = me.getStore(me.MAIN_STORE_NAME);
+		var cargoStore = me.getStore(me.BL_CARGO_STORE);
+		var fileUploadStore = me.getStore(me.FILE_UPLOAD_STORE_NAME);
+		var checkSplitWgt = me.getStore(me.SPLIT_WGT_CHECK);
+		var checkDO = me.getStore(me.CHECK_DO_STORE);
+		var sdoWeightList = me.getStore(me.SDO_TOTAL_WEIGHT_STORE);
+    	var userAgency = MOST.config.Token.getAgencyCode();
+		var loginUserTp = MOST.config.Token.getUserType();
+		var fwrd = refs.fsForwAgent.getValue();
+		var isSHA = me.existsPatnerType(CodeConstants.CM_PTNRTP_SHA);
+		
+		for(var i = 0; i < cargoStore.data.length; i++){
+			cargoArr.push(cargoStore.data.items[i].data);
+		}
+		
+		if(detailItem.get('saveType') == 'split'){
+			var disWgt = Number(detailItem.get('disWgt'));
+			var disVol = Number(detailItem.get('disVol'));
+			var disPkgQty = Number(detailItem.get('disPkgQty'));
+			
+			detailItem.set('fwrd', fwrd);
+			detailItem.set('userId', MOST.config.Token.getUserId());
+			detailItem.set('blDetailItems', cargoArr);
+			detailItem.set('projectCargo', refs.refProjectCargo.checked ? 'Y' : 'N');
+			detailItem.set('domesticChk', refs.refDomesticChk.checked ? 'Y' : 'N');
+			detailItem.set('wgtChk', refs.refWeightChk.checked ? 'N' : 'Y');
+			
+			detailItem.set('splitCgWgt', detailItem.get('wgt'));
+			detailItem.set('splitCgVol', detailItem.get('vol'));
+			detailItem.set('splitPkgQty', detailItem.get('pkgQty'));
+			
+			detailItem.set('pkgQty', Number(detailItem.get('orgPkgQty')) - disPkgQty - detailItem.get('splitPkgQty'));
+			detailItem.set('vol', Number(detailItem.get('orgVol')).toFixed(3) - disVol - detailItem.get('splitCgVol'));
+			detailItem.set('wgt', Number(detailItem.get('orgWgt')).toFixed(3) - disWgt - detailItem.get('splitCgWgt'));
+			
+			
+			detailItem.set('ptnrCd', userAgency);
+			detailItem.set('docStatCd', CodeConstants.MT_DOCSTAT_AP);
+			detailItem.set('changeSplit', 'Y');
+			
+			if(detailItem.get('mfDocId') === null || detailItem.get('mfDocId') === ''){
+				detailItem.set('mfDocId', detailItem.get('blNo'));
+			}
+			
+			if(detailItem.get('wgt') > Number(detailItem.get('orgWgt')) - disWgt
+					|| detailItem.get('vol') > Number(detailItem.get('orgVol')) - disVol
+					|| detailItem.get('pkgQty') > Number(detailItem.get('orgPkgQty')) - disPkgQty){
+				MessageUtil.warning("warning_msg", "weight_over_msg");
+				return;
+			}
+			
+			for(record of sdoWeightList.data.items){
+				sdoWgt += Number(record.get('wgt'));
+				sdoVol += Number(record.get('vol'));
+				sdoQty += Number(record.get('pkgQty'));
+				
+				if(record.get('additionalChk') == 'Y'){
+					checkSdoWeight = false;
+				}
+			}
+			
+			if(checkSdoWeight){
+				if(sdoWgt > Number(detailItem.get('orgWgt')) - detailItem.get('wgt')
+						|| sdoVol > Number(detailItem.get('orgVol')) - detailItem.get('vol')
+						|| sdoQty > Number(detailItem.get('orgQty')) - detailItem.get('qty')){
+					MessageUtil.warning("warning_msg", "need_update_sdo_msg");
+					return;
+				}
+			}
+			
+			store.insert(0,detailItem);
+			
+			// File Upload CREATE, UPDATE RECORD
+			fileUploadStore.getModifiedRecords().forEach(function(record, index, array){
+				record.set('fileStream', null);
+				record.set('userId', MOST.config.Token.getUserId());
+				record.set('workingStatus', WorkingStatus.INSERT);
+				uploadItems.push(record.data);
+			});
+			
+			// File Upload DELETE RECORD
+			fileUploadStore.getRemovedRecords().forEach(function(record, index, array){
+				record.set('workingStatus', WorkingStatus.DELETE);
+				uploadItems.push(record.data);
+			});
+			
+			detailItem.set('uploadItems', uploadItems);
+
+			checkSplitWgt.load({
+				params: {
+					orgBlNo: detailItem.get('orgBlNo'),
+					vslCallId: detailItem.get('vslCallId'),
+					mfDocId: detailItem.get('mfDocId')
+				},
+				
+				callback: function(records, operation, success){
+					orgWgt = detailItem.get('orgWgt');
+					orgQty = detailItem.get('orgPkgQty');
+					
+					if(success){
+						for(var i = 0; i < records.length; i++){
+							mt += Number(records.at(i).data.splitCgWgt);
+							qty += 1;
+						}
+						
+						mt += Number(detailItem.get('wgt'));
+						
+						if(mt > orgWgt){
+							MessageUtil.error('warning_msg','splitBlWgtChkMsg');
+							return;
+						}
+						
+						updateParm.getProxy().url = store.getProxy().url;
+						updateParm.set('workingStatus', WorkingStatus.INSERT);
+						updateParm.set('item', detailItem.data);
+						
+						updateParm.save({
+							success : function(records,success){
+								MessageUtil.saveSuccess();
+								store.commitChanges();
+								store.reload();
+								detailView.close();
+							}
+						});
+					}
+				}
+			});
+		}
+		
+		if(detailItem.get("crud") == 'C'){
+			store.each(function(record){
+				record.phantom = false;
+				record.crudState = 'R';
+				record.crudStateWas = 'R';
+			})
+				
+			detailItem.set('fwrd', fwrd);
+			detailItem.set('userId', MOST.config.Token.getUserId());
+			detailItem.set('blDetailItems', cargoArr);
+			detailItem.set('projectCargo', refs.refProjectCargo.checked ? 'Y' : 'N');
+			detailItem.set('domesticChk', refs.refDomesticChk.checked ? 'Y' : 'N');
+			detailItem.set('wgtChk', refs.refWeightChk.checked ? 'N' : 'Y');
+			detailItem.set('bondedWhYn', refs.refBondedWhYn.checked ? 'Y' : 'N');
+			
+			//Mantis 0131876
+			detailItem.set('opClassCd', refs.refCategory.getValue());
+			detailItem.set('ptnrCd', userAgency);
+			
+			if(detailItem.get('mfDocId') === null || detailItem.get('mfDocId') === ''){
+				detailItem.set('mfDocId', detailItem.get('blNo'));
+			}
+			
+			store.insert(0,detailItem);
+			
+			// File Upload CREATE, UPDATE RECORD
+			fileUploadStore.getModifiedRecords().forEach(function(record, index, array){
+				record.set('fileStream', null);
+				record.set('userId', MOST.config.Token.getUserId());
+				record.set('workingStatus', WorkingStatus.INSERT);
+				uploadItems.push(record.data);
+			});
+			
+			// File Upload DELETE RECORD
+			fileUploadStore.getRemovedRecords().forEach(function(record, index, array){
+				record.set('workingStatus', WorkingStatus.DELETE);
+				uploadItems.push(record.data);
+			});
+			
+			detailItem.set('uploadItems', uploadItems);
+			
+			updateParm.getProxy().url = store.getProxy().url;
+			updateParm.phantom = isCreated;
+			updateParm.set('workingStatus', isCreated ? WorkingStatus.INSERT : WorkingStatus.UPDATE);
+			updateParm.set('item', detailItem.data);
+			
+			updateParm.save({
+				success : function(records,success){
+					MessageUtil.saveSuccess();
+					store.commitChanges();
+					store.reload();
+					detailView.close();
+				}
+			});
+		} else if(detailItem.get("crud") == 'U') {
+			var blNo = detailItem.get('blNo');
+			var vslCallId = detailItem.get('vslCallId');
+			var checkTruck = me.getStore(me.CHECK_TRUCK_STORE);
+			var checkOperation = me.getStore(me.CHECK_OPERATION_STORE);
+			
+            if(detailItem.get('blNo') != detailItem.get('oldBlNo')){
+            	checkDO.load({
+					params:{
+						vslCallId: detailItem.get('vslCallId'),
+						blNo: detailItem.get('oldBlNo')
+					},
+					callback:function(records, operation, success){
+						if(success){
+							if(records.length == 0){
+								checkTruck.load({
+									params:{
+										vslCallId: vslCallId,
+										blNo: detailItem.get('oldBlNo')
+									},
+									callback:function(records, operation, success){
+										if(success){
+											if(records.length == 0){
+												checkOperation.load({
+													params:{
+														vslCallId: vslCallId,
+														blNo: detailItem.get('oldBlNo')
+													},
+													callback:function(records, operation, success){
+														if(success){
+															if(records.length == 0){
+																detailItem.set('fwrd', fwrd);
+																detailItem.set('ptnrCd', userAgency);
+																detailItem.set('userId', MOST.config.Token.getUserId());
+																detailItem.set('blDetailItems', cargoArr);
+																
+																store.insert(0, detailItem);
+																
+																// File Upload CREATE, UPDATE RECORD
+																fileUploadStore.getModifiedRecords().forEach(function(record, index, array){
+																	record.set('fileStream', null);
+																	record.set('userId', MOST.config.Token.getUserId());
+																	record.set('workingStatus', WorkingStatus.INSERT);
+																	uploadItems.push(record.data);
+																});
+																
+																// File Upload DELETE RECORD
+																fileUploadStore.getRemovedRecords().forEach(function(record, index, array){
+																	record.set('workingStatus', WorkingStatus.DELETE);
+																	uploadItems.push(record.data);
+																});
+																
+																detailItem.set('uploadItems', uploadItems);
+																detailItem.set('projectCargo', refs.refProjectCargo.checked ? 'Y' : 'N');
+																detailItem.set('domesticChk', refs.refDomesticChk.checked ? 'Y' : 'N');
+																detailItem.set('wgtChk', refs.refWeightChk.checked ? 'N' : 'Y');
+																detailItem.set('bondedWhYn', refs.refBondedWhYn.checked ? 'Y' : 'N');
+																//detailItem.set('additionalChk', refs.refAdditionalChk.checked ? 'Y' : 'N');
+																
+																updateParm.getProxy().url = store.getProxy().url;
+																updateParm.phantom = isCreated;
+																updateParm.set('workingStatus', isCreated ? WorkingStatus.INSERT : WorkingStatus.UPDATE);
+																updateParm.set('item', detailItem.data);
+																
+																updateParm.save({
+																	success : function(records,success){
+																		MessageUtil.show(Ext.Msg.INFO,'success_msg' ,'savesuccess_msg','',
+																			function(button){
+																				if (button === 'ok') {
+																					store.commitChanges();
+																					store.reload();
+																					detailView.close();
+																				}
+																		});
+																	}
+																});
+															}else{
+																MessageUtil.error('warning_msg','operationExist_update_msg');
+															}
+														}
+													}
+												})
+											}else{
+												MessageUtil.error('warning_msg','truckExist_update_msg');
+											}
+										}
+									}
+								})
+							}else{
+								MessageUtil.error('warning_msg','doExist_update_msg');
+							}
+						}
+					}
+				})
+            }else{
+            	detailItem.set('fwrd', fwrd);
+            	detailItem.set('ptnrCd', userAgency);
+            	detailItem.set('userId', MOST.config.Token.getUserId());
+            	detailItem.set('blDetailItems', cargoArr);
+				
+				store.insert(0, detailItem);
+				
+				// File Upload CREATE, UPDATE RECORD
+				fileUploadStore.getModifiedRecords().forEach(function(record, index, array){
+					record.set('fileStream', null);
+					record.set('userId', MOST.config.Token.getUserId());
+					record.set('workingStatus', WorkingStatus.INSERT);
+					uploadItems.push(record.data);
+				});
+				
+				// File Upload DELETE RECORD
+				fileUploadStore.getRemovedRecords().forEach(function(record, index, array){
+					record.set('workingStatus', WorkingStatus.DELETE);
+					uploadItems.push(record.data);
+				});
+				
+				detailItem.set('uploadItems', uploadItems);
+				detailItem.set('projectCargo', refs.refProjectCargo.checked ? 'Y' : 'N');
+				detailItem.set('domesticChk', refs.refDomesticChk.checked ? 'Y' : 'N');
+				detailItem.set('wgtChk', refs.refWeightChk.checked ? 'N' : 'Y');
+				detailItem.set('bondedWhYn', refs.refBondedWhYn.checked ? 'Y' : 'N');
+				//detailItem.set('additionalChk', refs.refAdditionalChk.checked ? 'Y' : 'N');
+				
+				updateParm.getProxy().url = store.getProxy().url;
+				updateParm.phantom = isCreated;
+				updateParm.set('workingStatus', isCreated ? WorkingStatus.INSERT : WorkingStatus.UPDATE);
+				updateParm.set('item', detailItem.data);
+
+				updateParm.save({
+					success : function(records,success){
+						MessageUtil.show(Ext.Msg.INFO,'success_msg' ,'savesuccess_msg','',
+							function(button){
+								if (button === 'ok') {
+									store.commitChanges();
+									store.reload();
+									detailView.close();
+								}
+							}
+						);
+					}
+				});
+            }
+		}
+    },
+    
+    editSetting: function(){
+    	var me = this;
+    	var refs = me.getReferences();
+    	var theBL = me.getViewModel().get('theBL');
+//    	refs.refVslCallId.items.getAt(0).setReadOnly(true);
+//		refs.refVslCallId.items.getAt(1).setDisabled(true);
+    	refs.refVslCallId.setDisabled(true);
+    	
+    	refs.txtPolCd.items.getAt(0).setReadOnly(true);
+		refs.txtPolCd.items.getAt(1).setDisabled(true);
+		
+		refs.txtFndCd.items.getAt(0).setReadOnly(true);
+		refs.txtFndCd.items.getAt(1).setDisabled(true);
+		
+		refs.ctlCommodityGroup.items.getAt(0).setReadOnly(true);
+		refs.ctlCommodityGroup.items.getAt(1).setDisabled(true);
+		
+		refs.ctlCommodity.items.getAt(0).setReadOnly(true);
+		refs.ctlCommodity.items.getAt(1).setDisabled(true);
+		
+		refs.txtTypeOfPackages.items.getAt(0).setReadOnly(true);
+		refs.txtTypeOfPackages.items.getAt(1).setDisabled(true);
+		
+		refs.txtImdgNo.items.getAt(0).setReadOnly(true);
+		refs.txtImdgNo.items.getAt(1).setDisabled(true);
+		
+		refs.fsForwAgent.items.getAt(0).setReadOnly(true);
+		refs.fsForwAgent.items.getAt(1).setDisabled(true);
+		
+		refs.refMasterBLNo.setReadOnly(true);
+		refs.refUserRefNo.setReadOnly(true);
+		//refs.ctlDeliveryMode.setReadOnly(true);
+		refs.ctlTypeofCargo.setDisabled(true);
+		refs.refProjectCargo.setReadOnly(true);
+		refs.refDomesticChk.setReadOnly(true);
+		refs.refCategory.setDisabled(true);
+		refs.txtMafiParentId.setReadOnly(true);
+		refs.txtFndCdName.setReadOnly(true);
+		refs.txtPackageNumber.setReadOnly(true);
+		refs.refWeightChk.setReadOnly(true);
+		//refs.refAdditionalChk.setReadOnly(true);
+		refs.txtParentCmdtGrp.setReadOnly(true);
+		refs.ctlUnno.setReadOnly(true);
+		refs.refFreighTon.setReadOnly(true);
+		//refs.refBondedChk.setReadOnly(true);
+		refs.txtLength.setReadOnly(true);
+		refs.txtWidth.setReadOnly(true);
+		refs.txtHeight.setReadOnly(true);
+		refs.txtmAndN.setReadOnly(true);
+		refs.txtDescOfGoods.setReadOnly(true);
+		
+		refs.refBtnAddFile.setDisabled(true);
+		refs.refBtnRemoveFile.setDisabled(true);
+		refs.refBtnClearRORO.setDisabled(true);
+		refs.refBtnAddPackage.setDisabled(true);
+		refs.refBtnUpdatePackage.setDisabled(true);
+		refs.refBtnRemovePackage.setDisabled(true);
+		
+    },
+    
+//    getSplipExist:function(){
+//		var me = this;
+//		var refs = me.getReferences();
+//		var theBL = me.getViewModel().get('theBL');
+//		var selectSplitWgt = me.getStore('selectSplitWgt');
+//		
+//		selectSplitWgt.load({
+//			params: {
+//				orgBlNo: theBL.get('mfDocId'),
+//			},
+//			callback: function(records, operation, success){
+//				orgWgt = theBL.get('orgWgt');
+//				orgQty = theBL.get('orgPkgQty');
+//				
+//				if(success){
+//					for(var i = 0; i < records.length; i++){
+//						mt += Number(records.at(i).data.splitCgWgt);
+//						qty += 1;
+//					}
+//					
+//					//mt += Number(theBL.get('wgt'));
+//					//
+//					//if(mt > orgWgt){
+//					//	MessageUtil.error('warning_msg','splitBlWgtChkMsg');
+//					//	return;
+//					//}
+//				}
+//			}
+//		});
+//    },
+    
+    onExportExcelSampleROROTab: function() {
+		var me = this;
+		
+		var exportItem = me.getStore('roroSampleUpload');
+		exportItem.load({
+            callback: function(record, operation, success) {
+            	if(success) {
+            		if(record != null){
+            			var content = record[0].get('content').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>');
+    		        	Ext.exporter.File.saveBinaryAs(content, "LAIP_RORO_LoadingDetailList.xlsx");
+            		}
+            	}
+            }
+		});			
+	},
+	
+	onExportExcelSamplePackageDetailTab: function() {
+		var me = this;
+		
+		var exportItem = me.getStore('packageSampleUpload');
+		exportItem.load({
+            callback: function(record, operation, success) {
+            	if(success) {
+            		if(record != null){
+            			var content = record[0].get('content').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>');
+    		        	Ext.exporter.File.saveBinaryAs(content, "LAIP_GeneralCargo_PackageDetail.xlsx");
+            		}
+            	}
+            }
+		});			
+	},
+	
+	onAddCargo: function() {
+		var me = this;
+		var refs = me.getReferences();
+		var grid = refs.refBlCargoGrid;
+		var store = me.getStore('blCargo');
+
+		var editor = refs.refBlCargoGrid.getPlugin('blCargoEditor');
+		
+		editor.cancelEdit();
+		
+		//Clear filter for Grid
+		grid.filters.clearFilters();
+		grid.filters.disable();
+		
+		//Clear filter for Store
+		store.clearFilter();
+		
+		var record = Ext.create('MOST.model.document.BL');
+		var idx = 0;
+		
+		if(grid.getSelection() && grid.getSelection().length>0) {
+			idx = store.indexOfId(grid.getSelection()[0].get('id'));
+		}
+		
+		store.insert(idx, record);
+		grid.getSelectionModel().select(record);
+		
+		editor.startEdit(record);
+
+		me.onHatchDataSet();
+	},
+	
+	onRemoveCargo: function() {
+		var me = this;
+		var refs = me.getReferences();
+		var selection = refs.refBlCargoGrid.getSelection() == null ? null : refs.refBlCargoGrid.getSelection()[0];
+		
+		var store = me.getStore('blCargo');
+		
+		store.remove(selection);
+	},
+	
+	onEdit : function(editor, context){
+		// phantom : True when the record does not yet exist in a server-side database.
+		if (context.record.phantom) {	 
+			console.log('***** insert *****');
+			context.store.remove(0);
+			context.store.insert(0,context.record);
+		} else {
+			console.log('***** update *****');
+		}
+	},
+	
+	onValidateEdit:	function(editor, context) {
+		var me = this;
+		var refs = me.getReferences();
+		var valid = true;
+		var blCargoStore = me.getStore('blCargo');
+		var grid = me.lookupReference(me.CARGO_GRID_REF_NAME);
+
+		var mt = Number(editor.context.newValues.wgt).toFixed(3);
+		var m3 = Number(editor.context.newValues.msrmt).toFixed(3);
+		var qty = Number(editor.context.newValues.pkgQty).toFixed(3);
+
+		if( StringUtil.isNullorEmpty(editor.context.newValues.hatchNo)){
+			MessageUtil.warning("warning_msg", "hatch_no_empty_msg");
+			valid = false;
+		}
+		
+		if(grid.getSelection() && grid.getSelection().length>0) {
+			idx = blCargoStore.indexOfId(grid.getSelection()[0].get('id'));
+			
+			blCargoStore.each(function(record, index){
+				if(index !== idx && record.data.hatchNo == editor.context.newValues.hatchNo){
+					MessageUtil.warning("warning_msg", "duplicatedHatchNo_msg");
+					valid = false;
+					return;
+				}
+			})
+		}
+		
+		return valid;
+	},
+	
+	onCancelEdit: function(rowEditing, context) {
+		if (context.record.phantom) {
+			context.store.remove(context.record);
+		}
+	},
+
+	onCheckCmdtGroupAndCgTp: function(cgTpCd) {
+		var me = this;
+		var refs = me.getReferences();
+		var cmdtGroupCdStore = refs.ctlCommodityGroup.getViewModel().getStore('commonCodePopup');
+		var params = {
+			searchType: 'CMDT_GRP',
+			scd: refs.ctlCommodityGroup.getValue(),
+			reqType: 'CD'
+		};
+		return new Ext.Promise(function (resolve, reject) { 
+				cmdtGroupCdStore.load({
+					params: params,
+					callback: function(records, operation, success) {
+						if(success) {
+							if(records.length > 0) {
+								var cgTpCdArr = records.filter(record => record.data.cmmdTpCd == cgTpCd);
+								resolve(cgTpCdArr);
+							} else {
+								resolve(false);
+							}
+						} else {
+							reject(operation);
+						}
+					}
+				})
+			}
+		)
+	},
+	
+	onUpperCaseModified: function(control){
+		var me = this;
+		var refs = me.getReferences();
+		var oldString = control.getValue();
+		oldString = oldString.replaceAll("&amp;", '&').replaceAll("&gt;", '>').replaceAll("&lt;", '<').replaceAll("&quot;", '"');
+		var newString = '';
+		for (var i = 0; i < oldString.length; i++){
+			if (oldString[i].match(/[a-za-ｚ]/)){ //The first 'a-z' belongs to English and the second 'a-z' belongs to Japanese
+				newString += oldString[i].toUpperCase();
+			}
+			else{
+				newString += oldString[i];
+			}
+		}
+		control.setValue(newString);
+		
+		if(me.mblEditable){
+			refs.refMasterBLNo.setValue(newString);
+		}
+	},
+	
+	openHsCodePopup: function() {
+		var me = this;
+		var refs = me.getReferences();
+		var params = {};
+		
+		me.openCodePopup('popup-hscodepopup', 'txtBlHsCd',params);
+	},
+});
+
+

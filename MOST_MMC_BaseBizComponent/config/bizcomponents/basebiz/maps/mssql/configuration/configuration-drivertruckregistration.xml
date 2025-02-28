@@ -1,0 +1,597 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="driverTruckRegistration">
+	
+	<select id="selectRegisterationItems" parameterType="driverTruckRegistrationParm"  resultType="driverTruckRegistrationItem">
+	 	<if test="pageNo != 0"> 
+        	SELECT /*driverTruckRegistration.selectRegisterationItems*/
+            	* 
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) AS ROW_NUM,
+					innerTable.*
+				FROM ( 
+		</if>
+				<include refid="getRegisterationItems"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable 
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT)) 		* CAST(#{sizePerPage} AS INT)
+		
+		</if>
+	</select>
+	
+	<select id="selectRegisterationItemsCount" parameterType="driverTruckRegistrationParm" resultType="java.lang.String">
+		SELECT /*driverTruckRegistration.selectRegisterationItemsCount*/
+			COUNT(*)
+	    FROM 
+			(<include refid="getRegisterationItems"/>) 	AS TEMPTABLE
+	</select>
+
+	<sql id="getRegisterationItems">
+		SELECT /*driverTruckRegistration.getRegisterationItems*/
+	   		PTNR_CD 								AS PTNRCD,
+			ISNULL(LORRY_ID, ' ') 					AS LORRYID,
+			ISNULL(LORRY_NO, ' ') 					AS LORRYNO,
+			ISNULL(DRIVER_ID, ' ') 					AS DRIVERID,
+			ISNULL(DRIVER_NM, ' ') 					AS DRIVERNM,
+			ISNULL(LICS_NO, ' ') 					AS LICSNO,
+			LICS_EXPR_YMD 							AS LICSEXPRYMD,
+			ISNULL(NAT, ' ')  						AS NAT,
+			STAFF_CD  								AS USERID, 
+			VERSION 								AS VERSION,
+			ISNULL(TARE_WGT, 0) 					AS TAREWGT,
+			MEASURE_DT 								AS MEADT,
+			USE_YN 									AS USEYN
+		FROM 
+			TMT_TRUCK_MST T 										
+		WHERE 
+			1 = 1
+		<if test="ptnrCd != null and ptnrCd != ''">
+			AND PTNR_CD 							= #{ptnrCd}
+		</if>
+		<if test="divCd != null and divCd != ''">
+			AND DIV_CD 								= #{divCd}
+		</if>
+	 	<if test="driverId != null and driverId != ''">
+			AND DRIVER_ID 							= #{driverId}
+	 	</if>
+	 	<if test="licsNo != null and licsNo != ''">
+			AND LICS_NO 							= #{licsNo}
+	 	</if>
+	 	<if test="lorryId != null and lorryId != ''">
+			AND LORRY_ID 							= #{lorryId}
+	 	</if>
+	 	<if test="lorryNo != null and lorryNo != ''">
+			AND LORRY_NO 							= #{lorryNo}
+	 	</if>
+	</sql>
+
+	<insert id = "insertRegisterationItems"  parameterType = "driverTruckRegistrationItem">
+		INSERT /*driverTruckRegistration.insertRegisterationItems*/
+		INTO TMT_TRUCK_MST (
+			PTNR_CD,
+			SEQ,
+			DIV_CD,
+			LORRY_ID,
+			LORRY_NO,
+			DRIVER_ID,
+			DRIVER_NM,
+			LICS_NO,
+			LICS_EXPR_YMD,
+			NAT,
+			UPDATE_TIME,
+			STAFF_CD,
+			VERSION,
+			TARE_WGT,
+			MEASURE_DT
+		) VALUES (
+			#{ptnrCd},
+			(SELECT 
+				CASE 
+					WHEN ISNULL(MAX(SEQ), '') = '' THEN 1 
+					ELSE MAX(SEQ) + 1 
+				END 
+			FROM 
+				TMT_LORRY_PL),
+			#{divCd},
+			#{lorryId},
+			#{lorryNo},
+			#{driverId},
+			#{driverNm},
+			#{licsNo},
+			CASE 
+				(WHEN #{convertStrLicsExprYmd} IS NULL OR #{convertStrLicsExprYmd} ='') THEN NULL 
+				ELSE CONVERT(DATE, #{convertStrLicsExprYmd}, 103) 
+			END,
+			#{nat},
+			SYSDATETIME(),
+			#{userId},
+			#{newVersion},
+			#{tareWgt},
+			CASE 
+				(WHEN #{convertStrMeaDt} IS NULL OR #{convertStrMeaDt} = '') THEN NULL 
+				ELSE CONVERT(DATE, #{convertStrMeaDt}, 103)
+			END
+		)
+	</insert>
+
+	<update id = "updateRegisterationItems"  parameterType = "driverTruckRegistrationItem">
+		UPDATE /*driverTruckRegistration.updateRegisterationItems*/
+			TMT_TRUCK_MST 
+		SET  
+			LORRY_ID								= #{lorryId},
+	   		LORRY_NO 								= #{lorryNo},
+	   		DRIVER_ID 								= #{driverId},
+	   		DRIVER_NM 								= #{driverNm},
+	   		LICS_NO 								= #{licsNo},
+	   		LICS_EXPR_YMD =	(CASE 
+								(WHEN #{convertStrLicsExprYmd} IS NULL OR #{convertStrLicsExprYmd} ='') THEN NULL 
+								ELSE CONVERT(DATE, #{convertStrLicsExprYmd}, 103))
+							END,
+	   		NAT 									= #{nat},
+	   		UPD_DT 									= SYSDATETIME(),
+	   		UPD_USER_ID 							= #{userId},
+	   		VERSION 								= #{newVersion},
+	   		TARE_WGT 								= #{tareWgt},
+	   		MEASURE_DT 	= 	(CASE 
+								(WHEN #{convertStrMeaDt} IS NULL OR #{convertStrMeaDt} = '') THEN NULL 
+								ELSE CONVERT(DATE, #{convertStrMeaDt}, 103))
+							END,
+		WHERE 
+			PTNR_CD 								= #{ptnrCd} 
+			AND SEQ 								= #{seq}
+	</update>  
+	
+	<delete id = "deleteRegisterationItems"  parameterType = "driverTruckRegistrationItem">
+		DELETE /*driverTruckRegistration.deleteRegisterationItems*/
+		FROM 
+			TMT_LORRY_PL 
+		WHERE 
+			PTNR_CD 								= #{ptnrCd} 
+			AND SEQ 								= #{seq}
+	</delete> 
+	
+	<select id="selectDriverRegistrationItems" parameterType="driverTruckRegistrationParm" resultType="driverTruckRegistrationItem">
+		<if test="pageNo != 0">
+			SELECT /*driverTruckRegistration.selectDriverRegistrationItems*/
+				* 
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY UPDATETIME DESC) 	AS ROW_NUM,
+					innerTable.*
+				FROM (
+		</if>
+			<include refid="getDriverRegistrationItems" />
+		<if test="pageNo != 0">
+					) AS innerTable
+				) AS innerTable
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT)) 		* CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+	<select id="selectDriverRegistrationItemsCount" parameterType="driverTruckRegistrationParm" resultType="java.lang.String">
+		SELECT /*driverTruckRegistration.selectDriverRegistrationItemsCount*/
+			COUNT(*)
+		FROM 
+			(<include refid="getDriverRegistrationItems" /> ) AS TEMPTABLE
+	</select>
+	
+	<sql id="getDriverRegistrationItems">
+		SELECT /*driverTruckRegistration.getDriverRegistrationItems*/
+			PTNR_CD 								AS PTNRCD,
+			dbo.F_GET_PTNR_SNM(PTNR_CD)				AS PTNRNM,
+			DRIVER_ID 								AS DRIVERID,
+			DRIVER_NM 								AS DRIVERNM,
+			LICS_NO 								AS LICSNO,
+			LICS_EXPR_YMD 							AS LICSEXPRYMD,
+			NAT  									AS NAT,
+			RMK 									AS REMARK,
+			UPDATE_TIME 							AS UPDATETIME,
+			STAFF_CD 								AS USERID,
+			VERSION 								AS VERSION
+		FROM 
+			TMT_DRIVER_MST
+		WHERE 
+			1 = 1
+		<if test="ptnrCd != null and ptnrCd != ''">
+			AND PTNR_CD LIKE '%' + #{ptnrCd} + '%'
+		</if>
+		<if test="divCd != null and divCd != ''">
+			AND DIV_CD LIKE '%' + #{divCd} + '%'
+		</if>
+		<if test="driverId != null and driverId != ''">
+			AND DRIVER_ID like '%' + UPPER(#{driverId}) + '%' 
+		</if>
+		<if test="driverNm != null and driverNm != ''">
+			AND DRIVER_NM like '%' + UPPER(#{driverNm}) + '%' 
+		</if>
+		<if test="licsNo != null and licsNo != ''">
+			AND LICS_NO LIKE '%' + #{licsNo} + '%'
+		</if>
+	</sql>
+	
+	<select id="selectTruckRegistrationItems" parameterType="driverTruckRegistrationParm" resultType="driverTruckRegistrationItem">
+		<if test="pageNo != 0">
+			SELECT /*driverTruckRegistration.selectTruckRegistrationItems*/
+				* 
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY UPDATETIME DESC) 	AS ROW_NUM,
+					innerTable.*  
+				FROM (
+		</if>
+		<include refid="getTruckRegistrationItems" />
+		<if test="pageNo != 0">
+					) AS innerTable
+				) AS innerTable
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT)) 		* CAST(#{sizePerPage} AS INT)	
+		</if>
+	</select>
+	
+	<select id="selectTruckRegistrationItemsCount" parameterType="driverTruckRegistrationParm"
+		resultType="java.lang.String">
+		SELECT /*driverTruckRegistration.selectTruckRegistrationItemsCount*/
+			COUNT(*)
+		FROM 
+			(<include refid="getTruckRegistrationItems" />) 				AS TEMPTABLE
+		
+	</select>
+	
+	<sql id="getTruckRegistrationItems">
+		SELECT /*driverTruckRegistration.getTruckRegistrationItems*/
+			PTNR_CD 								AS PTNRCD,
+			dbo.F_GET_PTNR_SNM(PTNR_CD)	 			AS PTNRNM,
+			LORRY_ID 								AS LORRYID,
+			LORRY_NO 								AS LORRYNO,
+			RMK 									AS REMARK,
+			UPDATE_TIME	 							AS UPDATETIME,
+			STAFF_CD 								AS USERID,
+			ISNULL(TARE_WGT, 0) 					AS TAREWGT,
+			MEASURE_DT  							AS MEADT,
+			CNTRY_CD	 							AS CNTRYCD,
+			RFID_NO 								AS RFIDNO,
+			CATEGORY								AS CATEGORY,
+			USE_YN									AS USEYN,
+			ALLOW_WGT								AS ALLOWWGT,
+			AUTH_TOW_WGT							AS TOWEDWGT,
+			VERIFY_CHK								AS verifyYn
+		FROM 
+			TMT_TRUCK_MST
+		WHERE 
+			1 = 1
+		<if test="ptnrCd != null and ptnrCd != ''">
+			AND PTNR_CD LIKE '%' + #{ptnrCd} + '%'
+		</if>
+		<if test="lorryId != null and lorryId != ''">
+			AND LORRY_ID LIKE '%' + UPPER(#{lorryId}) + '%'
+		</if>
+		<if test="lorryNo != null and lorryNo != ''">
+			AND LORRY_NO LIKE '%' + UPPER(#{lorryNo}) + '%'
+		</if>
+		<if test="meaDt != null and meaDt != ''">
+			AND CONVERT(DATE, MEASURE_DT, 103) = CONVERT(DATE, #{meaDt}, 103)
+		</if>
+	</sql>
+	
+	<select id="selectChassisRegistrationItems" parameterType="driverTruckRegistrationParm" resultType="driverTruckRegistrationItem">
+		<if test="pageNo != 0">
+			SELECT /*driverTruckRegistration.selectChassisRegistrationItems*/
+				* 
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY UPDATETIME DESC) 		AS ROW_NUM,
+					innerTable.*
+				FROM (
+		</if>
+		<include refid="getChassisRegistrationItems" />
+		<if test="pageNo != 0">
+					) innerTable
+				) innerTable
+			WHERE 
+				innerTable.ROW_NUM 		<![CDATA[>]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) 	* CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM 	<![CDATA[<=]]> 	(CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT)) 		* CAST(#{sizePerPage} AS INT)	
+		</if>
+	</select>
+	
+	<select id="selectChassisRegistrationItemsCount" parameterType="driverTruckRegistrationParm" resultType="java.lang.String">
+		SELECT /*driverTruckRegistration.selectChassisRegistrationItemsCount*/
+			COUNT(*)
+		FROM 
+			(<include refid="getChassisRegistrationItems" />)			AS TEMPTABLE
+		
+	</select>
+	
+	<sql id="getChassisRegistrationItems">
+		SELECT /*driverTruckRegistration.getChassisRegistrationItems*/
+			PTNR_CD 								AS PTNRCD,
+			dbo.F_GET_PTNR_SNM(PTNR_CD)				AS PTNRNM,
+			PLATE_NO								AS PLATENO,
+			ALLOW_WGT								AS ALLOWWGT,
+			TARE_WGT								AS TAREWGT,
+			MEASURE_DT								AS MEASUREDT,
+			USE_YN									AS USEYN,
+			VLD_YN									AS VLDYN,
+			RMK 									AS REMARK,
+			UPDATE_TIME 							AS UPDATETIME,
+			STAFF_CD 								AS USERID,
+			VERSION 								AS VERSION
+		FROM 
+			TMT_CHASSIS_MST
+		WHERE 1=1
+		<if test="ptnrCd != null and ptnrCd != ''">
+			AND PTNR_CD LIKE '%' + #{ptnrCd} + '%'
+		</if>
+		<if test="chassisNo != null and chassisNo != ''">
+			AND PLATE_NO LIKE '%' + UPPER(#{chassisNo}) + '%'
+		</if>
+		<if test="meaDt != null and meaDt != ''">
+			AND CONVERT(DATE, MEASURE_DT, 103) = CONVERT(DATE, #{meaDt}, 103)
+		</if>
+	</sql>
+	
+	<select id="selectDriverDuplicateItems" parameterType="driverTruckRegistrationParm"  resultType="driverTruckRegistrationItem">
+		SELECT /*driverTruckRegistration.selectDriverDuplicateItems*/
+			DRIVER_ID 								AS DRIVERID,
+			LICS_NO 								AS LICSNO
+		FROM 
+			TMT_DRIVER_MST
+		WHERE 
+			1 = 1
+	</select>
+	
+	<select id="selectTruckDuplicateItems" parameterType="driverTruckRegistrationParm"  resultType="driverTruckRegistrationItem">
+		SELECT /*driverTruckRegistration.selectTruckDuplicateItems*/
+			LORRY_ID 								AS LORRYID,
+			LORRY_NO 								AS LORRYNO
+		FROM 
+			TMT_TRUCK_MST
+		WHERE 
+			1 = 1
+	</select>
+	
+	<select id="selectChassisDuplicateItems" parameterType="driverTruckRegistrationParm"  resultType="driverTruckRegistrationItem">
+		SELECT /*driverTruckRegistration.selectChassisDuplicateItems*/
+			PLATE_NO 								AS PLATENO
+		FROM 
+			TMT_CHASSIS_MST
+		WHERE 
+			1 = 1
+	</select>
+	
+	<insert id = "insertDriverRegistrationItems"  parameterType = "driverTruckRegistrationItem">
+		INSERT /*driverTruckRegistration.insertDriverRegistrationItems*/
+		INTO TMT_DRIVER_MST (
+			PTNR_CD,
+			DRIVER_ID,
+			DRIVER_NM,
+			LICS_NO,
+			LICS_EXPR_YMD,
+			NAT,
+			<if test="remark != null and remark != ''">
+				RMK,
+			</if>
+			UPDATE_TIME,
+			STAFF_CD,
+			VERSION
+		) VALUES (
+			#{ptnrCd},
+			#{driverId},
+			#{driverNm},
+			#{licsNo},
+			#{licsExprYmd},
+			#{nat},
+			<if test="remark != null and remark != ''">
+				#{remark},
+			</if>
+			SYSDATETIME(),
+			#{userId},
+			#{newVersion}
+		)
+	</insert>
+	
+	<insert id = "insertTruckRegistrationItems"  parameterType = "driverTruckRegistrationItem">
+		INSERT /*driverTruckRegistration.insertTruckRegistrationItems*/
+		INTO TMT_TRUCK_MST (
+			PTNR_CD,
+			LORRY_NO,
+			<if test="remark != null and remark != ''">
+				RMK,
+			</if>
+			UPDATE_TIME,
+			STAFF_CD,
+			TARE_WGT,
+			MEASURE_DT,
+			USE_YN,
+			CATEGORY,
+			ALLOW_WGT,
+			AUTH_TOW_WGT
+			<if test="verifyYn != null and verifyYn != ''">
+				, VERIFY_CHK
+			</if>
+			<if test="cntryCd != null and cntryCd != ''">
+				, CNTRY_CD
+			</if>
+			<if test="rfIdNo != null and rfIdNo != ''">
+				, RFID_NO
+			</if>
+		) VALUES (
+			#{ptnrCd},
+			#{lorryNo},
+			<if test="remark != null and remark != ''">
+				#{remark},
+			</if>
+			SYSDATETIME(),
+			#{userId},
+			CASE
+				WHEN #{tareWgt} = '' THEN NULL
+				ELSE CAST(#{tareWgt} AS NUMERIC)
+			END,
+			#{meaDt},
+			#{useYn},
+			#{category},
+			CASE
+				WHEN #{allowWgt} = '' THEN NULL
+				ELSE CAST(#{allowWgt} AS NUMERIC)
+			END,
+			CASE
+				WHEN #{towedWgt} = '' THEN NULL
+				ELSE CAST(#{towedWgt} AS NUMERIC)
+			END
+			<if test="verifyYn != null and verifyYn != ''">
+				,#{verifyYn}
+			</if>
+			<if test="cntryCd != null and cntryCd != ''">
+				,#{cntryCd}
+			</if>
+			<if test="rfIdNo != null and rfIdNo != ''">
+				,#{rfIdNo}
+			</if>
+		)
+	</insert>
+	
+	<insert id = "insertChassisRegistrationItems"  parameterType = "driverTruckRegistrationItem">
+		INSERT /*driverTruckRegistration.insertChassisRegistrationItems*/
+		INTO TMT_CHASSIS_MST (
+			PTNR_CD,
+			PLATE_NO,
+			TARE_WGT,
+			MEASURE_DT,
+			ALLOW_WGT,
+			USE_YN,
+			<if test="vldYn != null and vldYn != ''">
+				VLD_YN,
+			</if>
+			RMK,
+			VERSION,
+			STAFF_CD,
+			UPDATE_TIME
+		) VALUES (
+			#{ptnrCd},
+			#{plateNo},
+			TRY_CONVERT(NUMERIC(15,3), #{tareWgt}),
+			#{measureDt},
+			TRY_CONVERT(NUMERIC(15,3), #{allowWgt}),
+			#{useYn},
+			<if test="vldYn != null and vldYn != ''">
+				#{vldYn},
+			</if>
+			#{remark},
+			#{newVersion},
+			#{userId},
+			SYSDATETIME()
+		)
+	</insert>
+	
+	<update id = "updateDriverRegistrationItems"  parameterType = "driverTruckRegistrationItem">
+		UPDATE /*driverTruckRegistration.updateDriverRegistrationItems*/
+			TMT_DRIVER_MST 
+		SET
+			DRIVER_NM 								= #{driverNm},
+			LICS_NO 								= #{licsNo},
+			LICS_EXPR_YMD 							= #{licsExprYmd},
+			NAT 									= #{nat},
+			<if test="remark != null and remark != ''">
+				RMK 								= #{remark},
+			</if>
+			UPDATE_TIME 							= SYSDATETIME(),
+			STAFF_CD 	    						= #{userId},
+			VERSION 								= #{newVersion}
+		WHERE 
+			PTNR_CD 								= #{ptnrCd} 
+			AND DRIVER_ID 							= #{driverId}
+	</update>
+	
+	<update id = "updateTruckRegistrationItems"  parameterType = "driverTruckRegistrationItem">
+		UPDATE /*driverTruckRegistration.updateTruckRegistrationItems*/
+			TMT_TRUCK_MST 
+		SET
+			TARE_WGT 								= 	CASE
+															WHEN #{tareWgt} = '' THEN NULL
+															ELSE CAST(#{tareWgt} AS NUMERIC)
+														END,
+			MEASURE_DT 								= #{meaDt},
+			<if test="cntryCd != null and cntryCd != ''">
+				CNTRY_CD 							= #{cntryCd},
+			</if>
+			<if test="rfIdNo != null and rfIdNo != ''">
+				RFID_NO 							= #{rfIdNo},
+			</if>
+			<if test="remark != null and remark != ''">
+				RMK 								= #{remark},
+			</if>
+			<if test="verifyYn != null and verifyYn != ''">
+				VERIFY_CHK							= #{verifyYn},
+			</if>
+			ALLOW_WGT								= 	CASE
+															WHEN #{allowWgt} = '' THEN NULL
+															ELSE CAST(#{allowWgt} AS NUMERIC)
+														END,
+			AUTH_TOW_WGT							= 	CASE
+															WHEN #{towedWgt} = '' THEN NULL
+															ELSE CAST(#{towedWgt} AS NUMERIC)
+														END,
+			UPDATE_TIME 							= SYSDATETIME(),
+			STAFF_CD 								= #{userId},
+			VERSION 								= #{newVersion},
+			USE_YN 									= #{useYn},
+			CATEGORY 								= #{category}
+		WHERE 
+			PTNR_CD 								= #{ptnrCd} 
+			AND LORRY_NO 							= #{lorryNo}
+	</update>
+	
+	<update id = "updateChassisRegistrationItems"  parameterType = "driverTruckRegistrationItem">
+		UPDATE /*driverTruckRegistration.updateChassisRegistrationItems*/
+			TMT_CHASSIS_MST 
+		SET
+			ALLOW_WGT								= TRY_CONVERT(NUMERIC(15, 3), #{allowWgt}),
+			TARE_WGT 								= TRY_CONVERT(NUMERIC(15, 3), #{tareWgt}),
+			MEASURE_DT 								= #{measureDt},
+			USE_YN 									= #{useYn},
+			VLD_YN 									= #{vldYn},
+			RMK 									= #{remark},
+			UPDATE_TIME 							= SYSDATETIME(),
+			STAFF_CD 								= #{userId},
+			VERSION 								= #{newVersion}
+		WHERE 
+			PTNR_CD 								= #{ptnrCd} 
+			AND PLATE_NO 							= #{plateNo}
+	</update>  
+	
+	<delete id = "deleteDriverRegistrationItems"  parameterType = "driverTruckRegistrationItem">
+		DELETE /*driverTruckRegistration.deleteDriverRegistrationItems*/
+		FROM 
+			TMT_DRIVER_MST 
+		WHERE 
+			PTNR_CD 								= #{ptnrCd} 
+			AND DRIVER_ID 							= #{driverId}
+	</delete>
+	
+	<delete id = "deleteTruckRegistrationItems"  parameterType = "driverTruckRegistrationItem">
+		DELETE /*driverTruckRegistration.deleteTruckRegistrationItems*/ 
+		FROM 
+			TMT_TRUCK_MST 
+		WHERE 
+			PTNR_CD 								= #{ptnrCd} 
+			AND LORRY_NO 							= #{lorryNo}
+	</delete>
+	
+	<delete id = "deleteChassisRegistrationItems"  parameterType = "driverTruckRegistrationItem">
+		DELETE /*driverTruckRegistration.deleteChassisRegistrationItems*/ 
+		FROM 
+			TMT_CHASSIS_MST 
+		WHERE 
+			PTNR_CD 								= #{ptnrCd} 
+			AND PLATE_NO 							= #{plateNo}
+	</delete>
+</mapper>

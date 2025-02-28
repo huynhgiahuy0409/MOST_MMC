@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="BerthMonitoringMap">
+
+	<resultMap 	id="berthStructureList" type="berthInfoItem">
+	    <result property = "terminalCd"		column = "AREA"/>
+	    <result property = "berthTp"		column = "BERTHTP"/>
+	    <result property = "berthNm"		column = "BERTHNM"/>
+		<result property = "berthCd"		column = "BERTHCD"/>
+		<result property = "startPos"		column = "PSTSTA"/>
+		<result property = "endPos"			column = "PSTEND"/>		
+		<result property = "length"			column = "LENGTH"/>
+		<result property = "drawable"		column = "DRAWABLE"/>
+		<result property = "displacement"	column = "DISPLACEMENT"/>
+		<result property = "maxDraft"		column = "MAX_DRAFT"/>
+		<result property = "xPos"			column = "X"/>
+		<result property = "yPos"			column = "Y"/>	
+		<result property = "rotate"			column = "ROTATE"/>	
+		<result property = "berthSide"		column = "BERTH_SIDE"/>		
+		<result property = "vslPst"			column = "VSL_PST"/>		
+		<result property = "cfgBerth"		column = "CFG_BERTH"/>	
+		<result property = "cfgLength"		column = "CFG_LENGTH"/>		
+		<result property = "color"			column = "COLOR"/>		
+	</resultMap>
+
+	<!--  ################ Query Statement Define ######################################### -->   
+  	<select id="selectBerthInfo"  parameterType="berthPlanParm" resultMap="berthStructureList">
+		SELECT 	AREA			AS AREA,
+				BERTH_TP 		AS BERTHTP,
+			   	BERTH_CD 		AS BERTHCD,
+		       	PST_STA 		AS PSTSTA, 
+		       	PST_END 		AS PSTEND, 
+		       	LENGTH			AS LENGTH,
+		       	1				AS DRAWABLE ,
+		       	DISPLACEMENT	AS DISPLACEMENT,
+		       	MAX_DRAFT		AS MAX_DRAFT,
+		       	BERTH_SIDE		AS BERTH_SIDE,
+		       	ROTATE			AS ROTATE,
+		       	VSL_PST			AS VSL_PST,
+		       	COLOR			AS COLOR,
+		       	CFG_LENGTH 		AS CFG_LENGTH,
+		       	X				AS X,
+		       	Y				AS Y,
+		       	(SELECT PARAMETER_VALUE FROM TMT_MOST_PARAMETERS
+		       	WHERE PARAMETER_CD = 'CFG_BERTH' AND CATEGORY = 'MT') AS CFG_BERTH
+		  FROM TMT_BERTH_LOC
+		 WHERE BERTH_TP IN ( SELECT S_CD FROM TMT_CD_MSTD 
+							  WHERE L_CD = 'CM' 
+								AND M_CD = 'BERTH_TP' 
+								AND S_CD_USE = 'Y' )
+		 ORDER BY SEQ ASC
+    </select>
+    
+    <sql id="berthSql">
+    	(CASE WHEN ATB IS NOT NULL 
+			  THEN ATB
+			  WHEN ETB IS NOT NULL
+			  THEN ETB
+			  ELSE NVL(ETA, SYSDATE)
+		 END)
+    </sql>
+    <sql id="unBerthSql">
+    	(CASE WHEN ATU IS NOT NULL
+			  THEN ATU
+			  WHEN ETU IS NOT NULL
+			  THEN ETU
+			  ELSE NVL(ETD, SYSDATE)
+		 END)
+    </sql>
+	<sql id="berthStatusSql">
+		(CASE WHEN (NVL((SELECT 'Y' FROM TMT_CONFM_SLP WHERE VSL_CALL_ID = A.VSL_CALL_ID AND SUMIT_DT IS NOT NULL),'N') IN 'N'
+			 	    AND A.ATB IS NULL AND A.ATU IS NULL)
+			  THEN 'BBN'
+			  WHEN (NVL((SELECT 'Y' FROM TMT_CONFM_SLP WHERE VSL_CALL_ID = A.VSL_CALL_ID AND SUMIT_DT IS NOT NULL),'N') IN 'Y'
+			 	    AND A.ATB IS NULL AND A.ATU IS NULL)
+			  THEN 'BBY'
+			  WHEN (A.ATB IS NOT NULL AND A.ATU IS NULL)
+			  THEN 'ONB'
+			  WHEN (A.ATU IS NOT NULL)
+			  THEN 'DPV'
+		 END)
+    </sql>
+    
+   	<resultMap 	id="berthPlanList" type="berthPlanItem">
+		<result property = "jpvcNo"			column = "JPVC_NO"/>
+		<result property = "shipCallNo"		column = "SHIP_CALL_NO"/>
+		<result property = "inVoy"			column = "INB_VOY"/>
+		<result property = "outVoy"			column = "OUB_VOY"/>
+		<result property = "berthCd"		column = "BERTH_LOC"/>
+		<result property = "berthTp"		column = "BERTH_TP"/>
+		<result property = "docStatus"		column = "SUMMIT_STAT"/>
+		<result property = "eta"			column = "ETA" 		javaType="java.util.Date"/>
+		<result property = "etb"			column = "ETB" 		javaType="java.util.Date"/>
+		<result property = "etw"			column = "ETW" 		javaType="java.util.Date"/>
+		<result property = "etc"			column = "ETC" 		javaType="java.util.Date"/>
+		<result property = "etu"			column = "ETU" 		javaType="java.util.Date"/>
+		<result property = "etd"			column = "ETD" 		javaType="java.util.Date"/>
+		<result property = "ata"			column = "ATA" 		javaType="java.util.Date"/>
+		<result property = "atb"			column = "ATB" 		javaType="java.util.Date"/>	
+		<result property = "atw"			column = "ATW" 		javaType="java.util.Date"/>
+		<result property = "atc"			column = "ATC" 		javaType="java.util.Date"/>
+		<result property = "atu"			column = "ATU" 		javaType="java.util.Date"/>
+		<result property = "atd"			column = "ATD" 		javaType="java.util.Date"/>
+		<result property = "shfAtb"			column = "SHF_ATB"	javaType="java.util.Date"/>
+		<result property = "shfAtu"			column = "SHF_ATU"	javaType="java.util.Date"/>
+		<result property = "inLane"			column = "INB_SERV_LANE"/>
+		<result property = "outLane"		column = "OUTB_SERV_LANE"/>
+		<result property = "arrvSaId"		column = "ARRV_SA_ID"/>
+		<result property = "pilotOnboard"	column = "PILOT_ON_BOARD"/>
+		<result property = "pilotDisembark"	column = "PILOT_DISEMBARK"/>
+		<result property = "berthAlongside"	column = "BERTH_ALONGSIDE"/>
+		<result property = "berthDiv"		column = "BERTH_DIV"/>
+		<result property = "startPos"		column = "WHARF_MARK_FROM"/>
+		<result property = "endPos"			column = "WHARF_MARK_TO"/>
+		<result property = "vesselName"		column = "VSL_NM"/>
+		<result property = "callSign"		column = "CALL_SIGN"/>
+		<result property = "loa"			column = "LOA"/>
+		<result property = "width"			column = "VSL_WIDTH"/>
+		<result property = "length"			column = "LENGTH"/>
+		<result property = "planYn"			column = "BERTH_PLAN_YN"/>
+		<result property = "pstSta"			column = "PST_STA"/>
+		<result property = "remarks"		column = "PLAN_RMK"/>
+		<result property = "vslStat"		column = "VSL_STAT"/>
+		<result property = "colColor"		column = "COLCOLOR"/>
+		<result property = "planType"		column = "PLAN_TYPE"/>
+		<result property = "loading"		column = "LOADING"/>
+		<result property = "discharging"	column = "DISCHARGING"/>
+		<result property = "loadingCmdt"	column = "LOADING_CMDT"/>
+		<result property = "dischargingCmdt"	column = "DISCHARGING_CMDT"/>
+		
+		<result property = "shipgNoteNo"	column = "SHIPG_NOTE_NO"/>
+		<result property = "shpr"	column = "SHPR"/>
+		<result property = "cgWgt"	column = "CG_WGT"/>
+		<result property = "cnsneecd"	column = "CNSNEECD"/>
+		<result property = "eqTpCd"	column = "EQTPCD"/>
+		<result property = "megaNo"	column = "MEGANO"/>
+		<result property = "stvdComp"	column = "STVDCOMP"/>
+		<result property = "trmgComp"	column = "TRMGCOMP"/>
+		<result property = "jobNo"	column = "JOBNO"/>
+		<result property = "blNo"	column = "BLNO"/>
+		<result property = "wgt"	column = "WGT"/>
+		<result property = "snComodityCode"	column = "SNCMDTCD"/>
+		<result property = "snComodityName"	column = "SNCMDTCDNM"/>
+		<result property = "fnComodityCode"	column = "FNCMDTCD"/>
+		<result property = "fnComodityName"	column = "FNCMDTCDNM"/>
+		<result property = "hatchNo"	column = "HATCHNO"/>
+		<result property = "D_Bloading"	column = "D_BLOADING"/>
+		<result property = "D_Bdischarging"	column = "D_BDISCHARGING"/>
+		
+		<result property = "berthLabel"	column = "BERTH_LABEL"/>
+		<result property = "opeStat"	column = "OPE_STAT"/>
+		
+	</resultMap>
+	
+	 
+  	<select id="selectBerthPlan"  parameterType="berthPlanParm" resultMap="berthPlanList">
+		SELECT	A.VSL_CALL_ID           JPVC_NO,
+				A.SHIP_CALL_NO          SHIP_CALL_NO,
+				A.INB_VOY               INB_VOY,
+				A.OUTB_VOY              OUTB_VOY,
+				A.BERTH_LOC             BERTH_LOC,
+				C.BERTH_TP				BERTH_TP,
+				A.SUMMIT_STAT           SUMMIT_STAT,
+				A.ETA ETA,
+				A.ETD ETD,
+				A.ETW ETW,
+				A.ETC ETC,
+				A.ETB ETB,
+				A.ETU ETU,
+				A.ATW ATW,
+				A.ATC ATC,
+				A.ATB ATB,
+				A.ATU ATU,
+				A.ATD ATD,
+				A.ATA ATA,
+				A.INB_SERV_LANE         INB_SERV_LANE,
+				A.OUTB_SERV_LANE        OUTB_SERV_LANE,
+				A.ARRV_SA_ID            ARRV_SA_ID,
+				TO_CHAR(A.PILOT_ONBOARD,'DD/MM/YYYY') PILOT_ON_BOARD,
+				TO_CHAR(A.PILOT_DISEMBARK,'DD/MM/YYYY') PILOT_DISEMBARK,
+				NVL (A.BERTH_ALONGSIDE, 'P') BERTH_ALONGSIDE,
+				NVL(A.WHARF_MARK_FROM,0) WHARF_MARK_FROM,
+				NVL(A.WHARF_MARK_TO,0)   WHARF_MARK_TO,
+				B.VSL_NM                VSL_NM,
+				B.CALL_SIGN             CALL_SIGN,
+				B.LOA                   LOA,
+				A.BERTH_DIV             BERTH_DIV,
+				C.PST_STA               PST_STA,
+				C.LENGTH                LENGTH,
+				NVL(A.BERTH_PLAN_YN,'N')  BERTH_PLAN_YN,
+				NVL(A.PLAN_RMK, ' ')    PLAN_RMK,
+				''						PLAN_TYPE
+				,A.BERTH_LABEL, 
+				<!-- (CASE 
+	            WHEN ((SELECT 1 FROM TMT_BL WHERE VSL_CALL_ID = A.VSL_CALL_ID AND ROWNUM = 1) 
+	                +
+	                (SELECT 2 FROM TMT_SHIPG_NOTE WHERE VSL_CALL_ID = A.VSL_CALL_ID AND ROWNUM = 1) = 1)
+	            THEN 'I'
+	            WHEN ((SELECT 1 FROM TMT_BL WHERE VSL_CALL_ID = A.VSL_CALL_ID AND ROWNUM = 1)
+	                +
+	                (SELECT 2 FROM TMT_SHIPG_NOTE WHERE VSL_CALL_ID = A.VSL_CALL_ID AND ROWNUM = 1) = 2)
+	            THEN 'E'
+	            WHEN ((SELECT 1 FROM TMT_BL WHERE VSL_CALL_ID = A.VSL_CALL_ID AND ROWNUM = 1)
+	                +
+	                (SELECT 2 FROM TMT_SHIPG_NOTE WHERE VSL_CALL_ID = A.VSL_CALL_ID AND ROWNUM = 1) = 3)
+	            THEN 'B'
+	            ELSE ''    
+	                
+	         	END) OPE_STAT, -->
+	         	DECODE(A.CG_OP_TP, 'D', 'I', 'L', 'E', 'B') OPE_STAT,
+				DECODE(A.ATW,NULL,'NWK', DECODE(A.ATC,NULL,'OWK','NWK'))  VSL_STAT
+				<if test="berthStatus != null and berthStatus != ''">
+					,#{berthStatus} VSL_STAT
+				</if>
+		FROM (SELECT *
+            FROM TMT_VSL_SCH
+           	WHERE   ATB IS NOT NULL AND ATU IS NULL
+                          AND SYSDATE BETWEEN ATB AND ETD
+                 AND SUMMIT_STAT = 'AP'
+                 AND BERTH_LOC IN (SELECT BERTH_CD
+                                     FROM TMT_BERTH_LOC
+                                    WHERE LOC_CD = 'BBT')
+        	) A, 
+			TMT_VSL_PART B,
+			(SELECT BERTH_TP, BERTH_CD, PST_STA, LENGTH 
+			FROM TMT_BERTH_LOC
+			WHERE BERTH_TP IS NOT NULL
+			) C 
+		WHERE A.VSL_CD = B.VSL_CD
+		  AND A.BERTH_LOC = C.BERTH_CD
+		  AND A.BERTH_PLAN_YN = 'Y'
+		<if test="vslCallId != null and vslCallId != ''">
+			AND A.VSL_CALL_ID = #{vslCallId}
+		</if>
+		ORDER BY  A.BERTH_LOC ASC
+    </select>
+	
+
+</mapper>

@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="allowanceConfiguration">
+	
+	<!--  ############################## Query Statement Define ############################## -->
+	<select id="selectAllowanceConfigurationItems"   parameterType="allowanceConfigurationParm"  resultType="allowanceConfigurationItem">
+		SELECT /* allowanceConfiguration.selectAllowanceRate */
+			APP_TYPE 											AS APPTYPE,
+			SEQ 												AS SEQ,
+			ALLOWANCE 											AS ALLOWANCECD,
+			(SELECT   
+				S_CD_NM
+			FROM   
+				TMT_CD_MSTD
+			WHERE   
+				L_CD 		= 'MT' 
+				AND M_CD 	= 'ALTP' 
+				AND S_CD 	= ALLOWANCE
+			) 													AS ALLOWANCE,
+			ROLE1 												AS ROLECD1,
+			(SELECT   
+				S_CD_NM
+			FROM   
+				TMT_CD_MSTD
+			WHERE   
+				L_CD 		= 'CM' 
+				AND M_CD 	= 'ROLECD' 
+				AND S_CD 	= ROLE1
+			) 													AS ROLE1,
+			GRADE1 												AS GRADECD1,
+			(SELECT   
+				S_CD_NM
+			FROM   
+				TMT_CD_MSTD
+			WHERE   
+				L_CD 		= 'CM' 
+				AND M_CD 	= 'GRADE' 
+				AND S_CD 	= GRADE1
+			) 													AS GRADE1,
+			(SELECT  
+				STRING_AGG(S_CD, ',')
+     		FROM   
+     			TMT_CD_MSTD
+         	WHERE  
+	         	L_CD 		= 'CM' 
+	            AND M_CD 	= 'ROLECD' 
+            	AND EXISTS (
+            		SELECT 
+  						1
+  					FROM (VALUES 
+  						(SUBSTRING(ROLE2, 1, 2)),
+  						(SUBSTRING(ROLE2, 3, 2)),
+  						(SUBSTRING(ROLE2, 5, 2)),
+  						(SUBSTRING(ROLE2, 7, 2))
+  					) AS VAL(ROLE_CD)
+  					WHERE
+  						S_CD = VAL.ROLE_CD
+            	) 
+			)													AS ROLECD2,
+			(SELECT  
+				STRING_AGG(S_CD_NM, ',')
+     		FROM   
+     			TMT_CD_MSTD
+         	WHERE  
+	         	L_CD 		= 'CM' 
+	            AND M_CD 	= 'ROLECD' 
+            	AND EXISTS (
+            		SELECT 
+  						1
+  					FROM (VALUES 
+  						(SUBSTRING(ROLE2, 1, 2)),
+  						(SUBSTRING(ROLE2, 3, 2)),
+  						(SUBSTRING(ROLE2, 5, 2)),
+  						(SUBSTRING(ROLE2, 7, 2))
+  					) AS VAL(ROLE_CD)
+  					WHERE
+  						S_CD = VAL.ROLE_CD
+            	) 
+			)													AS ROLE2,
+			(SELECT   
+				S_CD_NM
+			FROM   
+				TMT_CD_MSTD
+			WHERE   
+				L_CD 		= 'CM' 
+				AND M_CD 	= 'GRADE' 
+				AND S_CD 	= GRADE2
+			) 													AS GRADE2,
+			STAFF_ID      										AS empIdHidden,
+			STAFF_ID					   						AS STAFFID,
+			(SELECT   
+				A.ENG_NM
+			FROM   
+				TMT_STAFF A
+			WHERE   
+				A.EMP_ID 	= STAFF_ID
+			) 													AS STAFFNM,
+           	FORMAT(CONVERT(DATE, ST_DATE, 112), 'dd/MM/yyyy') 	AS STMONTH,
+           	FORMAT(CONVERT(DATE, ED_DATE, 112), 'dd/MM/yyyy') 	AS EDMONTH,
+           	(SELECT (
+				ISNULL(
+					DBO.F_GET_ALLO_AMOUNT(SUBSTRING(ROLE2, 0, 2), ED_DATE),
+					0
+				)
+				+ ISNULL(
+					DBO.F_GET_ALLO_AMOUNT(SUBSTRING(ROLE2, 3, 2), ED_DATE),
+					0
+				)
+				+ ISNULL(
+					DBO.F_GET_ALLO_AMOUNT(SUBSTRING(ROLE2, 5, 2), ED_DATE),
+					0
+				)
+				+ ISNULL(
+					DBO.F_GET_ALLO_AMOUNT(SUBSTRING(ROLE2, 7, 2), ED_DATE),
+					0
+				)
+			) 													AS TOTAL
+            FROM 
+				TMT_ALLOW_RATE 									C 
+			WHERE 
+				APP_TYPE  		= 'MUSK' 
+				AND C.STAFF_ID 	= B.STAFF_ID 
+				AND C.SEQ 		= B.SEQ 
+			) 													AS AMOUNT1,
+            AMT 												AS amount,
+            AMT2 												AS amount2
+    	FROM   
+    		TMT_ALLOW_RATE 										B
+		WHERE 
+			1 = 1
+			<if test="appType != null and appType != ''">
+				AND APP_TYPE 									= #{appType}
+			</if>
+		ORDER BY 
+			APPTYPE,
+			ALLOWANCE
+	</select>	
+
+	<select id="selectStaffItem"   parameterType="allowanceConfigurationParm"  resultType="allowanceConfigurationItem">
+		SELECT TOP(1) /* allowance.selectStaffItem */
+			A.EMP_ID       										AS empIdHidden,
+			A.EMP_ID  											AS STAFFID,
+			A.ENG_NM      										AS STAFFNM,
+			A.ROLE_CD    										AS roleCd1,
+			(SELECT 
+			S_CD_NM 
+			FROM 
+				TMT_CD_MSTD
+			WHERE  
+				S_CD 		= A.ROLE_CD 
+				AND L_CD 	= 'CM' 
+				AND M_CD 	= 'ROLECD'
+			 ) 													AS roleNm,
+			GRD_CD   											AS gradeCd1,
+			DBO.F_CM_CODE_NM('CM', 'GRADE', GRD_CD) 			AS grade1
+		FROM 
+			TMT_STAFF 											A
+		WHERE 
+			A.EMP_ID 											= #{staffId} 
+	</select>
+	
+	<insert id="insertItem" parameterType="allowanceConfigurationItem">
+		INSERT 
+		INTO TMT_ALLOW_RATE(
+			APP_TYPE,
+			SEQ,
+			ALLOWANCE,
+			ST_DATE,
+			ED_DATE,
+			AMT,
+			ROLE1,
+			GRADE1,
+			ROLE2,
+			STAFF_ID,
+			AMT2
+		) VALUES (
+			#{appType},
+			(SELECT 
+				CASE
+					WHEN MAX(SEQ) IS NULL THEN 1
+					ELSE MAX(SEQ) + 1
+				END
+			FROM 
+				TMT_ALLOW_RATE
+			),
+			#{allowanceCd},
+			FORMAT(CONVERT(DATE, #{stMonth}, 103), 'yyyyMMdd'),
+			FORMAT(CONVERT(DATE, #{edMonth}, 103), 'yyyyMMdd'),
+			<if test="role2 == null or role2 == ''">
+				TRY_CONVERT(NUMERIC(15,3), #{amount}),
+			</if>
+			<if test="role2 != null and role2 != ''">
+				TRY_CONVERT(NUMERIC(15,3), #{amount1}),
+			</if>
+			#{roleCd1},
+			#{gradeCd1},
+			#{role2},
+			#{staffId},
+			TRY_CONVERT(NUMERIC(15,3), #{amount2})
+		)
+	</insert>	
+		
+	<update id="updateItem"  parameterType="allowanceConfigurationItem">
+		UPDATE /* allowance.updateItems */
+			TMT_ALLOW_RATE 
+		SET 
+			ALLOWANCE 											= #{allowanceCd},
+			ST_DATE 											= FORMAT(CONVERT(DATE, #{stMonth}, 103), 'yyyyMMdd'),
+			ED_DATE 											= FORMAT(CONVERT(DATE, #{edMonth}, 103), 'yyyyMMdd'),
+			AMT 												= TRY_CONVERT(NUMERIC(15,3), #{amount}),
+			ROLE1 												= #{roleCd1},
+			GRADE1 												= #{gradeCd1},
+			ROLE2 												= #{role2},
+			STAFF_ID 											= #{empIdHidden},
+			AMT2 												= TRY_CONVERT(NUMERIC(15,3), #{amount2})
+		WHERE 
+			APP_TYPE 											= #{appType}
+			AND SEQ 											= #{seq} 
+	</update>
+		
+	<delete id="deleteItem" parameterType="allowanceConfigurationItem">
+		DELETE /* allowance.deleteItems */
+		FROM 
+			TMT_ALLOW_RATE 
+		WHERE 
+			APP_TYPE											= #{appType}
+			AND ALLOWANCE 										= #{allowanceCd}
+			AND SEQ 											= #{seq}
+	</delete>	
+</mapper>

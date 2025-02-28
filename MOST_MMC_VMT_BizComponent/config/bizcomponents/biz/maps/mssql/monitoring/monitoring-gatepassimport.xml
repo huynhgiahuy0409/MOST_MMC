@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+<mapper namespace="gatePassImport">
+	<sql id="gpJpvc">
+		SELECT
+			VS.VSL_CALL_ID AS JPVCNO,
+		    JOB.HATCH_NO AS HATCHNO,
+		    VS.VSL_CD AS VSLCD,
+		    (SELECT VSPART.VSL_NM 
+		     FROM TMT_VSL_PART VSPART 
+		     WHERE VSPART.VSL_CD = VS.VSL_CD) AS VSLNAME,
+		    VS.ARRV_SA_ID AS SHIPGAGNT,
+		    VS.ETA AS ETA,
+		    IMP.BL_NO AS BLNO,
+		    ISNULL(IMP.BL_NO, CM.CG_NO) AS GRNO,
+		    CM.CG_NO AS CGNO,
+		    DL.GATE_PASS_NO AS GATEPASSNO,
+		    CASE CM.OPE_CLASS_CD
+		        WHEN 'I' THEN dbo.F_GET_PTNR_SNM(IMP.SHPR)
+		        WHEN 'E' THEN (SELECT TOP 1 SN.SHPR_NM 
+		                       FROM TMT_SHIPG_NOTE SN 
+		                       WHERE SN.VSL_CALL_ID = CM.VSL_CALL_ID 
+		                       AND SN.SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO)
+		        ELSE CM.SHPR_NM
+		    END AS SHPRNM,
+		    CASE CM.OPE_CLASS_CD
+		        WHEN 'I' THEN dbo.F_GET_PTNR_SNM(IMP.CNSNE)
+		        WHEN 'E' THEN (SELECT TOP 1 SN.CNSNE_NM 
+		                       FROM TMT_SHIPG_NOTE SN 
+		                       WHERE SN.VSL_CALL_ID = CM.VSL_CALL_ID 
+		                       AND SN.SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO)
+		        ELSE CM.CNSNE_NM
+		    END AS CNSNENM,
+		    CM.FWR_AGNT AS FWRAGNT,
+		    CM.SHIPG_NOTE_NO AS SN,
+		    CM.PORT_OF_LOAD AS PORTOFLOAD,
+		    CM.PORT_OF_DIS AS PORTOFDIS,
+		    ISNULL(CM.FDEST, IMP.FDEST) AS FINALDEST,
+		    JOB.TO_LOC_ID AS WHLOC,
+		    VS.BERTH_LOC AS WHARF,
+		    JOB.TSPT_TP_CD AS TSPTTPCD,
+		    CM.CG_TP_CD AS CGTPCD,
+		    CM.PKG_TP_CD AS PKGTPCD,
+		    IMP.IMDG_CLASS AS IMDG,
+		    IMP.UNNO AS UNNO,
+		    CASE CM.DMG_YN 
+		        WHEN 'Y' THEN CASE CM.RHDL_MODE
+		                         WHEN 'Y' THEN 'Damage/Shut-out'
+		                         ELSE 'Damage'
+		                      END
+		        ELSE CASE CM.RHDL_MODE
+		                 WHEN 'Y' THEN 'Shut-out'
+		                 ELSE 'Normal'
+		             END
+		    END AS STATCD,
+		    ISNULL(DL.CG_WGT, 0) AS WGT,
+		    ISNULL(DL.CG_VOL, 0) AS MSRMT,
+		    ISNULL(DL.PKG_QTY, 0) AS PKGQTY,
+		    DL.LORRY_NO AS LORRYNO,
+		    JOB.TSPT_TP_CD AS TSPTR,
+		    JOB.TSPT_TP_CD AS TRANSPORTER,
+		    DL.RMK AS RMK,
+		    CASE CM.OPE_CLASS_CD
+		        WHEN 'I' THEN ISNULL(IMP.CG_WGT, '0')
+		        WHEN 'E' THEN ISNULL(GR.CG_WGT, '0')
+		        ELSE ISNULL(CM.CG_WGT, '0')
+		    END AS GROSSTOT,
+		    CASE CM.OPE_CLASS_CD
+		        WHEN 'I' THEN ISNULL(IMP.CG_VOL, '0')
+		        WHEN 'E' THEN ISNULL(GR.CG_VOL, '0')
+		        ELSE ISNULL(CM.CG_VOL, '0')
+		    END AS CUMULTOT,
+		    CASE CM.OPE_CLASS_CD
+		        WHEN 'I' THEN ISNULL(IMP.PKG_QTY, '0')
+		        WHEN 'E' THEN ISNULL(GR.PKG_QTY, '0')
+		        ELSE ISNULL(CM.PKG_QTY, '0')
+		    END AS OUTQTY,
+		    DL.CG_WGT AS AMOUNTLORRY,
+		    DL.ISSUE_CNT AS NOSGPISSUE,
+		    '' AS REMAINED,
+		   CASE DG.STAT_CD
+		        WHEN 'N' THEN 'SUBMIT'
+		        WHEN 'Y' THEN 'APPROVE'
+		        WHEN 'C' THEN 'CANCEL'
+		    END AS DGAPPROVAL,
+		    JOB.PKG_NO AS PACKINGNO,
+			DL.SEQ AS NOTRIPS,
+		    CM.OPE_CLASS_CD AS CATGCD,
+		    CASE CM.OPE_CLASS_CD
+		        WHEN 'I' THEN IMP.DELV_TP_CD
+		        WHEN 'E' THEN (SELECT TOP 1 S.DELV_TP_CD 
+		                       FROM TMT_SHIPG_NOTE S 
+		                       WHERE S.SHIPG_NOTE_NO = GR.SHIPG_NOTE_NO 
+		                       AND S.VSL_CALL_ID = GR.VSL_CALL_ID)
+		        ELSE ''
+		    END AS DELVTPCD,
+		    (SELECT CMDT_DESC FROM TMT_CMDT WHERE CMDT_CD = CM.CMDT_CD) AS COMMODITY,
+		    CASE 
+				WHEN CM.OPE_CLASS_CD = 'I' THEN 
+					CASE 
+						WHEN CM.TMNL_IN_DT IS NULL THEN 
+							ISNULL(CM.CG_WGT, 0) + dbo.F_GET_RC_WGT(CM.VSL_CALL_ID, CM.CG_NO) 
+						ELSE 0 
+					END
+				WHEN CM.OPE_CLASS_CD = 'E' THEN 
+					ISNULL(CM.CG_WGT, 0) + dbo.F_GET_RC_WGT(CM.VSL_CALL_ID, CM.CG_NO)
+				ELSE 
+					ISNULL(CM.CG_WGT, 0) 
+			END AS ACTMT,
+			CASE
+				WHEN CM.OPE_CLASS_CD = 'I' THEN
+					CASE
+						WHEN CM.TMNL_IN_DT IS NULL THEN ISNULL(CM.CG_VOL, 0) + dbo.F_GET_RC_MSRMT(CM.VSL_CALL_ID, CM.CG_NO)
+						ELSE 0
+					END
+				WHEN CM.OPE_CLASS_CD = 'E' THEN ISNULL(CM.CG_VOL,0) + dbo.F_GET_RC_MSRMT(CM.VSL_CALL_ID, CM.CG_NO)
+				ELSE ISNULL(CM.CG_VOL, 0)
+			END AS ACTM3,
+			CASE 
+				WHEN CM.OPE_CLASS_CD = 'I' THEN 
+					CASE 
+						WHEN CM.TMNL_IN_DT IS NULL THEN 
+							ISNULL(CM.PKG_QTY, 0) + dbo.F_GET_RC_PKG_QTY(CM.VSL_CALL_ID, CM.CG_NO)
+						ELSE 
+							0
+					END
+				WHEN CM.OPE_CLASS_CD = 'E' THEN 
+					ISNULL(CM.PKG_QTY, 0) + dbo.F_GET_RC_PKG_QTY(CM.VSL_CALL_ID, CM.CG_NO)
+				ELSE 
+					ISNULL(CM.PKG_QTY, 0)
+			END AS ACTQTY,
+			dbo.F_GET_GP_DELVSTATNM(VS.VSL_CALL_ID, JOB.CG_NO, DL.GATE_PASS_NO, DL.SEQ) AS CGDELIVERY,
+			JOB.STAFF_CD AS UPDUSERID,
+			ISNULL(FORMAT(JOB.UPDATE_TIME, 'dd/MM/yyyy HH:mm'), ' ') as UPDDT
+		FROM TMT_VSL_SCH VS
+		JOIN 
+			TMT_CG_MST CM ON VS.VSL_CALL_ID = CM.VSL_CALL_ID
+		JOIN 
+			TMT_CG_ARRV_DELV DL ON CM.CG_NO = DL.CG_NO AND CM.VSL_CALL_ID = DL.VSL_CALL_ID
+		LEFT JOIN 
+			TMT_JOB JOB ON DL.JOB_NO = JOB.JOB_NO 
+		LEFT JOIN 
+			TMT_BL IMP ON CM.VSL_CALL_ID = IMP.VSL_CALL_ID AND CM.CG_NO = IMP.BL_NO 
+		LEFT JOIN 
+			TMT_GR GR ON CM.VSL_CALL_ID = GR.VSL_CALL_ID AND CM.CG_NO = GR.GR_NO
+		LEFT JOIN 
+			TMT_DG DG ON IMP.DG_SEQ = DG.SEQ AND IMP.VSL_CALL_ID = DG.VSL_CALL_ID AND IMP.BL_NO = DG.CG_NO
+		<!-- LEFT JOIN 
+			TMT_ASSIGN_TRANSPORT AT ON DL.LORRY_NO = AT.LORRY_NO AND CM.VSL_CALL_ID = AT.VSL_CALL_ID -->
+		WHERE 1=1
+		<if test="jpvcNo != null and jpvcNo != ''">
+			AND
+				VS.VSL_CALL_ID = #{jpvcNo}
+		</if>
+		<if test="blNo != null and blNo != ''">
+			AND
+				CM.CG_NO = #{blNo}
+		</if>
+		<if test="gatePassNo != null and gatePassNo != ''">
+			AND
+				DL.GATE_PASS_NO = #{gatePassNo}
+		</if>
+		<if test="cgNo != null and cgNo != ''">
+			AND
+				DL.CG_NO = #{cgNo}
+		</if>
+		<if test="cgInOutCd != null and cgInOutCd != ''">
+			AND
+				DL.CG_IN_OUT_CD = #{cgInOutCd}
+		</if>
+		<if test="seq != null and seq != ''">
+			AND
+				DL.SEQ = #{seq}
+		</if>
+		<!-- <if test="doNo != null and doNo != ''">
+			AND
+				IMP.DO_NO(+)= #{doNo}
+		</if> -->
+		<!-- <if test="blNo != null and blNo != ''">
+			AND CM.BL_NO = AL.SN_BL_NO(+)
+		</if>
+		<if test="cgNo != null and cgNo != ''">
+			AND CM.SHIPG_NOTE_NO = AL.SNNO(+)
+		</if> -->
+	</sql> 
+	
+	<sql id="gpNonJpvc">
+	    SELECT 
+	        'NonCallId' AS JPVCNO,
+	        CM.CG_NO AS GRNO,
+	        DL.GATE_PASS_NO AS GATEPASSNO,
+	        CM.SHPR_NM AS SHPRNM,
+	        (SELECT TOP 1 ADDR FROM TMT_PTNR WHERE PTNR_CODE = CM.SHIPG_AGNT) AS SHPRADDR,
+	        CM.CNSNE_NM AS CNSNENM,
+	        (SELECT TOP 1 ADDR FROM TMT_PTNR WHERE PTNR_CODE = CM.CNSNE) AS CNSNEADDR,
+	        CM.FWR_AGNT AS FWRAGNT,
+	        CM.SHIPG_NOTE_NO AS SN,
+	        CM.PORT_OF_LOAD AS PORTOFLOAD,
+	        CM.PORT_OF_DIS AS PORTOFDIS,
+	        CM.FDEST AS FINALDEST,
+	        JOB.TO_LOC_ID AS WHLOC,
+	        JOB.TSPT_TP_CD AS TSPTTPCD,
+	        (SELECT CMDT_DESC FROM TMT_CMDT WHERE CMDT_CD = CM.CMDT_CD) AS COMMODITY,
+	        CM.CG_TP_CD AS CGTPCD,
+	        CM.PKG_TP_CD AS PKGTPCD,
+	        CASE
+	            WHEN CM.DMG_YN = 'Y' AND CM.RHDL_MODE = 'Y' THEN 'Damage/Shut-out'
+	            WHEN CM.DMG_YN = 'Y' THEN 'Damage'
+	            WHEN CM.RHDL_MODE = 'Y' THEN 'Shut-out'
+	            ELSE 'Normal'
+	        END AS STATCD,
+	        ISNULL(DL.CG_WGT, 0) AS WGT,
+			ISNULL(DL.CG_VOL, 0) AS MSRMT,
+			ISNULL(DL.PKG_QTY, 0) AS PKGQTY,
+	        ISNULL(CM.PKG_QTY, 0) AS OUTQTY,
+	        DL.LORRY_NO AS LORRYNO,
+	        DL.RMK AS RMK,
+	        ISNULL(CM.CG_WGT, '0') AS GROSSTOT,
+	        ISNULL(CM.CG_VOL, '0') AS CUMULTOT,
+	        DL.CG_WGT AS AMOUNTLORRY,
+	        DL.ISSUE_CNT AS NOSGPISSUE,
+	        '' AS REMAINED,
+	        CASE DG.STAT_CD
+	            WHEN 'N' THEN 'SUBMIT'
+	            WHEN 'Y' THEN 'APPROVE'
+	            WHEN 'C' THEN 'CANCEL'
+	        END AS DGAPPROVAL,
+	        JOB.PKG_NO AS PACKINGNO,
+	        DG.IMDG AS IMDG,
+	        DG.UNNO AS UNNO,
+	        CM.OPE_CLASS_CD AS CATGCD,
+	        JOB.DELV_TP_CD AS ACTDELVTPCD,
+	        JOB.STAFF_CD AS UPDUSERID,
+	        ISNULL(FORMAT(JOB.UPDATE_TIME, 'dd/MM/yyyy HH:mm'), ' ') AS UPDDT,
+	        (SELECT P.ENG_SNM FROM TMT_PTNR P WHERE P.PTNR_CODE = CM.FWR_AGNT AND P.PTNR_TYPE = 'FWD') AS fwdNm
+		FROM 
+			TMT_CG_MST CM
+	    JOIN 
+	    	TMT_CG_ARRV_DELV DL 
+	        ON CM.CG_NO = DL.CG_NO
+	        AND CM.VSL_CALL_ID = DL.VSL_CALL_ID
+	    LEFT JOIN 
+	    	TMT_DG DG
+	        ON CM.CG_NO = DG.CG_NO
+	    LEFT JOIN 
+	    	TMT_JOB JOB
+	        ON DL.JOB_NO = JOB.JOB_NO
+	    WHERE DL.VSL_CALL_ID = 'NonCallId'
+	    <if test="gatePassNo != null and gatePassNo != ''">
+	        AND DL.GATE_PASS_NO = #{gatePassNo}
+	    </if>
+	    <if test="cgNo != null and cgNo != ''">
+	        AND DL.CG_NO = #{cgNo}
+	    </if>
+	    <if test="cgInOutCd != null and cgInOutCd != ''">
+	        AND DL.CG_IN_OUT_CD = #{cgInOutCd}
+	    </if>
+	    <if test="seq != null and seq != ''">
+	        AND DL.SEQ = #{seq}
+	    </if>
+	</sql>
+	<select id="selectGatePassImport"  parameterType="gatePassImportParm" resultType="gatePassImportItem">
+		<if test="jpvcNo == 'NonCallId'">
+			<include refid="gpNonJpvc"/>
+		</if>
+		<if test="jpvcNo != 'NonCallId'">
+			<include refid="gpJpvc"/>
+		</if>
+	</select>
+</mapper>

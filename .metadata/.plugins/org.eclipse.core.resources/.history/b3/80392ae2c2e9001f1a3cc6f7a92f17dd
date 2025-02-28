@@ -1,0 +1,1488 @@
+package com.tsb.most.biz.dataitem.operation;
+
+import java.util.ArrayList;
+import java.util.Date;
+
+import com.tsb.most.basebiz.dataitem.common.SearchVesselCallListItem;
+import com.tsb.most.framework.dataitem.DataItem;
+
+public class ShiftingDoubleBankingItem extends DataItem {
+
+    private String searchType;
+    private String no;
+    private String cgOptTpCd;
+    
+    private String vslCallId;		// Mother Vessel's JPVC
+    private String seq;				// Sequence
+    private String stDt;			// start time
+    private String endDt;			// end time
+    
+	private String userId;
+    private String dblBnkDivCd;		// Double Banking Type(Vessel, Barge/Tug, Tug, Replacement)
+    
+    private String vslCd;			// Mother VSL's VSL CD
+    private String callYear;		// Mother VSL's Call Year
+    private String callSeq;			// Mother VSL's Call Seq
+
+    private String berthLoc;		// Vessel's berthLoc
+    
+    private String loa;				// Mother Vessel's LOA
+    private String atb;				// Mother Vessel's ATB
+    private String atw;				// Mother Vessel's ATW
+    private String atc;				// Mother Vessel's ATC	
+    private String atu;				// Mother Vessel's ATU	
+    private String dblBnkShip1;		// 2nd Vessel's JPVC
+    private String dblBnkShip1Nm;	// 2nd Vessel's JPVC
+    private String ship1Loa;		// 2nd VSL's LOA
+    private String ship1Atb;		// 2nd VSL's ATB
+    private String ship1Atw;		// 2nd VSL's ATW	
+    private String ship1Atc;		// 2nd VSL's ATC
+    private String ship1Atu;		// 2nd VSL's ATU
+    private String ship1VslCd;		// 2nd VSL's VSL CD
+    private String ship1CallYear;	// 2nd VSL's Call Year
+    private String ship1CallSeq;	// 2nd VSL's Call Seq
+    private String dblBnkShip2;		// 3rd Vessel's JPVC
+    private String dblBnkShip2Nm;	// 3rd Vessel's JPVC
+    private String ship2Loa;		// 3rd VSL's LOA	
+    private String ship2Atb;		// 3rd VSL's ATB
+    private String ship2Atw;		// 3rd VSL's ATW	
+    private String ship2Atc;		// 3rd VSL's ATC
+    private String ship2Atu;		// 3rd VSL's ATU
+    private String ship2VslCd;		// 3nd VSL's VSL CD
+    private String ship2CallYear;	// 3nd VSL's Call Year
+    private String ship2CallSeq;	// 3nd VSL's Call Seq
+    private String remark;			// REMARKS
+    private String dblBnkDivCdNm;   // Double Banking Type(Vessel, Barge/Tug, Tug, Replacement) Name
+    
+    private String prevAtb;
+    private String prevAtu;
+    private String prevBerthNo;
+    private String prevWharfMarkFm;
+    private String prevWharfMarkTo;
+    private String nextCalCallId;	// next vessel jpvc
+    private String stsOpTp;			// operation mode
+    private String mt;				// mt
+    private String m3;				// m3
+    private String qty;				// qty
+    private String hatchNo;			// hatch no
+    private String cmdtCd;			// commodity code
+    private String pkgTpCd;			// paackage type
+    private String rmk;				// remark
+    private String hatchDrtCd; 		// FP/AP
+    private String cmdtNm;			// commodity code name
+    private String pkgTpNm;			// paackage type name
+    private String currWharf;
+    private String currWharfMakrFm;
+    private String currWharfMakrTo;
+    private String reqr;	 			// requestor
+    private String atuDt; 				// ATU 
+    private String atbDt; 				// ATB
+    private String nxBerthNo; 			// New Wharf 
+    private String wharfMarkFm;	 		// New Wharf Mark From 
+    private String wharfMarkTo;	 		// New Wharf Mark To
+    private String berthAlongside; 		// Shifting Position 
+    private String rsnCd;				// Reaon Code
+    private String rsnNm;				// Reaon Name
+    private String pilotYn;	  			// Pilot 
+    private String mooring; 			// Mooring
+    private String tug;					// Tug 
+    
+    private String wharfMark;
+    private String berthAlongsideNm;
+    private String stcrDiv;			// Stevedore / Ship Crew
+    private String nextHatchNo;		// NEXT HATCH NO
+    private String sftTp;			// SHIFTING TYPE
+    private String sftTpNm;
+    private String svcId;
+    private String cgTpCd;
+    private String cgTpNm;
+    private String dirtyYn;
+    
+    
+    private String vslShiftingSeq;
+    private String vslShiftingYN;
+    private String workingStatus;
+    private String docMt;
+    private String docM3;
+    private String docQty;
+    private String balMt;
+    private String balM3;
+    private String balQty;
+    
+    private ArrayList<ShiftingDoubleBankingItem> doubleBankingList;
+    private ArrayList<ShiftingDoubleBankingItem> stsOperationList;
+    private ArrayList<ShiftingDoubleBankingItem> vslShftList;
+    private ArrayList<ShiftingDoubleBankingItem> vslCurrWharftList;
+    private ArrayList<ShiftingDoubleBankingItem> crgShftList;
+    private ArrayList<ShiftingDoubleBankingItem> amountByOPRModeList;
+    private ArrayList<ShiftingDoubleBankingItem> commodityList;
+    private ArrayList<ShiftingDoubleBankingItem> cargoList;
+    private ArrayList<ShiftingDoubleBankingItem> cudList;
+    private ArrayList<ShiftingDoubleBankingItem> vslShiftingBerthList;
+    private ArrayList<SearchVesselCallListItem> vslInfo;
+    private ArrayList<ShiftingDoubleBankingItem> confirmationSlipInfo;
+
+	private String stDtNoSecond;
+	private String endDtNoSecond;
+	private String ship1AtbNoSecond;
+	private String ship1AtwNoSecond;
+	private String ship1AtcNoSecond;
+	private String ship1AtuNoSecond;
+    private String ship2AtbNoSecond;
+	private String ship2AtwNoSecond;
+	private String ship2AtcNoSecond;
+	private String ship2AtuNoSecond;
+	private String prevAtbNoSecond;
+	private String prevAtuNoSecond;
+	private String atuDtNoSecond;
+	private String atbDtNoSecond;
+	private String atwNoSecond;
+	private String atcNoSecond;
+	
+	private String dblBnkShip3;
+	private String dblBnkShip3Nm;
+	private String ship3Loa;
+	private String ship3Atb;
+	private String ship3Atw;
+	private String ship3Atc;
+	private String ship3Atu;
+	private String ship3VslCd;
+	private String ship3CallYear;
+	private String ship3CallSeq;
+	private String ship3AtbNoSecond;
+	private String ship3AtwNoSecond;
+	private String ship3AtcNoSecond;
+	private String ship3AtuNoSecond;
+	
+	private String scn;
+	private String prevAtw;
+	private String prevAtc;
+	private String ataDate;
+	
+	public String getAtaDate() {
+		return ataDate;
+	}
+	public void setAtaDate(String ataDate) {
+		this.ataDate = ataDate;
+	}
+	public String getPrevAtw() {
+		return prevAtw;
+	}
+	public void setPrevAtw(String prevAtw) {
+		this.prevAtw = prevAtw;
+	}
+	public String getPrevAtc() {
+		return prevAtc;
+	}
+	public void setPrevAtc(String prevAtc) {
+		this.prevAtc = prevAtc;
+	}
+	public String getStDtNoSecond() {
+		return stDtNoSecond;
+	}
+	public void setStDtNoSecond(String stDtNoSecond) {
+		this.stDtNoSecond = stDtNoSecond;
+	}
+	public String getEndDtNoSecond() {
+		return endDtNoSecond;
+	}
+	public void setEndDtNoSecond(String endDtNoSecond) {
+		this.endDtNoSecond = endDtNoSecond;
+	}
+	public String getShip1AtbNoSecond() {
+		return ship1AtbNoSecond;
+	}
+	public void setShip1AtbNoSecond(String ship1AtbNoSecond) {
+		this.ship1AtbNoSecond = ship1AtbNoSecond;
+	}
+	public String getShip1AtwNoSecond() {
+		return ship1AtwNoSecond;
+	}
+	public void setShip1AtwNoSecond(String ship1AtwNoSecond) {
+		this.ship1AtwNoSecond = ship1AtwNoSecond;
+	}
+	public String getShip1AtcNoSecond() {
+		return ship1AtcNoSecond;
+	}
+	public void setShip1AtcNoSecond(String ship1AtcNoSecond) {
+		this.ship1AtcNoSecond = ship1AtcNoSecond;
+	}
+	public String getShip1AtuNoSecond() {
+		return ship1AtuNoSecond;
+	}
+	public void setShip1AtuNoSecond(String ship1AtuNoSecond) {
+		this.ship1AtuNoSecond = ship1AtuNoSecond;
+	}
+	public String getShip2AtbNoSecond() {
+		return ship2AtbNoSecond;
+	}
+	public void setShip2AtbNoSecond(String ship2AtbNoSecond) {
+		this.ship2AtbNoSecond = ship2AtbNoSecond;
+	}
+	public String getShip2AtwNoSecond() {
+		return ship2AtwNoSecond;
+	}
+	public void setShip2AtwNoSecond(String ship2AtwNoSecond) {
+		this.ship2AtwNoSecond = ship2AtwNoSecond;
+	}
+	public String getShip2AtcNoSecond() {
+		return ship2AtcNoSecond;
+	}
+	public void setShip2AtcNoSecond(String ship2AtcNoSecond) {
+		this.ship2AtcNoSecond = ship2AtcNoSecond;
+	}
+	public String getShip2AtuNoSecond() {
+		return ship2AtuNoSecond;
+	}
+	public void setShip2AtuNoSecond(String ship2AtuNoSecond) {
+		this.ship2AtuNoSecond = ship2AtuNoSecond;
+	}
+	public String getPrevAtbNoSecond() {
+		return prevAtbNoSecond;
+	}
+	public void setPrevAtbNoSecond(String prevAtbNoSecond) {
+		this.prevAtbNoSecond = prevAtbNoSecond;
+	}
+	public String getPrevAtuNoSecond() {
+		return prevAtuNoSecond;
+	}
+	public void setPrevAtuNoSecond(String prevAtuNoSecond) {
+		this.prevAtuNoSecond = prevAtuNoSecond;
+	}
+	public String getAtuDtNoSecond() {
+		return atuDtNoSecond;
+	}
+	public void setAtuDtNoSecond(String atuDtNoSecond) {
+		this.atuDtNoSecond = atuDtNoSecond;
+	}
+	public String getAtbDtNoSecond() {
+		return atbDtNoSecond;
+	}
+	public void setAtbDtNoSecond(String atbDtNoSecond) {
+		this.atbDtNoSecond = atbDtNoSecond;
+	}
+	public String getAtwNoSecond() {
+		return atwNoSecond;
+	}
+	public void setAtwNoSecond(String atwNoSecond) {
+		this.atwNoSecond = atwNoSecond;
+	}
+	public String getAtcNoSecond() {
+		return atcNoSecond;
+	}
+	public void setAtcNoSecond(String atcNoSecond) {
+		this.atcNoSecond = atcNoSecond;
+	}
+	/**
+     * @return Returns the dirtyYn.
+     */
+    public String getDirtyYn() {
+        return dirtyYn;
+    }
+    /**
+     * @param dirtyYn The dirtyYn to set.
+     */
+    public void setDirtyYn(String dirtyYn) {
+        this.dirtyYn = dirtyYn;
+    }
+    /**
+     * @return Returns the cgTpNm.
+     */
+    public String getCgTpNm() {
+        return cgTpNm;
+    }
+    /**
+     * @param cgTpNm The cgTpNm to set.
+     */
+    public void setCgTpNm(String cgTpNm) {
+        this.cgTpNm = cgTpNm;
+    }
+    /**
+     * @return Returns the cgTpCd.
+     */
+    public String getCgTpCd() {
+        return cgTpCd;
+    }
+    /**
+     * @param cgTpCd The cgTpCd to set.
+     */
+    public void setCgTpCd(String cgTpCd) {
+        this.cgTpCd = cgTpCd;
+    }
+	/**
+	 * @return Returns the svcId.
+	 */
+	public String getSvcId() {
+	    return svcId;
+	}
+	/**
+	 * @param svcId The svcId to set.
+	 */
+	public void setSvcId(String svcId) {
+	    this.svcId = svcId;
+	}
+    /**
+     * @return Returns the atb.
+     */ 
+    public String getAtb() {
+        return atb;
+    }
+    /**
+     * @param atb The atb to set.
+     */
+    public void setAtb(String atb) {
+        this.atb = atb;
+    }
+    /**
+     * @return Returns the atc.
+     */
+    public String getAtc() {
+        return atc;
+    }
+    /**
+     * @param atc The atc to set.
+     */
+    public void setAtc(String atc) {
+        this.atc = atc;
+    }
+    /**
+     * @return Returns the atu.
+     */
+    public String getAtu() {
+        return atu;
+    }
+    /**
+     * @param atu The atu to set.
+     */
+    public void setAtu(String atu) {
+        this.atu = atu;
+    }
+    /**
+     * @return Returns the atw.
+     */
+    public String getAtw() {
+        return atw;
+    }
+    /**
+     * @param atw The atw to set.
+     */
+    public void setAtw(String atw) {
+        this.atw = atw;
+    }
+    /**
+     * @return Returns the dblBnkDivCd.
+     */
+    public String getDblBnkDivCd() {
+        return dblBnkDivCd;
+    }
+    /**
+     * @param dblBnkDivCd The dblBnkDivCd to set.
+     */
+    public void setDblBnkDivCd(String dblBnkDivCd) {
+        this.dblBnkDivCd = dblBnkDivCd;
+    }
+    /**
+     * @return Returns the dblBnkShip1.
+     */
+    public String getDblBnkShip1() {
+        return dblBnkShip1;
+    }
+    /**
+     * @param dblBnkShip1 The dblBnkShip1 to set.
+     */
+    public void setDblBnkShip1(String dblBnkShip1) {
+        this.dblBnkShip1 = dblBnkShip1;
+    }
+    /**
+     * @return Returns the dblBnkShip2.
+     */
+    public String getDblBnkShip2() {
+        return dblBnkShip2;
+    }
+    /**
+     * @param dblBnkShip2 The dblBnkShip2 to set.
+     */
+    public void setDblBnkShip2(String dblBnkShip2) {
+        this.dblBnkShip2 = dblBnkShip2;
+    }
+    /**
+     * @return Returns the endDt.
+     */
+    public String getEndDt() {
+        return endDt;
+    }
+    /**
+     * @param endDt The endDt to set.
+     */
+    public void setEndDt(String endDt) {
+        this.endDt = endDt;
+    }
+    /**
+     * @return Returns the loa.
+     */
+    public String getLoa() {
+        return loa;
+    }
+    /**
+     * @param loa The loa to set.
+     */
+    public void setLoa(String loa) {
+        this.loa = loa;
+    }
+    /**
+     * @return Returns the remark.
+     */
+    public String getRemark() {
+        return remark;
+    }
+    /**
+     * @param remark The remark to set.
+     */
+    public void setRemark(String remark) {
+        this.remark = remark;
+    }
+    /**
+     * @return Returns the seq.
+     */
+    public String getSeq() {
+        return seq;
+    }
+    /**
+     * @param seq The seq to set.
+     */
+    public void setSeq(String seq) {
+        this.seq = seq;
+    }
+    /**
+     * @return Returns the ship1Atb.
+     */
+    public String getShip1Atb() {
+        return ship1Atb;
+    }
+    /**
+     * @param ship1Atb The ship1Atb to set.
+     */
+    public void setShip1Atb(String ship1Atb) {
+        this.ship1Atb = ship1Atb;
+    }
+    /**
+     * @return Returns the ship1Atc.
+     */
+    public String getShip1Atc() {
+        return ship1Atc;
+    }
+    /**
+     * @param ship1Atc The ship1Atc to set.
+     */
+    public void setShip1Atc(String ship1Atc) {
+        this.ship1Atc = ship1Atc;
+    }
+    /**
+     * @return Returns the ship1Atu.
+     */
+    public String getShip1Atu() {
+        return ship1Atu;
+    }
+    /**
+     * @param ship1Atu The ship1Atu to set.
+     */
+    public void setShip1Atu(String ship1Atu) {
+        this.ship1Atu = ship1Atu;
+    }
+    /**
+     * @return Returns the ship1Atw.
+     */
+    public String getShip1Atw() {
+        return ship1Atw;
+    }
+    /**
+     * @param ship1Atw The ship1Atw to set.
+     */
+    public void setShip1Atw(String ship1Atw) {
+        this.ship1Atw = ship1Atw;
+    }
+    /**
+     * @return Returns the ship1Loa.
+     */
+    public String getShip1Loa() {
+        return ship1Loa;
+    }
+    /**
+     * @param ship1Loa The ship1Loa to set.
+     */
+    public void setShip1Loa(String ship1Loa) {
+        this.ship1Loa = ship1Loa;
+    }
+    /**
+     * @return Returns the ship2Atb.
+     */
+    public String getShip2Atb() {
+        return ship2Atb;
+    }
+    /**
+     * @param ship2Atb The ship2Atb to set.
+     */
+    public void setShip2Atb(String ship2Atb) {
+        this.ship2Atb = ship2Atb;
+    }
+    /**
+     * @return Returns the ship2Atc.
+     */
+    public String getShip2Atc() {
+        return ship2Atc;
+    }
+    /**
+     * @param ship2Atc The ship2Atc to set.
+     */
+    public void setShip2Atc(String ship2Atc) {
+        this.ship2Atc = ship2Atc;
+    }
+    /**
+     * @return Returns the ship2Atu.
+     */
+    public String getShip2Atu() {
+        return ship2Atu;
+    }
+    /**
+     * @param ship2Atu The ship2Atu to set.
+     */
+    public void setShip2Atu(String ship2Atu) {
+        this.ship2Atu = ship2Atu;
+    }
+    /**
+     * @return Returns the ship2Atw.
+     */
+    public String getShip2Atw() {
+        return ship2Atw;
+    }
+    /**
+     * @param ship2Atw The ship2Atw to set.
+     */
+    public void setShip2Atw(String ship2Atw) {
+        this.ship2Atw = ship2Atw;
+    }
+    /**
+     * @return Returns the ship2Loa.
+     */
+    public String getShip2Loa() {
+        return ship2Loa;
+    }
+    /**
+     * @param ship2Loa The ship2Loa to set.
+     */
+    public void setShip2Loa(String ship2Loa) {
+        this.ship2Loa = ship2Loa;
+    }
+    /**
+     * @return Returns the stDt.
+     */
+    public String getStDt() {
+        return stDt;
+    }
+    /**
+     * @param stDt The stDt to set.
+     */
+    public void setStDt(String stDt) {
+        this.stDt = stDt;
+    }
+	/**
+	 * @return Returns the vslCallId.
+	 */
+	public String getVslCallId() {
+	    return vslCallId;
+	}
+	/**
+	 * @param vslCallId The vslCallId to set.
+	 */
+	public void setVslCallId(String vslCallId) {
+	    this.vslCallId = vslCallId;
+	}
+	
+    /**
+     * @return Returns the searchType.
+     */
+    public String getSearchType() {
+        return searchType;
+    }
+    /**
+     * @param searchType The searchType to set.
+     */
+    public void setSearchType(String searchType) {
+        this.searchType = searchType;
+    }
+    
+    /**
+     * @return Returns the no.
+     */
+    public String getNo() {
+        return no;
+    }
+    /**
+     * @param no The no to set.
+     */
+    public void setNo(String no) {
+        this.no = no;
+    }
+    
+    /**
+     * @return Returns the dblBnkDivCdNm.
+     */
+    public String getDblBnkDivCdNm() {
+        return dblBnkDivCdNm;
+    }
+    /**
+     * @param dblBnkDivCdNm The dblBnkDivCdNm to set.
+     */
+    public void setDblBnkDivCdNm(String dblBnkDivCdNm) {
+        this.dblBnkDivCdNm = dblBnkDivCdNm;
+    }
+    
+    
+    /**
+     * @return Returns the cmdtCd.
+     */
+    public String getCmdtCd() {
+        return cmdtCd;
+    }
+    /**
+     * @param cmdtCd The cmdtCd to set.
+     */
+    public void setCmdtCd(String cmdtCd) {
+        this.cmdtCd = cmdtCd;
+    }
+    /**
+     * @return Returns the hatchNo.
+     */
+    public String getHatchNo() {
+        return hatchNo;
+    }
+    /**
+     * @param hatchNo The hatchNo to set.
+     */
+    public void setHatchNo(String hatchNo) {
+        this.hatchNo = hatchNo;
+    }
+    /**
+     * @return Returns the m3.
+     */
+    public String getM3() {
+        return m3;
+    }
+    /**
+     * @param m3 The m3 to set.
+     */
+    public void setM3(String m3) {
+        this.m3 = m3;
+    }
+    /**
+     * @return Returns the mt.
+     */
+    public String getMt() {
+        return mt;
+    }
+    /**
+     * @param mt The mt to set.
+     */
+    public void setMt(String mt) {
+        this.mt = mt;
+    }
+	/**
+	 * @return Returns the nextCalCallId.
+	 */
+	public String getNextCalCallId() {
+	    return nextCalCallId;
+	}
+	/**
+	 * @param nextCalCallId The nextCalCallId to set.
+	 */
+	public void setNextCalCallId(String nextCalCallId) {
+	    this.nextCalCallId = nextCalCallId;
+	}
+    /**
+     * @return Returns the pkgTpCd.
+     */
+    public String getPkgTpCd() {
+        return pkgTpCd;
+    }
+    /**
+     * @param pkgTpCd The pkgTpCd to set.
+     */
+    public void setPkgTpCd(String pkgTpCd) {
+        this.pkgTpCd = pkgTpCd;
+    }
+    /**
+     * @return Returns the qty.
+     */
+    public String getQty() {
+        return qty;
+    }
+    /**
+     * @param qty The qty to set.
+     */
+    public void setQty(String qty) {
+        this.qty = qty;
+    }
+	/**
+	 * @return Returns the rmk.
+	 */
+	public String getRmk() {
+	    return rmk;
+	}
+	/**
+	 * @param rmk The rmk to set.
+	 */
+	public void setRmk(String rmk) {
+	    this.rmk = rmk;
+	}
+    /**
+     * @return Returns the stsOpTp.
+     */
+    public String getStsOpTp() {
+        return stsOpTp;
+    }
+    /**
+     * @param stsOpTp The stsOpTp to set.
+     */
+    public void setStsOpTp(String stsOpTp) {
+        this.stsOpTp = stsOpTp;
+    }
+    
+    /**
+     * @return Returns the hatchDrtCd.
+     */
+    public String getHatchDrtCd() {
+        return hatchDrtCd;
+    }
+    /**
+     * @param hatchDrtCd The hatchDrtCd to set.
+     */
+    public void setHatchDrtCd(String hatchDrtCd) {
+        this.hatchDrtCd = hatchDrtCd;
+    }
+    
+    /**
+     * @return Returns the cgOptTpCd.
+     */
+    public String getCgOptTpCd() {
+        return cgOptTpCd;
+    }
+    /**
+     * @param cgOptTpCd The cgOptTpCd to set.
+     */
+    public void setCgOptTpCd(String cgOptTpCd) {
+        this.cgOptTpCd = cgOptTpCd;
+    }
+    
+    /**
+     * @return Returns the cmdtNm.
+     */
+    public String getCmdtNm() {
+        return cmdtNm;
+    }
+    /**
+     * @param cmdtNm The cmdtNm to set.
+     */
+    public void setCmdtNm(String cmdtNm) {
+        this.cmdtNm = cmdtNm;
+    }
+    
+    /**
+     * @return Returns the pkgTpNm.
+     */
+    public String getPkgTpNm() {
+        return pkgTpNm;
+    }
+    /**
+     * @param pkgTpNm The pkgTpNm to set.
+     */
+    public void setPkgTpNm(String pkgTpNm) {
+        this.pkgTpNm = pkgTpNm;
+    }
+	/**
+	 * @return Returns the nextHatchNo.
+	 */
+	public String getNextHatchNo() {
+	    return nextHatchNo;
+	}
+	/**
+	 * @param nextHatchNo The nextHatchNo to set.
+	 */
+	public void setNextHatchNo(String nextHatchNo) {
+	    this.nextHatchNo = nextHatchNo;
+	}
+    /**
+     * @return Returns the sftTp.
+     */
+    public String getSftTp() {
+        return sftTp;
+    }
+    /**
+     * @param sftTp The sftTp to set.
+     */
+    public void setSftTp(String sftTp) {
+        this.sftTp = sftTp;
+    }
+	/**
+	 * @return Returns the stcrDiv.
+	 */
+	public String getStcrDiv() {
+	    return stcrDiv;
+	}
+	/**
+	 * @param stcrDiv The stcrDiv to set.
+	 */
+	public void setStcrDiv(String stcrDiv) {
+	    this.stcrDiv = stcrDiv;
+	}
+	
+	
+    /**
+     * @return Returns the atbDt.
+     */
+    public String getAtbDt() {
+        return atbDt;
+    }
+    /**
+     * @param atbDt The atbDt to set.
+     */
+    public void setAtbDt(String atbDt) {
+        this.atbDt = atbDt;
+    }
+    /**
+     * @return Returns the atuDt.
+     */
+    public String getAtuDt() {
+        return atuDt;
+    }
+    /**
+     * @param atuDt The atuDt to set.
+     */
+    public void setAtuDt(String atuDt) {
+        this.atuDt = atuDt;
+    }
+    /**
+     * @return Returns the berthAlongside.
+     */
+    public String getBerthAlongside() {
+        return berthAlongside;
+    }
+    /**
+     * @param berthAlongside The berthAlongside to set.
+     */
+    public void setBerthAlongside(String berthAlongside) {
+        this.berthAlongside = berthAlongside;
+    }
+	/**
+	 * @return Returns the currWharf.
+	 */
+	public String getCurrWharf() {
+	    return currWharf;
+	}
+	/**
+	 * @param currWharf The currWharf to set.
+	 */
+	public void setCurrWharf(String currWharf) {
+	    this.currWharf = currWharf;
+	}
+    /**
+     * @return Returns the currWharfMakrFm.
+     */
+    public String getCurrWharfMakrFm() {
+        return currWharfMakrFm;
+    }
+    /**
+     * @param currWharfMakrFm The currWharfMakrFm to set.
+     */
+    public void setCurrWharfMakrFm(String currWharfMakrFm) {
+        this.currWharfMakrFm = currWharfMakrFm;
+    }
+    /**
+     * @return Returns the currWharfMakrTo.
+     */
+    public String getCurrWharfMakrTo() {
+        return currWharfMakrTo;
+    }
+    /**
+     * @param currWharfMakrTo The currWharfMakrTo to set.
+     */
+    public void setCurrWharfMakrTo(String currWharfMakrTo) {
+        this.currWharfMakrTo = currWharfMakrTo;
+    }
+    /**
+     * @return Returns the mooring.
+     */
+    public String getMooring() {
+        return mooring;
+    }
+    /**
+     * @param mooring The mooring to set.
+     */
+    public void setMooring(String mooring) {
+        this.mooring = mooring;
+    }
+    /**
+     * @return Returns the nxBerthNo.
+     */
+    public String getNxBerthNo() {
+        return nxBerthNo;
+    }
+    /**
+     * @param nxBerthNo The nxBerthNo to set.
+     */
+    public void setNxBerthNo(String nxBerthNo) {
+        this.nxBerthNo = nxBerthNo;
+    }
+    /**
+     * @return Returns the pilotYn.
+     */
+    public String getPilotYn() {
+        return pilotYn;
+    }
+    /**
+     * @param pilotYn The pilotYn to set.
+     */
+    public void setPilotYn(String pilotYn) {
+        this.pilotYn = pilotYn;
+    }
+    /**
+     * @return Returns the reqr.
+     */
+    public String getReqr() {
+        return reqr;
+    }
+    /**
+     * @param reqr The reqr to set.
+     */
+    public void setReqr(String reqr) {
+        this.reqr = reqr;
+    }
+    /**
+     * @return Returns the rsnCd.
+     */
+    public String getRsnCd() {
+        return rsnCd;
+    }
+    /**
+     * @param rsnCd The rsnCd to set.
+     */
+    public void setRsnCd(String rsnCd) {
+        this.rsnCd = rsnCd;
+    }
+    /**
+     * @return Returns the tug.
+     */
+    public String getTug() {
+        return tug;
+    }
+    /**
+     * @param tug The tug to set.
+     */
+    public void setTug(String tug) {
+        this.tug = tug;
+    }
+    /**
+     * @return Returns the wharfMarkFm.
+     */
+    public String getWharfMarkFm() {
+        return wharfMarkFm;
+    }
+    /**
+     * @param wharfMarkFm The wharfMarkFm to set.
+     */
+    public void setWharfMarkFm(String wharfMarkFm) {
+        this.wharfMarkFm = wharfMarkFm;
+    }
+    /**
+     * @return Returns the wharfMarkTo.
+     */
+    public String getWharfMarkTo() {
+        return wharfMarkTo;
+    }
+    /**
+     * @param wharfMarkTo The wharfMarkTo to set.
+     */
+    public void setWharfMarkTo(String wharfMarkTo) {
+        this.wharfMarkTo = wharfMarkTo;
+    }
+    
+    /**
+     * @return Returns the rsnNm.
+     */
+    public String getRsnNm() {
+        return rsnNm;
+    }
+    /**
+     * @param rsnNm The rsnNm to set.
+     */
+    public void setRsnNm(String rsnNm) {
+        this.rsnNm = rsnNm;
+    }
+    
+    /**
+     * @return Returns the berthAlongsideNm.
+     */
+    public String getBerthAlongsideNm() {
+        return berthAlongsideNm;
+    }
+    /**
+     * @param berthAlongsideNm The berthAlongsideNm to set.
+     */
+    public void setBerthAlongsideNm(String berthAlongsideNm) {
+        this.berthAlongsideNm = berthAlongsideNm;
+    }
+	/**
+	 * @return Returns the wharfMark.
+	 */
+	public String getWharfMark() {
+	    return wharfMark;
+	}
+	/**
+	 * @param wharfMark The wharfMark to set.
+	 */
+	public void setWharfMark(String wharfMark) {
+	    this.wharfMark = wharfMark;
+	}
+
+	public String getUserId() {
+        return this.userId;
+    }
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+    
+    /**
+     * @return Returns the callSeq.
+     */
+    public String getCallSeq() {
+        return callSeq;
+    }
+    /**
+     * @param callSeq The callSeq to set.
+     */
+    public void setCallSeq(String callSeq) {
+        this.callSeq = callSeq;
+    }
+    /**
+     * @return Returns the callYear.
+     */
+    public String getCallYear() {
+        return callYear;
+    }
+    /**
+     * @param callYear The callYear to set.
+     */
+    public void setCallYear(String callYear) {
+        this.callYear = callYear;
+    }
+    /**
+     * @return Returns the crud.
+     */
+    public String getCrud() {
+        return crud;
+    }
+    /**
+     * @param crud The crud to set.
+     */
+    public void setCrud(String crud) {
+        this.crud = crud;
+    }
+    /**
+     * @return Returns the ship1CallSeq.
+     */
+    public String getShip1CallSeq() {
+        return ship1CallSeq;
+    }
+    /**
+     * @param ship1CallSeq The ship1CallSeq to set.
+     */
+    public void setShip1CallSeq(String ship1CallSeq) {
+        this.ship1CallSeq = ship1CallSeq;
+    }
+    /**
+     * @return Returns the ship1CallYear.
+     */
+    public String getShip1CallYear() {
+        return ship1CallYear;
+    }
+    /**
+     * @param ship1CallYear The ship1CallYear to set.
+     */
+    public void setShip1CallYear(String ship1CallYear) {
+        this.ship1CallYear = ship1CallYear;
+    }
+    /**
+     * @return Returns the ship1VslCd.
+     */
+    public String getShip1VslCd() {
+        return ship1VslCd;
+    }
+    /**
+     * @param ship1VslCd The ship1VslCd to set.
+     */
+    public void setShip1VslCd(String ship1VslCd) {
+        this.ship1VslCd = ship1VslCd;
+    }
+    /**
+     * @return Returns the ship2CallSeq.
+     */
+    public String getShip2CallSeq() {
+        return ship2CallSeq;
+    }
+    /**
+     * @param ship2CallSeq The ship2CallSeq to set.
+     */
+    public void setShip2CallSeq(String ship2CallSeq) {
+        this.ship2CallSeq = ship2CallSeq;
+    }
+    /**
+     * @return Returns the ship2CallYear.
+     */
+    public String getShip2CallYear() {
+        return ship2CallYear;
+    }
+    /**
+     * @param ship2CallYear The ship2CallYear to set.
+     */
+    public void setShip2CallYear(String ship2CallYear) {
+        this.ship2CallYear = ship2CallYear;
+    }
+    /**
+     * @return Returns the ship2VslCd.
+     */
+    public String getShip2VslCd() {
+        return ship2VslCd;
+    }
+    /**
+     * @param ship2VslCd The ship2VslCd to set.
+     */
+    public void setShip2VslCd(String ship2VslCd) {
+        this.ship2VslCd = ship2VslCd;
+    }
+    /**
+     * @return Returns the vslCd.
+     */
+    public String getVslCd() {
+        return vslCd;
+    }
+    /**
+     * @param vslCd The vslCd to set.
+     */
+    public void setVslCd(String vslCd) {
+        this.vslCd = vslCd;
+    }
+    
+    /**
+     * @return Returns the berthLoc.
+     */
+    public String getBerthLoc() {
+        return berthLoc;
+    }
+    /**
+     * @param berthLoc The berthLoc to set.
+     */
+    public void setBerthLoc(String berthLoc) {
+        this.berthLoc = berthLoc;
+    }
+    
+    /**
+     * @return Returns the prevAtb.
+     */
+    public String getPrevAtb() {
+        return prevAtb;
+    }
+    /**
+     * @param prevAtb The prevAtb to set.
+     */
+    public void setPrevAtb(String prevAtb) {
+        this.prevAtb = prevAtb;
+    }
+    /**
+     * @return Returns the prevAtu.
+     */
+    public String getPrevAtu() {
+        return prevAtu;
+    }
+    /**
+     * @param prevAtu The prevAtu to set.
+     */
+    public void setPrevAtu(String prevAtu) {
+        this.prevAtu = prevAtu;
+    }
+    /**
+     * @return Returns the prevBerthNo.
+     */
+    public String getPrevBerthNo() {
+        return prevBerthNo;
+    }
+    /**
+     * @param prevBerthNo The prevBerthNo to set.
+     */
+    public void setPrevBerthNo(String prevBerthNo) {
+        this.prevBerthNo = prevBerthNo;
+    }
+    /**
+     * @return Returns the prevWharfMarkFm.
+     */
+    public String getPrevWharfMarkFm() {
+        return prevWharfMarkFm;
+    }
+    /**
+     * @param prevWharfMarkFm The prevWharfMarkFm to set.
+     */
+    public void setPrevWharfMarkFm(String prevWharfMarkFm) {
+        this.prevWharfMarkFm = prevWharfMarkFm;
+    }
+    /**
+     * @return Returns the prevWharfMarkTo.
+     */
+    public String getPrevWharfMarkTo() {
+        return prevWharfMarkTo;
+    }
+    /**
+     * @param prevWharfMarkTo The prevWharfMarkTo to set.
+     */
+    public void setPrevWharfMarkTo(String prevWharfMarkTo) {
+        this.prevWharfMarkTo = prevWharfMarkTo;
+    }
+    /**
+     * @return Returns the sftTpNm.
+     */
+    public String getSftTpNm() {
+        return sftTpNm;
+    }
+    /**
+     * @param sftTpNm The sftTpNm to set.
+     */
+    public void setSftTpNm(String sftTpNm) {
+        this.sftTpNm = sftTpNm;
+    }
+    public String getVslShiftingSeq() {
+        return vslShiftingSeq;
+    }
+    public void setVslShiftingSeq(String vslShiftingSeq) {
+        this.vslShiftingSeq = vslShiftingSeq;
+    }
+	public ArrayList<ShiftingDoubleBankingItem> getDoubleBankingList() {
+		return doubleBankingList;
+	}
+	public void setDoubleBankingList(ArrayList<ShiftingDoubleBankingItem> doubleBankingList) {
+		this.doubleBankingList = doubleBankingList;
+	}
+	public ArrayList<ShiftingDoubleBankingItem> getStsOperationList() {
+		return stsOperationList;
+	}
+	public void setStsOperationList(ArrayList<ShiftingDoubleBankingItem> stsOperationList) {
+		this.stsOperationList = stsOperationList;
+	}
+	public ArrayList<ShiftingDoubleBankingItem> getVslShftList() {
+		return vslShftList;
+	}
+	
+	public void setVslShftList(ArrayList<ShiftingDoubleBankingItem> vslShftList) {
+		this.vslShftList = vslShftList;
+	}
+	public ArrayList<ShiftingDoubleBankingItem> getVslCurrWharftList() {
+		return vslCurrWharftList;
+	}
+	public void setVslCurrWharftList(ArrayList<ShiftingDoubleBankingItem> vslCurrWharftList) {
+		this.vslCurrWharftList = vslCurrWharftList;
+	}
+	public ArrayList<ShiftingDoubleBankingItem> getCrgShftList() {
+		return crgShftList;
+	}
+	public void setCrgShftList(ArrayList<ShiftingDoubleBankingItem> crgShftList) {
+		this.crgShftList = crgShftList;
+	}
+	public String getVslShiftingYN() {
+		return vslShiftingYN;
+	}
+	public void setVslShiftingYN(String vslShiftingYN) {
+		this.vslShiftingYN = vslShiftingYN;
+	}
+	public String getWorkingStatus() {
+		return workingStatus;
+	}
+	public void setWorkingStatus(String workingStatus) {
+		this.workingStatus = workingStatus;
+	}
+	public ArrayList<ShiftingDoubleBankingItem> getAmountByOPRModeList() {
+		return amountByOPRModeList;
+	}
+	public void setAmountByOPRModeList(ArrayList<ShiftingDoubleBankingItem> amountByOPRModeList) {
+		this.amountByOPRModeList = amountByOPRModeList;
+	}
+	public ArrayList<ShiftingDoubleBankingItem> getCommodityList() {
+		return commodityList;
+	}
+	public void setCommodityList(ArrayList<ShiftingDoubleBankingItem> commodityList) {
+		this.commodityList = commodityList;
+	}
+	public ArrayList<ShiftingDoubleBankingItem> getCargoList() {
+		return cargoList;
+	}
+	public void setCargoList(ArrayList<ShiftingDoubleBankingItem> cargoList) {
+		this.cargoList = cargoList;
+	}
+	public ArrayList<ShiftingDoubleBankingItem> getCudList() {
+		return cudList;
+	}
+	public void setCudList(ArrayList<ShiftingDoubleBankingItem> cudList) {
+		this.cudList = cudList;
+	}
+	public String getDocMt() {
+		return docMt;
+	}
+	public void setDocMt(String docMt) {
+		this.docMt = docMt;
+	}
+	public String getDocQty() {
+		return docQty;
+	}
+	public void setDocQty(String docQty) {
+		this.docQty = docQty;
+	}
+	public String getDocM3() {
+		return docM3;
+	}
+	public void setDocM3(String docM3) {
+		this.docM3 = docM3;
+	}
+	public String getBalMt() {
+		return balMt;
+	}
+	public void setBalMt(String balMt) {
+		this.balMt = balMt;
+	}
+	public String getBalM3() {
+		return balM3;
+	}
+	public void setBalM3(String balM3) {
+		this.balM3 = balM3;
+	}
+	public String getBalQty() {
+		return balQty;
+	}
+	public void setBalQty(String balQty) {
+		this.balQty = balQty;
+	}
+	public ArrayList<SearchVesselCallListItem> getVslInfo() {
+		return vslInfo;
+	}
+	public void setVslInfo(ArrayList<SearchVesselCallListItem> vslInfo) {
+		this.vslInfo = vslInfo;
+	}
+	public ArrayList<ShiftingDoubleBankingItem> getVslShiftingBerthList() {
+		return vslShiftingBerthList;
+	}
+	public void setVslShiftingBerthList(ArrayList<ShiftingDoubleBankingItem> vslShiftingBerthList) {
+		this.vslShiftingBerthList = vslShiftingBerthList;
+	}
+	public String getDblBnkShip1Nm() {
+		return dblBnkShip1Nm;
+	}
+	public String getDblBnkShip2Nm() {
+		return dblBnkShip2Nm;
+	}
+	public void setDblBnkShip1Nm(String dblBnkShip1Nm) {
+		this.dblBnkShip1Nm = dblBnkShip1Nm;
+	}
+	public void setDblBnkShip2Nm(String dblBnkShip2Nm) {
+		this.dblBnkShip2Nm = dblBnkShip2Nm;
+	}
+	public ArrayList<ShiftingDoubleBankingItem> getConfirmationSlipInfo() {
+		return confirmationSlipInfo;
+	}
+	public void setConfirmationSlipInfo(ArrayList<ShiftingDoubleBankingItem> confirmationSlipInfo) {
+		this.confirmationSlipInfo = confirmationSlipInfo;
+	}
+	public String getDblBnkShip3() {
+		return dblBnkShip3;
+	}
+	public void setDblBnkShip3(String dblBnkShip3) {
+		this.dblBnkShip3 = dblBnkShip3;
+	}
+	public String getDblBnkShip3Nm() {
+		return dblBnkShip3Nm;
+	}
+	public void setDblBnkShip3Nm(String dblBnkShip3Nm) {
+		this.dblBnkShip3Nm = dblBnkShip3Nm;
+	}
+	public String getShip3Loa() {
+		return ship3Loa;
+	}
+	public void setShip3Loa(String ship3Loa) {
+		this.ship3Loa = ship3Loa;
+	}
+	public String getShip3Atb() {
+		return ship3Atb;
+	}
+	public void setShip3Atb(String ship3Atb) {
+		this.ship3Atb = ship3Atb;
+	}
+	public String getShip3Atw() {
+		return ship3Atw;
+	}
+	public void setShip3Atw(String ship3Atw) {
+		this.ship3Atw = ship3Atw;
+	}
+	public String getShip3Atc() {
+		return ship3Atc;
+	}
+	public void setShip3Atc(String ship3Atc) {
+		this.ship3Atc = ship3Atc;
+	}
+	public String getShip3Atu() {
+		return ship3Atu;
+	}
+	public void setShip3Atu(String ship3Atu) {
+		this.ship3Atu = ship3Atu;
+	}
+	public String getShip3VslCd() {
+		return ship3VslCd;
+	}
+	public void setShip3VslCd(String ship3VslCd) {
+		this.ship3VslCd = ship3VslCd;
+	}
+	public String getShip3CallYear() {
+		return ship3CallYear;
+	}
+	public void setShip3CallYear(String ship3CallYear) {
+		this.ship3CallYear = ship3CallYear;
+	}
+	public String getShip3CallSeq() {
+		return ship3CallSeq;
+	}
+	public void setShip3CallSeq(String ship3CallSeq) {
+		this.ship3CallSeq = ship3CallSeq;
+	}
+	public String getShip3AtbNoSecond() {
+		return ship3AtbNoSecond;
+	}
+	public void setShip3AtbNoSecond(String ship3AtbNoSecond) {
+		this.ship3AtbNoSecond = ship3AtbNoSecond;
+	}
+	public String getShip3AtwNoSecond() {
+		return ship3AtwNoSecond;
+	}
+	public void setShip3AtwNoSecond(String ship3AtwNoSecond) {
+		this.ship3AtwNoSecond = ship3AtwNoSecond;
+	}
+	public String getShip3AtcNoSecond() {
+		return ship3AtcNoSecond;
+	}
+	public void setShip3AtcNoSecond(String ship3AtcNoSecond) {
+		this.ship3AtcNoSecond = ship3AtcNoSecond;
+	}
+	public String getShip3AtuNoSecond() {
+		return ship3AtuNoSecond;
+	}
+	public void setShip3AtuNoSecond(String ship3AtuNoSecond) {
+		this.ship3AtuNoSecond = ship3AtuNoSecond;
+	}
+	public String getScn() {
+		return scn;
+	}
+	public void setScn(String scn) {
+		this.scn = scn;
+	}
+}

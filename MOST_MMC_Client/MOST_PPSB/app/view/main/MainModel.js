@@ -1,0 +1,228 @@
+/**
+ * This class is the view model for the Main view of the application.
+ */
+Ext.define('MOST.view.main.MainModel', {
+	extend: 'MOST.view.foundation.BaseViewModel',
+
+	alias: 'viewmodel.main',
+
+	requires: [
+       'Ext.data.proxy.Rest',
+	],
+	
+	data: {
+		loadedServiceLaneCode: null,
+		loadedPortCode: null,
+		loadedTerminalCode: null,
+		loadedVesselCode: null,
+		loadedVesselName: null,
+		loadedImoNo: null,
+		loadedVoyageNo: null,
+		loadedTag: null,
+		loadedOrigin: null,
+		loadedSnapshotDesc: null,
+		
+		profileImageUrl: 'resources/images/Profile.png',
+		profileName: '',
+		profileEmail: '',
+		tabCount: 0,
+		favouriteMenu:null
+	},
+	
+	formulas: {
+		isDevelopmentMode: function (get) {
+			return false;
+        }	
+    },
+
+	stores: {
+		favouriteMenu:{
+			model: 'MOST.model.administrator.AuthMenuItem',
+			autoLoad: false,
+			proxy: {
+				type: 'rest',
+				showProgressBar : false,
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/menu/favourites',
+				extraParams:{
+					systemCode: CONSTANTS.SYSTEM_CODE
+				}
+			}
+		},
+		
+		menuList: {
+			model: 'MOST.model.administrator.AuthMenuItem',
+			storeId: 'menuListStore',
+			proxy: {
+				type: 'rest',
+				showProgressBar : false,
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/menu/list',
+				extraParams:{
+					systemCode: CONSTANTS.SYSTEM_CODE,
+					mode:'leftmenu'
+				}
+
+//			    type: 'ajax',
+//			    url: 'resources/temp/menu.json',
+//			    reader: {
+//	               type: 'json',
+//	               rootProperty: 'data'
+//			    }
+			}
+		},
+		
+		searchMenu: {
+			model: 'MOST.model.administrator.AuthMenuItem',
+			storeId: 'menuListStore',
+			proxy: {
+				type: 'rest',
+				showProgressBar : false,
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/menu/list',
+				extraParams:{
+					systemCode: CONSTANTS.SYSTEM_CODE,
+					mode:'leftmenu'
+				}
+			}
+		},
+		
+		cacheServiceInfo:{
+			model: 'MOST.model.common.LocalCacheInfo',
+			storeId: 'cacheServiceInfoStore',
+			proxy: {
+			    type: 'ajax',
+			    url: 'resources/data/LocalCacheInfo.json',
+			    reader: {
+	               type: 'json',
+	               rootProperty: 'data'
+			    }
+			} 
+		},
+		gridColumn:{
+			storeId: 'gridColumnStore',
+			proxy: {
+			    type: 'ajax',
+			    url: 'resources/data/MostGridColumn.json',
+			    messageEnable: false,
+			    reader: {
+	               type: 'json',
+	               rootProperty: 'data'
+			    }
+			} 
+		},
+		projectGridColumn:{
+			storeId: 'projectGridColumnStore',
+			proxy: {
+			    type: 'ajax',
+			    url: 'resources/data/MostPivotGridColumn.json',
+			    messageEnable: false,
+			    reader: {
+	               type: 'json',
+	               rootProperty: 'data'
+			    }
+			} 
+		},
+		authButton: {
+			model: 'MOST.model.administrator.AuthButtonItem',
+			storeId: 'menuButtonStore',
+			proxy: {
+				type: 'rest',
+				showProgressBar : false,
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/menu/authbutton'
+			}
+		},
+		
+		roleMenuList: {
+			model: 'MOST.model.administrator.RoleMenu',
+			storeId: 'roleMenuListStore',
+			proxy: {
+//				type: 'rest',
+//				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/roles/personalizedmenu'
+				
+			    type: 'ajax',
+			    showProgressBar : false,
+			    url: 'resources/temp/roleMenu.json',
+			    reader: {
+		           type: 'json',
+		           rootProperty: 'data'
+			    }
+			}
+		},
+		
+		profileStore: {
+			model: 'MOST.model.administrator.User',
+			storeId: 'profileStore',
+			proxy: {
+				type: 'rest',
+				showProgressBar : false,
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/basic/profile'
+			}
+		},
+		
+		changePwd: {
+			model: 'MOST.model.administrator.User',
+			storeId: 'changePwdStore',
+			proxy: {
+				type: 'rest',
+				showProgressBar : false,
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/identities/users/userpassword'
+			}
+		},
+		
+		checkOldPassword: {
+			model: 'MOST.model.administrator.User',
+			storeId: 'checkOldPasswordStore',
+			proxy: {
+				type: 'rest',
+				showProgressBar : false,
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/identities/users/checkoldpassword'
+			}
+		},
+		
+		updateUserInfo: {
+			model: 'MOST.model.administrator.User',
+			storeId: 'updateUserInfoStore',
+			proxy: {
+				type: 'rest',
+				showProgressBar : false,
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/identities/users/updateuserinfo'
+			}
+		},
+		
+		emailChecking: {
+			model: 'MOST.model.administrator.User',
+			storeId: 'emailChecking',
+			proxy: {
+				type: 'rest',
+				showProgressBar : false,
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/identities/users/checkemail'
+			}
+		},
+		
+		userList: {
+			model: 'MOST.model.administrator.User',
+			storeId: 'userListStore',
+			proxy: {
+				type: 'rest',
+				showProgressBar : false,
+				url: MOST.config.Locale.getRestApiDestUrl() + '/v1/identities/users'
+			}
+		},
+		
+		branchCombo : {
+			fields: ['comName','comCode'],
+			storeId: 'branchCombo',
+			data :  [
+				{"code":"ANCH", "codeName":"ANCHORAGE"},
+				{"code":"BDSW", "codeName":"BAGAN DALAM DOCKYARD"},
+				{"code":"BWCT", "codeName":"BUTTERWORTH CARGO TERMINAL"},
+				{"code":"CALT", "codeName":"CALTEX"},
+				{"code":"ESSO", "codeName":"ESSO"},
+				{"code":"FERY", "codeName":"FERRY TERMINAL"},
+				{"code":"PBCT", "codeName":"PRAI BULK CARGO TERMINAL"},
+				{"code":"PRWF", "codeName":"PRAI WHARVES"},
+				{"code":"SHEL", "codeName":"SHELL"},
+				{"code":"SWPR", "codeName":"SWETTENHAM PIER"},
+				{"code":"VOTP", "codeName":"VEGETABLE OIL TANKER PIER"}
+            ]
+		}
+	}
+});

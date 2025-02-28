@@ -1,0 +1,129 @@
+package com.tsb.most.biz.rest.monitoring;
+
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.tsb.most.biz.dataitem.monitoring.CargoGatePassItem;
+import com.tsb.most.biz.parm.monitoring.CargoGatePassParm;
+import com.tsb.most.framework.dataitem.DataItemList;
+import com.tsb.most.framework.exception.ServiceException;
+import com.tsb.most.framework.response.RestResponse;
+import com.tsb.most.rest.base.RestBaseController;
+
+@Controller
+@RequestMapping("/v1/gatepasslist")
+public class GatePassListController extends RestBaseController {
+//	@RequestMapping(value = "/cargoMasterCombo", method = RequestMethod.GET)
+//	@ResponseBody
+//	public RestResponse selectCargoMasterCombo(CargoMasterParm parm) throws ServiceException, Exception {
+////		RestResponse response = new RestResponse();
+////		response = (RestResponse) execute("controller", "getCargoMasterComboList", parm);
+//		RestResponse response = new RestResponse();
+//		Object result = invokeService("MOST.unclosedOperation.selectUnclosedOperationList", parm);
+//		response.setData(((DataItemList) result).getCollection());
+//		response.setLimit(((DataItemList) result).getTotalRowCount());
+//		return response;
+//	}
+
+	@RequestMapping(value = "/gatePassList", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse selectGatePassList(CargoGatePassParm parm) throws ServiceException, Exception {
+		RestResponse response = new RestResponse();
+		/*
+		 * response = (RestResponse) execute("controller", "getCargoGatePassList",
+		 * parm); RestResponse response = new RestResponse();
+		 */
+		Object result = invokeService("MOST.gatePassList.selectCargoGatePassList", parm);
+		response.setData(((DataItemList) result).getCollection());
+		response.setLimit(((DataItemList) result).getTotalRowCount());
+		return response;
+	}
+	
+	@RequestMapping(value = "/gatePassList/{id}", method = RequestMethod.PUT)
+	@ResponseBody
+	public void updateInvoiceUnit(@PathVariable("id") String id, @RequestBody CargoGatePassItem item) throws ServiceException, Exception{
+//		item.setCrud(DAOProcessType.UPDATE);
+//		CudParm pParm = new CudParm();
+//		pParm.setDataItem(item);
+//		
+//		execute("controller","updateCargoGatePassRemark",pParm);
+	}
+
+	@RequestMapping(value = "/generatepdfgatepass", method = RequestMethod.GET)
+	@ResponseBody
+	public RestResponse generatePdf(CargoGatePassParm parm, HttpServletRequest request, HttpServletResponse response)
+			throws ServiceException, Exception {
+		RestResponse res = new RestResponse();
+
+//		HashMap parmMap = new HashMap();
+//		parmMap.put("REPORT_ID", "RCS025");
+//		parmMap.put("USER_ID", parm.getUserId());
+//
+//		RestResponse result = (RestResponse) execute("controller", "getCargoGatePassList", parm);
+//		List ivList = result.getData();
+//		ArrayList resultSet = new ArrayList();
+//		for (Iterator it = ivList.iterator(); it.hasNext();) {
+//			CargoGatePassItem cargoList = (CargoGatePassItem) it.next();
+//			HashMap ivMap = new HashMap();
+//			parmMap.put("IMAGE_PATH",
+//					request.getSession().getServletContext().getRealPath("/WEB-INF/reports/" + PcsProperties.getProperty("terminal.code") + ".gif"));
+//			if ("".equalsIgnoreCase(parm.getUserId())) {
+//				parmMap.put("PRINTER", parm.getUserId());
+//			} else {
+//				parmMap.put("PRINTER", "EMPTY");
+//			}
+//			ivMap.put("CA", cargoList.getCatgNm());
+//			ivMap.put("JPVC", cargoList.getVslCallId());
+//			ivMap.put("GP", cargoList.getGatePassNo());
+//			ivMap.put("GP_TIME", cargoList.getGatePassIssueDt());
+//			ivMap.put("LORRY", cargoList.getLorryNo());
+//			ivMap.put("MT", new Double(cargoList.getWgt()));
+//			ivMap.put("M3", new Double(cargoList.getMsrmt()));
+//			ivMap.put("QTY", new Double(cargoList.getPkgQty()));
+//			ivMap.put("GR_BL", cargoList.getCgNo());
+//			ivMap.put("REHANDLE", cargoList.getRehandle());
+//			ivMap.put("DEL_MODE", cargoList.getDelvTpNm());
+//			ivMap.put("DEV_STATUS", cargoList.getDelvStat());
+//			ivMap.put("CONFIRM_BY", cargoList.getConfirmBy());
+//			ivMap.put("CONFIRM_DT", cargoList.getDateTime());
+//			resultSet.add(ivMap);
+//		}
+//		IReportBuilder builder = null;
+//		try {
+//			builder = new ReportBuilder();
+//		} catch (Exception exReport) {
+//			exReport.printStackTrace();
+//		}
+//		builder.setJrXml(request.getSession().getServletContext()
+//				.getResourceAsStream("/WEB-INF/reports/controller/RCS025.jrxml"));
+//		builder.setDatasource(resultSet);
+//		builder.setParameter(parmMap);
+//		DataItem resItem = new DataItem();
+//		String filePathName = builder.generate(ReportType.SAVE_PDF);
+//		String fileName[] = filePathName.split(PcsProperties.getProperty("file.separator"));
+//
+//		File file = new File(filePathName);
+//
+//		InputStream in = new FileInputStream(file);
+//		FileUploadItem fileItem = new FileUploadItem();
+//
+//		fileItem.setFileName(fileName[fileName.length - 1]);
+//		fileItem.setContent(IOUtils.toString(in, "ISO-8859-1"));
+//
+//		resItem.add(fileItem);
+//		res.setData(resItem.getCollection());
+//
+//		// Remove temp file
+//		builder.removePDFfile(in, file);
+
+		return res;
+	}
+}

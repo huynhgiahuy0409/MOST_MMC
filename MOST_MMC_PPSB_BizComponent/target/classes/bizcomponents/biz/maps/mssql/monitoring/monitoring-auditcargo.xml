@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="AuditCargoMap">
+
+	<resultMap 	id="resultComboList" 	type="auditCargoItem">
+   		<result property = "cd"			column = "CD"/>
+   		<result property = "cdNm"		column = "CD_NM"/>
+ 	</resultMap>
+ 	
+	<resultMap id="resultAuditCargoMap" type="auditCargoItem">
+		<result property = "vslCallId"		column = "VSL_CALL_ID"/>
+		<result property = "vslCd"			column = "VSL_CD"/>
+		<result property = "callYear"		column = "CALL_YEAR"/>
+		<result property = "callSeq"		column = "CALL_SEQ"/>
+		<result property = "pgmId"			column = "PGM_ID"/>
+		<result property = "pgmNm"			column = "PGM_NM"/>
+		<result property = "sessionInfo"	column = "SESSION_INFO"/>
+		<result property = "refNo1"			column = "REF_NO1"/>
+		<result property = "refNo2"			column = "REF_NO2"/>
+		<result property = "doNo"			column = "DO_NO"/>
+		<result property = "historySeq"		column = "HISTORY_SEQ"/>
+		<result property = "dataField"		column = "DATA_FIELD"/>
+		<result property = "oldValue"		column = "OLD_VALUE"/>
+		<result property = "newValue"		column = "NEW_VALUE"/>
+		<result property = "userId"			column = "STAFF_CD"/>
+		<result property = "updDt"			column = "UPDATE_TIME"/>
+	</resultMap>
+
+	<select id="selectAuditCargoItems" parameterType="auditCargoParm" resultMap="resultAuditCargoMap">
+	 	<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT result.*, ROW_NUMBER() OVER (ORDER BY UPDATE_TIME) AS row_num FROM ( 
+		</if>
+				<include refid="getAuditCargoListItems"/>
+		<if test="pageNo != 0"> 
+				)result 
+			)seq 
+			WHERE seq.row_num <![CDATA[>]]> CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT) - 1 * CAST(#{sizePerPage} AS INT) 
+		  	AND seq.row_num <![CDATA[<=]]> CAST(CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END AS INT) * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	 
+	<select id="selectAuditCargoItemsCount" parameterType="auditCargoParm" resultType="java.lang.String">
+	 	SELECT COUNT(*) FROM (<include refid="getAuditCargoListItems"/>) result
+	</select>
+	
+	<sql id="getAuditCargoListItems">
+		SELECT	/* AuditCargo.selectAuditCargoItems */
+				VSL_CD,       
+				CALL_YEAR,
+				CALL_SEQ,
+				VSL_CALL_ID,
+				PGM_ID,
+				(SELECT PGM_NM FROM TMT_MENU_LIST M WHERE A.PGM_ID = UPPER(M.PGM_ID)) AS PGM_NM,
+				SESSION_INFO,
+				REF_NO1,
+				REF_NO2,
+				DO_NO,
+				HISTORY_SEQ,
+				DATA_FIELD,
+				OLD_VALUE,
+				NEW_VALUE,
+				STAFF_CD,
+				CONVERT(DATETIME, UPDATE_TIME, 120) AS UPDATE_TIME
+		FROM    TMT_AUDIT_CARGO A
+		WHERE 	1 = 1
+			<choose>
+				<when test="((blNo != null and blNo != '')) and ((snNo != null and snNo != ''))">
+						AND REF_NO1 IN ('${blNo}','${snNo}')
+				</when>
+				<when test="((blNo != null and blNo != '')) and ((snNo == null or snNo == ''))">
+						AND REF_NO1 = #{blNo}
+				</when>
+				<when test="((blNo == null or blNo == '')) and ((snNo != null and snNo != ''))">
+						AND REF_NO1 = #{snNo}
+				</when>
+			</choose>
+		 	<include refid="getAudit"/>
+	</sql>
+
+	<sql id="getAudit">
+			<if test="pgmId != null and pgmId != ''">
+				AND PGM_ID LIKE UPPER(#{pgmId})
+		 	</if>
+			<if test="scn != null and scn != ''">
+		 		AND SHIP_CALL_NO = #{scn}
+		 	</if>
+		 	<if test="vslCallId != null and vslCallId != ''">
+		 		AND VSL_CALL_ID = #{vslCallId}
+		 	</if>
+			<if test="transFromDt != null and transFromDt != ''">
+				AND UPDATE_TIME BETWEEN CONVERT(DATETIME, #{transFromDt}, 103) 
+									AND CONVERT(DATETIME, #{transToDt}, 103)
+			</if>
+		    <if test="updateType != null and updateType != ''">
+				<if test='updateType eq "I".toString()'>
+					AND DATA_FIELD = 'INSERT'
+				</if>
+				<if test='updateType eq "U".toString()'>
+					AND DATA_FIELD NOT IN ('INSERT','DELETE')
+				</if>
+				<if test='updateType eq "D".toString()'>
+					AND DATA_FIELD = 'DELETE'
+				</if>
+			</if>
+	</sql>
+
+	<select id="selectScreenNameComboBoxItems" parameterType="auditCargoParm" resultMap="resultComboList">
+		SELECT	/* AuditCargoMap.selectScreenNameComboBoxItems */
+				DISTINCT
+				PGM_ID CD,
+				PGM_NM CD_NM
+		FROM	TMT_MENU_LIST
+		WHERE	PGM_NM LIKE CONCAT('%', #{screenName}, '%')
+		  AND	PGM_ID IN ('mpcms002', 'mpdm102', 'mpdm113') /* Permit to retrieve 3 screen only for reference CUSP Monitoring - by LamLong */
+		ORDER BY CD_NM
+				<!-- AND CG_TP_CD IN ('RCV') -->
+	</select>
+	
+	<select id="selectBlComboBoxItems" parameterType="auditCargoParm" resultMap="resultComboList">
+		SELECT	/* AuditCargoMap.selectBlComboBoxItems */
+				DISTINCT
+				BL_NO CD,
+				BL_NO CD_NM
+		FROM	TMT_BL
+		WHERE	VSL_CALL_ID = #{vslCallId}
+				<!-- AND CG_TP_CD IN ('RCV') -->
+	</select>
+	
+	<select id="selectShipgNoteNoComboBoxItems" parameterType="auditCargoParm" resultMap="resultComboList">
+		SELECT	/* AuditCargoMap.selectShipgNoteNoComboBoxItems */
+				DISTINCT
+				SHIPG_NOTE_NO CD,
+				SHIPG_NOTE_NO CD_NM
+		FROM	TMT_SHIPG_NOTE
+		WHERE	VSL_CALL_ID = #{vslCallId}
+				AND STAT_CD = 'AP'
+				<!-- AND CG_TP_CD IN ('RCV')
+				
+				 <choose>
+					<when test="vslCallId == 'STRG'">
+						<if test="estArrvFromDt != null and estArrvFromDt != ''">
+							AND EST_ARRV_DT BETWEEN TO_DATE(#{estArrvFromDt},'DD/MM/YYYY HH24:MI') AND TO_DATE(#{estArrvToDt}, 'DD/MM/YYYY HH24:MI')
+						</if>
+					</when>
+				</choose> -->
+	</select>
+	
+	<insert id="insertAuditCargoItem" parameterType="auditCargoItem">
+		INSERT INTO TMT_AUDIT_CARGO (
+				VSL_CD       
+				CALL_SEQ,
+				CALL_YEAR,
+				VSL_CALL_ID,
+				PGM_ID,
+				SESSION_INFO,
+				REF_NO1,
+				REF_NO2,
+				DO_NO,
+				HISTORY_SEQ,
+				DATA_FIELD,
+				OLD_VALUE,
+				NEW_VALUE,
+				STAFF_CD,
+				UPDATE_TIME
+		) VALUES (
+				#{vslCd}
+				,#{callSeq}
+				,#{callYear}
+				,#{vslCallId}
+				,#{pgmId}
+				,#{sessionInfo}
+				,#{refNo1}
+				,#{refNo2}
+				,#{doNo}
+				,#{historySeq}
+				,#{dataField}
+				,#{oldValue}
+				,#{newValue}
+				,#{userId}
+				,GETDATE()
+		)
+	</insert>
+	
+	<update id="updateAuditCargoItem" parameterType="auditCargoItem">
+		UPDATE	/* AuditCargoMap.updateAuditCargoItem */
+				TMT_AUDIT_CARGO
+		SET		PGM_ID = #{pgmId}
+				,REF_NO1 = #{refNo1}
+				,REF_NO2 = #{refNo2}
+				,SESSION_INFO = #{sessionInfo}
+				,OLD_VALUE = #{oldValue}
+				,NEW_VALUE = #{newValue}
+				,DATA_FIELD = #{dataField}
+				,UPDATE_TIME = SYSDATE
+		  		,STAFF_CD = #{userId}
+				
+    	WHERE 	VSL_CALL_ID = #{vslCallId}
+    			AND DO_NO = #{doNo}
+				AND REF_NO1 = #{refNo1}
+				AND REF_NO2 = #{refNo2}
+	</update>
+	
+</mapper>

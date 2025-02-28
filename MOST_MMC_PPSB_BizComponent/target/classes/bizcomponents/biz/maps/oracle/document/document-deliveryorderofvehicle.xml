@@ -1,0 +1,424 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="deliveryOrderOfVehicle">
+	
+	<resultMap 	id="resultDeliveryOrderMap" type="deliveryOrderOfVehicleItem">
+   		<result property = "vslCallId"				column = "VSL_CALL_ID"/>
+		<result property = "categoryCd" 			column = "CATG_CD"/>
+		<result property = "categoryNm" 			column = "CATG_NM"/>
+		<result property = "masterBlNo" 			column = "M_BL_NO"/>
+		<result property = "blNo" 					column = "BL_NO"/>
+		<result property = "doNo" 					column = "DO_NO"/>
+		<result property = "nosOfVin" 				column = "NOS_OF_VIN"/>
+		<result property = "vinRemain" 				column = "VIN_REMAIN"/>
+		<result property = "brandCd" 				column = "BRAND_CD"/>
+		<result property = "brandNm" 				column = "BRAND_NM"/>
+		<result property = "modelCd" 				column = "MODEL_CD"/>
+		<result property = "modelNm" 				column = "MODEL_NM"/>
+		<result property = "shaCd" 					column = "SHIPG_AGENT"/>
+		<result property = "shaNm" 					column = "SHIPG_AGENT_NM"/>
+		<result property = "fwdCd" 					column = "FWRD"/>
+		<result property = "fwdNm" 					column = "FWRD_NM"/>
+		<result property = "shprCd" 				column = "SHPR"/>
+		<result property = "shprNm" 				column = "SHPR_NM"/>
+		<result property = "cnsneCd" 				column = "CNSNE"/>
+		<result property = "cnsneNm" 				column = "CNSNE_NM"/>
+		<result property = "damNo" 					column = "DAM_NO"/>
+		<result property = "doSeq" 					column = "SEQ"/>
+		<result property = "releasedQty" 			column = "I_QTY"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultSubDeliveryOrderMap" type="deliveryOrderOfVehicleItem">
+ 		<result property = "vslCd"					column = "VSL_CD"/>
+		<result property = "callYear" 				column = "CALL_YEAR"/>
+		<result property = "callSeq" 				column = "CALL_SEQ"/>
+   		<result property = "vslCallId"				column = "VSL_CALL_ID"/>
+		<result property = "masterBlNo" 			column = "MF_DOC_ID"/>
+		<result property = "blNo" 					column = "CG_NO"/>
+		<result property = "doNo" 					column = "DO_NO"/>
+		<result property = "subDoNo" 				column = "SDO_NO"/>
+		<result property = "nosOfVin" 				column = "TOT_NO_VIN"/>
+		<result property = "nosOfBookedDriver"		column = "BOOKED_NO_DRIVER"/>
+		<result property = "nosOfBookedTruck" 		column = "BOOKED_NO_TRUCK"/>	
+		<result property = "estArrvTime" 			column = "EST_ARRV_DT"/>
+		<result property = "tsptr" 					column = "TSPT_COMP"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultComboList" 	type="deliveryOrderOfVehicleItem">
+   		<result property = "cd"						column = "CD"/>
+   		<result property = "cdNm"					column = "CD_NM"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultDriversAndTrucksMap" type="deliveryOrderOfVehicleItem">
+   		<result property = "tsptCompCd"				column = "PTNR_CD"/>
+		<result property = "tsptCompNm" 			column = "PTNR_NM"/>
+		<result property = "driverId" 				column = "DRIVER_ID"/>
+		<result property = "driverNm" 				column = "DRIVER_NM"/>
+		<result property = "driverExpLicenseDt" 	column = "LICS_EXPR_YMD"/>
+		<result property = "driverLicenseNo"		column = "LICS_NO"/>
+		<result property = "truckId" 				column = "LORRY_ID"/>
+		<result property = "truckNo"				column = "LORRY_NO"/>
+ 	</resultMap>
+ 	
+ 	<resultMap 	id="resultAssigningDriversAndTrucksMap" type="deliveryOrderOfVehicleItem">
+   		<result property = "vslCallId"				column = "VSL_CALL_ID"/>
+		<result property = "masterBlNo" 			column = "MF_DOC_ID"/>
+		<result property = "blNo" 					column = "CG_NO"/>
+		<result property = "doNo" 					column = "DO_NO"/>
+		<result property = "subDoNo" 				column = "SDO_NO"/>
+		<result property = "sdoSeq" 				column = "SDO_SEQ"/>
+   		<result property = "tsptCompCd"				column = "TRANSPORT"/>
+		<result property = "tsptCompNm" 			column = "TRANSPORT_NM"/>
+		<result property = "driverId" 				column = "DRIVER_ID"/>
+		<result property = "driverNm" 				column = "DRIVER_NM"/>
+		<result property = "driverExpLicenseDt" 	column = "LICS_EXPR_YMD"/>
+		<result property = "driverLicenseNo"		column = "LICS_NO"/>
+		<result property = "truckId" 				column = "LORRY_ID"/>
+		<result property = "truckNo"				column = "LORRY_NO"/>
+ 	</resultMap>
+	
+	<select id="selectDeliveryOrderItems" parameterType="deliveryOrderOfVehicleParm" resultMap="resultDeliveryOrderMap">
+	 	<if test="pageNo != 0"> 
+             SELECT /*deliveryOrderOfVehicle.selectDeliveryOrderItems*/
+             	* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getDeliveryOrderItems"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	 
+	<select id="selectDeliveryOrderItemsCount" parameterType="deliveryOrderOfVehicleParm" resultType="java.lang.String">
+		SELECT COUNT(*) /*deliveryOrderOfVehicle.selectDeliveryOrderItemsCount*/
+        	FROM (<include refid="getDeliveryOrderItems"/>)
+	</select>
+	
+	<sql id="getDeliveryOrderItems">
+		SELECT	DISTINCT
+				BL.VSL_CALL_ID,
+				BL.BL_NO,
+				BL.CATG_CD,
+				F_CM_001 ('MT', 'CATGTP', BL.CATG_CD) AS CATG_NM,
+				(
+					SELECT 	COUNT (R.CHAS_NO)
+		            FROM 	TMT_BL_DTL R
+		           	WHERE   R.VSL_CALL_ID = BL.VSL_CALL_ID
+		                 	AND R.BL_NO = BL.BL_NO
+		                 	AND R.IX_CD = 'I'
+				) AS NOS_OF_VIN,
+				(BL.PKG_QTY - NVL (S.TOTAL_VIN, 0)) AS VIN_REMAIN,
+				BR.BRAND_CD,
+				BR.BRAND_NM,
+				M.MODEL_CD,
+				M.MODEL_NM,
+				BL.FWRD,
+				BL.CNSNE,
+				DO.DO_NO
+		FROM 	TMT_BL BL
+				INNER JOIN TMT_DO DO 
+					ON BL.VSL_CALL_ID = DO.VSL_CALL_ID AND BL.MF_DOC_ID = DO.MF_DOC_ID AND BL.BL_NO = DO.BL_NO
+				LEFT OUTER JOIN TMT_RORO_MST VIN
+					ON BL.VSL_CALL_ID = VIN.VSL_CALL_ID AND BL.BL_NO = VIN.CG_NO
+				LEFT OUTER JOIN TMT_BRAND BR 
+					ON VIN.BRAND_CD = BR.BRAND_CD
+				LEFT OUTER JOIN TMT_BRAND_DTL M
+					ON 	VIN.MODEL_CD = M.MODEL_CD 
+						AND VIN.BRAND_CD = M.BRAND_CD
+				LEFT OUTER JOIN (
+					SELECT 	SUM (NVL (DO.I_QTY, 0)) TOTAL_VIN,
+                           	DO.VSL_CALL_ID,
+                           	DO.BL_NO,
+                           	DO.DO_NO
+                    FROM 	TMT_DO_DTL DO
+					WHERE 	DO.VSL_CALL_ID = #{vslCallId}
+					GROUP BY DO.VSL_CALL_ID, DO.BL_NO, DO.DO_NO
+				) S
+					ON 	BL.VSL_CALL_ID = S.VSL_CALL_ID 
+						AND BL.BL_NO = S.BL_NO
+						AND DO.DO_NO = S.DO_NO
+		WHERE 	BL.VSL_CALL_ID = #{vslCallId} 
+				AND BL.CG_TP_CD = 'RCV'
+				<if test="blNo != null and blNo != ''">
+					AND BL.BL_NO = #{blNo}
+				</if>
+		ORDER BY BL.BL_NO
+	</sql>
+	
+	<select id="selectSubDeliveryOrderItems" parameterType="deliveryOrderOfVehicleParm" resultMap="resultSubDeliveryOrderMap">
+	 	<if test="pageNo != 0"> 
+             SELECT /*deliveryOrderOfVehicle.selectSubDeliveryOrderItems*/
+             	* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getSubDeliveryOrderItems"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	 
+	<select id="selectSubDeliveryOrderItemsCount" parameterType="deliveryOrderOfVehicleParm" resultType="java.lang.String">
+		SELECT COUNT(*) /*deliveryOrderOfVehicle.selectSubDeliveryOrderItemsCount*/
+			FROM (<include refid="getSubDeliveryOrderItems"/>)
+	</select>
+	
+	<sql id="getSubDeliveryOrderItems">
+		SELECT	DISTINCT
+				DO.VSL_CALL_ID,
+				DO.DO_NO,
+				SDO.SDO_NO,
+				(NVL (SDO.I_QTY, 0)) AS TOT_NO_VIN,
+				(
+					SELECT 	COUNT (*)
+					FROM 	TMT_ASSIGN_TRANSPORT AST
+					WHERE 	AST.VSL_CALL_ID = DO.VSL_CALL_ID
+							AND DO.DO_NO = AST.DO_NO
+							AND DRIVER_ID IS NOT NULL
+							AND SDO.SDO_NO = ASN.SDO_NO
+				) AS BOOKED_NO_DRIVER,
+				(
+					SELECT 	COUNT (*)
+					FROM 	TMT_ASSIGN_TRANSPORT AST
+					WHERE 	AST.VSL_CALL_ID = DO.VSL_CALL_ID
+                			AND DO.DO_NO = AST.DO_NO
+                			AND SDO.SDO_NO = ASN.SDO_NO
+	                		AND LORRY_NO IS NOT NULL
+	            ) AS BOOKED_NO_TRUCK,
+				TO_CHAR(SDO.EST_ARRV_DT, 'DD/MM/YYYY HH24:MI') AS EST_ARRV_DT,
+				SDO.TSPT_COMP
+		FROM 	TMT_DO DO
+		 		INNER JOIN TMT_DO_DTL SDO
+            		ON     SDO.VSL_CALL_ID = DO.VSL_CALL_ID
+			               AND SDO.MF_DOC_ID = DO.MF_DOC_ID
+			               AND SDO.BL_NO = DO.BL_NO
+			               AND SDO.DO_NO = DO.DO_NO
+				LEFT OUTER JOIN TMT_ASSIGN_TRANSPORT ASN
+					ON  DO.VSL_CALL_ID = ASN.VSL_CALL_ID
+	    				AND DO.DO_NO = ASN.DO_NO
+	    				AND SDO.SDO_NO = ASN.SDO_NO
+				LEFT OUTER JOIN TMT_BL BL
+					ON  DO.VSL_CALL_ID = BL.VSL_CALL_ID
+	    			AND DO.BL_NO = BL.BL_NO
+        WHERE 	DO.VSL_CALL_ID = #{vslCallId}
+				AND DO.BL_NO = #{blNo}
+				<if test="ptnrTp == 'FWD'">
+					AND DO.FWRD = #{fwdCd}
+				</if>
+				<if test="doSeq != null and doSeq != ''">
+					AND DO.DO_SEQ = #{doSeq}
+				</if>
+		ORDER BY DO.DO_NO
+	</sql>
+	
+	<select id="selectAssignedDriversAndTrucksForVehicleItems" parameterType="deliveryOrderOfVehicleParm" resultMap="resultAssigningDriversAndTrucksMap">
+	 	<if test="pageNo != 0"> 
+             SELECT /*deliveryOrderOfVehicle.selectAssignedDriversAndTrucksForVehicleItems*/
+             	* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getAssignedDriversAndTrucksForVehicleItems"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	 
+	<select id="selectAssignedDriversAndTrucksForVehicleItemsCount" parameterType="deliveryOrderOfVehicleParm" resultType="java.lang.String">
+	 	SELECT COUNT(*) /*deliveryOrderOfVehicle.selectAssignedDriversAndTrucksForVehicleItemsCount*/
+			FROM (<include refid="getAssignedDriversAndTrucksForVehicleItems"/>)
+	</select>
+	
+	<sql id="getAssignedDriversAndTrucksForVehicleItems">
+		SELECT 
+				TRANSPORT,
+				AST.DRIVER_ID,
+				DR.DRIVER_NM,
+				AST.LORRY_NO
+		FROM TMT_ASSIGN_TRANSPORT AST 
+		LEFT OUTER JOIN TMT_DRIVER_MST DR 
+			ON AST.DRIVER_ID = DR.DRIVER_ID
+		WHERE 	DO_NO = #{doNo}
+				AND VSL_CALL_ID = #{vslCallId}
+				AND SDO_NO = #{subDoNo}
+	</sql>
+	
+	<select id="selectAssigningDriversForVehicleItems" parameterType="deliveryOrderOfVehicleParm" resultMap="resultDriversAndTrucksMap">
+		<if test="pageNo != 0"> 
+        SELECT /*deliveryOrderOfVehicle.selectAssigningDriversForVehicleItems*/
+        	* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getAssigningDriversForVehicleItems"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	 
+	<select id="selectAssigningDriversForVehicleItemsCount" parameterType="deliveryOrderOfVehicleParm" resultType="java.lang.String">
+		SELECT COUNT(*) /*deliveryOrderOfVehicle.selectAssigningDriversForVehicleItemsCount*/
+			FROM (<include refid="getAssigningDriversForVehicleItems"/>)
+	</select>
+	
+	<sql id="getAssigningDriversForVehicleItems">
+		SELECT 
+			PTNR_CD,
+			DRIVER_ID,
+			DRIVER_NM,
+			LICS_NO,
+			LICS_EXPR_YMD 
+		FROM TMT_DRIVER_MST 
+		<if test="driverNm != null and driverNm != ''">
+			WHERE DRIVER_NM LIKE CONCAT (#{driverNm}, '%')
+		</if>
+	</sql>
+	
+	<select id="selectAssigningTrucksForVehicleItems" parameterType="deliveryOrderOfVehicleParm" resultMap="resultDriversAndTrucksMap">
+	 	<if test="pageNo != 0"> 
+			SELECT /*deliveryOrderOfVehicle.selectAssigningTrucksForVehicleItems*/
+            	* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getAssigningTrucksForVehicleItems"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	 
+	<select id="selectAssigningTrucksForVehicleItemsCount" parameterType="deliveryOrderOfVehicleParm" resultType="java.lang.String">
+		SELECT COUNT(*) /*deliveryOrderOfVehicle.selectAssigningTrucksForVehicleItemsCount*/
+			FROM (<include refid="getAssigningTrucksForVehicleItems"/>)
+	</select>
+	
+	<sql id="getAssigningTrucksForVehicleItems">
+		SELECT 
+			LORRY_NO,
+			LORRY_ID,
+			PTNR_CD
+		FROM TMT_TRUCK_MST 
+		WHERE 1 = 1
+		<if test="tsptr != null and tsptr != ''">
+			AND PTNR_CD IN  (${tsptr})
+		</if>
+		 <if test="truckNo != null and truckNo != ''">
+			AND LORRY_NO  LIKE CONCAT (#{truckNo}, '%')
+		</if>
+	</sql>
+	
+	<select id="selectDeliveryOrderNo" parameterType="deliveryOrderOfVehicleParm"  resultType="deliveryOrderOfVehicleItem">
+		SELECT ('DO'||TO_CHAR(SYSDATE, 'YYMM') ||TRIM(TO_CHAR(NVL(MAX(TO_NUMBER(SUBSTR(DO_NO, -4, 4))+1), 1),'0000'))) AS DONO
+		FROM TMT_DO
+		WHERE SUBSTR(DO_NO, 1, 6) = ('DO'||TO_CHAR(SYSDATE, 'YYMM')) 
+	</select>
+	
+	<insert id="insertDriversAndTrucksItems" parameterType="deliveryOrderOfVehicleItem">
+		INSERT /*deliveryOrderOfVehicle.insertDriversAndTrucksItems*/
+		INTO TMT_ASSIGN_TRANSPORT (
+			VSL_CD,
+			CALL_SEQ,
+			CALL_YEAR,
+			VSL_CALL_ID,
+			SEQ,
+			TRANSPORT,
+			LORRY_NO,
+			DRIVER_ID,
+			BL_NO,
+			DO_NO,
+			SDO_NO,
+			UPDATE_TIME,
+			STAFF_CD
+		) VALUES (
+			#{vslCd}
+			,#{callSeq}
+			,#{callYear} 
+			,#{vslCallId}
+			,(SELECT DECODE(MAX(SEQ),NULL,1,MAX(SEQ)+1) FROM TMT_ASSIGN_TRANSPORT WHERE VSL_CALL_ID = #{vslCallId} )
+			,#{tsptCompCd}
+			,#{truckNo}
+			,#{driverId}
+			,#{blNo}
+			,#{doNo}
+			,#{subDoNo}
+			,SYSDATE
+			,#{userId}
+		)
+	</insert>
+	
+	<insert id="insertSubDeliveryOrderItems" parameterType="deliveryOrderOfVehicleItem">
+		<selectKey keyProperty="subDoNo" resultType="String" order="BEFORE">
+			SELECT
+			('DO'||TO_CHAR(SYSDATE, 'YYMM') ||TRIM(TO_CHAR(NVL(MAX(TO_NUMBER(SUBSTR(DO_NO, -4, 4))+1), 1),'0000'))) AS doNo
+			FROM	TMT_DO
+			WHERE SUBSTR(DO_NO, 1, 6) = ('DO'||TO_CHAR(SYSDATE, 'YYMM'))
+		</selectKey>
+		
+		INSERT /*deliveryOrderOfVehicle.insertSubDeliveryOrderItems*/
+		INTO TMT_DO (
+		  VSL_CD
+		  ,CALL_YEAR
+		  ,CALL_SEQ
+		  ,VSL_CALL_ID
+		  ,MF_DOC_ID
+		  ,BL_NO
+		  ,DO_NO
+		  ,QTY
+		  ,UPDATE_TIME
+		  ,STAFF_CD
+		  ,EST_ARRV_DT
+		) VALUES (
+		  #{vslCd}
+		  ,#{callYear} 
+		  ,#{callSeq}
+		  ,#{vslCallId}
+		  ,#{blNo}
+		  ,#{blNo}
+		  ,#{doNo}
+		  ,#{nosOfVin}
+		  ,SYSDATE
+		  ,#{userId}
+		  ,TO_DATE(#{estArrvTime},'DD/MM/YYYY HH24:MI')
+		)
+	</insert>
+	
+	<update id="updateSubDeliveryOrderItems" parameterType="deliveryOrderOfVehicleItem">
+		UPDATE /*deliveryOrderOfVehicle.updateSubDeliveryOrderItems*/
+		TMT_DO SET		
+			QTY = #{nosOfVin}
+			,EST_ARRV_DT = TO_DATE(#{estArrvTime},'DD/MM/YYYY HH24:MI')
+			,UPDATE_TIME = SYSDATE
+			,STAFF_CD = #{userId}
+    	WHERE DO_NO = #{doNo}
+		AND VSL_CALL_ID = #{vslCallId}
+	</update>
+	
+	<delete id="deleteAssignedDriversAndTrucksForVehicleItems" parameterType="deliveryOrderOfVehicleItem">
+		DELETE /*deliveryOrderOfVehicle.deleteAssignedDriversAndTrucksForVehicleItems*/
+		FROM 	TMT_ASSIGN_TRANSPORT 
+		WHERE 	DO_NO = #{doNo}
+				AND VSL_CALL_ID = #{vslCallId}
+				AND SDO_NO = #{subDoNo}
+				<if test="driverId != null and driverId != ''">
+					AND DRIVER_ID = #{driverId}
+				</if>
+				<if test="truckNo != null and truckNo != ''">
+					AND LORRY_NO = #{truckNo}
+				</if>
+	</delete>
+	
+	<delete id="deleteSubDeliveryOrderItems" parameterType="deliveryOrderOfVehicleItem">
+		DELETE /*deliveryOrderOfVehicle.deleteSubDeliveryOrderItems*/
+		FROM TMT_DO 
+		WHERE DO_NO = #{doNo}
+		AND VSL_CALL_ID = #{vslCallId}
+	</delete>
+	
+</mapper>

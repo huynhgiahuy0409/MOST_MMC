@@ -1,0 +1,576 @@
+/**
+* SearchProformaInvoiceParm.java
+*
+* Created on   : 2021-11-13
+* Target OS    : Java VM 1.8 
+* CVS revision : $Revision: 1.2 $ 
+*
+* ------------------------------
+* CHANGE REVISION
+* ------------------------------
+* DATE           AUTHOR      	   REVISION    	
+* 2021-11-13   nd.hiep 		   1.0    First release.
+* -------------------------------
+* CLASS DESCRIPTION
+* -------------------------------
+*
+*/
+package com.tsb.most.biz.parm.billing;
+
+import com.tsb.most.framework.bizparm.BaseBizParm;
+/**
+ * TODO To change the template for this generated type comment go to
+ * Window - Preferences - Java - Code Style - Code Templates
+ */
+public class SearchProformaInvoiceParm extends BaseBizParm {
+	
+	private String creditNote;//P: Proforma Invoice, C: Credit Note, A: Additional Invoice
+	private String creditNoteYn; //Y: Credit Note, N: Proforma, Additional
+	private String vslCallId;
+	private String invoiceType;
+	private String docNo;
+	private String category ;
+	private String issuedMT ;
+	private String docMT ;
+	private String operationMT ;
+	private String refInvNo;
+	private String addCreditIvNo;
+	private String proformaIvNo;
+	
+	private String trfCd;
+	private String subTrf;
+	private String vatChk;
+	private String detraccionChk;
+	private String customerType;
+	private String payerCd;
+	private String payerTp;
+	private String ivTp;
+    private String ivPrfx;
+    private String ivNo;
+    private String rowID;
+    private String operTpCd;
+    private String ivAmt;
+   
+	private String gatherNo;
+    private String gatherSeq;
+    private String billTpCd;
+    private String gatherTpCd;
+    private String trfDesc;
+    private String applyRate;
+    private String applyAmt;
+    private String taxPrtg;
+    private String taxAmt;
+    private String totalAmt;
+    private String stdRate;
+    
+    private String cgTpCd;
+    private String wgt;
+    private String msrmt;
+    private String pkgQty;
+    private String fwrAgent;
+    private String shipper;
+    private String consignee;
+    
+    private String fromDate;
+    private String toDate;
+    
+    private String blNo;
+    private String shipgNoteNo;
+    private String searchTp;
+    private String mfDocId;
+    private String blNoSnNo;
+    private String payer;
+    private String erpPayNo;
+    private String bankNm;
+    private String rmk;
+    
+    private String masterBL;
+    private String bookingNo;
+    
+    private String curr;
+    //MMC - Settlement - Cash Receipt
+    private int osFreeDays;
+    
+    private String scn;
+    
+    public String getOperTpCd() {
+		return operTpCd;
+	}
+
+	public String getRefInvNo() {
+		return refInvNo;
+	}
+
+	public void setRefInvNo(String refInvNo) {
+		this.refInvNo = refInvNo;
+	}
+
+	public void setOperTpCd(String operTpCd) {
+		this.operTpCd = operTpCd;
+	}
+
+	public String getCategory() {
+		return category;
+	}
+	
+	public String getAddCreditIvNo() {
+		return addCreditIvNo;
+	}
+
+	public void setAddCreditIvNo(String addCreditIvNo) {
+		this.addCreditIvNo = addCreditIvNo;
+	}
+	
+	public String getProformaIvNo() {
+		return proformaIvNo;
+	}
+
+	public void setProformaIvNo(String proformaIvNo) {
+		this.proformaIvNo = proformaIvNo;
+	}
+
+	public String getDocMT() {
+		return docMT;
+	}
+
+	public void setDocMT(String docMT) {
+		this.docMT = docMT;
+	}
+
+	public String getOperationMT() {
+		return operationMT;
+	}
+
+	public void setOperationMT(String operationMT) {
+		this.operationMT = operationMT;
+	}
+
+	public String getIssuedMT() {
+		return issuedMT;
+	}
+
+	public void setIssuedMT(String issuedMT) {
+		this.issuedMT = issuedMT;
+	}
+
+	public String getIvAmt() {
+		return ivAmt;
+	}
+
+	public void setIvAmt(String ivAmt) {
+		this.ivAmt = ivAmt;
+	}
+
+	public String getCreditNote() {
+		return creditNote;
+	}
+
+	public void setCreditNote(String creditNote) {
+		this.creditNote = creditNote;
+	}
+	
+	public String getCreditNoteYn() {
+		return creditNoteYn;
+	}
+
+	public void setCreditNoteYn(String creditNoteYn) {
+		this.creditNoteYn = creditNoteYn;
+	}
+
+	public void setCategory(String category) {
+		this.category = category;
+	}
+	public String getStdRate() {
+		return stdRate;
+	}
+
+	public void setStdRate(String stdRate) {
+		this.stdRate = stdRate;
+	}
+
+	public String getGatherNo() {
+		return gatherNo;
+	}
+
+	public void setGatherNo(String gatherNo) {
+		this.gatherNo = gatherNo;
+	}
+
+	public String getGatherSeq() {
+		return gatherSeq;
+	}
+
+	public void setGatherSeq(String gatherSeq) {
+		this.gatherSeq = gatherSeq;
+	}
+
+	public String getBillTpCd() {
+		return billTpCd;
+	}
+
+	public void setBillTpCd(String billTpCd) {
+		this.billTpCd = billTpCd;
+	}
+
+	public String getGatherTpCd() {
+		return gatherTpCd;
+	}
+
+	public void setGatherTpCd(String gatherTpCd) {
+		this.gatherTpCd = gatherTpCd;
+	}
+
+	public String getTrfDesc() {
+		return trfDesc;
+	}
+
+	public void setTrfDesc(String trfDesc) {
+		this.trfDesc = trfDesc;
+	}
+
+	public String getApplyRate() {
+		return applyRate;
+	}
+
+	public void setApplyRate(String applyRate) {
+		this.applyRate = applyRate;
+	}
+
+	public String getApplyAmt() {
+		return applyAmt;
+	}
+
+	public void setApplyAmt(String applyAmt) {
+		this.applyAmt = applyAmt;
+	}
+
+	public String getTaxPrtg() {
+		return taxPrtg;
+	}
+
+	public void setTaxPrtg(String taxPrtg) {
+		this.taxPrtg = taxPrtg;
+	}
+
+	public String getTaxAmt() {
+		return taxAmt;
+	}
+
+	public void setTaxAmt(String taxAmt) {
+		this.taxAmt = taxAmt;
+	}
+
+	public String getTotalAmt() {
+		return totalAmt;
+	}
+
+	public void setTotalAmt(String totalAmt) {
+		this.totalAmt = totalAmt;
+	}
+
+	public String getCgTpCd() {
+		return cgTpCd;
+	}
+
+	public void setCgTpCd(String cgTpCd) {
+		this.cgTpCd = cgTpCd;
+	}
+
+	public String getWgt() {
+		return wgt;
+	}
+
+	public void setWgt(String wgt) {
+		this.wgt = wgt;
+	}
+
+	public String getMsrmt() {
+		return msrmt;
+	}
+
+	public void setMsrmt(String msrmt) {
+		this.msrmt = msrmt;
+	}
+
+	public String getPkgQty() {
+		return pkgQty;
+	}
+
+	public void setPkgQty(String pkgQty) {
+		this.pkgQty = pkgQty;
+	}
+
+	public String getFwrAgent() {
+		return fwrAgent;
+	}
+
+	public void setFwrAgent(String fwrAgent) {
+		this.fwrAgent = fwrAgent;
+	}
+
+	public String getShipper() {
+		return shipper;
+	}
+
+	public void setShipper(String shipper) {
+		this.shipper = shipper;
+	}
+
+	public String getConsignee() {
+		return consignee;
+	}
+
+	public void setConsignee(String consignee) {
+		this.consignee = consignee;
+	}
+
+	public String getUserId() {
+		return userId;
+	}
+
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
+
+	public String getRowID() {
+		return rowID;
+	}
+
+	public void setRowID(String rowID) {
+		this.rowID = rowID;
+	}
+
+	public String getIvTp() {
+		return ivTp;
+	}
+
+	public void setIvTp(String ivTp) {
+		this.ivTp = ivTp;
+	}
+
+	public String getIvPrfx() {
+		return ivPrfx;
+	}
+
+	public void setIvPrfx(String ivPrfx) {
+		this.ivPrfx = ivPrfx;
+	}
+
+	public String getIvNo() {
+		return ivNo;
+	}
+
+	public void setIvNo(String ivNo) {
+		this.ivNo = ivNo;
+	}
+
+	public String getCustomerType() {
+		return customerType;
+	}
+
+	public void setCustomerType(String customerType) {
+		this.customerType = customerType;
+	}
+
+	public String getTrfCd() {
+		return trfCd;
+	}
+
+	public void setTrfCd(String trfCd) {
+		this.trfCd = trfCd;
+	}
+
+	public String getSubTrf() {
+		return subTrf;
+	}
+
+	public void setSubTrf(String subTrf) {
+		this.subTrf = subTrf;
+	}
+
+	public String getVatChk() {
+		return vatChk;
+	}
+
+	public void setVatChk(String vatChk) {
+		this.vatChk = vatChk;
+	}
+
+	public String getDocNo() {
+		return docNo;
+	}
+
+	public void setDocNo(String docNo) {
+		this.docNo = docNo;
+	}
+
+	public String getVslCallId() {
+		return vslCallId;
+	}
+
+	public String getInvoiceType() {
+		return invoiceType;
+	}
+
+	public void setInvoiceType(String invoiceType) {
+		this.invoiceType = invoiceType;
+	}
+
+	public void setVslCallId(String vslCallId) {
+		this.vslCallId = vslCallId;
+	}
+
+	public String getDetraccionChk() {
+		return detraccionChk;
+	}
+
+	public void setDetraccionChk(String detraccionChk) {
+		this.detraccionChk = detraccionChk;
+	}
+
+	public String getPayerCd() {
+		return payerCd;
+	}
+
+	public void setPayerCd(String payerCd) {
+		this.payerCd = payerCd;
+	}
+
+	public String getPayerTp() {
+		return payerTp;
+	}
+
+	public void setPayerTp(String payerTp) {
+		this.payerTp = payerTp;
+	}
+
+	public String getFromDate() {
+		return fromDate;
+	}
+
+	public void setFromDate(String fromDate) {
+		this.fromDate = fromDate;
+	}
+
+	public String getToDate() {
+		return toDate;
+	}
+
+	public void setToDate(String toDate) {
+		this.toDate = toDate;
+	}
+
+	public String getBlNo() {
+		return blNo;
+	}
+
+	public void setBlNo(String blNo) {
+		this.blNo = blNo;
+	}
+
+	public String getShipgNoteNo() {
+		return shipgNoteNo;
+	}
+
+	public void setShipgNoteNo(String shipgNoteNo) {
+		this.shipgNoteNo = shipgNoteNo;
+	}
+
+	public String getSearchTp() {
+		return searchTp;
+	}
+
+	public void setSearchTp(String searchTp) {
+		this.searchTp = searchTp;
+	}
+
+	public String getMfDocId() {
+		return mfDocId;
+	}
+
+	public void setMfDocId(String mfDocId) {
+		this.mfDocId = mfDocId;
+	}
+
+	public String getBlNoSnNo() {
+		return blNoSnNo;
+	}
+
+	public void setBlNoSnNo(String blNoSnNo) {
+		this.blNoSnNo = blNoSnNo;
+	}
+
+	public String getPayer() {
+		return payer;
+	}
+
+	public void setPayer(String payer) {
+		this.payer = payer;
+	}
+
+	public String getErpPayNo() {
+		return erpPayNo;
+	}
+
+	public void setErpPayNo(String erpPayNo) {
+		this.erpPayNo = erpPayNo;
+	}
+
+	public String getBankNm() {
+		return bankNm;
+	}
+
+	public void setBankNm(String bankNm) {
+		this.bankNm = bankNm;
+	}
+
+	public String getRmk() {
+		return rmk;
+	}
+
+	public void setRmk(String rmk) {
+		this.rmk = rmk;
+	}
+
+	public String getMasterBL() {
+		return masterBL;
+	}
+
+	public void setMasterBL(String masterBL) {
+		this.masterBL = masterBL;
+	}
+
+	public String getBookingNo() {
+		return bookingNo;
+	}
+
+	public void setBookingNo(String bookingNo) {
+		this.bookingNo = bookingNo;
+	}
+
+	public String getCurr() {
+		return curr;
+	}
+
+	public void setCurr(String curr) {
+		this.curr = curr;
+	}
+
+	public int getOsFreeDays() {
+		return osFreeDays;
+	}
+
+	public void setOsFreeDays(int osFreeDays) {
+		this.osFreeDays = osFreeDays;
+	}
+
+	public String getScn() {
+		return scn;
+	}
+
+	public void setScn(String scn) {
+		this.scn = scn;
+	}
+
+   
+}

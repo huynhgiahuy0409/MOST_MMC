@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="invoiceAdvice">
+	
+   	<select id="selectInvoiceAdviceCount" parameterType="invoiceAdviceParm" resultType="java.lang.String">
+	 	 SELECT COUNT(*)
+          FROM (<include refid="getInvoiceAdvice"/>)
+	</select>
+	<select id="selectInvoiceAdvice"  parameterType="invoiceAdviceParm" resultType="invoiceAdviceItem">
+  		<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getInvoiceAdvice"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+    </select>  
+  	<sql id="getInvoiceAdvice">
+  		SELECT 	/* invoiceAdvice.getInvoiceAdvice */
+  				A.VSL_CALL_ID    								as vesselCallingID,
+  		       	A.ADV_NO     									as adviceNo,  		      
+  		       	C.VSL_NM										as vesselName ,  		       
+			  	A.WGT_LD 										as loadding ,
+			  	A.WGT_DC										as discharging ,
+			  	nvl(A.RMK	, ' ')								as rmk ,	       
+               	D.ETA											as eta , 
+               	D.ETD											as etd ,
+               	D.ARRV_SA_ID 									as shippingAgent, 
+               	E.AGENCY_CODE									as partnerCode,
+               	E.AGENCY_CODE || ':' ||E.ENG_SNM				as partnerName , 	       	
+  		       	A.UPDATE_TIME									as updateTimeField,	       
+                A.STAFF_CD                         		    	as updUserId
+          FROM 
+            ( SELECT  A1.VSL_CALL_ID as  VSL_CALL_ID,  A1.ADV_NO  as ADV_NO ,
+                      SUM(CASE WHEN  A1.OPE_TP_CD = 'LD' THEN A1.WGT ELSE 0 END)     as WGT_LD    ,
+                      SUM(CASE WHEN  A1.OPE_TP_CD = 'DS' THEN A1.WGT ELSE 0 END)     as WGT_DC    ,
+                      MAX (A1.RMK) as RMK,
+                      MAX (A1.UPDATE_TIME) AS UPDATE_TIME,
+                      MAX (A1.STAFF_CD) AS STAFF_CD
+			FROM TMT_B_IV_ADV A1, TMT_VSL_SCH SCH1 WHERE A1.VSL_CALL_ID = SCH1.VSL_CALL_ID
+			<if test="vesselCallingID != null and vesselCallingID != ''">
+    		AND	A1.VSL_CALL_ID  = #{vesselCallingID}
+			</if>	
+			<if test="adviceNo != null and adviceNo != ''">
+    		AND	A1.ADV_NO  like  #{adviceNo} || '%'
+			</if>		
+			 <if test="eta != null and eta != ''">
+				AND SCH1.ETA BETWEEN TO_DATE(#{eta},'DD/MM/YYYY HH24:MI') AND TO_DATE(#{etd}, 'DD/MM/YYYY HH24:MI')
+			</if>
+			GROUP BY  A1.VSL_CALL_ID ,  A1.ADV_NO
+			HAVING 1=1
+			ORDER BY A1.VSL_CALL_ID) A  , 
+		   TMT_VSL_PART C , TMT_VSL_SCH D , TMT_AGENCY_INFO E,
+		  (SELECT AU01.VSL_CALL_ID,
+					 AU01.ADV_NO 
+			  FROM 
+				TMT_B_IV_ADV AU01 , TMT_VSL_SCH AU02
+			  WHERE AU01.VSL_CALL_ID = AU02.VSL_CALL_ID
+			  	<if test="eta != null and eta != ''">
+					AND AU02.ETA BETWEEN TO_DATE(#{eta},'DD/MM/YYYY HH24:MI') AND TO_DATE(#{etd}, 'DD/MM/YYYY HH24:MI')
+				</if>
+				<if test="vesselCallingID != null and vesselCallingID != ''">
+    			AND	AU01.VSL_CALL_ID  = #{vesselCallingID}
+				</if>
+				AND (('CSC'= #{authority}) 
+				<if test="ptnrCd != null and ptnrCd != ''">
+     		   	OR	(AU01.PAYER_CD= #{ptnrCd})  OR (AU02.ARRV_SA_ID = #{ptnrCd}) OR (AU01.PTNR_CD=#{ptnrCd})
+				</if>
+			)
+			 GROUP BY AU01.VSL_CALL_ID,AU01.ADV_NO) AUTH
+  		 WHERE 
+  		 	   AUTH.VSL_CALL_ID = A.VSL_CALL_ID  
+		 	   AND AUTH.ADV_NO= A.ADV_NO 
+  		 	   AND D.ARRV_SA_ID = E.AGENCY_CODE(+)   		 	   
+  		 	   AND A.VSL_CALL_ID = D.VSL_CALL_ID(+)  
+  		 	   AND D.VSL_CD= C.VSL_CD(+) 
+		<if test="vesselCallingID != null and vesselCallingID != ''">
+  				AND	A.VSL_CALL_ID  = #{vesselCallingID}
+		</if>	
+		<if test="adviceNo != null and adviceNo != ''">
+  				AND	A.ADV_NO  like  #{adviceNo} || '%'
+		</if>		
+		<if test="eta != null and eta != ''">
+				AND D.ETA BETWEEN TO_DATE(#{eta},'DD/MM/YYYY HH24:MI') AND TO_DATE(#{etd}, 'DD/MM/YYYY HH24:MI')
+		</if>
+		ORDER BY A.VSL_CALL_ID , A.ADV_NO , D.ARRV_SA_ID , D.ETA, D.ETD
+    </sql> 
+    <select id="selectInvoiceAdviceDetail"  parameterType="invoiceAdviceParm" resultType="invoiceAdviceDetailItem">
+		SELECT E.VSL_CALL_ID as vesselCallingID,
+			   A.ADV_SEQ as advSeq,
+  		       A.ADV_NO as adviceNo,
+  		       NVL(A.PTNR_TP_CD,'') as partnerTypeCode,
+  		       F_CM_001('MT', 'PTNRTP', A.PTNR_TP_CD)   as partnerTypeName,
+  		       NVL(A.PTNR_CD,' ') as partnerCode,
+ 			   (CASE WHEN A.PTNR_TP_CD = 'SHA'
+ 			   		 THEN (SELECT A.PTNR_CD || ':' ||K.ENG_SNM
+					       FROM  TMT_AGENCY_INFO K
+					       WHERE A.PTNR_CD = K.AGENCY_CODE)
+
+ 			   		 ELSE  (SELECT A.PTNR_CD || ':' ||B.ENG_SNM
+						    FROM TMT_PTNR B
+						    WHERE A.PTNR_CD = B.PTNR_CODE
+						    AND A.PTNR_TP_CD = B.PTNR_TYPE)
+ 			    END) as partnerName,
+ 			   NVL(A.PAYER_TP_CD,'') as payerTpCd,
+ 			   F_CM_001('MT', 'PTNRTP', A.PAYER_TP_CD)	as payerTpName,
+  		       NVL(A.PAYER_CD,' ') as payerCd,
+  		       '' as accno,
+ 			   (CASE WHEN A.PAYER_TP_CD = 'SHA'
+ 			   		 THEN (SELECT A.PAYER_CD || ':' ||K.ENG_SNM
+			               FROM  TMT_AGENCY_INFO K
+                           WHERE A.PAYER_CD = K.AGENCY_CODE)
+
+					 ELSE (SELECT A.PAYER_CD || ':' ||B.ENG_SNM
+                           FROM TMT_PTNR B
+                           WHERE A.PAYER_CD = B.PTNR_CODE
+						   AND A.PAYER_TP_CD = B.PTNR_TYPE)
+                 END) as payerName,
+               A.TRF_TP_CD as tarrifTypeCode,
+               F_CM_001('MT', 'TRFTP', A.TRF_TP_CD) as tarrifTypeName,
+               NVL(A.OPE_TP_CD,' ') as operationTypeCode,
+               F_CM_001('MT', 'OPETP',A.OPE_TP_CD) as operationTypeName ,
+               NVL(A.CMDT_CD,' ') as commodityCode,
+               A.WGT as wgt,
+               A.VOL as msrmt ,
+               A.QTY as qty ,
+               NVL(A.RMK   ,' ') as rmk ,
+               NVL(A.BL_NO,' ') as blNo,
+               NVL(A.SHIPG_NOTE_NO,' ') as shipgNoteNo,
+               A.STAFF_CD as userId,
+               A.VERSION as version,
+               A.UPDATE_TIME as updateTimeField,
+               D.VSL_NM as vslNm,
+               E.ETA as etaVessel,
+               E.ETB as etbVessel,
+               E.ETD as etdVessel,
+               E.ARRV_SA_ID as shippingAgent,
+               E.VSL_OPERATOR as vslOperator,
+               D.VSL_TP as vslTp,
+               D.VSL_CD as vslCd,
+               D.CALL_SIGN as callSign,
+               E.CALL_SEQ as callSeq,
+               E.INB_VOY as inbVoy,
+               E.OUTB_VOY as outbVoy,
+               E.INB_VOY  || '/' ||    E.OUTB_VOY as voyage,
+               E.BERTH_LOC as berthLoc,
+               A1.MT as dischargingTotalWgt,
+               A1.M3 as dischargingTotalMsrmt ,
+               A1.QTY as dischargingTotalQty,
+               A2.WGT as loadingTotalWgt,
+               A2.MT as loadingTotalMsrmt,
+               A2.QTY as loadingTotalQty,
+               F_CM_001('MT', 'CGTP', E.CARGO_TP) cargoTp,
+       			NVL(A.BL_NO,A.SHIPG_NOTE_NO) AS DOCNO
+        FROM TMT_B_IV_ADV A, TMT_VSL_PART D, TMT_VSL_SCH E, 
+			 (SELECT A11.VSL_CALL_ID as VSL_CALL_ID,
+					 SUM(A11.CG_WGT) as MT ,
+					 SUM(A11.CG_VOL) as M3 ,
+					 SUM(A11.PKG_QTY) as QTY
+			 FROM TMT_BL A11
+			 WHERE A11.VSL_CALL_ID = #{vesselCallingID}
+			 GROUP BY A11.VSL_CALL_ID) A1,
+			 (SELECT  A21.VSL_CALL_ID,
+					SUM(A21.CG_WGT) as WGT,
+					SUM(A21.CG_VOL) as MT,
+					SUM(A21.PKG_QTY)  as QTY
+			 FROM  TMT_SHIPG_NOTE A21
+			 WHERE A21.VSL_CALL_ID = #{vesselCallingID}
+			 GROUP BY A21.VSL_CALL_ID) A2 
+		WHERE 1=1
+		AND E.VSL_CALL_ID = #{vesselCallingID}
+		AND E.VSL_CALL_ID = A2.VSL_CALL_ID(+)
+		AND E.VSL_CALL_ID = A1.VSL_CALL_ID(+)
+		AND A.VSL_CALL_ID = E.VSL_CALL_ID
+		AND D.VSL_CD = E.VSL_CD
+		AND (('CSC'= #{authCd})
+		<if test="ptnrCd != null and ptnrCd != ''">
+		   OR (A.PAYER_CD = #{ptnrCd})
+		   OR (E.ARRV_SA_ID = #{ptnrCd})
+		   OR (A.PTNR_CD = #{ptnrCd})
+		</if>
+	    )
+		<if test="adviceNo != null and adviceNo != ''">
+  		AND A.ADV_NO  = #{adviceNo}
+		</if>
+		<if test="advSeq != null and advSeq != ''">
+		AND A.ADV_SEQ = #{advSeq}
+		</if>
+    </select> 
+    
+     <select id="selectIvAdviceNo"  parameterType="invoiceAdviceParm" resultType="java.lang.String">
+		SELECT  #{shippingAgent}||CONCAT(TO_CHAR(SYSDATE,'YYMM') , 
+				NVL(LTRIM(TO_CHAR((max(TO_NUMBER(SUBSTR(A.ADV_NO ,11,5)))+1),'00000'),' '),'00001'))
+		    			as adviceNo
+		FROM TMT_B_IV_ADV A
+		WHERE A.ADV_NO like ( CONCAT(#{shippingAgent},TO_CHAR(SYSDATE,'YYMM'))||'%')
+	</select>
+	
+	<select id="selectIvAdviceSeq"  parameterType="invoiceAdviceParm" resultType="java.lang.String">
+		SELECT	TO_CHAR(NVL(MAX(A.ADV_SEQ)+1,0))	as advSeq
+		FROM 	TMT_B_IV_ADV A
+		WHERE 	A.ADV_NO = #{adviceNo}
+	</select>
+    
+    <insert id="insertItems"  parameterType="invoiceAdviceDetailItem">
+		INSERT INTO TMT_B_IV_ADV 
+				(ADV_SEQ,
+				VSL_CALL_ID,
+				ADV_NO,
+				PTNR_TP_CD,
+				PTNR_CD,
+				TRF_TP_CD,
+				OPE_TP_CD,
+				CMDT_CD,
+				BL_NO,
+				SHIPG_NOTE_NO,
+				WGT,
+				VOL,
+				QTY,
+				RMK,
+				UPDATE_TIME,
+				STAFF_CD,
+				VERSION,
+				PAYER_CD,
+				PAYER_TP_CD)
+		
+		VALUES 	(#{advSeq} , 
+			   	#{vesselCallingID} , 
+			    #{adviceNo} , 
+		     	#{partnerTypeCode},
+		     	#{partnerCode},
+		     	#{tarrifTypeCode},
+		     	#{operationTypeCode},
+		     	#{commodityCode},
+			 	#{blNo},
+			 	#{shipgNoteNo},
+			 	#{wgt},
+			 	#{msrmt},
+			 	#{qty},
+			 	#{rmk},
+			 	SYSDATE ,
+			 	#{userId},
+			 	#{newVersion},
+			 	#{payerCd},
+			 	#{payerTpCd})
+    </insert>
+    <update id="updateItems"  parameterType="invoiceAdviceDetailItem">
+		UPDATE	TMT_B_IV_ADV 
+		SET VSL_CALL_ID = 	#{vesselCallingID},
+				<if test="advSeq != null and advSeq != ''" >				
+			 		PTNR_TP_CD = 	#{partnerTypeCode},			 	
+					PTNR_CD 	= 	#{partnerCode} ,	
+					PAYER_TP_CD = 	#{payerTpCd},			 	
+					PAYER_CD 	= 	#{payerCd} ,					
+					TRF_TP_CD 	= 	#{tarrifTypeCode},				
+					OPE_TP_CD 	=  	#{operationTypeCode} ,				
+					CMDT_CD =	#{commodityCode},				
+					BL_NO=	#{blNo},				
+					SHIPG_NOTE_NO=	#{shipgNoteNo},			
+					WGT=	#{wgt},				
+					VOL=	#{msrmt},		
+					QTY=	#{qty},
+					RMK=	#{rmk},
+					STAFF_CD	= #{userId} ,
+				</if>
+				<if test="version != null and version != ''">
+					VERSION = #{newVersion} ,
+				</if>
+				UPDATE_TIME 	= SYSDATE 				
+		WHERE	ADV_NO	= #{adviceNo} 
+		<if test="version != null and version != ''">
+  				AND	VERSION = #{version} 
+		</if>
+		<if test="advSeq != null and advSeq != ''">
+  				AND	ADV_SEQ=#{advSeq}	
+	 	</if>	
+    </update>
+    <update id="deleteItems"  parameterType="invoiceAdviceDetailItem">
+		DELETE 	FROM TMT_B_IV_ADV 
+		WHERE	ADV_NO	= #{adviceNo} AND  ADV_SEQ=#{advSeq}
+		<if test="version != null and version != ''">
+  		AND	VERSION = #{version} 
+		</if>
+    </update> 
+</mapper>

@@ -1,0 +1,484 @@
+Ext.define('MOST.view.planning.megadetail.MegaDetailTabGears', {
+	extend: 'Ext.panel.Panel',
+	alias: 'widget.app-megadetailtabgears',
+
+	requires: [
+		'Ext.grid.plugin.RowEditing',
+		'Ext.grid.plugin.Exporter',
+		'Ext.grid.plugin.Clipboard',
+		'Ext.grid.filters.Filters',
+		'Ext.grid.selection.SpreadsheetModel'
+	],
+
+	flex: 1,
+
+	layout: { type: 'hbox', align: 'stretch' },
+
+	initComponent: function () {
+		var me = this;
+
+		Ext.apply(me, {
+			items: [
+				{
+					xtype: 'container',
+					flex: 0.7,
+					layout: {
+						type: 'vbox',
+						align: 'stretch'
+					},
+					items: [
+						{
+							xtype: 'fieldset',
+							layout: {
+								type: 'hbox',
+								align: 'stretch'
+							},
+							margin: '5 5 0 0',
+							padding: '10 10 10 10',
+							items: [ 
+								{
+									xtype: 'container',
+									flex: 7,
+									items: [
+										{
+											xtype: 'container',
+											layout: {
+												type: 'hbox',
+												align: 'stretch'
+											},
+											defaults: {
+												margin: '0 0 0 0',
+											},
+											items: [
+												{
+												    xtype: 'combobox',                
+												    reference: 'cboEqTypeGears',
+												    fieldLabel: ViewUtil.getLabel('gearRequisition'),
+												    queryMode: 'local',
+												    bind: {
+														store: '{megaRequisitionMegaStatusComboStore}'
+													},
+												    displayField: 'scdNm',
+												    valueField: 'scd',
+												    value: 'GR', 
+												    filter: 'string',
+												    editable: false,
+												    hidden:true,
+												    matchFieldWidth: true,
+												    listeners: {
+												        change: 'onEqTypeComboForGearsChange'
+												    },
+												    labelWidth: 120,
+												    width: 240,
+												    labelAlign: 'right'
+												},
+												
+												{
+													xtype: 'combobox',
+													reference: 'cboCapacityGears',
+													fieldLabel: ViewUtil.getLabel('gearRequisition'),
+													labelWidth: 100,
+													labelAlign: 'right', 
+													margin: '0 0 0 0',
+													width: '100%',
+													queryMode: 'local',
+													emptyText: ViewUtil.getLabel('select'),
+													bind: {
+														store: '{megaDetailGearsCapacityCombo}'
+													},
+													displayField: 'capaDesc',
+													valueField: 'capaCd',
+													filter: 'string',
+													editable: false,
+													forceSelection: true, 
+													getDisplayValue: function () {
+														return Ext.String.htmlDecode(this.displayTpl.apply(this.displayTplData))
+													},
+												}
+											]
+										},
+										{
+											xtype: 'container',
+											layout: {
+												type: 'hbox',
+												align: 'stretch'
+											},
+											defaults: {
+												margin: '5 0 0 0',
+												flex: 1
+											},
+											items: [
+												{
+													xtype: 'textfield',
+													align: 'left',
+													reference: 'ctlWorkingAreaGears',
+													fieldLabel: ViewUtil.getLabel('workingArea'),
+													labelWidth: 100,
+													labelAlign: 'right',
+													editable: true,
+													matchFieldWidth: true,
+													displayField: 'cd',
+													valueField: 'cd',
+													emptyText: ViewUtil.getLabel('select'),
+													triggers: {
+														someField: {
+															cls: 'fa-search',
+															scope: 'controller',
+															handler: 'onTriggerClick'
+														}
+													},
+													listeners: {
+														change: function (field, newValue) {
+															field.setValue(newValue.toUpperCase());
+														}
+													}
+												},
+												{
+													xtype: 'numberfield',
+													reference: 'reqQtyFieldGears',
+													fieldLabel: ViewUtil.getLabel('requestQty'),
+													labelWidth: 100,
+													labelAlign: 'right',
+													align: 'right',
+													value: 1,
+													placeholder: 0,
+													minValue: 0,
+													maxValue: 999999,
+													listeners: {
+														blur: function () {
+															var me = this;
+															if (this.getValue() === null || this.getValue() === '') {
+																this.setValue(0);
+															}
+														}
+													}
+												},
+												{
+													xtype: 'numberfield',
+													align: 'right',
+													value: 1,
+													placeholder: 0,
+													minValue: 0,
+													maxValue: 999999,
+													reference: 'confQtyFieldGears',
+													fieldLabel: ViewUtil.getLabel('confirmQty'),
+													labelWidth: 100,
+													labelAlign: 'right',
+													listeners: {
+														blur: function () {
+															var me = this;
+															if (this.getValue() === null || this.getValue() === '') {
+																this.setValue(0);
+															}
+														}
+													}
+												}
+											]
+										},
+										{
+											xtype: 'container',
+											layout: {
+												type: 'hbox'
+											},
+											margin: '0 0 0 0',
+											items: [
+												{
+													xtype: 'container',
+													flex: 1,
+													width: '100%',
+													layout: {
+														type: 'hbox',
+														align: 'stretch'
+													},
+													defaults: {
+														margin: '5 0 0 0',
+														labelWidth: 100,
+														labelAlign: 'right',
+														flex: 1
+													},
+													reference: 'cardTimeViewForGears',
+													items: [
+														{
+															xtype: 'datetimefield',
+															fieldLabel: ViewUtil.getLabel('startTime'),
+															reference: 'refStartTimeGears',
+															editable: false,
+															format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds()
+														},
+														{
+															xtype: 'datetimefield',
+															fieldLabel: ViewUtil.getLabel('endTime'),
+															reference: 'refEndTimeGears',
+															editable: false,
+															format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds()
+														}
+													]
+												},
+
+											]
+										}
+									]
+								},
+								{
+									xtype: 'container',
+									flex: 3,
+									layout: {
+										type: 'hbox',
+										align: 'right',
+										pack: 'end'
+									}, 
+									reference: 'cardCudBtnViewForGears',
+									defaults: {
+										margin: '0 0 0 5'
+									},
+									items: [
+										{
+											xtype: 'button',
+											reference: 'ctlMegaDetailAddForGears',
+											iconCls: 'x-fa fa-plus',
+											text: ViewUtil.getLabel('add'),
+											listeners: {
+												click: 'onAddForGears'
+											}
+										},
+										{
+											xtype: 'button',
+											reference: 'ctlMegaDetailUpdateForGears',
+											ui: 'update-button',
+											iconCls: 'x-fa fa-plus',
+											text: ViewUtil.getLabel('update'),
+											listeners: {
+												click: 'onGridUpdateForGears'
+											}
+										},
+										{
+											xtype: 'button',
+											reference: 'ctlMegaDetailDeleteForGears',
+											ui: 'delete-button',
+											iconCls: 'x-fa fa-minus',
+											text: ViewUtil.getLabel('delete'),
+											listeners: {
+												click: 'onGridRemoveForGears'
+											}
+										}
+									]
+								}
+							]
+						},
+
+						{
+							xtype: 'fieldset',
+							flex: 1,
+							layout: {
+								type: 'vbox',
+								align: 'stretch'
+							},
+							margin: '5 5 0 0',
+							padding: '0 0 0 0',
+							items: [
+								{
+									xtype: 'tsb-datagrid',
+									reference: 'refMegaDetailGearsGrid',
+									usePagingToolbar: false,
+									flex: 1,
+									margin: '0 0 0 0',
+									stateful: true,
+									stateId: 'stateMegaDetailTabGearsGrid',
+									plugins: [
+										'gridexporter',
+										'gridfilters',
+										'clipboard'
+									],
+									bind: {
+										store: '{megaDetailGears}'
+									},
+									selModel: {
+										type: 'spreadsheet',
+										cellSelect: false
+									},
+									listeners: {
+										celldblclick: 'onDblClickForGears',
+										selectionchange: 'onMasterSelectionChangeForGears'
+									},
+									columns: {
+										defaults: {
+											style: 'text-align:center',
+											align: 'center',
+
+										},
+										items: GridUtil.getGridColumns('MegaDetailGears')
+									}
+								}
+							]
+						}
+					]
+				},
+				{
+					xtype: 'container',
+					flex: 0.3,
+					layout: {
+						type: 'vbox',
+						align: 'stretch'
+					},
+					reference: 'ctlCompanyGear',
+					items: [
+						{
+							xtype: 'fieldset',
+							layout: {
+								type: 'vbox'
+							},
+							margin: '5 0 5 0',
+							padding: '10 10 10 10',
+							items: [
+								{
+									xtype: 'partnercdfield',
+									reference: 'cboContractorGears',
+									width: '100%',
+									fieldLabel: ViewUtil.getLabel('contractor'),
+									labelAlign: 'right',
+									labelWidth: 80,
+									params: {
+										ptnrType: CodeConstants.MT_PTNRTP_CTT
+									}
+								},
+								{
+									xtype: 'numberfield',
+									minValue: 1,
+									maxValue: 99999,
+									reference: 'ctlNoOfGears',
+									width: '100%',
+									margin: '5 0 0 0',
+									fieldLabel: ViewUtil.getLabel('nosofGears'), 
+									value: 1,
+									placeholder: 0,
+									labelWidth: 80,
+									labelAlign: 'right',
+									listeners: {
+										blur: function () {
+											var me = this;
+											if (this.getValue() === null || this.getValue() === '') {
+												this.setValue(1);
+											}
+										}
+									}
+								},
+								{
+									xtype: 'container',
+									layout: {
+										type: 'vbox',
+										align: 'stretch'
+									},
+									margin: '5 0 0 115',
+									items: [
+										{
+											xtype: 'container',
+											layout: {
+												type: 'hbox',
+												align: 'right',
+												pack: 'end'
+											}, 
+											items: [ 
+												{
+													xtype: 'button',
+													reference: 'ctlMegaDetailAddForGearsCompany',
+													margin: '0 0 0 5',
+													iconCls: 'x-fa fa-plus',
+													text: ViewUtil.getLabel('add'),
+													listeners: {
+														click: 'onAddForGearsCompany'
+													}
+												},
+												{
+													xtype: 'button',
+													reference: 'ctlMegaDetailUpdateForGearsCompany',
+													margin: '0 0 0 5',
+													ui: 'update-button',
+													iconCls: 'x-fa fa-plus',
+													text: ViewUtil.getLabel('update'),
+													listeners: {
+														click: 'onGridUpdateForGearsCompany'
+													}
+												},
+												{
+													xtype: 'button',
+													reference: 'ctlMegaDetailDeleteForGearsCompany',
+													margin: '0 0 0 5',
+													ui: 'delete-button',
+													iconCls: 'x-fa fa-minus',
+													text: ViewUtil.getLabel('delete'),
+													listeners: {
+														click: 'onGridRemoveForGearsCompany'
+													}
+												}
+											]
+										}
+									]
+								}
+							]
+						}, {
+							xtype: 'fieldset',
+							flex: 1,
+							layout: {
+								type: 'vbox',
+								align: 'stretch'
+							},
+							margin: '0 0 0 0',
+							padding: '0 0 0 0',
+							items: [
+								{
+									xtype: 'tsb-datagrid',
+									reference: 'refMegaDetailGearsCompanyGrid',
+									usePagingToolbar: false,
+									flex: 1,
+									margin: '0 0 0 0',
+									stateful: true,
+									stateId: 'stateMegaDetailTabGearsCompanyGrid',
+									plugins: [
+										'gridexporter',
+										'gridfilters',
+										'clipboard'
+									],
+									bind: {
+										store: '{megaDetailTabGearsCompany}'
+									},
+									selModel: {
+										type: 'spreadsheet',
+										cellSelect: false
+									},
+									listeners: {
+										selectionchange: 'onCompanySelectionChangeForGears'
+									},
+									columns: {
+										defaults: {
+											style: 'text-align:center',
+											align: 'center'
+										},
+										items: GridUtil.getGridColumns('MegaDetailTabGearsCompany')
+									}
+								}
+							]
+						}
+					]
+				},
+				{
+					xtype: 'container',
+					reference: 'ctlDetailGearImage',
+					flex: 0.3,
+					defaults: {
+						margin: '5 5 5 5'
+					},
+					layout: 'auto',
+					items: [
+						{
+							xtype: 'image',
+							src: 'resources/images/mega/MegaDtl_Gears.gif',
+							region: 'center'
+						}
+					]
+				}
+			]
+		});
+
+		me.callParent();
+	}
+});

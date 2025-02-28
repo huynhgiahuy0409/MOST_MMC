@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="theListOfUnitNoCorrection">
+	<resultMap 	id="resultComboList" 	type="theListOfUnitNoCorrectionItem">
+   		<result property = "cd"			column = "CD"/>
+   		<result property = "cdNm"		column = "CD_NM"/>
+ 	</resultMap>
+ 	
+
+ 	<resultMap 	id="resultUnitMap" type="theListOfUnitNoCorrectionItem">
+   		<result property = "vslCallId"		column = "VSL_CALL_ID"/>
+		<result property = "docNo" 			column = "MF_DOC_ID"/>
+		<result property = "cgNo" 			column = "CG_NO"/>
+		<result property = "correctedUnitNo" 		column = "CHAS_NO"/>
+		<result property = "roroSeq" 		column = "RORO_SEQ"/>
+		<result property = "catgCd" 		column = "CATG_CD"/>
+		<result property = "catgNm" 		column = "CATG_NM"/>
+		<result property = "unitYardLoc" 	column = "LOC_ID"/>
+		<result property = "statCd" 		column = "STAT_CD"/>
+		<result property = "statNm" 		column = "STAT_NM"/>
+		<result property = "cgTpCd" 		column = "CG_TP_CD"/>
+		<result property = "cgTpNm" 		column = "CG_TP_NM"/>
+		<result property = "originalUnitNo" column = "ORG_UNIT_NO"/>
+		<result property = "dischargedDate" column = "DISCHARGING_DTM"/>
+		<result property = "inDate" 		column = "IN_DTM"/>
+		<result property = "outDate" 		column = "OUT_DTM"/>
+		<result property = "gateInDate" 	column = "GATE_IN_DTM"/>
+		<result property = "gateOutDate" 	column = "GATE_OUT_DTM"/>
+		<result property = "fwdCd" 			column = "FWD_CD"/>
+		<result property = "fwdNm" 			column = "FWD_NM"/>
+ 	</resultMap>
+
+	<sql id="sqlCorrectionUnitNoItems">
+		SELECT	/* TheListOfUnitNoCorrection.selectCorrectionUnitNoItems */
+				RR.VSL_CALL_ID,
+			    RR.MF_DOC_ID,
+			    RR.CG_NO,
+			    RR.CHAS_NO,
+			    RR.RORO_SEQ,
+			    RR.CATG_CD,
+			    F_CM_001('MT', 'CATGTP', RR.CATG_CD) AS CATG_NM,
+			    TO_CHAR(RR.DISCHARGING_DTM, 'DD/MM/YYYY HH24:MI') AS DISCHARGING_DTM,
+			    TO_CHAR(RR.IN_DTM, 'DD/MM/YYYY HH24:MI') AS IN_DTM,
+			    TO_CHAR(RR.OUT_DTM, 'DD/MM/YYYY HH24:MI') AS OUT_DTM,
+			    TO_CHAR(RR.GATE_IN_DTM, 'DD/MM/YYYY HH24:MI') AS GATE_IN_DTM,
+			    TO_CHAR(RR.GATE_OUT_DTM, 'DD/MM/YYYY HH24:MI') AS GATE_OUT_DTM,
+			    RR.LOC_ID,
+			    RR.STAT_CD,
+			    F_CM_001('MT', 'CGSTATUS', RR.STAT_CD) AS STAT_NM,
+			    RR.CG_TP_CD,
+	        	F_CM_001('MT', 'CGTP', RR.CG_TP_CD) AS CG_TP_NM,
+	        	CR.ORG_UNIT_NO,
+	        	
+	        	CASE WHEN RR.IX_CD = 'I' THEN (SELECT FWRD FROM TMT_BL WHERE VSL_CALL_ID = RR.VSL_CALL_ID AND BL_NO = RR.CG_NO AND ROWNUM=1)
+	        			ELSE (SELECT FWRD FROM TMT_SHIPG_NOTE WHERE VSL_CALL_ID = RR.VSL_CALL_ID AND SHIPG_NOTE_NO = RR.CG_NO AND ROWNUM=1)
+	        	END AS FWD_CD,
+	        	CASE WHEN RR.IX_CD = 'I' THEN (SELECT F_CM_007(FWRD, 'FWD') FROM TMT_BL WHERE VSL_CALL_ID = RR.VSL_CALL_ID AND BL_NO = RR.CG_NO AND ROWNUM=1)
+	        			ELSE (SELECT F_CM_007(FWRD, 'FWD') FROM TMT_SHIPG_NOTE WHERE VSL_CALL_ID = RR.VSL_CALL_ID AND SHIPG_NOTE_NO = RR.CG_NO AND ROWNUM=1)
+	        	END AS FWD_NM
+		FROM    TMT_RORO_MST RR INNER JOIN
+	            (SELECT  VSL_CALL_ID,
+	                     DOC_NO,
+	                     CG_NO,
+	                     RORO_SEQ,
+	                     ORG_UNIT_NO
+	             FROM    TMT_RORO_UNIT_CORRECTION C
+	             WHERE   SEQ = (SELECT MIN(T.SEQ) FROM TMT_RORO_UNIT_CORRECTION T WHERE T.VSL_CALL_ID = C.VSL_CALL_ID AND T.CG_NO = C.CG_NO AND T.RORO_SEQ = C.RORO_SEQ)
+	            ) CR ON CR.VSL_CALL_ID = RR.VSL_CALL_ID AND CR.CG_NO = RR.CG_NO AND CR.RORO_SEQ = RR.RORO_SEQ
+		
+				<choose>
+					<when test="vslCallId == 'STRG'">
+						INNER JOIN TMT_SHIPG_NOTE S ON RR.VSL_CALL_ID = S.VSL_CALL_ID AND RR.CG_NO = S.SHIPG_NOTE_NO
+					</when>
+				</choose>
+		
+		WHERE   RR.VSL_CALL_ID = #{vslCallId}
+				<if test="unitNo != null and unitNo != ''">    
+			        AND CR.ORG_UNIT_NO LIKE CONCAT(#{unitNo}, '%')
+			    </if>
+			    <choose>
+					<when test="vslCallId == 'STRG'">
+						<if test="estArrvFromDt != null and estArrvFromDt != ''">
+							AND EST_ARRV_DT &gt;= TO_DATE(CONCAT(#{estArrvFromDt}, ' 00:00'), 'DD/MM/YYYY HH24:MI')
+						</if>
+						<if test="estArrvToDt != null and estArrvToDt != ''">
+							AND EST_ARRV_DT &lt;= TO_DATE(CONCAT(#{estArrvToDt}, ' 23:59'), 'DD/MM/YYYY HH24:MI')
+						</if>
+					</when>
+				</choose>
+	</sql>
+	
+	<select id="selectCorrectionUnitNoItems" parameterType="theListOfUnitNoCorrectionParm" resultMap="resultUnitMap">
+	 	<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+		<choose>
+			<when test="((blNo != null and blNo != '')) and ((snNo == null or snNo == ''))">
+				<include refid="sqlCorrectionUnitNoItems" />
+			     <if test="blNo != null and blNo != ''">    
+			        AND RR.CG_NO = #{blNo}
+			    </if>
+			</when>
+			<when test="((blNo == null or blNo == '')) and ((snNo != null and snNo != ''))">
+				<include refid="sqlCorrectionUnitNoItems" />
+			     <if test="snNo != null and snNo != ''">    
+			        AND RR.CG_NO = #{snNo}
+			    </if>
+			</when>
+			<otherwise>
+				<include refid="sqlCorrectionUnitNoItems" />
+			     <if test="blNo != null and blNo != ''">    
+			        AND RR.CG_NO = #{blNo}
+			    </if>
+				UNION
+				<include refid="sqlCorrectionUnitNoItems" />
+			     <if test="snNo != null and snNo != ''">    
+			        AND RR.CG_NO = #{snNo}
+			    </if>
+			</otherwise>
+		</choose>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	 </select>
+	 
+	 <select id="selectCorrectionUnitNoItemsCount" parameterType="theListOfUnitNoCorrectionParm" resultType="java.lang.String">
+	 	SELECT COUNT(*)
+          FROM (
+          <choose>
+			<when test="((blNo != null and blNo != '')) and ((snNo == null or snNo == ''))">
+				<include refid="sqlCorrectionUnitNoItems" />
+			     <if test="blNo != null and blNo != ''">    
+			        AND RR.CG_NO = #{blNo}
+			    </if>
+			</when>
+			<when test="((blNo == null or blNo == '')) and ((snNo != null and snNo != ''))">
+				<include refid="sqlCorrectionUnitNoItems" />
+			     <if test="snNo != null and snNo != ''">    
+			        AND RR.CG_NO = #{snNo}
+			    </if>
+			</when>
+			<otherwise>
+				<include refid="sqlCorrectionUnitNoItems" />
+			     <if test="blNo != null and blNo != ''">    
+			        AND RR.CG_NO = #{blNo}
+			    </if>
+				UNION
+				<include refid="sqlCorrectionUnitNoItems" />
+			     <if test="snNo != null and snNo != ''">    
+			        AND RR.CG_NO = #{snNo}
+			    </if>
+			</otherwise>
+		</choose>
+          )
+	 </select>
+
+</mapper>

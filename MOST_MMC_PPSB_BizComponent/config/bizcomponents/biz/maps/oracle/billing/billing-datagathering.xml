@@ -1,0 +1,987 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="dataGathering">
+
+	<resultMap type="dataGetheringItem" id="DataGetheringItemMap">
+		<result property="vslCallId" 		column="vslCallId" />
+		<result property="atb" 				column="ATB" />
+		<result property="atw" 				column="ATW" />
+		<result property="atc" 				column="ATC" />
+		<result property="atu" 				column="ATU" />
+		<result property="berth" 			column="BERTH" />
+		<result property="cargoType" 		column="CARGO_TYPE" />
+		<result property="warehouseId"		column="WAREHOUSE_ID" />
+		<result property="imRecclCd" 		column="IM_RECONCILE_STATE" />
+		<result property="exRecclCd" 		column="EX_RECONCILE_STATE" />
+		<result property="status" 			column="STATUS" />
+		<result property="gatheredDate" 	column="GATHERD_DATE" />
+		<result property="gatheringStaff" 	column="GATHERGING_STAFF" />
+		<result property="marineCharge" 	column="MARINECHARGE" />
+		<result property="payer" 			column="PAYER" />
+		<result property="shippingAgent" 	column="SAGENT" />
+		<result property="version" 			column="VERSION" />
+	</resultMap>
+	<resultMap type="gatheredDataItem" 	id="GatheredDataItemMap">
+		<result property="rowNum" 			column="NO" />
+		<result property="vslCallId" 		column="vslCallId" />
+		<result property="bbtCheck" 		column="BBT_CHECK" />
+		<result property="waiverDescr" 		column="WAIVER_DESCR" />
+		<result property="payer" 			column="PAYER" />
+		<result property="payerName" 		column="PAYER_NAME" />
+		<result property="prefix" 			column="PRE_FIX" />
+		<result property="tariffType" 		column="TARIFF_TYPE" />
+		<result property="tariffTypeName" 	column="TARIFF_TYPE_NAME" />
+		<result property="tariffCode" 		column="TARIFF_CODE" />
+		<result property="subTariffCode" 	column="SUB_TARIFF_CODE" />
+		<result property="tariffDesc" 		column="TARIFF_DESC" />
+		<result property="costCentreCode" 	column="COST_CENTRE_CODE" />
+		<result property="unit1" 			column="UNIT1" />
+		<result property="unit2" 			column="UNIT2" />
+		<result property="unit3" 			column="UNIT3" />
+		<result property="aplyRate" 		column="APLY_RATE" />
+		<result property="aplyAmt" 			column="APLY_AMT" />
+		<result property="aplyAmtUSD" 		column="APLY_AMT_USD" />
+		<result property="stdRate" 			column="STD_RATE" />
+		<result property="status" 			column="STATUS" />
+		<result property="statusCd" 		column="STATUSCD" />
+		<result property="invoiceNo" 		column="INVOICE_NO" />
+		<result property="refNo" 			column="REF_NO" />
+		<result property="adhocyn" 			column="ADHOC_YN" />
+		<result property="version" 			column="VERSION" />
+		<result property="costcenter" 		column="COST_CENTRE_CODE" />
+		<result property="gatherNo" 		column="GATHER_NO" />
+		<result property="scrId" 			column="SCR_ID" />
+		<result property="totalAmt"			column="TOTAL_AMT" />
+		<result property="gstType" 			column="TAX_TYPE" />
+		<result property="gstValue" 		column="TAX_VALUE" />
+		<result property="gstAmt" 			column="TAX_AMT" />
+		<result property="gstRegNo" 		column="GST_REG_NO" />
+		<result property="comRegNo" 		column="COMP_REG_NO" />
+		<result property="tmnlNm" 			column="TMNL_NM" />
+		<result property="gstPercent" 		column="TAX_PERCENT" />
+		<result property="rowNum" 			column="ROWNUM" />
+	</resultMap>
+	<resultMap type="gatheredDataItem" id="ExchangeDataItemMap">
+		<result property="exchag" 			column="EXCHG_VAL" />
+		<result property="aplyDate" 		column="ST_YMD" />
+	</resultMap>
+	<resultMap type="gatheredDataItem" id="CostCenterDataItemMap">
+		<result property="costCentreCode" 	column="COST_CENTRE_CODE" />
+	</resultMap>
+	<resultMap type="gatheredDataItem" id="RefNoDataItemMap">
+		<result property="refNo" column="REF_NO" />
+	</resultMap>
+	<resultMap type="dataGetheringItem" id="VesselInfoItemMap">
+		<result property="vesselID" 		column="VESSEL_ID" />
+		<result property="vesselName" 		column="VESSEL_NAME" />
+		<result property="saCode" 			column="SA_CODE" />
+		<result property="saName" 			column="SA_NAME" />
+		<result property="dpSaCd" 			column="D_SA_CODE" />
+		<result property="dpSaName" 		column="D_SA_NAME" />
+		<result property="vesselType" 		column="VESSEL_TYPE" />
+		<result property="vslServiceType" 	column="VSL_SERVICE_TYPE" />
+		<result property="loa" 				column="LOA" />
+		<result property="dwt" 				column="DWT" />
+		<result property="grt" 				column="QRT" />
+		<result property="berthNo" 			column="BERTH_NO" />
+		<result property="atb" 				column="ATB" />
+		<result property="atw" 				column="ATW" />
+		<result property="atc" 				column="ATC" />
+		<result property="atu" 				column="ATU" />
+		<result property="berthingHours" 	column="BERTHING_HOURS" />
+		<result property="acceptableDelay" 	column="ACCEPT_TABLE_DELAY" />
+		<result property="oneStDouble" 		column="ONE_ST_DOUBLE" />
+		<result property="twoNdDouble" 		column="TWO_ND_DOUBLE" />
+		<result property="threeRdDouble" 	column="THREE_RD_DOUBLE" />
+		<result property="doubleBanking" 	column="DOUBLE_BANKING" />
+		<result property="arrivalTimeInMonthAsScheduled" column="ARRIVAL_TIME_SCHEDULED" />
+		<result property="arrivalTimeInMonth" column="ARRIVAL_TIME" />
+		<result property="secondAcceptDelay" column="SE_APT_DLY" />
+		<result property="normalAcceptDelay" column="NR_APT_DLY" />
+		<result property="remark" 			 column="REMARK" />
+		<result property="purpCall" 		 column="PURP_CALL" />
+	</resultMap>
+	<resultMap type="dataGetheringItem" id="CargoInfoItemMap">
+		<result property="category" 		column="CATEGORY" />
+		<result property="delivery" 		column="DELIVERY" />
+		<result property="cargoType" 		column="CARGO_TYPE" />
+		<result property="commodity" 		column="COMMODITY" />
+		<result property="dgClass" 			column="DG_CLASS" />
+		<result property="packageType" 		column="PACKAGE_TYPE" />
+		<result property="transportType" 	column="TRANSPORT_TYPE" />
+		<result property="tonnage" 			column="TONNAGE" />
+		<result property="pkgQty" 			column="PKG_QTY" />
+		<result property="wgt" 				column="WGT" />
+		<result property="tariffCode" 		column="TARIFF_CODE" />
+		<result property="subTariffCode" 	column="SUB_TARIFF_CODE" />
+		<result property="tariffDesc" 		column="TARIFF_DESC" />
+		<result property="referenceNo" 		column="REFERENCE_NO" />
+		<result property="operationNo" 		column="OPERATION_NO" />
+		<result property="unit1" 			column="UNIT1" />
+		<result property="unit2" 			column="UNIT2" />
+		<result property="unit3" 			column="UNIT3" />
+		<result property="workDate" 		column="WORK_DATE" />
+		<result property="shft" 			column="SHFT" />
+		<result property="opWgt" 			column="OP_WGT" />
+		<result property="opMsrmt" 			column="OP_MSRMT" />
+		<result property="opPkgQty" 		column="OP_PKG_QTY" />
+	</resultMap>
+	<resultMap type="dataGetheringItem" id="CargoSumInfoItemMap">
+		<result property="referenceNo" 		column="REFERENCE_NO" />
+		<result property="jobTpCd" 			column="JOB_TP_CD" />
+		<result property="docMsrmt" 		column="DOC_MSRMT" />
+		<result property="docWgt" 			column="DOC_WGT" />
+		<result property="docPkgQty" 		column="DOC_PKG_QTY" />
+		<result property="blMsrmt" 			column="BL_MSRMT" />
+		<result property="blWgt" 			column="BL_WGT" />
+		<result property="blPkgQty" 		column="BL_PKG_QTY" />
+		<result property="opMsrmt" 			column="OP_MSRMT" />
+		<result property="opWgt" 			column="OP_WGT" />
+		<result property="opPkgQty" 		column="OP_PKG_QTY" />
+		<result property="packageType" 		column="PKG_TP_CD" />
+		<result property="commodity" 		column="CMDT_CD" />
+		<result property="fwrAgnt" 			column="FWR_AGNT" />
+		<result property="delivery" 		column="ACTL_DELV_TP_CD" />
+
+	</resultMap>
+	<resultMap type="dataGetheringItem" id="EquipmentInfoItemMap">
+		<result property="equType" 			column="EQU_TYPE" />
+		<result property="date" 			column="OPERATED_DATE" />
+		<result property="shift" 			column="SHIFT" />
+		<result property="capacity" 		column="CAPACITY" />
+		<result property="gearType" 		column="GEAR_TYPE" />
+		<result property="fromTime" 		column="FROM_TIME" />
+		<result property="toTime" 			column="TO_TIME" />
+		<result property="totalHrs" 		column="TOTAL_HRS" />
+		<result property="nos" 				column="NOS" />
+		<result property="trfCd" 			column="TRF_CD" />
+		<result property="subTrfCd" 		column="SUB_TRF_CD" />
+		<result property="trfDescr" 		column="TRF_DESCR" />
+		<result property="cgTpCd" 			column="CG_TP_CD" />
+		<result property="payer" 			column="PAYER" />
+		<result property="costct" 			column="COST_CENT_CD" />
+	</resultMap>
+	<resultMap type="gatheredDataItem" id="PayerInfoDataItemMap">
+		<result property="payer" 			column="PAYER" />
+	</resultMap>
+	<resultMap type="dataGetheringItem" id="VslShiftInforItemMap">
+		<result property="atb" 				column="ATB" />
+		<result property="atw" 				column="ATW" />
+		<result property="atc" 				column="ATC" />
+		<result property="atu" 				column="ATU" />
+	</resultMap>
+	<resultMap type="dataGetheringItem" id="DetailItemMap">
+		<result property="vslCallId" 		column="VSL_CALL_ID" />
+		<result property="remark" 			column="REMARK" />
+	</resultMap>
+	<resultMap type="dataGetheringItem" id="MegaInfoItemMap">
+		<result property="megaNo" 			column="MEGA_NO" />
+		<result property="workDt" 			column="WORK_DT" />
+		<result property="shift" 			column="SHIFT" />
+		<result property="submitDt" 		column="SUBMIT_DT" />
+		<result property="megaStatus" 		column="MEGA_STATUS" />
+		<result property="payer" 			column="PAYER" />
+		<result property="apprvDt" 			column="APPRV_DT" />
+		<result property="penalty" 			column="PENALTY" />
+	</resultMap>
+	
+	<select id="selectDataGathering" parameterType="dataGatheringParm"	resultMap="DataGetheringItemMap">
+		SELECT * /*dataGathering.selectDataGathering*/
+		FROM(
+		SELECT ROWNUM RN, A.*
+		  FROM (
+				SELECT VSLCALLID,
+				       ATB,
+				       ATW,
+				       ATC,
+				       ATU,
+				       BERTH,
+				       CARGO_TYPE,
+				       WAREHOUSE_ID,
+				       STATUS,
+				       IM_RECONCILE_STATE,
+				       EX_RECONCILE_STATE,
+				       GATHERD_DATE,
+				       GATHERGING_STAFF,
+				       MARINECHARGE,
+				       PAYER,
+				       SAGENT,
+				       VERSION
+				  FROM (SELECT 
+								VSL_CALL_ID AS VSLCALLID,
+				               	TO_CHAR (ATB, 'DD/MM/YYYY HH24:MI') AS ATB,
+				               	TO_CHAR (ATW, 'DD/MM/YYYY HH24:MI') AS ATW,
+				               	TO_CHAR (ATC, 'DD/MM/YYYY HH24:MI') AS ATC,
+				               	TO_CHAR (ATU, 'DD/MM/YYYY HH24:MI') AS ATU,
+				               	BERTH_LOC AS BERTH,
+				               	ARRV_SA_ID AS SAGENT,
+				               	NVL ( NVL((SELECT MST.CG_TP_CD
+                                        FROM TMT_CG_MST MST
+                                       WHERE MST.VSL_CALL_ID = SCH.VSL_CALL_ID AND ROWNUM = 1),
+                                      (SELECT MST.CG_TP_CD
+                                        FROM TMT_LQDCG_OPE MST
+                                       WHERE MST.VSL_CALL_ID = SCH.VSL_CALL_ID AND ROWNUM = 1)),'') AS CARGO_TYPE,
+				               	(	SELECT 	DECODE (LOC_ID, NULL, '',  SUBSTR (LOC_ID, 1, INSTR (LOC_ID, '-') - 1))
+									FROM 	TMT_INV_LOC
+				                 	WHERE 	VSL_CALL_ID = SCH.VSL_CALL_ID 
+				                 	AND 	ROWNUM = 1
+								) AS WAREHOUSE_ID,
+				               	F_GET_INV_STATUS (VSL_CALL_ID) STATUS,
+								CASE
+									WHEN EXISTS( 	SELECT 	OPE_CLASS_CD
+													FROM 	TMT_CG_MST
+									          		WHERE   VSL_CALL_ID = SCH.VSL_CALL_ID
+									             	AND 	OPE_CLASS_CD = 'I'
+									             	UNION
+									             	SELECT 	CATG_CD
+									             	FROM 	TMT_RORO_MST
+									             	WHERE 	VSL_CALL_ID = SCH.VSL_CALL_ID
+									             	AND 	CATG_CD = 'I') THEN
+										CASE
+											WHEN  EXISTS(	SELECT * FROM TMT_B_RECCL WHERE VSL_CALL_ID = SCH.VSL_CALL_ID AND IM_RECCL_CD = 'Y')
+												THEN
+													'Verified'
+												ELSE
+													'Unverified'
+											END
+								           	WHEN EXISTS(	SELECT 	VSL_CALL_ID
+															FROM 	TMT_LQDCG_OPE
+															WHERE	VSL_CALL_ID = SCH.VSL_CALL_ID
+															AND 	JOB_TP_CD IN ('DS', 'SD', 'TD'))
+									           	THEN
+													CASE
+														WHEN EXISTS  (SELECT * FROM TMT_B_RECCL WHERE VSL_CALL_ID = SCH.VSL_CALL_ID AND IM_RECCL_CD = 'Y')
+															THEN
+												      			'Verified'
+															ELSE
+												      			'Unverified'
+															END
+													ELSE
+														''
+							        END AS IM_RECONCILE_STATE,
+								CASE
+									WHEN EXISTS(	SELECT 	OPE_CLASS_CD
+													FROM 	TMT_CG_MST
+													WHERE 	VSL_CALL_ID = SCH.VSL_CALL_ID
+				                                    AND 	OPE_CLASS_CD = 'E'
+				                                    UNION
+									             	SELECT 	CATG_CD
+									             	FROM 	TMT_RORO_MST
+									             	WHERE 	VSL_CALL_ID = SCH.VSL_CALL_ID
+									             	AND 	CATG_CD = 'E')
+										THEN
+											CASE
+											   WHEN  EXISTS (SELECT * FROM TMT_B_RECCL WHERE VSL_CALL_ID = SCH.VSL_CALL_ID AND EX_RECCL_CD = 'Y' )
+											   THEN
+													'Verified'
+											   ELSE
+											      	'Unverified'
+											END
+									WHEN EXISTS(	SELECT 	VSL_CALL_ID
+										            FROM 	TMT_LQDCG_OPE
+										            WHERE   VSL_CALL_ID = SCH.VSL_CALL_ID
+													AND JOB_TP_CD IN ('LD', 'SL', 'TL'))
+										THEN
+											CASE
+										         WHEN EXISTS (SELECT * FROM TMT_B_RECCL WHERE VSL_CALL_ID = SCH.VSL_CALL_ID AND EX_RECCL_CD = 'Y')     
+										         THEN
+													'Verified'
+										         ELSE
+													'Unverified'
+											END
+										ELSE
+											''
+									END AS EX_RECONCILE_STATE,
+								(	SELECT 	'Y' 
+									FROM 	TMT_B_IV_DATA B 
+									WHERE 	B.VSL_CALL_ID = SCH.VSL_CALL_ID 
+									AND 	SUB_TRF_CD = 'NIL'
+									AND ROWNUM = 1 
+								) AS MARINECHARGE,
+								(	SELECT 	PAYER 
+									FROM 	TMT_B_IV_DATA B 
+									WHERE 	B.VSL_CALL_ID =	SCH.VSL_CALL_ID 
+									AND 	ROWNUM = 1 
+								) AS PAYER,
+								(	SELECT 	TO_CHAR(GATHER_DT, 'DD/MM/YYYY HH24:MI') 
+									FROM	TMT_B_IV_DATA 
+									WHERE 	VSL_CALL_ID = SCH.VSL_CALL_ID 
+									AND 	ROWNUM=1 
+								) AS GATHERD_DATE, 
+								(	SELECT 	STAFF_CD 
+									FROM 	TMT_B_IV_DATA 
+									WHERE	VSL_CALL_ID = SCH.VSL_CALL_ID 
+									AND 	ROWNUM=1 
+								) AS GATHERGING_STAFF, 
+								(	SELECT	VERSION 
+									FROM	TMT_B_IV_DATA 
+									WHERE 	VSL_CALL_ID = SCH.VSL_CALL_ID 
+									AND 	ROWNUM=1
+								) AS VERSION
+				 FROM 	TMT_VSL_SCH SCH
+		      WHERE SCH.BERTH_LOC IN (SELECT BERTH_CD FROM TMT_BERTH_LOC WHERE LOC_CD ='BBT')
+		        	<if test="vslCallId != null and vslCallId != ''">
+           				AND	SCH.VSL_CALL_ID = #{vslCallId}
+		            </if>
+		            <if test="isCancelVsl == 'true'">
+              			AND	ATB IS NULL AND ETA + 0.25 <![CDATA[<]]> SYSDATE
+		            <if test="fromAtu != null and fromAtu != ''">
+               			AND	ETA BETWEEN TO_DATE( #{fromAtu} || '00:00:00','DD/MM/YYYY HH24:MI:SS') AND TO_DATE(#{toAtu} ||' 23:59:59','DD/MM/YYYY HH24:MI:SS')
+			         </if>
+			            <if test="fromAtb != null and fromAtb != ''">
+               				AND	ETA BETWEEN TO_DATE( #{fromAtb} || '00:00:00','DD/MM/YYYY HH24:MI:SS')AND TO_DATE(#{toAtb} || ' 23:59:59','DD/MM/YYYY HH24:MI:SS')
+			            </if>
+		            </if>
+		        	<if test="isCancelVsl != 'true'">
+		        		<if test="fromAtu != null and fromAtu != ''">
+            				AND	ATU BETWEEN TO_DATE( #{fromAtu} || '00:00:00','DD/MM/YYYY HH24:MI:SS')AND TO_DATE(#{toAtu} || ' 23:59:59','DD/MM/YYYY HH24:MI:SS')
+			        	</if>
+			            <if test="fromAtb != null and fromAtb != ''">
+               				AND ATB BETWEEN TO_DATE( #{fromAtb} || '00:00:00','DD/MM/YYYY HH24:MI:SS')AND TO_DATE(#{toAtb} || ' 23:59:59','DD/MM/YYYY HH24:MI:SS')
+			            </if>
+		        	</if>
+		        )  WHERE ROWNUM <![CDATA[<=]]> #{endRow} 
+		        <if test="status != null and status != ''">
+          			AND STATUS = ( SELECT S_CD_NM FROM TMT_CD_MSTD WHERE M_CD = 'IVSTAT' AND S_CD = #{status} ) 
+				</if>
+				<if test="cargoType != null and cargoType != ''">
+    				AND CARGO_TYPE = #{cargoType}
+				</if>
+		 ) A )WHERE RN >= #{startRow}
+	</select>
+	
+	<select id="selectGatheredDataForProofSheetCount" resultType="java.lang.String">
+        SELECT COUNT(*)
+        	FROM (<include refid="getGatheredData"/>)
+	</select>
+	
+	<select id="selectGatheredDataForProofSheet" resultMap="GatheredDataItemMap">
+		<if test="pageNo != 0"> 
+             SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getGatheredData"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	
+	<sql id="getGatheredData">
+		SELECT * 
+		FROM ( 
+			SELECT /*DataGathering DataGathering.getGatheredData BL11601*/ 
+				ROWNUM,
+				CASE WHEN STAT_CD='WV' THEN 'true' ELSE 'false' END AS BBT_CHECK
+				,DAT.WAIVER_DESCR AS WAIVER_DESCR
+				,DAT.VSL_CALL_ID AS VSLCALLID
+				,DAT.PAYER AS PAYER
+				,F_GET_PTNR_SNM(DAT.PAYER) AS PAYER_NAME
+				,DAT.IV_PRFX AS PRE_FIX
+				,CD.TRF_TP_CD AS TARIFF_TYPE
+				,(SELECT S_CD_NM FROM TMT_CD_MSTD WHERE L_CD = 'MT' AND M_CD = 'TRFTP' AND S_CD = CD.TRF_TP_CD) as TARIFF_TYPE_NAME
+				,DAT.TRF_CD AS TARIFF_CODE
+				,CD.SUB_TRF_CD AS SUB_TARIFF_CODE
+				,DAT.TRF_DESCR AS TARIFF_DESC
+				,NVL(DAT.COST_CENT_CD, DECODE(DAT.SYTM_ID, 'MS', '352', '')) 	AS COST_CENTRE_CODE
+				,NVL(DAT.ERP_COST_CENT, CD.ERP_COST_CENT) 						AS ERP_COST_CENT
+				,NVL(DECODE(DAT.SYTM_ID, 'MS', DAT.REVS_UNIT1_VAL, DAT.UNIT1_VAL),0) AS UNIT1
+				,NVL(DECODE(DAT.SYTM_ID, 'MS', DAT.REVS_UNIT2_VAL, DAT.UNIT2_VAL),0) AS UNIT2
+				,NVL(DECODE(DAT.SYTM_ID, 'MS', DAT.REVS_UNIT3_VAL, DAT.UNIT3_VAL),0) AS UNIT3
+				,NVL(DECODE(DAT.SYTM_ID, 'MS', DAT.REVS_RATE, DAT.APLY_RATE),0) AS APLY_RATE
+				,NVL(DECODE(DAT.SYTM_ID, 'MS', DAT.REVS_AMT, DAT.APLY_AMT),0) AS APLY_AMT
+				,NVL(ROUND(NVL(DECODE(DAT.SYTM_ID, 'MS', DAT.REVS_AMT, DAT.APLY_AMT),0) / TO_NUMBER( (
+					SELECT CUR.EXCHG_VAL 
+					FROM TMT_B_CURRENCY CUR 
+					WHERE
+					<if test="vslCallId == 'NonCallId'">
+						TO_DATE(CUR.ST_YMD, 'YYYY/MM/DD')
+						<![CDATA[ <=]]>
+						TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDD'), 'YYYY/MM/DD') AND
+						TO_DATE(CUR.END_YMD, 'YYYY/MM/DD')
+						<![CDATA[ >=]]>
+						TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDD'), 'YYYY/MM/DD')
+					</if>
+					<if test="vslCallId != 'NonCallId'">
+						TO_DATE(CUR.ST_YMD, 'YYYY/MM/DD')
+						<![CDATA[ <=]]>
+						TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDD'), 'YYYY/MM/DD') AND
+						TO_DATE(CUR.END_YMD, 'YYYY/MM/DD')
+						<![CDATA[ >=]]>
+						TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDD'), 'YYYY/MM/DD')
+					</if>
+					<if test="crcyCd != null and crcyCd != ''">
+		   				AND CRCY_CD = #{crcyCd}
+					</if>
+					<if test="crcyCd == null or crcyCd == ''">
+						AND CRCY_CD = 'USD'
+					</if>
+					AND rownum = 1 ) ),2),0) AS APLY_AMT_USD
+				,NVL(STD_RATE,0)AS STD_RATE
+				,F_CM_012('MT','IVSTAT',DAT.STAT_CD) AS STATUS
+				,STAT_CD AS STATUSCD
+				,IV_NO AS INVOICE_NO
+	        	,DECODE (
+	                    DAT.SCR_ID,
+	                    'SSR', NVL ( NVL(DECODE(DAT.RMK,'-',' ',DAT.RMK), DAT.REF_NO1),
+		                             (SELECT REF_NO
+		                                FROM TMT_B_SSR
+		                               WHERE     VSL_CALL_ID = #{vslCallId}
+		                                     AND DAT.REF_NO2 = SSR_NO
+		                                     AND ROWNUM = 1)),
+	                    NVL(DECODE (DAT.RMK,'-', ' ', DAT.RMK), DAT.REF_NO1))  AS REF_NO
+				,DAT.ADHOC_YN AS ADHOC_YN
+				,DAT.VERSION AS VERSION
+				,DAT.SYTM_ID AS SYTM_ID
+				,GATHER_NO
+				,SCR_ID
+				,CASE 
+					WHEN NVL (TOTAL_AMT, 0) = 0 THEN APLY_AMT
+		         	ELSE NVL (TOTAL_AMT, 0)
+		         END AS TOTAL_AMT
+				,DAT.TAX_TYPE AS TAX_TYPE
+				,DAT.TAX_VALUE AS TAX_VALUE
+				,''  AS TAX_PERCENT
+				,NVL(DAT.TAX_AMT, 0) AS TAX_AMT
+				,(select GST_REG_NO from TMT_TMNL_DEF where TMNL_CD ='JPB' AND TMNL_TP_CD ='INTEG' AND ROWNUM = 1) AS GST_REG_NO
+				,(select COMP_REG_NO from TMT_TMNL_DEF where TMNL_CD ='JPB' AND TMNL_TP_CD ='INTEG' AND ROWNUM = 1) AS COMP_REG_NO
+				,(select TMNL_NM from TMT_TMNL_DEF where TMNL_CD ='JPB' AND TMNL_TP_CD ='INTEG' AND ROWNUM = 1) AS TMNL_NM
+				,DAT.REF_NO1
+	        	,DAT.REF_NO2
+			FROM TMT_B_IV_DATA DAT INNER JOIN TMT_B_TRF_CD CD ON DAT.TRF_CD = CD.TRF_CD AND DAT.SUB_TRF_CD = CD.SUB_TRF_CD
+			WHERE 	DAT.VSL_CALL_ID = #{vslCallId} 
+			AND ( DAT.SCR_ID = 'OPE' 
+				OR DAT.SCR_ID = 'STR' 
+				OR DAT.SCR_ID = 'WHR' 
+				OR DAT.SCR_ID ='FW' 
+				OR DAT.SCR_ID IS NULL
+				OR (DAT.SCR_ID = 'SSR' AND REF_NO2 IN ( SELECT SSR_NO FROM TMT_B_SSR WHERE VSL_CALL_ID = #{vslCallId})
+				)
+			) 
+			AND DAT.SYTM_USE_ID = 'MT' 
+			AND DAT.STAT_CD NOT IN ('WV', 'IV', 'IC') 
+			<if test="list != null">
+				AND DAT.GATHER_NO IN
+				<foreach collection="list" open="(" close=")" separator=",">
+						#{item}
+				</foreach>
+			</if>
+			<if test="payer != null and payer != ''">
+				AND DAT.PAYER = #{payer}
+			</if>
+			<if test="userRefNo != null and userRefNo != ''">
+				AND DAT.REF_NO2 = #{userRefNo}
+			</if>
+			<if test="cgNo != null and cgNo != ''">
+				AND DAT.REF_NO1 = #{cgNo}
+			</if>
+			<if test="adhoc != null and adhoc != ''">
+				AND NVL(DAT.ADHOC_YN, 'N') = #{adhoc}
+			</if>
+			<if test="rptSearch != null">
+				<if test="rptSearch == 'Y'">
+					AND DAT.STAT_CD != 'WV'
+				</if>
+			</if>
+			<if test="costCenterCd != null and costCenterCd != ''">
+				AND NVL(DAT.COST_CENT_CD, DECODE(DAT.SYTM_ID, 'MS', '352', '')) = #{costCenterCd}
+			</if>
+			<if test="tariffTypeCd != null and tariffTypeCd != ''">
+				AND CD.TRF_TP_CD = #{tariffTypeCd}
+			</if>
+			<if test="refNo != null and refNo != ''">
+				WHERE REF_NO = #{refNo}
+			</if>
+		ORDER BY PAYER, GATHER_NO
+	</sql>
+	
+	<select id="selectDataGatheringDetail" parameterType="dataGatheringParm" resultMap="DetailItemMap">
+		SELECT /*dataGathering.selectDataGatheringDetail*/
+			VSL_CALL_ID 				AS vslCallId, 
+			NVL(RMK,' ')				AS REMARK,
+			#{payer,jdbcType=VARCHAR} 	AS PAYER, 
+			'OPE' 						AS SCR_ID 
+		FROM TMT_B_VSL_SCH_INFO 
+		WHERE VSL_CALL_ID = #{vslCallId} 
+		<!-- AND NVL(SYSM_ID,'NR') = 'NR' -->
+	</select>
+	
+	<select id="selectGatheredData" resultMap="GatheredDataItemMap">
+		SELECT /*dataGathering.selectGatheredData*/
+			ROWNUM AS NO
+			,CASE WHEN STAT_CD='WV' THEN 'true' ELSE 'false' END AS BBT_CHECK
+			,DAT.WAIVER_DESCR AS WAIVER_DESCR
+			,DAT.VSL_CALL_ID AS vslCallId
+			,DAT.PAYER AS PAYER
+			,'' AS PAYER_NAME
+			,DAT.IV_PRFX AS PRE_FIX
+			,CD.TRF_TP_CD AS TARIFF_TYPE
+			,(SELECT S_CD_NM FROM TMT_CD_MSTD WHERE L_CD = 'MT' AND M_CD = 'TRFTP' AND S_CD = CD.TRF_TP_CD) as TARIFF_TYPE_NAME
+			,DAT.TRF_CD AS TARIFF_CODE
+			,CD.SUB_TRF_CD AS SUB_TARIFF_CODE
+			,DAT.TRF_DESCR AS TARIFF_DESC
+			,NVL(DAT.COST_CENT_CD, '') AS COST_CENTRE_CODE
+			,NVL(DAT.UNIT1_VAL,0) AS UNIT1
+			,NVL(DAT.UNIT2_VAL,0) AS UNIT2
+			,NVL(DAT.UNIT3_VAL,0) AS UNIT3
+			,NVL(DAT.REVS_RATE, DAT.APLY_RATE) AS APLY_RATE
+			,DECODE(DAT.REVS_AMT,
+				0 || null, DAT.APLY_AMT,
+				DAT.REVS_AMT) AS APLY_AMT
+			,NVL(APLY_AMT,0) AS APLY_AMT_USD
+			,NVL(STD_RATE,0) AS STD_RATE
+			,CASE 
+				WHEN DAT.STAT_CD='VF' THEN 'Verified' 
+				WHEN DAT.STAT_CD='GT' OR DAT.STAT_CD='ST' THEN 'Gathered' 
+				WHEN DAT.STAT_CD='WV' THEN 'Waived' 
+				WHEN DAT.STAT_CD='IV' THEN 'Invoiced' 
+				ELSE 'Paid' END AS STATUS
+			,'' AS STATUSCD
+			,IV_NO AS INVOICE_NO
+	        ,DECODE (
+	            DAT.SCR_ID,
+	            'SSR', NVL(NVL(DECODE(DAT.RMK,'-',' ',DAT.RMK), DAT.REF_NO1),
+	            		(SELECT REF_NO
+	                      FROM TMT_B_SSR
+	                     WHERE     VSL_CALL_ID = #{vslCallId}
+	                           AND DAT.REF_NO2 = SSR_NO
+	                           AND PAY_TP_CD = 'C'
+	                           AND ROWNUM = 1)),
+	            NVL(DECODE(DAT.RMK,'-',' ',DAT.RMK), DAT.REF_NO1))  AS REF_NO
+			,DAT.ADHOC_YN AS ADHOC_YN
+			,DAT.VERSION AS VERSION
+			,GATHER_NO
+			,DECODE(SCR_ID,
+				'PRF', 'Proforma',
+				'OPE', 'Operation',
+				'SSR', 'SSR/Add Hoc',
+				'Add Hoc') AS SCR_ID
+			,CASE 
+				WHEN  NVL (TOTAL_AMT, 0) = 0 THEN APLY_AMT
+	         	ELSE NVL (TOTAL_AMT, 0)
+	        END AS TOTAL_AMT
+			,DAT.TAX_TYPE AS TAX_TYPE
+			,DAT.TAX_VALUE AS TAX_VALUE
+			,DAT.TAX_AMT AS TAX_AMT 
+			,'' AS GST_REG_NO
+			,(SELECT COMP_REG_NO FROM TMT_TMNL_DEF WHERE TMNL_CD ='JPB' AND TMNL_TP_CD ='INTEG' AND ROWNUM = 1) AS COMP_REG_NO
+			,(SELECT TMNL_NM FROM TMT_TMNL_DEF WHERE TMNL_CD ='JPB' AND TMNL_TP_CD ='INTEG' AND ROWNUM = 1) AS TMNL_NM
+			,'' AS TAX_PERCENT
+		FROM TMT_B_IV_DATA DAT INNER JOIN TMT_B_TRF_CD CD 
+			ON DAT.TRF_CD = CD.TRF_CD 
+			AND DAT.SUB_TRF_CD = CD.SUB_TRF_CD 
+		WHERE DAT.VSL_CALL_ID = #{vslCallId}
+		AND ( DAT.SCR_ID = 'OPE'
+			OR DAT.SCR_ID = 'STR'
+			OR DAT.SCR_ID = 'FW'
+			OR DAT.SCR_ID ='VSL'
+			OR DAT.SCR_ID IS NULL 
+			OR (DAT.SCR_ID = 'SSR' AND REF_NO2 IN ( SELECT SSR_NO FROM TMT_B_SSR WHERE VSL_CALL_ID = #{vslCallId} AND PAY_TP_CD = 'C') )
+			OR (DAT.SCR_ID = 'PRF' AND DAT.STAT_CD = 'VF')
+			) 
+		<!-- AND DAT.SYTM_USE_ID = 'MT' -->
+		<if test="payer != null and payer != ''">
+  			AND	DAT.PAYER = #{payer}
+		</if>
+		<if test="userRefNo != null and userRefNo != ''">
+			AND DAT.REF_NO2 = #{userRefNo}
+		</if>
+		<if test="cgNo != null and cgNo != ''">
+			AND DAT.REF_NO1 = #{cgNo}
+		</if>
+		ORDER BY DAT.PAYER, DAT.IV_PRFX
+	</select>
+	
+	<select id="selectVesselInformation" resultMap="VesselInfoItemMap">
+		SELECT /*dataGathering.selectVesselInformation*/
+			   PART.VSL_CD AS VESSEL_ID,
+               PART.VSL_NM AS VESSEL_NAME,
+               SCH.ARRV_SA_ID AS SA_CODE,
+			   (SELECT ENG_SNM FROM TMT_AGENCY_INFO WHERE AGENCY_CODE = SCH.DEPR_SA_ID and rownum=1) AS SA_NAME,
+               SCH.DEPR_SA_ID AS D_SA_CODE,
+               (SELECT ENG_SNM FROM TMT_AGENCY_INFO WHERE AGENCY_CODE = SCH.DEPR_SA_ID and rownum=1) AS D_SA_NAME,
+               STD.S_CD_NM AS VESSEL_TYPE,
+               F_INTERVAL_OF_HOUR ('', SCH.ATU, SCH.ATB) AS BERTHING_HOURS,
+               PART.VSL_TP3_TRADE AS VSL_SERVICE_TYPE,
+               PART.LOA AS LOA,
+               PART.DWT AS DWT,
+               PART.GRT AS QRT,
+               SCH.BERTH_LOC AS BERTH_NO,
+               TO_CHAR (SCH.ATB, 'DD/MM/YYYY HH24:MI') AS ATB,
+               TO_CHAR (SCH.ATW, 'DD/MM/YYYY HH24:MI') AS ATW,
+               TO_CHAR (SCH.ATC, 'DD/MM/YYYY HH24:MI') AS ATC,
+               TO_CHAR (SCH.ATU, 'DD/MM/YYYY HH24:MI') AS ATU,
+               '' AS REMARK,
+               (SELECT S_CD_NM
+                  FROM TMT_CD_MSTD CD
+                 WHERE     CD.S_CD = SCH.PURP_CALL
+                       AND CD.M_CD = 'POC'
+                       AND ROWNUM = 1)
+                  AS PURP_CALL
+		FROM TMT_VSL_SCH SCH, TMT_VSL_PART PART, TMT_CD_MSTD STD
+        WHERE SCH.VSL_CD = PART.VSL_CD 
+        AND  STD.S_CD = PART.VSL_TP 
+        AND STD.M_CD = 'VSLTP' 
+        AND  VSL_CALL_ID =#{vslCallId}
+	</select>
+	
+	<select id="selectCargoInformation" resultMap="CargoInfoItemMap">
+		SELECT /*dataGathering.selectCargoInformation*/
+			(SELECT S_CD_NM
+		        FROM TMT_CD_MSTD CD
+		        WHERE IV.OPE_CLASS_CD = CD.S_CD
+		        AND CD.M_CD = 'CATGTP'
+		        AND L_CD = 'MT') AS CATEGORY,
+       		(SELECT S_CD_NM
+	          	FROM TMT_CD_MSTD CD
+	         	WHERE IV.DELV_TP_CD = CD.S_CD 
+	         	AND CD.M_CD = 'DELVTP' 
+	         	AND L_CD = 'MT') AS DELIVERY,
+       		(SELECT S_CD_NM
+	          	FROM TMT_CD_MSTD CD
+	         	WHERE IV.CG_TP_CD = CD.S_CD 
+	         	AND CD.M_CD = 'CGTP' 
+	         	AND L_CD = 'MT') AS CARGO_TYPE,
+       		CMDT_DESC AS COMMODITY,
+       		IV.DG_CLASS AS DG_CLASS,
+       		PKG_TP_CD AS PACKAGE_TYPE,
+       		(SELECT S_CD_NM
+          		FROM TMT_CD_MSTD CD
+         		WHERE IV.TSPT_TP_CD = CD.S_CD 
+         		AND CD.M_CD = 'TSPTTP' 
+         		AND L_CD = 'MT') AS TRANSPORT_TYPE,
+       		<!-- NVL (MSRMT, 0) AS TONNAGE,
+       		NVL (PKG_QTY, 0) AS PKG_QTY,
+       		NVL (WGT, 0) AS WGT, -->
+       		TRF_CD AS TARIFF_CODE,
+       		SUB_TRF_CD AS SUB_TARIFF_CODE,
+			TRF_DESCR AS TARIFF_DESC,
+			DECODE (WORK_YMD,
+	               NULL, DECODE (SHIPG_NOTE_NO, NULL, BL_NO, SHIPG_NOTE_NO),
+	               NULL) AS REFERENCE_NO,
+			CG_NO AS OPERATION_NO,
+			NVL (UNIT1_VAL, 0) AS UNIT1,
+			NVL (UNIT2_VAL, 0) AS UNIT2,
+			NVL (UNIT3_VAL, 0) AS UNIT3,
+			DECODE (
+				WORK_YMD,
+				NULL, NULL,
+					SUBSTR (WORK_YMD, 7, 2)
+					|| '/'
+					|| SUBSTR (WORK_YMD, 5, 2)
+					|| '/'
+					|| SUBSTR (WORK_YMD, 1, 4)) AS WORK_DATE,
+			NVL (SHFT_NM, '') AS SHFT
+			<!-- OP_WGT,
+			OP_MSRMT,
+			OP_PKG_QTY -->
+		FROM TMT_B_IV_DATA_DTL IV
+			LEFT OUTER JOIN TMT_SHFT SHT ON SHT.SHFT_ID = IV.SHFT_ID AND SHT.VLD_YN = 'Y'
+		INNER JOIN TMT_CMDT CD ON CD.CMDT_CD = IV.CMDT_CD
+	 	WHERE VSL_CALL_ID = #{vslCallId} AND GATHER_TP_CD = 'CG'
+	</select>
+	
+	<select id="selectCargoSumInformation" resultMap="CargoSumInfoItemMap">
+		SELECT /*dataGathering.selectCargoSumInformation*/
+			 REFERENCE_NO,
+	         JOB_TP_CD,
+	         NVL (DOC_MSRMT, 0) AS DOC_MSRMT,
+	         NVL (DOC_WGT, 0) AS DOC_WGT,
+	         NVL (DOC_PKG_QTY, 0) AS DOC_PKG_QTY,
+	         NVL (BL_MSRMT, 0) AS BL_MSRMT,
+	         NVL (BL_WGT, 0) AS BL_WGT,
+	         NVL (BL_PKG_QTY, 0) AS BL_PKG_QTY,
+	         NVL (OP_MSRMT, 0) AS OP_MSRMT,
+	         NVL (OP_WGT, 0) AS OP_WGT,
+	         NVL (OP_PKG_QTY, 0) AS OP_PKG_QTY,
+	         PKG_TP_CD,
+	         CMDT_DESC AS CMDT_CD,
+	         FWR_AGNT,
+	         ACTL_DELV_TP_CD
+	    FROM (
+	    	SELECT 
+	    		DECODE (SHIPG_NOTE_NO, NULL, BL_NO, SHIPG_NOTE_NO) AS REFERENCE_NO,
+				CASE
+					WHEN OPE_CLASS_CD = 'E' THEN 
+						(SELECT SUM (CG_VOL)
+						   FROM TMT_SHIPG_NOTE SN
+						  WHERE SN.VSL_CALL_ID = IV.VSL_CALL_ID
+							AND SN.SHIPG_NOTE_NO = IV.SHIPG_NOTE_NO)
+					ELSE (SELECT SUM (NVL(CG_WGT, 0))
+							FROM TMT_BL BL
+						   WHERE BL.VSL_CALL_ID = IV.VSL_CALL_ID
+							 AND BL.BL_NO = IV.BL_NO)
+				END AS DOC_MSRMT,
+				CASE
+					WHEN OPE_CLASS_CD = 'E' THEN 
+						(SELECT SUM (CG_WGT)
+						   FROM TMT_SHIPG_NOTE SN
+						  WHERE SN.VSL_CALL_ID = IV.VSL_CALL_ID
+							AND SN.SHIPG_NOTE_NO = IV.SHIPG_NOTE_NO)
+					ELSE
+						(SELECT SUM (NVL (CG_VOL, 0))
+						   FROM TMT_BL BL
+						  WHERE BL.VSL_CALL_ID = IV.VSL_CALL_ID
+							AND BL.BL_NO = IV.BL_NO)
+				END AS DOC_WGT,
+				CASE
+					WHEN OPE_CLASS_CD = 'E' THEN
+						(SELECT SUM (PKG_QTY)
+						   FROM TMT_SHIPG_NOTE SN
+						  WHERE SN.VSL_CALL_ID = IV.VSL_CALL_ID
+							AND SN.SHIPG_NOTE_NO = IV.SHIPG_NOTE_NO)
+					ELSE
+						(SELECT SUM (NVL (PKG_QTY, 0))
+						   FROM TMT_BL BL
+						  WHERE BL.VSL_CALL_ID = IV.VSL_CALL_ID
+							AND BL.BL_NO = IV.BL_NO)
+				END AS DOC_PKG_QTY,
+                SUM (BILL_MSRMT_V) AS OP_MSRMT,
+                SUM (BILL_WGT_V) AS OP_WGT,
+                SUM (BILL_PKG_QTY_V) AS OP_PKG_QTY,
+                SUM (NVL (BILL_MSRMT, 0) + NVL (BILL_MSRMT_D, 0)) AS BL_MSRMT,
+                SUM (NVL (BILL_WGT, 0) + NVL (BILL_WGT_D, 0)) AS BL_WGT,
+                SUM (NVL (BILL_PKG_QTY, 0) + NVL (BILL_PKG_QTY_D, 0)) AS BL_PKG_QTY,
+                '' AS JOB_TP_CD,
+                PKG_TP_CD,
+                CMDT_CD,
+                FWR_AGNT,
+				ACTL_DELV_TP_CD
+			FROM TMT_CG_MST IV
+			WHERE VSL_CALL_ID = #{vslCallId}
+			GROUP BY IV.VSL_CALL_ID,
+				SHIPG_NOTE_NO,
+				BL_NO,
+                OPE_CLASS_CD,
+                PKG_TP_CD,
+                CMDT_CD,
+                FWR_AGNT,
+                ACTL_DELV_TP_CD
+			UNION ALL
+			SELECT 
+				OPE_TP AS REFERENCE_NO,
+                0 AS DOC_MSRMT,
+                0 AS DOC_WGT,
+                0 AS DOC_PKG_QTY,
+                SUM (TON_HDL_AMT) AS OP_MSRMT,
+                0 AS OP_WGT,
+                0 AS OP_PKG_QTY,
+                SUM (BILL_WGT) AS BL_MSRMT,
+                0 AS BL_WGT,
+                0 AS BL_PKG_QTY,
+                JOB_TP_CD AS JOB_TP_CD,
+                PKG_TP_CD,
+                CMDT_CD,
+                TK_OPR AS FWR_AGNT,
+                '' AS ACTL_DELV_TP_CD
+			FROM TMT_LQDCG_OPE
+			WHERE VSL_CALL_ID = #{vslCallId}
+			GROUP BY VSL_CALL_ID,
+                OPE_TP,
+                JOB_TP_CD,
+                PKG_TP_CD,
+                CMDT_CD,
+                TK_OPR
+			UNION ALL
+			SELECT 
+				CASE 
+					WHEN STS_OP_TP = 'LD' THEN 'E' 
+					ELSE 'I'
+				END AS REFERENCE_NO,
+                0 AS DOC_MSRMT,
+                0 AS DOC_WGT,
+                0 AS DOC_PKG_QTY,
+                NVL (MT, 0) AS OP_MSRMT,
+                NVL (M3, 0) AS OP_WGT,
+                NVL (QTY, 0) AS OP_PKG_QTY,
+                0 AS BL_MSRMT,
+                0 AS BL_WGT,
+                0 AS BL_PKG_QTY,
+                STS_OP_TP AS JOB_TP_CD,
+                PKG_TP_CD AS PKG_TP_CD,
+                CMDT_CD AS CMDT_CD,
+                ARRV_SA_ID AS FWR_AGNT,
+                '' AS ACTL_DELV_TP_CD
+			FROM TMT_STS STS
+				INNER JOIN TMT_VSL_SCH SCH
+				ON SCH.VSL_CALL_ID = STS.NEXT_CAL_CALL_ID
+			WHERE NEXT_CAL_CALL_ID = #{vslCallId}
+			UNION ALL
+			SELECT 
+				'Total Amount' AS REFERENCE_NO,
+				CASE
+					WHEN OPE_CLASS_CD IN ('E', 'T') THEN
+						(SELECT SUM (CG_VOL)
+						   FROM TMT_SHIPG_NOTE SN
+						  WHERE SN.VSL_CALL_ID = IV.VSL_CALL_ID
+							AND SN.CATG_CD = OPE_CLASS_CD)
+					ELSE
+						(SELECT SUM (NVL (CG_WGT, 0))
+						   FROM TMT_BL BL
+						  WHERE BL.VSL_CALL_ID = IV.VSL_CALL_ID)
+				END AS DOC_MSRMT,
+				CASE
+					WHEN OPE_CLASS_CD IN ('E', 'T') THEN
+						(SELECT SUM (CG_WGT)
+						   FROM TMT_SHIPG_NOTE SN
+						  WHERE SN.VSL_CALL_ID = IV.VSL_CALL_ID
+							AND SN.CATG_CD = OPE_CLASS_CD)
+					ELSE
+						(SELECT SUM (NVL (CG_VOL, 0))
+						   FROM TMT_BL BL
+						  WHERE BL.VSL_CALL_ID = IV.VSL_CALL_ID)
+				END AS DOC_WGT,
+				CASE
+					WHEN OPE_CLASS_CD IN ('E', 'T') THEN
+						(SELECT SUM (PKG_QTY)
+						   FROM TMT_SHIPG_NOTE SN
+						  WHERE SN.VSL_CALL_ID = IV.VSL_CALL_ID
+							AND SN.CATG_CD = OPE_CLASS_CD)
+					ELSE 
+						(SELECT SUM (NVL (PKG_QTY, 0))
+						   FROM TMT_BL BL
+						  WHERE BL.VSL_CALL_ID = IV.VSL_CALL_ID)
+				END AS DOC_PKG_QTY,
+                SUM (BILL_MSRMT_V) AS OP_MSRMT,
+                SUM (BILL_WGT_V) AS OP_WGT,
+                SUM (BILL_PKG_QTY_V) AS OP_PKG_QTY,
+                SUM (NVL (BILL_MSRMT, 0) + NVL (BILL_MSRMT_D, 0)) AS BL_MSRMT,
+                SUM (NVL (BILL_WGT, 0) + NVL (BILL_WGT_D, 0)) AS BL_WGT,
+                SUM (NVL (BILL_PKG_QTY, 0) + NVL (BILL_PKG_QTY_D, 0))
+                   AS BL_PKG_QTY,
+                OPE_CLASS_CD AS JOB_TP_CD,
+                '' AS PKG_TP_CD,
+                '' AS CMDT_CD,
+                '' AS FWR_AGNT,
+                '' AS ACTL_DELV_TP_CD
+			FROM TMT_CG_MST IV
+			WHERE VSL_CALL_ID = #{vslCallId}
+			GROUP BY IV.VSL_CALL_ID, OPE_CLASS_CD
+			UNION ALL
+			SELECT 
+				'Total Amount' AS REFERENCE_NO,
+                 0 AS DOC_MSRMT,
+                 0 AS DOC_WGT,
+                 0 AS DOC_PKG_QTY,
+                 SUM (NVL (TON_HDL_AMT, 0)) AS OP_MSRMT,
+                 0 AS OP_WGT,
+                 0 AS OP_PKG_QTY,
+                 SUM (NVL (BILL_WGT, 0)) AS BL_MSRMT,
+                 0 AS BL_WGT,
+                 0 AS BL_PKG_QTY,
+                 '' AS JOB_TP_CD,
+                 '' AS PKG_TP_CD,
+                 '' AS CMDT_CD,
+                 '' AS FWR_AGNT,
+                 '' AS ACTL_DELV_TP_CD
+			FROM TMT_LQDCG_OPE
+			WHERE VSL_CALL_ID = #{vslCallId}
+			GROUP BY VSL_CALL_ID
+			UNION ALL
+			SELECT 
+				'Total Amount' AS REFERENCE_NO,
+                 0 AS DOC_MSRMT,
+                 0 AS DOC_WGT,
+                 0 AS DOC_PKG_QTY,
+                 NVL (SUM (MT), 0) AS OP_MSRMT,
+                 NVL (SUM (M3), 0) AS OP_WGT,
+                 NVL (SUM (QTY), 0) AS OP_PKG_QTY,
+                 0 AS BL_MSRMT,
+                 0 AS BL_WGT,
+                 0 AS BL_PKG_QTY,
+                 '' AS JOB_TP_CD,
+                 '' AS PKG_TP_CD,
+                 '' AS CMDT_CD,
+                 '' AS FWR_AGNT,
+                 '' AS ACTL_DELV_TP_CD
+			FROM TMT_STS STS
+			WHERE NEXT_CAL_CALL_ID = #{vslCallId}
+		) IV
+		LEFT OUTER JOIN TMT_CMDT CD ON CD.CMDT_CD = IV.CMDT_CD
+		WHERE OP_MSRMT > 0 OR OP_WGT > 0 OR OP_PKG_QTY > 0
+		ORDER BY REFERENCE_NO ASC
+	</select>
+	
+	<select id="selectEquipmentInformation" resultMap="EquipmentInfoItemMap">
+		SELECT /*dataGathering.selectEquipmentInformation*/
+		       DECODE (IV.EQ_TP_CD, 'GR', 'GE', IV.EQ_TP_CD) AS EQU_TYPE,
+		       TO_CHAR (TO_DATE (WORK_YMD, 'YYYYMMDD'), 'DD/MM/YYYY') AS OPERATED_DATE,
+		       SHFT_NM AS SHIFT,
+		       CAP.CAPA_DESCR AS CAPACITY,
+		       '' AS GEAR_TYPE,
+		       TO_CHAR (EQ_ST_DT, 'DD/MM/YYYY HH24:MI') AS FROM_TIME,
+		       TO_CHAR (EQ_END_DT, 'DD/MM/YYYY HH24:MI') AS TO_TIME,
+		       NVL (WORK_HR, 0) AS TOTAL_HRS,
+		       EQ_QTY AS NOS,
+		       IV.TRF_CD,
+		       IV.SUB_TRF_CD,
+		       IV.TRF_DESCR,
+		       IV.CG_TP_CD,
+		       IV.PAYER,
+		       DAT.COST_CENT_CD
+		  FROM TMT_B_IV_DATA_DTL IV
+		       INNER JOIN TMT_SHFT SHF ON SHF.SHFT_ID = IV.SHFT_ID
+		       INNER JOIN TMT_B_IV_DATA DAT ON DAT.GATHER_NO = IV.GATHER_NO
+		       LEFT OUTER JOIN TMT_EQ_CAPA CAP ON CAP.CAPA_CD = IV.CAPA_CD
+		 WHERE GATHER_TP_CD = 'EQ' AND IV.VSL_CALL_ID = #{vslCallId}
+	</select>
+	
+	<select id="selectPayerData" resultMap="PayerInfoDataItemMap">
+		SELECT /*dataGathering.selectPayerData*/
+			DAT.PAYER AS PAYER 
+		FROM 
+			TMT_B_IV_DATA DAT INNER JOIN
+		    TMT_B_TRF_CD CD ON DAT.TRF_CD = CD.TRF_CD 
+		    				AND DAT.SUB_TRF_CD = CD.SUB_TRF_CD
+		WHERE DAT.VSL_CALL_ID = #{vslCallId}
+		<if test="scr_id != null and scr_id != ''">
+  			AND	SCR_ID IN (#{scr_id})
+		</if>
+		GROUP BY DAT.PAYER
+        ORDER BY DAT.PAYER
+	</select>
+	
+	<select id="selectValidVslSchedule" parameterType="dataGatheringParm" resultType="dataGetheringItem">
+		SELECT /*dataGathering.selectValidVslSchedule*/
+			DECODE(COUNT(*), 0, 'N', 'Y') AS isValidated 
+		FROM TMT_VSL_SCH
+		WHERE VSL_CALL_ID = #{vslCallId}
+	</select>
+	
+	<update id="applyDataGatheringDetail" parameterType="dataGetheringItem">
+		UPDATE /*dataGathering.applyDataGatheringDetail*/
+		TMT_B_IV_DATA SET 
+			STAT_CD = #{status}, 
+			WAIVER_DESCR = #{waiverDescr}, 
+			VERSION = #{newVersion}, 
+			STAFF_CD = #{userId},
+			UPDATE_TIME = SYSDATE 
+		WHERE VSL_CALL_ID = #{vslCallId} 
+		AND GATHER_NO = #{gatherNo} 
+	</update>
+	
+	<delete id="applyGatheredDelete" parameterType="dataGetheringItem">
+		DELETE TMT_B_IV_DATA WHERE VSL_CALL_ID = #{vslCallId}
+		<if test="cargoNo != null and cargoNo != ''">
+  			AND REF_NO2 = #{cargoNo}
+		</if>
+		<if test="workDate != null and workDate != ''">
+  			AND REF_NO3 = #{workDate}
+		</if>
+			AND SCR_ID = 'OPE' AND STAT_CD = 'GT'
+	</delete>
+	
+	<delete id="applyGatheredDtlDelete" parameterType="dataGetheringItem">
+		DELETE TMT_B_IV_DATA_DTL WHERE VSL_CALL_ID = #{vslCallId}
+		<if test="cargoNo != null and cargoNo != ''">
+ 	 		AND	CG_NO = #{cargoNo}
+		</if>
+		<if test="workDate != null and workDate != ''">
+  			AND	WORK_YMD = #{workDate}
+		</if>
+	</delete>
+
+</mapper>

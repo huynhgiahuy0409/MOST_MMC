@@ -1,0 +1,1663 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+<mapper namespace="shiftingDoubleBanking">
+
+	
+	<!--  ################ Query Statement Define ######################################### -->
+
+	<!-- ========================================== Double Banking ========================================== -->
+	<select id="selectDoubleBankingList"  parameterType="shiftingDoubleBankingParm" resultType="shiftingDoubleBankingItem">
+		SELECT 	/*shiftingDoubleBanking.selectDoubleBankingList*/
+			vsl_call_id 							AS vslCallId
+			,dbl_bnk_div_cd AS dblBnkDivCd
+			,( SELECT 	
+				s_cd_nm 
+				FROM 	
+					TMT_CD_MSTD sa 
+				WHERE 
+					m_cd = 'DBLBNKDIV' 
+					AND l_cd = 'MT' 
+					AND s_cd = dbl_bnk_div_cd
+			) 										AS dblBnkDivCdNm
+			,seq AS seq
+			,loa AS loa
+			,CASE
+				WHEN atb IS NOT NULL THEN FORMAT( atb, 'dd/MM/yyyy HH:mm:ss')
+				ELSE ' '
+			END 									AS atb,
+			CASE
+				WHEN atw IS NOT NULL THEN FORMAT(atw, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 									AS atw,
+			CASE
+				WHEN atc IS NOT NULL THEN FORMAT(atc, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 									AS atc,
+			CASE
+				WHEN atu IS NOT NULL THEN FORMAT(atu, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 									AS atu,
+			CASE
+				WHEN st_dt IS NOT NULL THEN FORMAT(st_dt, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 									AS stDt,
+			CASE
+				WHEN end_dt IS NOT NULL THEN FORMAT(end_dt, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 									AS endDt
+
+			,dbl_bnk_ship1 							AS dblBnkShip1
+			,(SELECT TOP(1)
+				VSL_NM 
+			FROM 
+				TMT_VSL_PART P 
+			INNER JOIN 
+				TMT_VSL_SCH S 
+			ON 
+				P.VSL_CD = S.VSL_CD 
+			WHERE 
+				S.VSL_CALL_ID = dbl_bnk_ship1) AS dblBnkShip1Nm
+			,ship1_loa 								AS ship1Loa,
+			
+			CASE
+				WHEN ship1_atb IS NOT NULL THEN FORMAT(ship1_atb, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 									AS ship1Atb,
+			CASE
+				WHEN ship1_atw IS NOT NULL THEN FORMAT(ship1_atw, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 									AS ship1Atw,
+			CASE
+				WHEN ship1_atc IS NOT NULL THEN FORMAT(ship1_atc, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 									AS ship1Atc,
+			CASE
+				WHEN ship1_atu IS NOT NULL THEN FORMAT(ship1_atu, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 									AS ship1Atu
+			
+			,dbl_bnk_ship2 							AS dblBnkShip2
+			,(SELECT TOP(1)
+				VSL_NM 
+			FROM 
+				TMT_VSL_PART P 
+			INNER JOIN 
+				TMT_VSL_SCH S 
+			ON 
+				P.VSL_CD = S.VSL_CD 
+			WHERE 
+				S.VSL_CALL_ID = dbl_bnk_ship2 ) 	AS dblBnkShip2Nm
+			,ship2_loa 								AS ship2Loa,
+			
+			CASE
+				WHEN ship2_atb IS NOT NULL THEN FORMAT(ship2_atb, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 									AS ship2Atb,
+			CASE
+				WHEN ship2_atw IS NOT NULL THEN FORMAT(ship2_atw, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 									AS ship2Atw,
+			CASE
+				WHEN ship2_atc IS NOT NULL THEN FORMAT(ship2_atc, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 									AS ship2Atc,
+			CASE
+				WHEN ship2_atu IS NOT NULL THEN FORMAT(ship2_atu, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 									AS ship2Atu
+
+			,rmk 									AS remark
+			,'U' 									AS workingStatus
+			,dbl_bnk_ship3 							AS dblBnkShip3
+			,(SELECT TOP(1)
+				VSL_NM 
+			FROM 
+				TMT_VSL_PART P 
+			INNER JOIN 
+				TMT_VSL_SCH S 
+			ON 
+				P.VSL_CD = S.VSL_CD 
+			WHERE 
+				S.VSL_CALL_ID = dbl_bnk_ship3) 		AS dblBnkShip3Nm
+			,ship3_loa 								AS ship3Loa,
+			
+			CASE
+				WHEN ship3_atb IS NOT NULL THEN FORMAT(ship3_atb, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 									AS ship3Atb,
+			CASE
+				WHEN ship3_atw IS NOT NULL THEN FORMAT(ship3_atw, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 									AS ship3Atw,
+			CASE
+				WHEN ship3_atc IS NOT NULL THEN FORMAT(ship3_atc, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 									AS ship3Atc,
+			CASE
+				WHEN ship3_atu IS NOT NULL THEN FORMAT(ship3_atu, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 									AS ship3Atu
+		FROM 	
+			TMT_DBL_BNK
+		WHERE
+			vsl_call_id = #{vslCallId}	
+		ORDER BY 
+			seq DESC
+	</select>
+
+	<!-- ========================================== Ship to Ship Operation ========================================== -->
+	<select id="selectStsOperationList"  parameterType="shiftingDoubleBankingParm" resultType="shiftingDoubleBankingItem">
+		SELECT	/*shiftingDoubleBanking.selectStsOperationList*/
+			vsl_call_id 											AS vslCallId,
+			cg_tp_cd 												AS cgTpCd,
+			(SELECT 
+				s_cd_nm
+			FROM 
+				TMT_cd_mstd
+		    WHERE 
+				l_cd 		= 'MT' 
+				AND m_cd 	= 'CGTP' 
+				AND s_cd 	= a.cg_tp_cd) 							AS cgTpNm,
+			seq 													AS seq,
+			next_cal_call_id 										AS nextCalCallId,
+			sts_op_tp 										 		AS stsOpTp,
+			mt 														AS mt,
+			m3 														AS m3,
+			qty 													AS qty,
+			hatch_no 												AS hatchNo,
+			cmdt_cd 												AS cmdtCd,
+			pkg_tp_cd 												AS pkgTpCd,
+			CASE
+				WHEN st_dt IS NOT NULL THEN FORMAT(st_dt, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 													AS stDt,
+			CASE
+				WHEN end_dt IS NOT NULL THEN FORMAT(end_dt, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 													AS endDt,
+			rmk 													AS rmk,
+			STAFF_CD 												AS updUserId,
+			UPDATE_TIME 											AS updDt,
+			version 												AS version,
+			hatch_drt_cd 											AS hatchDrtCd,
+			(SELECT 
+				c.s_cd_nm
+			FROM 
+				TMT_cd_mstm m
+			JOIN
+				TMT_cd_mstd c
+			ON
+				c.l_cd 		= m.l_cd
+				AND c.m_cd 	= m.m_cd
+		   WHERE
+				m.l_cd 		= 'MT'
+				AND m.m_cd 	= 'PKGTP'
+				AND c.s_cd 	= a.pkg_tp_cd) 							AS pkgTpNm,
+			(SELECT 
+				CMDT_DESC
+			FROM 
+				TMT_cmdt sa
+		    WHERE
+				sa.cmdt_cd 	= a.cmdt_cd)							AS cmdtNm
+			,'U' 													AS workingStatus
+		FROM  	
+			tmt_sts a
+		WHERE
+			vsl_call_id 	= #{vslCallId}
+		ORDER BY
+			seq DESC
+	</select>
+	
+	<select id="selectDocAmountByOPRMode"  parameterType="shiftingDoubleBankingParm" resultType="shiftingDoubleBankingItem">
+		WITH sumaryInfo
+		     AS (  
+				SELECT 
+					next_cal_call_id,
+					CASE sts_op_tp
+						WHEN 'LD' THEN 'SL'
+						ELSE 'SD'
+					END AS sts_op_tp,
+					cg_tp_cd,
+					SUM (ISNULL(mt,0)) 	AS mt,
+					SUM (ISNULL(m3,0)) 	AS m3,
+					SUM (ISNULL(qty,0)) AS qty
+				FROM 
+					tmt_sts s
+				WHERE 
+					next_cal_call_id = #{vslCallId}
+				GROUP BY
+					next_cal_call_id,sts_op_tp,cg_tp_cd),
+					
+		 slipInfo
+		     AS (  
+				SELECT 
+					a.vsl_call_id,
+					cg_opt_tp_cd,
+					b.cg_tp_cd,
+					SUM (ISNULL(b.CG_WGT,0)) 	AS mt,
+					SUM (ISNULL(b.CG_VOL,0)) 	AS m3,
+					SUM (ISNULL(b.qty,0)) 		AS qty
+				FROM 
+					tmt_confm_slp a
+				JOIN
+					tmt_confm_slp_dtl b
+				ON
+					a.vsl_call_id 	= b.vsl_call_id
+				WHERE     
+					a.vsl_call_id 	= #{vslCallId}
+					AND cg_opt_tp_cd IN ('SD','SL')
+		        GROUP BY 
+					a.vsl_call_id,cg_opt_tp_cd,cg_tp_cd)
+					
+		SELECT /*shiftingDoubleBanking.selectDocAmountByOPRMode*/
+			a.cg_opt_tp_cd 						AS cgOptTpCd,
+			a.cg_tp_cd 							AS cgTpCd,
+			a.mt 								AS mt,
+			a.m3 								AS m3,
+			a.qty 								AS qty,
+			a.mt - b.mt 						AS balMt,
+			a.m3 - b.m3 						AS balM3,
+			a.qty - b.qty 						AS balQty
+		FROM 
+			slipInfo a
+		LEFT OUTER JOIN 
+			sumaryInfo b
+		ON    
+			A.VSL_CALL_ID 		= b.next_cal_call_id
+			AND a.cg_opt_tp_cd 	= b.sts_op_tp
+			AND a.cg_tp_cd 		= b.cg_tp_cd
+	</select>
+	<select id="selectVesselShiftingList"  parameterType="shiftingDoubleBankingParm" resultType="shiftingDoubleBankingItem">
+		SELECT 	/*shiftingDoubleBanking.selectVesselShiftingList*/
+			VSL_CALL_ID 								AS VSLCALLID,
+			SEQ 										AS SEQ,
+			A.REQR 										AS REQR,
+			A.PREV_BERTH_NO 							AS CURRWHARF,
+			PREV_WHARF_MARK_FM 							AS currWharfMakrFm,
+			PREV_WHARF_MARK_TO 							AS currWharfMakrTo,
+			CASE
+				WHEN PREV_ATU_DT IS NOT NULL THEN FORMAT(PREV_ATU_DT, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 										AS PREVATU,
+			CASE
+				WHEN ATU_DT IS NOT NULL THEN FORMAT(ATU_DT, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 										AS ATUDT,
+			CASE
+				WHEN PREV_ATB_DT IS NOT NULL THEN FORMAT(PREV_ATB_DT, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 										AS prevAtb,
+			CASE
+				WHEN ATB_DT IS NOT NULL THEN FORMAT(ATB_DT, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 										AS ATBDT,
+			NX_BERTH_NO 								AS NXBERTHNO,
+			A.WHARF_MARK_FM 							AS WHARFMARKFM,
+			A.WHARF_MARK_TO 							AS WHARFMARKTO,
+			CAST(A.WHARF_MARK_FM AS VARCHAR) + ' - ' + CAST(A.WHARF_MARK_TO AS VARCHAR) 	AS WHARFMARK,
+			CASE A.BERTH_ALONGSIDE
+				WHEN 'P' THEN 'PS'
+				WHEN 'S' THEN 'SB'
+				ELSE A.BERTH_ALONGSIDE
+			END 										AS BERTHALONGSIDE,
+			RSN_CD 										AS RSNCD,
+			(SELECT 
+				S_CD_NM
+			FROM 
+				TMT_CD_MSTD
+			WHERE
+				L_CD = 'MT' 
+				AND M_CD = 'SFTRSN' 
+				AND S_CD = RSN_CD) 						AS RSNNM,
+			RMK 										AS RMK,
+			CASE
+				WHEN ATW_DT IS NOT NULL THEN FORMAT(ATW_DT, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 										AS ATW,
+			CASE
+				WHEN ATC_DT IS NOT NULL THEN FORMAT(ATC_DT, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 										AS ATC,
+			'U' 										AS workingStatus
+		FROM 	
+			TMT_VSL_SHFT A
+		WHERE
+			A.VSL_CALL_ID = #{vslCallId}
+			AND (A.STAT_CD = 'AP' OR REQR IS NULL)
+	</select>
+	
+	<select id="checkVslShifting"  parameterType="shiftingDoubleBankingParm" resultType="shiftingDoubleBankingItem">
+		SELECT	/*shiftingDoubleBanking.checkVslShifting*/
+			CASE cVslShifting
+				WHEN 0 THEN 'N'
+				ELSE 'Y'
+			END AS vslShiftingYN
+		FROM 	
+			(SELECT	
+				COUNT (*) AS cVslShifting
+			FROM 	
+				tmt_vsl_shft
+			WHERE
+				vsl_call_id = #{vslCallId} 
+				AND atb_dt IS NOT NULL) AS checkVslShifting
+	</select>
+	
+	<select id="selectVesselCurrWharf"  parameterType="shiftingDoubleBankingParm" resultType="shiftingDoubleBankingItem">
+	/*shiftingDoubleBanking.selectVesselCurrWharf*/
+		<if test="vslShiftingYN eq 'N'.toString()">
+			SELECT	
+				berth_loc   						AS currWharf,
+				wharf_mark_from 					AS currWharfMakrFm,
+				wharf_mark_to 						AS currWharfMakrTo,
+				FORMAT(ATU, 'dd/MM/yyyy HH:mm') 	AS prevATU,
+				FORMAT(ATB, 'dd/MM/yyyy HH:mm') 	AS prevATB,
+				FORMAT(ATW, 'dd/MM/yyyy HH:mm') 	AS prevAtw,
+				FORMAT(ATC, 'dd/MM/yyyy HH:mm') 	AS prevAtc
+			FROM 	
+				TMT_vsl_sch
+			WHERE
+				VSL_CALL_ID =  #{vslCallId}
+		</if>
+		<if test="vslShiftingYN eq 'Y'.toString()">
+			SELECT 	
+				NX_BERTH_NO 							AS currWharf,
+				WHARF_MARK_FM 							AS currWharfMakrFm,
+				WHARF_MARK_TO 							AS currWharfMakrTo,
+				FORMAT(ATU_DT, 'dd/MM/yyyy HH:mm') 	AS prevATU,
+				FORMAT(ATB_DT, 'dd/MM/yyyy HH:mm') 	AS prevATB
+			FROM
+				tmt_vsl_shft
+			WHERE
+				VSL_CALL_ID = #{vslCallId} 
+				AND SEQ =  (SELECT
+								Max(A.seq) 
+							FROM 
+								tmt_vsl_shft A 
+							WHERE 
+								A.VSL_CALL_ID = #{vslCallId} 
+								AND A.ATB_DT IS NOT NULL)
+		</if>
+		
+	</select>
+
+	<!-- ========================================== Cargo Shifting ========================================== -->
+	<select id="selectCargoShiftingList"  parameterType="shiftingDoubleBankingParm" resultType="shiftingDoubleBankingItem">
+		SELECT 	/*shiftingDoubleBanking.selectCargoShiftingList*/
+			vsl_call_id 								AS vslCallId
+			,seq 										AS seq
+			,hatch_no 									AS hatchNo
+			,stcr_div 									AS stcrDiv
+			,hatch_drt_cd 								AS hatchDrtCd
+			,next_hatch_no 								AS nextHatchNo
+			,sft_tp 									AS sftTp
+		    ,DBO.F_CM_CODE_NM('MT','VSLSHFTTP',sft_tp) 	AS sftTpNm
+			,pkg_tp_cd 									AS pkgTpCd
+			,( 
+				 SELECT 
+					c.s_cd_nm  
+				 FROM 
+					TMT_cd_mstm m
+				JOIN
+					TMT_cd_mstd c
+				ON
+					c.l_cd = m.l_cd
+					AND c.m_cd = m.m_cd	  
+				WHERE
+					m.l_cd = 'MT'
+					AND m.m_cd = 'PKGTP'
+					AND c.s_cd = a.pkg_tp_cd
+			  ) 										AS pkgTpNm,
+			CASE
+				WHEN st_dt IS NOT NULL THEN FORMAT(st_dt, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 										AS stDt,
+			CASE
+				WHEN end_dt IS NOT NULL THEN FORMAT(end_dt, 'dd/MM/yyyy HH:mm')
+				ELSE ' '
+			END 										AS endDt,
+
+			ISNULL(mt, 0) 								AS mt,
+			ISNULL(m3, 0) 								AS m3,
+			ISNULL(qty, 0) 								AS qty,
+			rmk 										AS rmk,
+			'U' 										AS workingStatus
+		FROM 	
+			tmt_cg_shft a
+		WHERE
+			vsl_call_id = #{vslCallId}	
+		ORDER BY
+			seq DESC	
+	</select>
+	
+	<select id="selectCommodity"  parameterType="shiftingDoubleBankingParm" resultType="shiftingDoubleBankingItem">
+		SELECT 	/*shiftingDoubleBanking.selectCommodity*/
+			a.cmdt_cd 						AS cmdtCd
+			,ISNULL(b.CMDT_DESC,a.cmdt_cd)  AS cmdtNm 
+		FROM
+			tmt_confm_slp_dtl a
+		LEFT JOIN	
+			TMT_cmdt b
+		ON	
+			a.cmdt_cd  		= b.cmdt_cd
+		WHERE
+			a.vsl_call_id 	= #{vslCallId}
+			AND cg_opt_tp_cd in ('SD','SL')
+			
+        UNION
+		SELECT
+			a.cmdt_cd 						AS cmdtcd
+			,ISNULL(b.CMDT_DESC,a.cmdt_cd)  AS cmdtNm 
+		FROM
+			tmt_sts a
+		LEFT JOIN
+			TMT_cmdt b
+		ON
+			a.cmdt_cd  			= b.cmdt_cd
+        WHERE
+			a.next_cal_call_id 	= #{vslCallId}
+			AND a.cmdt_cd IS NOT NULL
+	</select>
+	
+	<select id="selectCommodityWithinConfirmationSlip"  parameterType="shiftingDoubleBankingParm" resultType="shiftingDoubleBankingItem">
+		SELECT 	/*shiftingDoubleBanking.selectCommodityWithinConfirmationSlip*/
+			a.CG_TP_CD 						AS cgTpCd
+			,a.CG_OPT_TP_CD 				AS cgOptTpCd
+			,a.cmdt_cd 						AS cmdtcd
+			,ISNULL(b.CMDT_DESC,a.cmdt_cd)	AS cmdtNm 
+		FROM
+			tmt_confm_slp_dtl a
+		LEFT JOIN
+			TMT_cmdt b
+		ON 
+			a.cmdt_cd  		= b.cmdt_cd
+		WHERE
+			a.vsl_call_id 	= #{vslCallId} 
+			AND cg_opt_tp_cd in ('SD','SL')
+	</select>
+	
+	<select id="selectCargoType"  parameterType="shiftingDoubleBankingParm" resultType="shiftingDoubleBankingItem">
+		SELECT 	/*shiftingDoubleBanking.selectCargoType*/
+			b.cg_tp_cd 								AS cgTpCd
+			,(select 
+				s_cd_nm 
+			FROM
+				TMT_cd_mstd 
+			WHERE 
+				l_cd	 	= 'MT' 
+				AND m_cd 	= 'CGTP' 
+				AND s_cd	=b.cg_tp_cd)            AS cgTpNm
+		FROM 	
+			tmt_confm_slp a
+		JOIN
+			tmt_confm_slp_dtl b 
+		ON
+			a.vsl_call_id 		= b.vsl_call_id
+		WHERE 
+			a.vsl_call_id 		= #{vslCallId}	
+			AND cg_opt_tp_cd in ('SD','SL')
+		group by
+			a.vsl_call_id,cg_tp_cd
+	</select>
+	
+	<select id="selectConfSlpInformation"  parameterType="shiftingDoubleBankingParm" resultType="shiftingDoubleBankingItem">
+		SELECT 	TOP(1) /*shiftingDoubleBanking.selectConfSlpInformation*/
+			VSL_CALL_ID 							AS vslCallId,
+			CG_TP_CD 								AS cgTpCd,
+			(SELECT TOP(1) 
+				S_CD_NM 
+			FROM 
+				TMT_CD_MSTD 
+			WHERE
+				L_CD	='MT' 
+				AND M_CD='CGTP' 
+				AND S_CD= CG_TP_CD )               	AS cgTpNm,
+			CMDT_CD 								AS cmdtCd,
+			WORK_HATCH_NO 							AS hatchNo,
+			CG_WGT 									AS mt,
+			CG_VOL 									AS m3,
+			QTY,
+			PKG_TP_CD 								AS pkgTpCd,
+			CASE CG_OPT_TP_CD
+				WHEN 'SL' THEN 'LD'
+				ELSE 'DS'
+			END 									AS stsOpTp
+		FROM 	
+			tmt_confm_slp_dtl
+		WHERE
+			CG_OPT_TP_CD IN ('SD','SL')
+			<if test="vslCallId != null and vslCallId != ''">
+				AND VSL_CALL_ID = #{vslCallId}
+			</if>
+	</select>
+	
+	<select id="selectShftAtx"  parameterType="shiftingDoubleBankingParm" resultType="shiftingDoubleBankingItem">
+		SELECT	/*shiftingDoubleBanking.selectShftAtx*/
+			FORMAT(atb, 'dd/MM/yyyy HH:mm:ss') atb,
+			FORMAT(atw, 'dd/MM/yyyy HH:mm:ss') atw,
+			FORMAT(atc, 'dd/MM/yyyy HH:mm:ss') atc,
+			FORMAT(atu, 'dd/MM/yyyy HH:mm:ss') atu
+		FROM 
+			TMT_VSL_SCH
+		WHERE
+			VSL_CALL_ID =  #{dblBnkShip1}
+	</select>
+
+	<insert id="insertVesselShiftingItems" parameterType="shiftingDoubleBankingItem">
+		INSERT /*shiftingDoubleBanking.insertVesselShiftingItems*/
+		INTO TMT_VSL_SHFT (
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			VSL_CALL_ID,	
+			SHIP_CALL_NO,			
+			SEQ,
+			PREV_ATU_DT,
+			ATU_DT,
+			ATB_DT,
+			ATA_DT,
+			NX_BERTH_NO,
+			WHARF_MARK_FM,
+			WHARF_MARK_TO,
+			BERTH_ALONGSIDE,
+			RSN_CD,
+			RMK,
+			STAFF_CD,
+			UPDATE_TIME,
+			VERSION,
+			PREV_BERTH_NO,
+			PREV_ATB_DT,
+			PREV_WHARF_MARK_FM,
+			PREV_WHARF_MARK_TO,
+			STAT_CD,
+			REQR,
+			APPRV_DT,
+			APPRV_BY
+		) VALUES (
+			(SELECT 
+			VSL_CD 		
+				FROM 
+				TMT_VSL_SCH 
+			WHERE 
+				VSL_CALL_ID = #{vslCallId}),
+			(SELECT 
+			CALL_YEAR 	
+				FROM 
+				TMT_VSL_SCH 
+			WHERE 
+				VSL_CALL_ID = #{vslCallId}),
+			(SELECT 
+			CALL_SEQ 	
+				FROM 
+				TMT_VSL_SCH 
+			WHERE 
+				VSL_CALL_ID = #{vslCallId}),
+			#{vslCallId},
+			#{scn},
+			(SELECT 
+				CASE 
+					WHEN MAX(SEQ) IS NULL THEN 1
+					ELSE MAX(SEQ) + 1
+				END
+			FROM 
+				TMT_VSL_SHFT
+			WHERE
+				VSL_CALL_ID = #{vslCallId}
+			),
+			CASE
+				WHEN #{prevAtu} IS NULL OR #{prevAtu} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{prevAtu},103)
+			END,
+			CASE
+				WHEN #{atuDt} IS NULL OR #{atuDt} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{atuDt},103)
+			END,
+			CASE
+				WHEN #{atbDt} IS NULL OR #{atbDt} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{atbDt},103)
+			END,
+			CASE
+				WHEN #{ataDate} IS NULL OR #{ataDate} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{ataDate},103)
+			END,
+			#{nxBerthNo},
+			ISNULL(#{wharfMarkFm}, 0),
+			ISNULL(#{wharfMarkTo}, 0),
+			#{berthAlongside},
+			#{rsnCd},
+			#{rmk},
+			#{userId},
+			SYSDATETIME(),
+			#{version},
+			#{currWharf},
+			CASE
+				WHEN #{prevAtb} IS NULL OR #{prevAtb} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{prevAtb},103)
+			END,
+			ISNULL(#{currWharfMakrFm}, 0),	
+			ISNULL(#{currWharfMakrTo}, 0),
+			'AP',
+			#{reqr},
+			SYSDATETIME(),
+			#{userId}
+		)				
+	</insert>
+	
+	<update id="updateVesselShiftingItems"  parameterType="shiftingDoubleBankingItem">
+		UPDATE 	/*shiftingDoubleBanking.updateVesselShiftingItems*/
+			tmt_vsl_shft
+		SET 
+			 prev_atu_dt		= CONVERT(DATETIME, TRIM(#{prevAtu}),103)
+			,PREV_ATB_DT		= CONVERT(DATETIME, TRIM(#{prevAtb}),103)		 
+			,PREV_WHARF_MARK_FM	= #{currWharfMakrFm}
+			,PREV_WHARF_MARK_TO	= #{currWharfMakrTo}
+			,PREV_BERTH_NO		= #{currWharf}
+			,ATW_DT 			=  CONVERT(DATETIME, TRIM(#{atw}),103)		 
+			,ATC_DT 			=  CONVERT(DATETIME, TRIM(#{atc}),103)	
+			,atb_dt				=  CONVERT(DATETIME, TRIM(#{atbDt}),103)	
+			,atu_dt				=  CONVERT(DATETIME, TRIM(#{atuDt}),103)	
+			,wharf_mark_fm		= #{wharfMarkFm}				 		
+			,wharf_mark_to		= #{wharfMarkTo}			 
+			,NX_BERTH_NO		= #{nxBerthNo}			 
+			,BERTH_ALONGSIDE 	= #{berthAlongside}
+			,rsn_cd				= #{rsnCd}			 		
+			/*,pilot_yn			= #{pilotYn}*/
+			/*,mooring			= #{mooring}*/
+			/*,tug				= #{tug}*/
+			,rmk				= #{rmk}
+			,reqr  				= #{reqr}
+			,STAFF_CD 			= #{userId}
+			,UPDATE_TIME 		= SYSDATETIME()
+			,version 			= #{version}	
+			/*,dirty_yn 		= 'Y'*/
+		WHERE 	
+			vsl_call_id 		= #{vslCallId}
+			AND seq = #{seq}				
+	</update>
+	
+	<delete id="deleteVesselShiftingItems" parameterType="shiftingDoubleBankingItem">
+		DELETE /*shiftingDoubleBanking.deleteVesselShiftingItems*/
+		FROM 
+			tmt_vsl_shft
+		WHERE
+			vsl_call_id = #{vslCallId}
+			AND seq 	= #{seq} 
+	</delete>
+	
+	<insert id="insertCargoShiftingItems" parameterType="shiftingDoubleBankingItem">
+		INSERT INTO /*shiftingDoubleBanking.insertCargoShiftingItems*/
+			tmt_cg_shft (
+				VSL_CD,
+				CALL_YEAR,
+				CALL_SEQ,
+				MF_DOC_ID,
+				CG_NO,
+				vsl_call_id
+				,seq
+				,hatch_no
+				,stcr_div
+				,hatch_drt_cd
+				,next_hatch_no
+				,sft_tp
+				,pkg_tp_cd
+				,st_dt
+				,end_dt
+				,mt
+				,m3
+				,qty
+				,rmk
+				,UPDATE_TIME
+				,STAFF_CD
+				,version
+			) VALUES (
+				(SELECT VSL_CD 		FROM TMT_VSL_SCH WHERE VSL_CALL_ID = #{vslCallId}),
+				(SELECT CALL_YEAR 	FROM TMT_VSL_SCH WHERE VSL_CALL_ID = #{vslCallId}),
+				(SELECT CALL_SEQ 	FROM TMT_VSL_SCH WHERE VSL_CALL_ID = #{vslCallId}),
+				'',
+				'',
+				#{vslCallId}
+				,(	SELECT 
+						CASE 
+							WHEN MAX(SEQ) IS NULL THEN 1
+							ELSE MAX(SEQ)+ 1
+						END
+					FROM 
+						tmt_cg_shft
+					WHERE
+						vsl_call_id = #{vslCallId}
+				)
+				,#{hatchNo}
+				,#{stcrDiv}
+				,#{hatchDrtCd}
+				,#{nextHatchNo}
+				,#{sftTp}
+				,#{pkgTpCd}
+				,CASE
+					WHEN #{stDt} IS NULL OR #{stDt} = '' THEN NULL
+					ELSE CONVERT(DATETIME, #{stDt},103)
+				END
+				,CASE
+					WHEN #{endDt} IS NULL OR #{endDt} = '' THEN NULL
+					ELSE CONVERT(DATETIME, #{endDt},103)
+				END
+				,CASE
+					WHEN #{mt} IS NULL OR #{mt} = '' THEN 0
+					ELSE #{mt}
+				END
+				,CASE
+					WHEN #{m3} IS NULL OR #{m3} = '' THEN 0
+					ELSE #{m3}
+				END
+				,CASE
+					WHEN #{qty} IS NULL OR #{qty} = '' THEN 0
+					ELSE #{qty}
+				END
+				,#{rmk}
+				,SYSDATETIME()
+				,#{userId}
+				,#{version}	  
+			)		
+	</insert>
+	
+	<update id="updateCargoShiftingItems"  parameterType="shiftingDoubleBankingItem">
+		UPDATE 	/*shiftingDoubleBanking.updateCargoShiftingItems*/
+			tmt_cg_shft
+		SET
+			hatch_no 		= #{hatchNo}
+			,stcr_div 		= #{stcrDiv}
+			,hatch_drt_cd 	= #{hatchDrtCd}
+			,next_hatch_no 	= #{nextHatchNo}
+			,sft_tp 		= #{sftTp}
+			,pkg_tp_cd 		= #{pkgTpCd}
+			,st_dt 			= CASE
+								WHEN #{stDt} IS NULL OR #{stDt} = '' THEN NULL
+								ELSE CONVERT(DATETIME, #{stDt},103)
+							END
+			,end_dt 		= CASE
+								WHEN #{endDt} IS NULL OR #{endDt} = '' THEN NULL
+								ELSE CONVERT(DATETIME, #{endDt},103)
+							END
+			,mt 			= #{mt}
+			,m3 			= #{m3}
+			,qty 			= #{qty}
+			,rmk 			= #{rmk}
+			,UPDATE_TIME 	= SYSDATETIME()
+			,STAFF_CD 		= #{userId}
+			,version 		= #{version}
+		WHERE 	
+			vsl_call_id 	= #{vslCallId}
+			AND seq 		= #{seq}			
+	</update>
+	
+	<delete id="deleteCargoShiftingItems" parameterType="shiftingDoubleBankingItem">
+		DELETE /*shiftingDoubleBanking.deleteCargoShiftingItems*/
+		FROM 
+			tmt_cg_shft
+		WHERE
+			vsl_call_id 	= #{vslCallId}
+			AND seq 		= #{seq}			
+	</delete>
+	
+	<update id="update2ndVesselInfoItems"  parameterType="shiftingDoubleBankingItem">
+		WITH selectFromTMT_VSL_SCH 
+		AS (
+			SELECT 
+				CONVERT(DATETIME, TRIM(#{ship1Atu}),103) 		AS atu
+				,berth_loc 	  								AS berth_loc
+				,ISNULL(wharf_mark_from,0) 	    			AS wharf_mark_from
+				,ISNULL(wharf_mark_from,0) 
+					+ (#{ship1Loa})   			   	 	   	AS wharf_mark_to
+			FROM 
+				TMT_VSL_SCH
+			WHERE
+				VSL_CALL_ID =  #{vslCallId}	
+			)
+		UPDATE /*shiftingDoubleBanking.update2ndVesselInfoItems*/
+			TMT_VSL_SCH 
+		SET
+			atu 			= updt.atu,
+			berth_loc 		= updt.berth_loc,
+			wharf_mark_from = updt.wharf_mark_from,
+			wharf_mark_to 	= updt.wharf_mark_to
+		FROM 
+			selectFromTMT_VSL_SCH updt
+		WHERE 	
+			TMT_VSL_SCH.VSL_CALL_ID = #{dblBnkShip1}
+	</update>
+	
+	<update id="update2ndVesselSftInfoItems"  parameterType="shiftingDoubleBankingItem">
+        UPDATE /*shiftingDoubleBanking.update2ndVesselSftInfoItems*/
+			TMT_VSL_SHFT 
+		SET 
+			ATU_DT = CASE
+						WHEN #{ship1Atu} IS NULL OR #{ship1Atu} = '' THEN NULL
+						ELSE CONVERT(DATETIME, TRIM(#{ship1Atu}),103)
+					END
+        WHERE 
+			VSL_CALL_ID = #{dblBnkShip1} 
+			AND SEQ = (SELECT 
+						MAX(SEQ) 
+					FROM
+						TMT_VSL_SHFT 
+					WHERE
+						VSL_CALL_ID = #{dblBnkShip1} )
+	</update>
+	
+	<update id="update3ndVesselInfoItems"  parameterType="shiftingDoubleBankingItem">
+		WITH selectForUpdate3
+		AS (
+			SELECT 
+					null												AS atu 
+					,berth_loc 	  										AS berth_loc 
+					,ISNULL(wharf_mark_from,0) 	    					AS wharf_mark_from
+					,ISNULL(wharf_mark_from,0) 
+						+ (TRIM(#{ship2Loa}))   			   	 	   	AS wharf_mark_to
+			FROM 	
+				TMT_VSL_SCH
+			WHERE
+				VSL_CALL_ID =  #{vslCallId}	
+		)
+		UPDATE 	/*shiftingDoubleBanking.update3ndVesselInfoItems*/
+			TMT_VSL_SCH 
+		SET
+			atu 			= slect.atu,
+			berth_loc 		= slect.berth_loc,
+			wharf_mark_from = slect.wharf_mark_from,
+			wharf_mark_to 	= slect.wharf_mark_to 
+		FROM
+			selectForUpdate3 slect
+		WHERE 	
+			TMT_VSL_SCH.VSL_CALL_ID = #{dblBnkShip2}	
+	</update>
+	
+	<insert id="insertDoubleBankingItems" parameterType="shiftingDoubleBankingItem">
+		INSERT INTO /*shiftingDoubleBanking.insertDoubleBankingItems*/
+		TMT_DBL_BNK (
+			SHIP_CALL_NO,
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			vsl_call_id
+			,dbl_bnk_div_cd
+			,seq
+			,loa
+			,atb
+			,atw
+			,atc
+			,atu
+			,st_dt
+			,end_dt
+			,dbl_bnk_ship1
+			,ship1_loa
+			,ship1_atb
+			,ship1_atw
+			,ship1_atc
+			,ship1_atu
+			,dbl_bnk_ship2
+			,ship2_loa
+			,ship2_atb
+			,ship2_atw
+			,ship2_atc
+			,ship2_atu
+			,rmk
+			,STAFF_CD
+			,UPDATE_TIME
+			,version
+			,prev_atb
+			,prev_atu
+			,prev_berth_no
+			,prev_wharf_mark_fm
+			,prev_wharf_mark_to
+			,dbl_bnk_ship3
+			,ship3_loa
+			,ship3_atb
+			,ship3_atw
+			,ship3_atc
+			,ship3_atu
+		) VALUES (
+			#{scn},
+			(SELECT VSL_CD 		FROM TMT_VSL_SCH WHERE VSL_CALL_ID = #{vslCallId}),
+			(SELECT CALL_YEAR 	FROM TMT_VSL_SCH WHERE VSL_CALL_ID = #{vslCallId}),
+			(SELECT CALL_SEQ 	FROM TMT_VSL_SCH WHERE VSL_CALL_ID = #{vslCallId}),
+			#{vslCallId}
+			,#{dblBnkDivCd}
+			,(	SELECT 
+					CASE 
+						WHEN MAX(SEQ) IS NULL THEN 1
+						ELSE MAX(SEQ)+ 1
+					END
+				FROM 
+					TMT_DBL_BNK 
+				WHERE 
+					vsl_call_id = #{vslCallId}
+			  )
+			,TRY_CONVERT(NUMERIC(18,3), #{loa})
+			
+			,CASE
+				WHEN #{atb} IS NULL OR #{atb} = '' THEN NULL
+				ELSE CONVERT(DATETIME,ISNULL(#{atb}, null),103)
+			END
+			,CASE
+				WHEN #{atw} IS NULL OR #{atw} = '' THEN NULL
+				ELSE CONVERT(DATETIME,ISNULL(#{atw}, null),103)
+			END
+			,CASE
+				WHEN #{atc} IS NULL OR #{atc} = '' THEN NULL
+				ELSE CONVERT(DATETIME,ISNULL(#{atc}, null),103)
+			END
+			,CASE
+				WHEN #{atu} IS NULL OR #{atu} = '' THEN NULL
+				ELSE CONVERT(DATETIME,ISNULL(#{atu}, null),103)
+			END
+			,CASE
+				WHEN #{stDt} IS NULL OR #{stDt} = '' THEN NULL
+				ELSE CONVERT(DATETIME,ISNULL(#{stDt}, null),103)
+			END
+			,CASE
+				WHEN #{endDt} IS NULL OR #{endDt} = '' THEN NULL
+				ELSE CONVERT(DATETIME,ISNULL(#{endDt}, null),103)
+			END
+			
+			,#{dblBnkShip1}
+			,TRY_CONVERT(NUMERIC(18,3), #{ship1Loa})
+			,CASE
+				WHEN #{ship1Atb} IS NULL OR #{ship1Atb} = ''
+					THEN NULL
+				ELSE 
+					CONVERT(DATETIME, #{ship1Atb},103)
+			END
+			,CASE
+				WHEN #{ship1Atw} IS NULL OR #{ship1Atw} = ''
+					THEN NULL
+				ELSE 
+					CONVERT(DATETIME, #{ship1Atw},103)
+			END
+			,CASE
+				WHEN #{ship1Atc} IS NULL OR #{ship1Atc} = ''
+					THEN NULL
+				ELSE 
+					CONVERT(DATETIME, #{ship1Atc},103)
+			END
+			,CASE
+				WHEN #{ship1Atu} IS NULL OR #{ship1Atu} = ''
+					THEN NULL
+				ELSE 
+					CONVERT(DATETIME, #{ship1Atu},103)
+			END
+			,#{dblBnkShip2}
+			,TRY_CONVERT(NUMERIC(18,3), #{ship2Loa})
+			,CASE
+				WHEN #{ship2Atb} IS NULL OR #{ship2Atb} = ''
+					THEN NULL
+				ELSE 
+					CONVERT(DATETIME, #{ship2Atb},103)
+			END
+			,CASE
+				WHEN #{ship2Atw} IS NULL OR #{ship2Atw} = ''
+					THEN NULL
+				ELSE 
+					CONVERT(DATETIME, #{ship2Atw},103)
+			END
+			,CASE
+				WHEN #{ship2Atc} IS NULL OR #{ship2Atc} = ''
+					THEN NULL
+				ELSE 
+					CONVERT(DATETIME, #{ship2Atc},103)
+			END
+			,CASE
+				WHEN #{ship2Atu} IS NULL OR #{ship2Atu} = ''
+					THEN NULL
+				ELSE 
+					CONVERT(DATETIME, #{ship2Atu},103)
+			END
+			,#{remark}
+			,#{userId}
+			,SYSDATETIME()
+			,#{version}
+			<if test="dblBnkDivCd == 'VL'"> <!-- Vessel -->
+				,(SELECT 
+					atb 
+				FROM 
+					TMT_VSL_SCH 
+				WHERE
+					VSL_CALL_ID 	= #{dblBnkShip1})
+				,(SELECT 
+					atu 
+				FROM 
+					TMT_VSL_SCH 
+				WHERE 
+					VSL_CALL_ID 	= #{dblBnkShip1})
+				,(SELECT
+					berth_loc 
+				FROM 
+					TMT_VSL_SCH 
+				WHERE 
+					VSL_CALL_ID 	= #{dblBnkShip1})
+				,(SELECT
+					wharf_mark_from 
+				FROM 
+					TMT_VSL_SCH 
+				WHERE 
+					VSL_CALL_ID 	= #{dblBnkShip1})
+				,(SELECT 
+					wharf_mark_to
+				FROM
+					TMT_VSL_SCH 
+				WHERE 
+					VSL_CALL_ID 	= #{dblBnkShip1})
+			</if>
+			<if test="dblBnkDivCd == 'BT' or dblBnkDivCd == 'BG'"> <!-- Barge/Tug -->
+				,(SELECT 
+					atb 
+				FROM
+					TMT_VSL_SCH 
+				WHERE 
+					VSL_CALL_ID 	= #{dblBnkShip1})
+				,(SELECT 
+					atu
+				FROM 
+					TMT_VSL_SCH 
+				WHERE
+					VSL_CALL_ID 	= #{dblBnkShip1})
+				,(SELECT
+					berth_loc 
+				FROM 
+					TMT_VSL_SCH 
+				WHERE VSL_CALL_ID 	= #{dblBnkShip1})
+				,(SELECT 
+					wharf_mark_from 
+				FROM 
+					TMT_VSL_SCH 
+				WHERE 
+					VSL_CALL_ID 	= #{dblBnkShip1})
+				,(SELECT 
+					wharf_mark_to
+				FROM 
+					TMT_VSL_SCH
+				WHERE
+					VSL_CALL_ID 	= #{dblBnkShip1})
+			</if>
+			<if test="dblBnkDivCd == 'TG'"> <!-- Tug -->
+				,'','','',null,null
+			</if>
+			<if test="dblBnkDivCd == 'TR'"> <!-- Tug Replacement -->
+				,(SELECT 
+					atb 
+				FROM 
+					TMT_VSL_SCH
+				WHERE 
+					VSL_CALL_ID = #{dblBnkShip2})
+				,(SELECT 
+					atu
+				FROM 
+					TMT_VSL_SCH
+				WHERE
+					VSL_CALL_ID = #{dblBnkShip2})
+				,(SELECT
+					berth_loc 
+				FROM 
+					TMT_VSL_SCH
+				WHERE
+					VSL_CALL_ID = #{dblBnkShip2})
+				,(SELECT 
+					wharf_mark_from
+				FROM 	
+					TMT_VSL_SCH 
+				WHERE 
+					VSL_CALL_ID = #{dblBnkShip2})
+				,(SELECT 
+					wharf_mark_to 
+				FROM 
+					TMT_VSL_SCH 
+				WHERE
+					VSL_CALL_ID = #{dblBnkShip2})
+			</if>
+			<if test="dblBnkDivCd == 'TA'"> <!-- Tug Alongside -->
+				,'','','',null,null
+			</if>
+			,#{dblBnkShip3}
+			,TRY_CONVERT(NUMERIC(18,3), #{ship3Loa})
+			,CONVERT(DATETIME, ISNULL(#{ship3Atb}, null),103)
+			,CONVERT(DATETIME, ISNULL(#{ship3Atw}, null),103)
+			,CONVERT(DATETIME, ISNULL(#{ship3Atc}, null),103)
+			,CONVERT(DATETIME, ISNULL(#{ship3Atu}, null),103)
+		)
+	</insert>
+	
+	<update id="updateVslAtbAtu"  parameterType="shiftingDoubleBankingItem">
+		UPDATE /*shiftingDoubleBanking.updateVslAtbAtu*/
+			TMT_VSL_SCH 
+		SET 
+			ATB = 	CASE
+						WHEN #{ship1Atb} IS NULL OR #{ship1Atb} = ''
+							THEN NULL
+						ELSE 
+							CONVERT(DATETIME, #{ship1Atb},103)
+					END,
+			ATU = 	CASE
+						WHEN #{ship1Atu} IS NULL OR #{ship1Atu} = ''
+							THEN NULL
+						ELSE 
+							CONVERT(DATETIME, #{ship1Atu},103)
+					END
+		WHERE 	
+			VSL_CALL_ID = #{dblBnkShip1}
+	</update>
+	
+	<update id="updateDoubleBankingItems"  parameterType="shiftingDoubleBankingItem">
+		UPDATE /*shiftingDoubleBanking.updateDoubleBankingItems*/
+		    TMT_DBL_BNK
+		SET
+		    dbl_bnk_div_cd = #{dblBnkDivCd},
+		    loa = TRY_CONVERT(NUMERIC(18,3), #{loa}),
+		    atb = CASE
+		             WHEN #{atb} IS NULL OR #{atb} = ''
+		                 THEN NULL
+		             ELSE 
+		                 CONVERT(DATETIME, TRIM(#{atb}), 103)
+		          END,
+		    atw = CASE
+		             WHEN #{atw} IS NULL OR #{atw} = ''
+		                 THEN NULL
+		             ELSE 
+		                 CONVERT(DATETIME, TRIM(#{atw}), 103)
+		          END,
+		    atc = CASE
+		             WHEN #{atc} IS NULL OR #{atc} = ''
+		                 THEN NULL
+		             ELSE 
+		                 CONVERT(DATETIME, TRIM(#{atc}), 103)
+		          END,
+		    atu = CASE
+		             WHEN #{atu} IS NULL OR #{atu} = ''
+		                 THEN NULL
+		             ELSE 
+		                 CONVERT(DATETIME, TRIM(#{atu}), 103)
+		          END,
+		    st_dt = CASE
+		               WHEN #{stDt} IS NULL OR #{stDt} = ''
+		                   THEN NULL
+		               ELSE 
+		                   CONVERT(DATETIME, TRIM(#{stDt}), 103)
+		            END,
+		    end_dt = CASE
+		                WHEN #{endDt} IS NULL OR #{endDt} = ''
+		                    THEN NULL
+		                ELSE 
+		                    CONVERT(DATETIME, TRIM(#{endDt}), 103)
+		             END,
+		    dbl_bnk_ship1 = #{dblBnkShip1},
+		    ship1_loa = TRY_CONVERT(NUMERIC(18,3), #{ship1Loa}),
+		    ship1_atb = CASE
+		                   WHEN #{ship1Atb} IS NULL OR #{ship1Atb} = ''
+		                       THEN NULL
+		                   ELSE 
+		                       CONVERT(DATETIME, TRIM(#{ship1Atb}), 103)
+		                END,
+		    ship1_atw = CASE
+		                   WHEN #{ship1Atw} IS NULL OR #{ship1Atw} = ''
+		                       THEN NULL
+		                   ELSE 
+		                       CONVERT(DATETIME, TRIM(#{ship1Atw}), 103)
+		                END,
+		    ship1_atc = CASE
+		                   WHEN #{ship1Atc} IS NULL OR #{ship1Atc} = ''
+		                       THEN NULL
+		                   ELSE 
+		                       CONVERT(DATETIME, TRIM(#{ship1Atc}), 103)
+		                END,
+		    ship1_atu = CASE
+		                   WHEN #{ship1Atu} IS NULL OR #{ship1Atu} = ''
+		                       THEN NULL
+		                   ELSE 
+		                       CONVERT(DATETIME, TRIM(#{ship1Atu}), 103)
+		                END,
+		    dbl_bnk_ship2 = #{dblBnkShip2},
+		    ship2_loa = TRY_CONVERT(NUMERIC(18,3), #{ship2Loa}),
+		    ship2_atb = CASE
+		                   WHEN #{ship2Atb} IS NULL OR #{ship2Atb} = ''
+		                       THEN NULL
+		                   ELSE 
+		                       CONVERT(DATETIME, TRIM(#{ship2Atb}), 103)
+		                END,
+		    ship2_atw = CASE
+		                   WHEN #{ship2Atw} IS NULL OR #{ship2Atw} = ''
+		                       THEN NULL
+		                   ELSE 
+		                       CONVERT(DATETIME, TRIM(#{ship2Atw}), 103)
+		                END,
+		    ship2_atc = CASE
+		                   WHEN #{ship2Atc} IS NULL OR #{ship2Atc} = ''
+		                       THEN NULL
+		                   ELSE 
+		                       CONVERT(DATETIME, TRIM(#{ship2Atc}), 103)
+		                END,
+		    ship2_atu = CASE
+		                   WHEN #{ship2Atu} IS NULL OR #{ship2Atu} = ''
+		                       THEN NULL
+		                   ELSE 
+		                       CONVERT(DATETIME, TRIM(#{ship2Atu}), 103)
+		                END,
+		    rmk = #{remark},
+		    STAFF_CD = #{userId},
+		    UPDATE_TIME = SYSDATETIME(),
+		    version = #{version},
+		    dbl_bnk_ship3 = #{dblBnkShip3},
+		    ship3_loa = TRY_CONVERT(NUMERIC(18,3), #{ship3Loa}),
+		    ship3_atb = CASE
+		                   WHEN #{ship3Atb} IS NULL OR #{ship3Atb} = ''
+		                       THEN NULL
+		                   ELSE 
+		                       CONVERT(DATETIME, TRIM(#{ship3Atb}), 103)
+		                END,
+		    ship3_atw = CASE
+		                   WHEN #{ship3Atw} IS NULL OR #{ship3Atw} = ''
+		                       THEN NULL
+		                   ELSE 
+		                       CONVERT(DATETIME, TRIM(#{ship3Atw}), 103)
+		                END,
+		    ship3_atc = CASE
+		                   WHEN #{ship3Atc} IS NULL OR #{ship3Atc} = ''
+		                       THEN NULL
+		                   ELSE 
+		                       CONVERT(DATETIME, TRIM(#{ship3Atc}), 103)
+		                END,
+		    ship3_atu = CASE
+		                   WHEN #{ship3Atu} IS NULL OR #{ship3Atu} = ''
+		                       THEN NULL
+		                   ELSE 
+		                       CONVERT(DATETIME, TRIM(#{ship3Atu}), 103)
+		                END
+		WHERE
+		    vsl_call_id = #{vslCallId}
+		    AND seq = #{seq}
+
+	</update>
+	
+	<update id="updateVesselInfoRollBackItems"  parameterType="shiftingDoubleBankingItem">
+		WITH selectPrev 
+		AS (
+			SELECT 
+				prev_atu
+				,prev_berth_no
+				,prev_wharf_mark_fm
+				,prev_wharf_mark_to 
+			FROM 
+				TMT_DBL_BNK
+			WHERE
+				vsl_call_id = #{vslCallId}
+				AND seq	 	= #{seq}		
+			)
+			
+		UPDATE /*shiftingDoubleBanking.updateVesselInfoRollBackItems*/
+			TMT_VSL_SCH 
+		SET
+			atu 			= prev.prev_atu,
+			berth_loc 		= prev.prev_berth_no,
+			wharf_mark_from = prev.prev_wharf_mark_fm,
+			wharf_mark_to 	= prev.prev_wharf_mark_to
+		FROM
+			selectPrev prev
+		WHERE 	
+			VSL_CALL_ID = (
+							SELECT (
+										CASE  
+											when dbl_bnk_div_cd = 'VL' THEN dbl_bnk_ship1	
+											when dbl_bnk_div_cd = 'BT' THEN dbl_bnk_ship1 
+											when dbl_bnk_div_cd = 'TR' THEN dbl_bnk_ship2  
+										END  
+								    ) AS VSL_CALL_ID
+							FROM 
+								TMT_DBL_BNK
+							WHERE
+								vsl_call_id = #{vslCallId}
+								AND seq 	= #{seq}
+			  		  	) 						
+	</update>
+	
+	<update id="updateVsAtu" parameterType="shiftingDoubleBankingItem">
+		UPDATE 	/*shiftingDoubleBanking.updateVsAtu*/
+			TMT_VSL_SCH 
+		SET 	
+			ATU = NULL
+		WHERE
+			VSL_CALL_ID = #{vslCallId}
+	</update>
+	
+	<delete id="deleteDoubleBankingItems" parameterType="shiftingDoubleBankingItem">
+		DELETE /*shiftingDoubleBanking.deleteDoubleBankingItems*/
+		FROM
+			TMT_DBL_BNK 
+		WHERE
+			vsl_call_id = #{vslCallId}
+			AND seq 	= #{seq}
+	</delete>
+	
+	<insert id="insertStsOperationItems" parameterType="shiftingDoubleBankingItem">
+		INSERT INTO /*shiftingDoubleBanking.insertStsOperationItems*/
+		TMT_STS (
+			/*MISSING COLUMN*/
+			VSL_CD,
+			CALL_YEAR,
+			CALL_SEQ,
+			/*MISSING COLUMN*/
+			vsl_call_id,
+			ship_call_no,
+			seq
+			,next_cal_call_id
+			,cg_tp_cd
+			,sts_op_tp
+			,mt
+			,m3
+			,qty
+			,hatch_no
+			,cmdt_cd
+			,pkg_tp_cd
+			,st_dt
+			,end_dt
+			,rmk
+			,STAFF_CD
+			,UPDATE_TIME
+			,version
+			,hatch_drt_cd
+		) VALUES (
+			(SELECT VSL_CD 		FROM TMT_VSL_SCH WHERE VSL_CALL_ID = #{vslCallId}),
+			(SELECT CALL_YEAR 	FROM TMT_VSL_SCH WHERE VSL_CALL_ID = #{vslCallId}),
+			(SELECT CALL_SEQ 	FROM TMT_VSL_SCH WHERE VSL_CALL_ID = #{vslCallId}),
+			#{vslCallId},
+			#{scn},
+			(	SELECT 
+					CASE 
+						WHEN MAX(SEQ) IS NULL THEN 1
+						ELSE MAX(SEQ)+ 1
+					END
+				FROM 
+					TMT_STS
+				WHERE
+					vsl_call_id = #{vslCallId}
+			  )
+			,#{nextCalCallId}
+			,#{cgTpCd}
+			,#{stsOpTp}
+			,#{mt}
+			,#{m3}
+			,#{qty}
+			,#{hatchNo}
+			,#{cmdtCd}
+			,#{pkgTpCd}
+			,CASE
+				WHEN #{stDt} IS NULL OR #{stDt} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{stDt},103)
+			END
+			,CASE
+				WHEN #{endDt} IS NULL OR #{endDt} = '' THEN NULL
+				ELSE CONVERT(DATETIME, #{endDt},103)
+			END
+			,#{rmk}
+			,#{userId}
+			,SYSDATETIME()
+			,#{version}
+			,#{hatchDrtCd}
+		)		
+	</insert>
+	
+	<update id="updateActualTime"  parameterType="shiftingDoubleBankingItem">
+        UPDATE 	/*shiftingDoubleBanking.updateActualTime*/
+			TMT_VSL_SCH 
+		SET 
+			ATW = (SELECT 
+						MIN(A.ATW)
+					FROM 
+						(SELECT 
+							RPT.VSL_CALL_ID  	AS VSLCALLID
+							,RPT.ST_DT 			AS ATW
+						  FROM 
+							TMT_STS RPT
+						  WHERE
+							RPT.VSL_CALL_ID 	= #{vslCallId}
+						  UNION ALL
+						  SELECT 
+							VSL_CALL_ID    		AS VSLCALLID
+							,ATW
+						  FROM
+							TMT_VSL_SCH
+						  WHERE
+							VSL_CALL_ID 		= #{vslCallId}
+						) A                
+					GROUP BY 
+						A.VSLCALLID)
+			,ATC= (SELECT 
+						MAX(A.ATC)
+					FROM
+						(SELECT 
+							RPT.VSL_CALL_ID  	AS VSLCALLID
+							,RPT.END_DT 		AS ATC
+						  FROM
+							TMT_STS RPT
+						  WHERE
+							RPT.VSL_CALL_ID 	= #{vslCallId}
+						  UNION ALL
+						  SELECT
+							VSL_CALL_ID    		AS VSLCALLID
+							,ATC
+						  FROM TMT_VSL_SCH
+						  WHERE 
+							VSL_CALL_ID 		= #{vslCallId}
+					) A                
+					GROUP BY 
+						A.VSLCALLID)
+		WHERE 
+			VSL_CALL_ID=#{vslCallId}
+	</update>
+	
+	<update id="updateDblBnkActualTime"  parameterType="shiftingDoubleBankingItem">
+		UPDATE /*shiftingDoubleBanking.updateDblBnkActualTime*/
+			TMT_DBL_BNK 
+		SET 
+			SHIP1_ATW = (SELECT 
+								MIN(A.ATW)
+							FROM 
+								(SELECT 
+									RPT.VSL_CALL_ID  	AS VSLCALLID
+								   ,RPT.ST_DT 			AS ATW
+                                 FROM 
+									TMT_STS RPT
+                                 WHERE
+									RPT.VSL_CALL_ID = #{vslCallId}
+                                 UNION ALL
+                                 SELECT 
+									VSL_CALL_ID    		AS VSLCALLID
+								   ,ATW
+                                 FROM
+									TMT_VSL_SCH
+                                 WHERE
+									VSL_CALL_ID = #{vslCallId}
+								) A                
+                           GROUP BY 
+								A.VSLCALLID)
+              ,SHIP1_ATC= (SELECT 
+								MAX(A.ATC)
+						   FROM 
+							(SELECT 
+								RPT.VSL_CALL_ID  	AS VSLCALLID
+							   ,RPT.END_DT 			AS ATC
+							 FROM 
+								TMT_STS RPT
+							 WHERE
+								RPT.VSL_CALL_ID 	= #{vslCallId}
+							 UNION ALL
+							 SELECT 
+								VSL_CALL_ID    		AS VSLCALLID
+							   ,ATC
+							 FROM 
+								TMT_VSL_SCH
+							 WHERE
+								VSL_CALL_ID 		= #{vslCallId}
+						   ) A                
+                          GROUP BY A.VSLCALLID)
+		WHERE 
+			  DBL_BNK_SHIP1	= #{vslCallId}
+			  AND SEQ 		= (SELECT 
+										MAX(SEQ) 
+									FROM 
+										TMT_DBL_BNK 
+									WHERE 
+										DBL_BNK_SHIP1 = #{vslCallId})
+	</update>
+	
+	<update id="updateActualTimeNextVsl"  parameterType="shiftingDoubleBankingItem">
+        UPDATE /*shiftingDoubleBanking.updateActualTimeNextVsl*/
+			TMT_VSL_SCH 
+		SET 
+			ATW = (SELECT 
+							MIN(A.ATW)
+						FROM 
+							(SELECT
+								RPT.NEXT_CAL_CALL_ID  	AS VSLCALLID
+							   ,RPT.ST_DT 				AS ATW
+							 FROM 
+								TMT_STS RPT
+							 WHERE
+								RPT.NEXT_CAL_CALL_ID = #{nextCalCallId}
+							 UNION ALL
+							 SELECT 
+								VSL_CALL_ID    			AS VSLCALLID
+							   ,ATW
+							 FROM
+								TMT_VSL_SCH
+							 WHERE
+								VSL_CALL_ID = #{nextCalCallId}
+					   ) A                
+					   GROUP BY 
+							A.VSLCALLID)
+               ,ATC= (SELECT 
+								MAX(A.ATC)
+                           FROM 
+								(SELECT 
+									RPT.NEXT_CAL_CALL_ID  	AS VSLCALLID
+								   ,RPT.END_DT 				AS ATC
+                                 FROM 
+									TMT_STS RPT
+                                 WHERE
+									RPT.NEXT_CAL_CALL_ID = #{nextCalCallId}
+                                 UNION ALL
+                                 SELECT 
+									VSL_CALL_ID    			AS VSLCALLID
+								   ,ATC
+                                 FROM
+									TMT_VSL_SCH
+                                 WHERE
+									VSL_CALL_ID = #{nextCalCallId}
+                           ) A                
+                           GROUP BY A.VSLCALLID)
+		WHERE 
+			  VSL_CALL_ID=#{nextCalCallId}
+	</update>
+	
+	<update id="updateDblBnkActualTimeNextVsl"  parameterType="shiftingDoubleBankingItem">
+		UPDATE /*shiftingDoubleBanking.updateDblBnkActualTimeNextVsl*/
+			TMT_DBL_BNK 
+	   SET 
+			SHIP1_ATW 	= (SELECT 
+								MIN(A.ATW)
+                           FROM 
+								(SELECT 
+									RPT.VSL_CALL_ID  		AS VSLCALLID
+								   ,RPT.ST_DT 				AS ATW
+                                 FROM 
+									TMT_STS RPT
+                                 WHERE
+									RPT.VSL_CALL_ID=#{nextCalCallId}
+                                 UNION ALL
+                                 SELECT 
+									VSL_CALL_ID    			AS VSLCALLID
+								   ,ATW
+                                 FROM
+									TMT_VSL_SCH
+                                 WHERE 
+									VSL_CALL_ID = #{nextCalCallId}
+                           ) A                
+                           GROUP BY 
+								A.VSLCALLID)
+               ,SHIP1_ATC	= (SELECT 
+									MAX(A.ATC)
+							   FROM 
+									(SELECT 
+										RPT.VSL_CALL_ID  		AS VSLCALLID
+									   ,RPT.END_DT 				AS ATC
+									 FROM 
+										TMT_STS RPT
+									 WHERE 
+										RPT.VSL_CALL_ID=#{nextCalCallId}
+									 UNION ALL
+									 SELECT 
+										VSL_CALL_ID    			AS VSLCALLID
+									   ,ATC
+									 FROM 
+										TMT_VSL_SCH
+									 WHERE
+										VSL_CALL_ID = #{nextCalCallId}
+							   ) A                
+                           GROUP BY 
+								A.VSLCALLID)
+		WHERE 
+			  DBL_BNK_SHIP1 = #{nextCalCallId}
+			  AND SEQ 		= (SELECT 
+								MAX(SEQ) 
+							FROM 
+								TMT_DBL_BNK 
+							WHERE 
+								DBL_BNK_SHIP1 = #{nextCalCallId})
+	</update>
+	
+	<update id="updateStsOperationItems"  parameterType="shiftingDoubleBankingItem">
+		UPDATE 	/*shiftingDoubleBanking.updateStsOperationItems*/
+			TMT_STS
+		SET 	
+			next_cal_call_id 	= #{nextCalCallId}
+			,cg_tp_cd 			= #{cgTpCd}
+			,sts_op_tp 			= #{stsOpTp}
+			,mt 				= #{mt}
+			,m3 				= #{m3}
+			,qty 				= #{qty}
+			,hatch_no 			= #{hatchNo}
+			,cmdt_cd 			= #{cmdtCd}
+			,pkg_tp_cd 			= #{pkgTpCd}
+			,st_dt 				= CASE
+						             WHEN #{stDt} IS NULL OR #{stDt} = ''
+						                 THEN NULL
+						             ELSE 
+						                 CONVERT(DATETIME, #{stDt},103)
+						          END
+			,end_dt 			= CASE
+						             WHEN #{endDt} IS NULL OR #{endDt} = ''
+						                 THEN NULL
+						             ELSE 
+						                 CONVERT(DATETIME, #{endDt},103)
+						          END
+			,rmk 				= #{rmk}
+			,STAFF_CD 			= #{userId}
+			,UPDATE_TIME 		= SYSDATETIME()
+			,version 			= #{version}
+			,hatch_drt_cd 		= #{hatchDrtCd}
+		WHERE 	
+			vsl_call_id 		= #{vslCallId}
+			AND seq 			= #{seq}		
+	</update>
+	
+	<delete id="deleteShipToShipItems" parameterType="shiftingDoubleBankingItem">
+		DELETE /*shiftingDoubleBanking.deleteShipToShipItems*/
+		FROM
+			TMT_STS
+		WHERE
+			vsl_call_id 	= #{vslCallId}
+			AND seq 		= #{seq}				
+	</delete>
+
+<!-- ************************************************************************** -->
+
+</mapper>
+
+

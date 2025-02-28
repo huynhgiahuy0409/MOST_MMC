@@ -1,0 +1,3857 @@
+Ext.define('MOST.view.document.ShippingNoteController', {
+	extend: 'MOST.view.foundation.BaseViewController',
+
+	requires: [
+
+	],
+
+	alias: 'controller.shippingnote',
+	
+	/**
+	 * =========================================================================================================================
+	 * CONSTANT START
+	 */
+	DETAILVIEW : 'app-shippingnotedetail',
+	
+	MAIN_GRID_REF_NAME: 'refShippingNoteGrid',
+	MAIN_STORE_NAME: 'shippingNoteGridList',
+	
+	DELIVERY_MODE_STORE: 'deliveryModeCombo',
+	TYPE_CARGO_STORE: 'typeCargoCombo',
+	VESSEL_CALL_DETAIL_STORE: 'searchVesselCallDetail',
+	GOODS_LIST_GRID_STORE: 'goodsListGrid',
+	SHIPPINGNOTE_DETAIL_LIST_STORE: 'shippingNoteDetailList',
+	RORO_BRAND_STORE: 'roroBrandStore',
+	RORO_MODEL_STORE: 'roroModelStore',
+	UNIT_LIST_STORE: 'unitList',
+	VALIDATION_STORE: 'validationStore',
+	EXPORT_TYPE_STORE: 'exportType',
+	OPERATION_TYPE_STORE: 'operationTypeCombo',
+	GET_CBRNO_STORE: 'getCRBNo',
+	HATCH_NO_STORE: 'hatchNoCombo',
+	SHIPPINGNOTE_DETAIL_STORE: 'shippingNoteDetail',
+	CATEGORY_COMBO_STORE: 'categoryCombo',
+	
+	PACKAGE_DETAIL_GRID_REF_NAME: 'refPkgDetailGrid',
+	PACKAGE_DETAIL_STORE: 'shippingNotePkgDetail',
+	
+	SHIPPING_NOTE_PDF_FILE: 'RCS014FW.jrxml',
+	SHIPPING_NOTE_PDF_FUNCTION: 'MOST.documentReport.previewShippingNote',
+	
+	FILE_GRID_REF_NAME : 'refShippingNoteFileUploadGrid', // File Grid Name  
+	FILE_UPLOAD_STORE_NAME : 'shippingNoteFileUpload', // File Store Name
+	FILE_DOWNLOAD_STORE_NAME : 'shippingNoteFileDownload', // File Store Name
+	
+	
+	MAX_DATE_PERIOD : 7,	// MAX PERIOD DATE (a week)
+	MAX_DATE_ALLOW : 90,	// MAX PERIOD DATE (a week)
+
+	COMBO_DELIVERY_MODE : "DE",
+	COMBO_MODE_OPERATION : "MP",
+	COMBO_CARTEGORY_TYPE : "CT",
+	COMBO_CARGO_TYPE : "CY",
+
+	STAT_SA_MODIFY : 'SH',
+	STAT_FA_MODIFY : 'FH',
+	STAT_SA_SUBMIT : 'SS',
+	STAT_FA_SUBMIT : 'FS',
+	STAT_CONFIRM : 'CF',
+	SAVE_TP_CANCEL: 'cancel',
+	SYSTEMADMIN : false,
+	modeChk : false,
+	IsDG : false,
+	adminSubmitBySa : "",
+	adminSubmitByFa : "",
+
+	FORWARDER : "FWD",				//UserConfig.FORWARDER
+	SHIPPING_AGENCY : "SHA",		//UserConfig.SHIPPING_AGENCY
+	BH: "BH",
+	authority: '',
+	oldValue:null,
+	
+	SCREEN_MODE: '',
+	MAX_HATCH_NO: 11,
+	FWRDSUMITBY: 'SYSTEM',
+	SASUMITBY: 'SYSTEM',
+	STAT_APPROVED: 'AP',
+	STAT_CREATE: 'CR',
+	
+	BREAK_BULK_CARGO: 'BBK',
+	
+	DELIVERY_MODE_INDIRECT: 'I',
+	DELIVERY_MODE_DIRECT: 'D',
+	
+	LORRY: 'Lorry',
+	WAGON: 'Wagon',
+	CONVEYOR: 'Conveyor',
+	
+	TRANSPORTER_TYPE_LORRY: 'LR',
+	TRANSPORTER_TYPE_WAGON: 'WG',
+	TRANSPORTER_TYPE_CONVEYOR: 'CV',
+	
+	OPERATION_MODE_LR_CV: 'LC',
+	OPERATION_MODE_LR_WG: 'LW',
+	OPERATION_MODE_LP: 'LP',
+	OPERATION_MODE_LWC: 'LWC',
+	OPERATION_MODE_LWCP: 'LWCP',
+	OPERATION_MODE_LWP: 'LWP',
+	OPERATION_MODE_PL: 'PL',
+	OPERATION_MODE_WC: 'WC',
+	OPERATION_MODE_LWC: 'LWC',
+	OPERATION_MODE_WP: 'WP',
+
+	YES: 'Y',
+	NO: 'N',
+	
+	/**
+	 * CONSTANT END
+	 * =========================================================================================================================
+	 */	
+	
+	/**
+	 * =========================================================================================================================
+	 * INITIALIZE START
+	 */	
+	// After Renderer Event
+	onLoad: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var deliveryModeCombo = me.getViewModel().getStore(me.DELIVERY_MODE_STORE);
+		var categoryCombo = me.getViewModel().getStore(me.TYPE_CARGO_STORE);
+		var shippingNoteItem = new Ext.create('MOST.model.document.ShippingNote');
+		var searchParm =  Ext.create('MOST.model.document.SearchShippingNoteParm');
+		var initData = me.getView().shipNoteInitData;
+		
+		me.setSearchParm(searchParm);
+		me.getViewModel().setData({theSearch:searchParm});
+		me.getView().setShipNoteInitData(shippingNoteItem);
+		me.updateViewStyle(me.getView());
+		searchParm.set('progress', me.NO);
+		
+		me.onSetButtonAuthority();
+
+		if(refs.refBtnDownload){
+			refs.refBtnDownload.setDisabled(true);
+		}
+
+		me.setComboBoxWithLocalCache(CacheServiceConstants.CATEGORY_EXPORT_TRANSHIPMENT_REHANDLE, me.CATEGORY_COMBO_STORE);
+
+		deliveryModeCombo.load();
+		categoryCombo.load({
+			callback:function(records,success){
+				me.setDateInDays("ctlETAFromDt", -me.MAX_DATE_PERIOD);
+				me.setDateInDays("ctlETAToDt",+me.MAX_DATE_PERIOD);
+
+				if(MOST.config.Token.getUserType() === CONSTANTS.USER_TYPE_EXTERNAL){
+					var patnerInfos = MOST.config.Token.getPatnerInfos();
+
+					shippingNoteItem.set("authority",patnerInfos[0].ptnrType);
+					me.authority = patnerInfos[0].ptnrType;
+
+					if(me.existsPatnerType(me.SHIPPING_AGENCY)){
+						shippingNoteItem.set("authority", me.SHIPPING_AGENCY);
+						me.authority = me.SHIPPING_AGENCY;
+					}
+
+					if(me.existsPatnerType(me.SHIPPING_AGENCY) || (me.existsPatnerType(me.SHIPPING_AGENCY) && me.existsPatnerType(me.FORWARDER))){
+						refs.ctlAssinTrans.setDisabled(true); //btnTspt
+
+						if (me.existsPatnerType(me.SHIPPING_AGENCY) && me.existsPatnerType(me.FORWARDER)) {
+							shippingNoteItem.set("authority", me.BH);
+							me.authority = me.BH;
+							refs.ctlAssinTrans.setDisabled(false);
+
+						}else if(me.existsPatnerType(me.SHIPPING_AGENCY)){
+							shippingNoteItem.set("authority", me.SHIPPING_AGENCY);
+							me.authority = me.SHIPPING_AGENCY;
+						}
+					} else if (me.existsPatnerType(me.FORWARDER)) {
+						refs.ctlAssinTrans.setDisabled(false);
+
+						if(refs.refBtnCreate){
+							refs.refBtnCreate.setDisabled(true);
+						}
+
+						if(refs.refBtnDelete){
+							refs.refBtnDelete.setDisabled(true);
+						}
+
+						shippingNoteItem.set("authority",me.FORWARDER);
+						me.authority = me.FORWARDER;
+					} else if (me.existsPatnerType(CONSTANTS.PTNR_TYPE_SHIPPER_CONSIGNEE)) {
+						shippingNoteItem.set("authority",CONSTANTS.PTNR_TYPE_SHIPPER_CONSIGNEE);
+						me.authority = CONSTANTS.PTNR_TYPE_SHIPPER_CONSIGNEE;
+					}
+				}else if(MOST.config.Token.getUserType() === CONSTANTS.USER_TYPE_INTERNAL){
+					SYSTEMADMIN = MOST.config.Token.getIsSystemAdmin();
+
+					if(me.existsPatnerType(CONSTANTS.PTNR_TYPE_CSC_SUPERVISOR)){
+						refs.ctlAssinTrans.setDisabled(true);
+					}else{
+						if(SYSTEMADMIN === me.YES){
+							refs.ctlAssinTrans.setDisabled(false);
+							refs.ctltypeCargo.setDisabled(false);
+						}
+					}
+				}
+			}
+		});
+	},
+	
+	onDetailLoad:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var initData = me.getView().shipNoteInitData;
+		var detailView = me.getDetailBizView();
+		var recvData = detailView.items.get(0).recvData; //selected data
+		var searchType = initData.get("searchType");
+		var authority = initData.get("authority");
+		
+		var pkgDetailStore = me.getStore(me.PACKAGE_DETAIL_STORE);
+		
+		//pkgDetailStore.load();
+
+		recvData.commit();
+		
+		me.getViewModel().setData({theMain:recvData});
+		me.setDetailComboBox();
+		me.setDetailInitialize();
+		me.setDetailSettingControl(searchType);
+		
+		var infoForm = detailView.down('form').getForm();
+		infoForm.isValid();	
+	},
+	
+	setDetailInitialize:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailView = me.getDetailBizView();
+		var recvData = detailView.items.get(0).recvData;
+		var searchVesselCall = null;
+		var shipgNoteNo = null;
+		var searchType = null;
+		var initData = me.getView().shipNoteInitData;
+		var searchParm = me.getViewModel().get('theSearch');
+		var theSearchDetail = me.getViewModel().get('theSearchDetail');
+		var roroBrandStore = me.getStore(me.RORO_BRAND_STORE);				
+		
+		var filekeyId = recvData.get('vslCallId') + "_" + recvData.get('mfDocId') + "_" + recvData.get('shipgNoteNo');
+		var fileUpload= me.getStore(me.FILE_UPLOAD_STORE_NAME);
+		
+		if(initData != null){
+			me.SCREEN_MODE = initData.get("searchType");
+		}else{
+			return null;
+		}
+		
+		roroBrandStore.load();
+
+		refs.ctlDeliveryMode.suspendEvents();
+		refs.ctlModeofOperation.suspendEvents();
+
+		if(me.SCREEN_MODE === CONSTANTS.SCREEN_MODE_CREATE ){ // CREATE
+			var searchVesselCallDtl = me.getViewModel().getStore(me.VESSEL_CALL_DETAIL_STORE);
+			var theShippingNoteItem = Ext.create('MOST.model.document.ShippingNote');
+			var theGoodsItem = Ext.create('MOST.model.document.ShippingNote');
+			var goodsGridList = me.getViewModel().getStore(me.GOODS_LIST_GRID_STORE);
+			goodsGridList.removeAll();
+
+			searchVesselCall = searchParm.get('vslCallId');
+			
+			// Fixing 0131982: [SN detail] Problem with Category "STORAGE"
+			var categoryCombo = me.getStore(me.CATEGORY_COMBO_STORE);
+			if(searchVesselCall != CodeConstants.VESSEL_SCHEDULE_STRG){				
+				if(categoryCombo.data.items[0].data.scd == 'S'){
+					categoryCombo.removeAt(categoryCombo.find('STORAGE','S'));
+				}				
+				theShippingNoteItem.set("catgCd",'E');
+			}else{
+				if(categoryCombo.data.items[0].data.scd != 'S'){
+					categoryCombo.insert(0,[{scdNm: 'STORAGE',scd: 'S'}]);					
+				}
+				refs.ctlCategory.setDisabled(true);
+				theShippingNoteItem.set("catgCd",'S');
+				
+				if(MOST.config.Token.getUserType() === CONSTANTS.USER_TYPE_EXTERNAL){
+					theShippingNoteItem.set("fwrd", MOST.config.Token.getPtnrCode());
+					theShippingNoteItem.set("fwrdNm", MOST.config.Token.getPtnrNm());
+					
+					refs.ctlFAgent.setValue(MOST.config.Token.getPtnrCode());
+					refs.ctlFAgentName.setValue(MOST.config.Token.getPtnrNm());
+					refs.ctlFAgent.setDisabled(true);
+				}
+			}
+			//--------------------------------------------------------
+			
+			
+			theShippingNoteItem.set("vslCallId",searchVesselCall);
+
+			searchVesselCallDtl.load({
+				params: {
+					vslCallId : searchVesselCall
+				},
+				callback:function(records,success){
+					if(success){
+						me.getViewModel().setData({theSearchDetail:records[0]});
+						me.getViewModel().setData({theShippingNote:theShippingNoteItem});
+						
+						goodsGridList.setData(theGoodsItem);
+						goodsGridList.commitChanges();
+						
+						//fileUpload load
+						fileUpload.load({
+							params: {
+								pgmId: FileConstant.SHIPPINGNOTE_SCREEN_PGM_ID,
+								catgCd: filekeyId
+							},
+							callback: function(records, operation, success) {
+								if(success) {
+									me.setCtlByCargoType();
+								}
+							}
+						});
+					}
+					
+					if(theSearchDetail.get('vslTp') == CodeConstants.VC_VSLTP_BRGE || theSearchDetail.get('vslCallId') == CodeConstants.VESSEL_SCHEDULE_STRG){
+						refs.refDomesticChk.setValue(true);
+					} else {
+						refs.refDomesticChk.setValue(false);
+					}
+					
+					if(theSearchDetail.get('vslCallId') == CodeConstants.VESSEL_SCHEDULE_STRG){
+						refs.ctlDeliveryMode.setValue('I');
+						refs.ctlDeliveryMode.setDisabled(true);
+					}
+				}
+			});
+		} else if(me.SCREEN_MODE === 'update'){ // update
+			var searchVesselCallDtl = me.getViewModel().getStore(me.VESSEL_CALL_DETAIL_STORE);
+			var searchDtlShipNote = me.getViewModel().getStore(me.SHIPPINGNOTE_DETAIL_LIST_STORE);
+			
+			searchVesselCall = recvData.data.vslCallId;
+			shipgNoteNo = recvData.data.shipgNoteNo;
+			
+			var filekeyId = recvData.get('vslCallId') + "_" + recvData.get('mfDocId') + "_" + recvData.get('shipgNoteNo');
+			
+			// Fixing 0131982: [SN detail] Problem with Category "STORAGE"
+			var categoryCombo = me.getStore(me.CATEGORY_COMBO_STORE);
+			if(searchVesselCall != CodeConstants.VESSEL_SCHEDULE_STRG){				
+				if(categoryCombo.data.items[0].data.scd == 'S'){
+					categoryCombo.removeAt(categoryCombo.find('STORAGE','S'));
+				}								
+			}else{
+				if(categoryCombo.data.items[0].data.scd != 'S'){
+					categoryCombo.insert(0,[{scdNm: 'STORAGE',scd: 'S'}]);					
+				}
+				refs.ctlCategory.setDisabled(true);	
+				
+				if(MOST.config.Token.getUserType() === CONSTANTS.USER_TYPE_EXTERNAL){
+					refs.ctlFAgent.setDisabled(true);
+				}
+			}
+			//--------------------------------------------------------
+
+			searchVesselCallDtl.load({
+				params: {
+					vslCallId : searchVesselCall
+				},
+				callback:function(records,success){
+					if(success){
+						me.getViewModel().setData({theSearchDetail:records[0]});
+						
+						if(records[0].get('vslCallId') == CodeConstants.VESSEL_SCHEDULE_STRG){
+							refs.ctlDeliveryMode.setDisabled(true);
+						}
+						
+						searchDtlShipNote.load({
+							params: {
+								searchFlag : "update",
+								searchType : "detail",
+								divCd: 'M',
+								vslCallId : searchVesselCall,
+								shipgNoteNo : shipgNoteNo
+							},
+
+							callback:function(records, operation, success){
+								if(success){
+									records[0].data.workingStatus = WorkingStatus.UPDATE;
+
+									if(records[0].get('statCd') == me.STAT_FA_MODIFY && records[0].get('shippingNoteMT1') == '0' && records[0].get('tsptTpCd') != me.OPERATION_MODE_LR_CV && records[0].get('tsptTpCd') != me.OPERATION_MODE_LR_WG){
+										records[0].data.shippingNoteMT1 = records[0].get('cgWgt');
+									}
+									
+									var date = Ext.Date.parse(records[0].get('estArrvDt1'), 'd/m/Y H:i');
+									
+									records[0].set('estArrvDt', date);
+
+									me.getViewModel().setData({theShippingNote:records[0]});
+									
+									var theSN = me.getViewModel().get('theShippingNote');
+									
+									refs.refDomesticChk.checked = theSN.get('domesticChk') == 'Domestic Cargo' ? true : false;
+									refs.refProjectCargo.checked = theSN.get('projectCargo') == 'Y' ? true : false;
+									refs.refWeightChk.checked = theSN.get('wgtChk') == 'Y' ? false : true;
+									refs.refBondedWhYn.checked = theSN.get('bondedWhYn') == 'Y' ? true : false;
+									//refs.refAdditionalChk.checked = theSN.get('additionalChk') == 'Y' ? true : false;
+									refs.refProjectCargo.setDisabled(theSN.get('cgTpCd') == CodeConstants.MT_CGTP_BBK ? false : true);
+									me.setDetailGoodsList(records[0].data);
+									me.setDetailControl(records[0].data);
+									me.setCtlByCargoType();
+									
+									if(theSN.get('delvTpCd') == 'D'){
+										refs.refFsDirect.setDisabled(false);
+										refs.ctlModeofOperation.setReadOnly(false);
+										refs.ctlModeofOperation.setDisabled(false);
+										refs.refFsInDirect.setDisabled(true);
+										
+										refs.ctlLorryDmt.setValue(Number(theSN.data.dLrMt));
+										refs.ctlLorryDm3.setValue(Number(theSN.data.dLrM3));
+										refs.ctlLorryDQty.setValue(Number(theSN.data.dLrQty));
+										
+										if(theSN.get('tsptTpCd') == 'LR'){
+											refs.ctlLorryDirectField.setDisabled(false);
+											refs.ctlVesselDirectField.setDisabled(true);
+										}
+										if(theSN.get('tsptTpCd') == 'SE'){
+											refs.ctlVesselDirectField.setDisabled(false);
+											refs.ctlLorryDirectField.setDisabled(true);
+										}
+									}
+									
+									if(theSN.get('delvTpCd') == 'I'){
+										refs.ctlModeofOperation.setReadOnly(true);
+										refs.ctlModeofOperation.setDisabled(true);
+										refs.refFsInDirect.setDisabled(false);
+										refs.refFsDirect.setDisabled(true);
+										
+										refs.ctlImt.setValue(Number(theSN.data.imt));
+										refs.ctlIm3.setValue(Number(theSN.data.im3));
+										refs.ctlIQty.setValue(Number(theSN.data.iqty));
+									}
+									
+									//fileUpload load
+									fileUpload.load({
+										params: {
+											pgmId: FileConstant.SHIPPINGNOTE_SCREEN_PGM_ID,
+											catgCd: filekeyId
+										},
+										callback: function(records, operation, success) {
+											if(success) {
+												refs.ctlDeliveryMode.resumeEvents();
+												refs.ctlModeofOperation.resumeEvents();
+											}
+										}
+									});
+								}
+							}
+						});
+					}
+				}
+			});
+		}
+		
+		refs.ctlDeliveryMode.resumeEvents();
+		refs.ctlModeofOperation.resumeEvents();
+		//refs.ctlModeofOperation.fireEvent('change', refs.ctlModeofOperation);
+	},
+	
+	setDetailControl:function(masterItem){
+		var me = this;
+		var refs = me.getReferences();
+
+		// Key Control Enable/Disable
+		if(masterItem.WorkingStatus === WorkingStatus.INSERT){
+			
+		} else { //update
+			if (masterItem.tsptTpCd === me.TRANSPORTER_TYPE_CONVEYOR){
+				refs.ctlMt1.editable = true;
+				refs.ctlMt2.editable = false;
+			}else if (masterItem.tsptTpCd === me.TRANSPORTER_TYPE_LORRY){
+				refs.ctlMt1.editable = true;
+				refs.ctlMt2.editable = false;
+			}else if (masterItem.tsptTpCd === me.TRANSPORTER_TYPE_WAGON){
+				refs.ctlMt1.editable = true;
+				refs.ctlMt2.editable = false;
+			}
+		}
+	},
+	
+	setDetailSettingControl: function (searchType){
+		var me = this;
+		var refs = me.getReferences();
+		var detailView = me.getDetailBizView();
+		var recvData = detailView.items.get(0).recvData;
+		var mode = CONSTANTS.SCREEN_MODE_CREATE;
+		var theMain = me.getViewModel().get('theMain');
+		var unitList = me.getStore(me.UNIT_LIST_STORE);
+		var pkgDetailList = me.getStore(me.PACKAGE_DETAIL_STORE);
+		
+		refs.ctlCommodityGroupCode.setEditable(false);
+		refs.ctlCommodityCode.setEditable(false);
+		refs.ctlTypeofPackage.setEditable(false);
+		
+		unitList.removeAll();
+		pkgDetailList.removeAll(); // Fixing 0132070: [SN] System does not refresh data on SN detail screen when creating new SN
+		
+		if(searchType === "create"){
+			theMain.set('tsptTpCd', '');
+			theMain.set('statCdNm', '');
+			
+			refs.ctlMeasurement.setValue("0.000");
+			refs.ctlQuantity.setValue("0");
+			refs.ctlGrossWgt.setValue("0.000");
+			
+	    	me.setActionRORO("",me.STAT_CREATE);
+		} else if(searchType === "update"){
+			me.oldValue = recvData.get('cgTpCd');
+			
+			me.onROROTabSetting();
+			me.onPackageDetailTabSetting();
+			me.onWeightChkSetting(recvData);
+			me.onAdditionalChkSetting(recvData);
+			
+			unitList.load({
+				params:{
+					vslCallId: recvData.get('vslCallId'),
+					mfDocId: recvData.get('mfDocId'),
+					shipgNoteNo: recvData.get('shipgNoteNo')
+				}
+			});
+			
+			pkgDetailList.load({
+				params:{
+					vslCallId: recvData.get('vslCallId'),
+					mfDocId: recvData.get('mfDocId'),
+					shipgNoteNo: recvData.get('shipgNoteNo')
+				}
+			});
+			
+			if(recvData.get('statCd') != 'ST'){
+				refs.ctlSubmit.setHidden(false);
+			}
+			
+			if(recvData.get('statCd') == CodeConstants.MT_DOCSTAT_AP){
+				refs.ctlSubmit.setHidden(true);
+				
+				if(MOST.config.Token.getUserType() != CodeConstants.USER_TYPE_INTERNAL){
+					me.editSetting();
+				}
+			}
+	    }
+		
+		if(MOST.config.Token.getUserType() == CodeConstants.USER_TYPE_INTERNAL){
+			refs.ctlSubmit.setHidden(true);
+			
+			if(recvData.get('statCd') == 'ST'){
+				refs.ctlApproval.setHidden(false);
+			}
+		}
+	},
+	/**
+	 * INITIALIZE END
+	 * =========================================================================================================================
+	 */
+
+    /**
+	 * =========================================================================================================================
+	 * EVENT HANDLER START
+	 */
+	onCreate: function() {
+		var me = this;
+		var refs = me.getReferences();
+		var searchVesselCall = refs.ctlVslCallId.getValue();
+		var sendObject = Ext.create('MOST.model.document.ShippingNote');
+		var initData = me.getView().shipNoteInitData;
+		var searchVesselCallDtl = me.getViewModel().getStore(me.VESSEL_CALL_DETAIL_STORE);
+		
+		me.getView().detailViewAlias = me.DETAILVIEW;
+		
+		initData.set("searchType", CONSTANTS.SCREEN_MODE_CREATE);
+		
+		if(searchVesselCall.length === 0){
+			MessageUtil.info('info_msg','shippingNoteInquiry_create_vslCallId');
+			return null;
+		}
+		
+		searchVesselCallDtl.load({
+			params: {
+				vslCallId : searchVesselCall
+			},
+			callback:function(records,success){
+				if(success){
+					me.getViewModel().setData({theSearchDetail:records[0]});
+					
+					var atbString = Ext.Date.format(records[0].data.curAtb, MOST.config.Locale.getShortDate());
+					if(MOST.config.Token.getUserType() === CONSTANTS.USER_TYPE_INTERNAL){
+						if(atbString != null  && atbString != '' ){
+							MessageUtil.question('info_msg', 'shippingNoteInquiry_create_shippingNote', null,
+								function(button){
+									if (button === 'ok') {
+										me.openDetailPopup(sendObject);
+									}
+								}
+							);
+						}else {
+							me.openDetailPopup(sendObject);
+						}
+					}
+					else {
+						if(records[0].data.vslCallId !== CodeConstants.VESSEL_SCHEDULE_STRG){
+							if(MOST.config.Token.getPtnrCode() === records[0].data.arrvSaId ||
+									   MOST.config.Token.getAgencyCode() === records[0].data.depSaId) {
+								if(atbString != null  && atbString != '' ){
+									MessageUtil.question('info_msg', 'shippingNoteInquiry_create_shippingNote', null,
+										function(button){
+											if (button === 'ok') {
+												me.openDetailPopup(sendObject);
+											}
+										}
+									);
+								}else {
+									me.openDetailPopup(sendObject);
+								}
+							}
+							else {
+								MessageUtil.info('info_msg','shippingNoteInquiry_create_external_jpvc');
+							}
+						}
+						else {
+							if(!me.existsPatnerType(me.FORWARDER)) {
+								MessageUtil.info('info_msg','shippingNoteInquiry_create_external_nonjpvc');
+							}
+							else {
+								me.openDetailPopup(sendObject);
+							}
+						}
+					}
+				}
+			}
+		});
+	},
+	
+	onAdd:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference('refSNGoodsGrid');
+		var store = me.getStore(me.GOODS_LIST_GRID_STORE);
+		var editor = grid.getPlugin('goodsListGridEditor');
+		var record = Ext.create('MOST.model.document.ShippingNote');
+		var theSearchDetail = me.getViewModel().get('theSearchDetail');
+		var detailItem = me.getViewModel().get('theShippingNote');
+		var idx = 0;
+		
+		if(detailItem != null && detailItem.get("cmdtCd") == ""){
+			MessageUtil.info('info_msg','shippingNoteInquiry_DM101012');
+			return null;
+		}
+		
+		editor.cancelEdit();
+
+		//Clear filter for Grid
+		grid.filters.clearFilters();
+		grid.filters.disable();
+
+		//Clear filter for Store
+		store.clearFilter();
+		
+		if(grid.getSelection() && grid.getSelection().length>0) {
+			idx = store.indexOfId(grid.getSelection()[0].get('id'));
+		}
+
+		record.set('workingStatus', WorkingStatus.INSERT);
+		record.set("vslCallId",detailItem.get("vslCallId"));
+		record.set("shipgNoteNo",detailItem.get("shipgNoteNo"));
+		record.set("callSeq",theSearchDetail.get("callSeq"));
+		record.set("callYear",theSearchDetail.get("callYear"));
+		record.set("vslCd",theSearchDetail.get("vslCd"));
+		record.set("tsptTpCdDtl", refs.ctlModeofOperation.getValue());
+		record.set("cmdtCdDtl",refs.ctlCommodityCode.getValue());
+		record.set("cmdtCdNm",refs.ctlCommodityName.getValue());
+		record.set("pkg",refs.ctlPackageName.getValue());
+		record.set("divCd","M");
+		
+		store.insert(idx, record);
+		grid.getSelectionModel().select(record);
+
+		editor.startEdit(record);
+	},
+
+	onDelete:function(){
+		var me = this;
+		var grid = me.lookupReference(me.MAIN_GRID_REF_NAME);
+		var store = me.getStore(me.MAIN_STORE_NAME);
+		var shippingNoteItem = new Ext.create('MOST.model.document.ShippingNote');
+		var arrData = new Array();
+		var arrItems = grid.getSelection() === null ? null : grid.getSelection();
+		var snNo = grid.getSelection()[0].get('shipgNoteNo');
+		var vslCallId = grid.getSelection()[0].get('vslCallId');
+		
+		if(grid.getSelection()[0].get('statCd') == 'AP'){
+			MessageUtil.warning('warning_msg', 'shippingNote_hasBeenApproved');
+			return;
+		}
+		
+		me.validateChangeSNNo(snNo, 
+			function(){
+				MessageUtil.question('confirm', 'shippingNoteInquiry_delete_message', null,
+					function(button){
+						if (button === 'ok') {
+							var record = arrItems[0];
+							record.proxy.setUrl(store.getProxy().getUrl());
+							record.erase({
+								callback: function(records, operation, success) {
+									if(success) MessageUtil.saveSuccess();
+									else if(!success) MessageUtil.warning('warning_msg', 'fail_msg');
+								}
+							});
+						}
+					}
+				);
+			},
+			
+			function(){
+				MessageUtil.info('info_msg', 'shippingNote_cannotDelSN');
+				return;
+			}
+		);
+	},
+	
+	onRemove: function() {
+		var me = this;
+		var grid = me.lookupReference('refSNGoodsGrid');
+		var store = me.getStore(me.GOODS_LIST_GRID_STORE);
+		var detailItem = me.getViewModel().get('theShippingNote');
+		var selection = grid.getSelection() === null ? null : grid.getSelection();
+
+		if(selection === null) return;
+
+		Ext.each(selection, function (record) {
+			record.set('workingStatus', WorkingStatus.DELETE);
+			record.set("vslCallId",detailItem.get("vslCallId"));
+			record.set("shipgNoteNo",detailItem.get("shipgNoteNo"));
+
+			store.remove(record);
+		});
+	},
+	
+	onKeyDown: function(textfield, event, options) {
+		var me = this;
+		var refs = me.getReferences();
+		
+		if (event.getKey() == 8) {
+			refs.ctlImdg.setValue('');
+			refs.ctlUnno.setValue('');
+		} else {
+			event.event.returnValue = false;
+		}
+	},
+	
+	onChangeMtM3Qty: function(clt){
+		var me = this;
+		var refs = me.getReferences();
+		var eachWgt = 0;
+		var eachM3 = 0;
+		var qty = refs.ctlQuantity.getValue(); 
+		
+		
+		if(refs.refProjectCargo.getValue() == false){
+			if((clt == refs.ctlGrossWgt || clt == refs.ctlQuantity)){
+				if(qty > 0){
+					eachWgt = refs.ctlGrossWgt.getValue()/qty;
+					refs.ctlWgtEach.setValue(eachWgt);
+				}else{
+					refs.ctlWgtEach.setValue(0);
+				}
+			}
+			
+			if((clt == refs.ctlMeasurement || clt == refs.ctlQuantity)){
+				if(qty > 0){
+					eachM3 = refs.ctlMeasurement.getValue()/qty;
+					refs.ctlMeasurementEach.setValue(eachM3);
+				}else{
+					refs.ctlMeasurementEach.setValue(0);
+				}
+			}
+			
+			if(clt == refs.ctlMeasurement || refs.ctlMeasurement.getValue() > 0){
+				refs.ctlWidth.setValue(0);
+				refs.ctlHeight.setValue(0);
+				refs.ctlLength.setValue(0);
+			}
+		}
+		
+		if(clt == refs.ctlGrossWgt || clt == refs.ctlMeasurement){
+			refs.ctlFreightTon.setValue(Math.max(refs.ctlGrossWgt.getValue(),refs.ctlMeasurement.getValue()));
+		}
+	},
+
+	onDetailSave:function(){
+		var me = this;
+		var detailView = me.getDetailBizView();
+		var detailItem = me.getViewModel().get('theShippingNote');
+		var userAgency = MOST.config.Token.getAgencyCode();
+		var refs = me.getReferences();	
+		
+		if(!me.validationForm()){
+			return;
+		}
+				
+		me.onCheckSNNo(); //Check SN and Valid data before Submit
+	},
+	
+	//ADP allow key-in SNNo => check SN Input Exist or Not
+	onCheckSNNo: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var validationStore = me.getStore(me.VALIDATION_STORE);
+		var theSN = me.getViewModel().get('theShippingNote');
+		var searchType = theSN.get("searchType");
+		var col1 = '';	
+		var col2 = '';	
+		var snNo = theSN.get('shipgNoteNo');
+		var params = {
+			shipgNoteNo: theSN.get('newShipgNoteNo'),
+			tyCd: 'validationSN'
+		}
+		
+		validationStore.load({
+			params : params,		
+			callback: function(records, operation, success) {
+				if (success) {
+					if(records != null && records.length > 0 && records[0].get('isValidated') === me.YES){
+						if(me.SCREEN_MODE === CONSTANTS.SCREEN_MODE_CREATE ||
+						  (me.SCREEN_MODE === CONSTANTS.SCREEN_MODE_UPDATE && theSN.get('shipgNoteNo') !== theSN.get('newShipgNoteNo'))){
+							
+							//Block insert/update duplicated SN
+							MessageUtil.info('info_msg','shippingNote_duplicatedSNNo',theSN.get('newShipgNoteNo'));
+							return ;
+						}
+					}
+					
+					if(me.SCREEN_MODE === CONSTANTS.SCREEN_MODE_CREATE){
+						theSN.set('shipgNoteNo', theSN.get('newShipgNoteNo'));
+						theSN.set('mfDocId', theSN.get('newMfDocId'));
+						
+						me.submitDocument();
+					}else {
+						if(theSN.get('shipgNoteNo') === theSN.get('newShipgNoteNo')){
+							me.submitDocument();
+						}else{
+							//Check for Changing SNNo:
+							me.validateChangeSNNo(snNo,
+								function(){
+									me.validationSubmit();
+								}, function(){
+									MessageUtil.info('info_msg', 'shippingNote_cannotChangeSNNo', theSN.get('shipgNoteNo'));
+									theSN.set('newShipgNoteNo', theSN.get('shipgNoteNo'));
+								}
+							);
+						}
+					}	
+				}
+			}
+		});
+	},
+
+	// Search Event Handler
+	onSearch: function() {
+		var me = this;
+     	var refs = me.getReferences();
+    	var store = me.getStore(me.MAIN_STORE_NAME);
+    	var params = me.getSearchCondition();
+    	var searchVesselCall = refs.ctlVslCallId.getValue();
+    	var searchVesselCallDtl = me.getViewModel().getStore(me.VESSEL_CALL_DETAIL_STORE);
+
+    	if(params !== null){
+    		searchVesselCallDtl.load({
+    			params: {
+    				vslCallId : searchVesselCall
+    			},
+
+    			callback:function(records,success){
+    				if(success){
+    					me.getViewModel().setData({theVslInfo:records[0]});
+    					params['vslCallId'] = searchVesselCall;
+    					
+    			    	if(params != null){
+    			    		store.load({
+    			    			params: params,
+
+    			    			callback: function(records, operation, success) {
+    			    				if(success){
+        								if(records.length > 0){
+        									var date = Ext.Date.format(records[0].get('estArrvDt'), MOST.config.Locale.getDefaultDateFormatWithNoSeconds());
+        									records[0].set('estArrvDt', date);
+        									me.getViewModel().setData({theSearchDetail:records[0]});
+        								}
+        							}
+    			    			}
+    			    		});
+    			    	} else {
+    			    		MessageUtil.info('info_msg','mandatoryField_msg');
+    			    	}
+    				}
+    			}
+    		});
+    	}
+	},
+
+	onAssignTransporter:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference(me.MAIN_GRID_REF_NAME);
+		var store = me.getStore(me.SHIPPINGNOTE_ACK_STORE);
+		var gridStore = me.getStore(me.MAIN_STORE_NAME);
+		var shippingNoteItem = new Ext.create('MOST.model.document.ShippingNote');
+		var arrData = new Array();
+		var arrItems = grid.getSelection() === null ? null : grid.getSelection();
+
+		arrItems.forEach(function(record, index){
+			arrData.push(record.data);
+		});
+
+		if(arrItems.length > 0){
+			var proxy = shippingNoteItem.getProxy();
+			proxy.url = store.getProxy().url;
+
+			shippingNoteItem.set("workingStatus",WorkingStatus.UPDATE);
+			shippingNoteItem.set("shippingNoteList", arrData);
+
+			shippingNoteItem.save({
+				success : function(record, operation) {
+					MessageUtil.saveSuccess();
+				}
+			});
+		}
+	},
+
+	onSelectCargoType:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference(me.MAIN_GRID_REF_NAME);
+		var store = me.getStore(me.SHIPPINGNOTE_ACK_STORE);
+		var gridStore = me.getStore(me.MAIN_STORE_NAME);
+		var shippingNoteItem = new Ext.create('MOST.model.document.ShippingNote');
+		var arrData = new Array();
+		var arrItems = grid.getSelection() === null ? null : grid.getSelection();
+
+		if(refs.ctltypeCargo.getValue() === ''){
+			return;
+		}
+		
+		arrItems.forEach(function(record, index){
+			record.set("cgTpCd", refs.ctltypeCargo.getValue());
+			record.set("cgTpCdNm", refs.ctltypeCargo.getValue() === '' ? '' : refs.ctltypeCargo.getRawValue());
+			record.commit();
+			
+			arrData.push(record.data);
+		});
+
+		if(arrItems.length > 0){
+			var proxy = shippingNoteItem.getProxy();
+			proxy.url = store.getProxy().url;
+
+			shippingNoteItem.set("workingStatus",WorkingStatus.UPDATE);
+			shippingNoteItem.set("shippingNoteList", arrData);
+
+			shippingNoteItem.save({
+				success : function(record, operation) {
+					MessageUtil.saveSuccess();
+				}
+			});
+		}
+	},
+
+	onOpenGoods:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference(me.MAIN_GRID_REF_NAME);
+		var gridStore = me.getStore(me.MAIN_STORE_NAME);
+		var selection = grid.getSelection() === null ? null : grid.getSelection()[0];
+
+		if(selection === null || selection === undefined){
+			MessageUtil.info('info_msg','select_list_msg');
+			return;
+		}
+
+		var recvData = {
+			vslCallId: selection.get("vslCallId"),
+			shipgNoteNo:selection.get("shipgNoteNo")
+		};
+
+		me.loadMenuView('app-goodsreceipt',recvData);
+	},
+
+	onValidateGoodsDetailEdit: function(editor, context){
+		var me = this;
+		var refs = me.getReferences();
+		var store = me.getStore(me.GOODS_LIST_GRID_STORE);
+		var grid = me.lookupReference('refSNGoodsGrid');
+		var hatchNo = editor.grid.down('[dataIndex=hatchNo]').getEditor().getValue();
+		var idx = 0;
+		var valid = true;
+		
+		if(grid.getSelection() && grid.getSelection().length>0) {
+			idx = store.indexOfId(grid.getSelection()[0].get('id'));
+			store.each(function (record, index){
+				if(index !== idx && record.data.hatchNo === hatchNo){
+					MessageUtil.warning('warning_msg', 'shippingNote_goodsDetailValidate');
+					valid = false;
+					return;
+				}
+			});
+		}
+		
+		if(!valid) return valid;
+		
+		var mt = editor.grid.down('[dataIndex=wgtDtl]').getEditor().getValue();
+		var m3 = editor.grid.down('[dataIndex=msrmtDtl]').getEditor().getValue();
+		var qty = editor.grid.down('[dataIndex=pkgQtyDtl]').getEditor().getValue();
+		var cgTp = refs.ctlTypeofCargo.getValue();
+		var msgErr = "";
+		
+		if (!valid){
+			MessageUtil.warning('warning_msg', msgErr);
+			return valid;
+		}
+		
+		return true;
+	},
+
+	onCancelEdit : function(rowEditing, context) {
+		var me = this;
+		me.gridCancelEdit(rowEditing, context);
+	},
+
+	// Grid Edit
+	onEdit : function(editor, context){
+		context.record.data.workingStatus = context.record.crudState;
+	},
+
+	onDblClick: function() {
+		var me = this;
+		var grid = me.lookupReference(me.MAIN_GRID_REF_NAME);
+		var initData = me.getView().shipNoteInitData;
+		var selection = grid.getSelection() === null ? null : grid.getSelection()[0];
+
+		if(selection === null) return;
+
+     	initData.set("searchType",CONSTANTS.SCREEN_MODE_UPDATE);
+     	selection.set("authority",initData.get("authority"));
+
+		me.getView().detailViewAlias = me.DETAILVIEW;
+		me.openDetailPopup(selection);
+	},
+
+	onDetailDblClick: function() {
+		var me = this;
+		var grid = me.lookupReference('refSNGoodsGrid');
+		var selection = grid.getSelection() === null ? null : grid.getSelection()[0];
+
+		if(selection === null) return;
+	},
+	
+	onChangeKeyDoc: function(control){
+		var me = this;
+		var refs = me.getReferences();
+		
+		me.onUpperCase(control);
+		
+		if(me.SCREEN_MODE === CONSTANTS.SCREEN_MODE_CREATE ){ // CREATE
+			if(control.reference === 'ctlNewMfDocId'){
+				refs.ctlMfDocId.setValue(control.getValue());
+			}
+			if(control.reference === 'ctlNewShipNoteNo'){
+				refs.ctlshipNoteNo.setValue(control.getValue());
+			}
+		}
+	},
+
+	openTransporterCdTypePopup:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = refs.refShippingNoteGrid;
+		var selectedItems = grid.getSelectionModel().getSelection();
+		var trsportType = false;
+
+		if(selectedItems.length === 0){
+			MessageUtil.info('Information', 'Please select the data first to assign the transport company.');
+			return;
+		}
+		
+        Ext.each(selectedItems, function (item) {
+        	if(item.data.tsptTpCd ===me.TRANSPORTER_TYPE_CONVEYOR){
+        		trsportType = true;
+        	}
+        });
+        
+        if(trsportType){
+        	MessageUtil.info('Information', "'Conveyor' option in Mode of Operation doesn't need to assign transporter.");
+        	return;
+        }
+        
+		var params = {
+				ptnrType: CodeConstants.CM_PTNRTP_TRK
+		}
+		
+		me.openCodePopup('popup-partnercdformultipopup', 'truckAssignPopup', params);
+	},
+
+	onPrintPDF:function(record,screen){
+		var me = this;
+		var refs = me.getReferences();
+		var store = me.getStore(me.MAIN_STORE_NAME);
+		var searchParm = Ext.create("MOST.model.pdfprint.SearchReportBizParm");
+		var detailItem;
+		
+		if(screen === CONSTANTS.SCREEN_MODE_INQUIRY){
+			detailItem = record;
+		}else{
+			detailItem = me.getViewModel().get('theShippingNote');
+		}
+		
+		var params = me.createParam(searchParm, ['file','serviceId','param1']);
+		
+		params['file'] = me.SHIPPING_NOTE_PDF_FILE; // report format file name
+		params['serviceId'] = me.SHIPPING_NOTE_PDF_FUNCTION; // calling function 
+		params['branchCode'] = MOST.config.Token.getBranchCode(); // branch code fro multi db
+		params['param1'] = detailItem.get("vslCallId"); //vessel call id
+		params['param2'] = detailItem.get("shipgNoteNo"); //shipping Note No
+		params['param3'] = detailItem.get("delvTpCd"); //Develiery Type CD
+		params['param4'] = MOST.config.Token.getUserId(); //user Id
+		params['param5'] = "update"; //search Flag
+		params['param6'] = ""; //TranshipmentType CD
+		
+		me.openPDFPreview(params);
+	},
+	
+	onChangeCargoType: function(){
+		var me = this;
+        var refs = me.getReferences();
+        
+     	var mtMandatory = ['DBN', 'DBE'];
+     	var mtQtyMandatory = ['BBK', 'RCV'];
+     	var m3Mandatory = ['LQE', 'LQN'];
+        
+        if(refs.ctlNewShipNoteNo.getValue() == ''){			
+     		if(refs.ctlDeliveryMode.getValue() == 'D') {
+     			if(mtMandatory.includes(refs.ctlTypeofCargo.getValue())){
+     				refs.ctlLorryDmt.setValue('');
+     				refs.ctlLorryDm3.setValue(0);
+     				refs.ctlLorryDQty.setValue(0);
+     			} else if (mtQtyMandatory.includes(refs.ctlTypeofCargo.getValue())){
+     				refs.ctlLorryDmt.setValue('');
+     				refs.ctlLorryDm3.setValue(0);
+     				refs.ctlLorryDQty.setValue('');
+     			} else if(m3Mandatory.includes(refs.ctlTypeofCargo.getValue())){
+     				refs.ctlLorryDmt.setValue('');
+     				refs.ctlLorryDm3.setValue(0);
+     				refs.ctlLorryDQty.setValue(0);
+     			} else {
+     				refs.ctlLorryDmt.setValue(0);
+     				refs.ctlLorryDm3.setValue(0);
+     				refs.ctlLorryDQty.setValue(0);
+     			}
+     		} else if(refs.ctlDeliveryMode.getValue() == 'I') {
+     			if(mtMandatory.includes(refs.ctlTypeofCargo.getValue())){
+     				refs.ctlImt.setValue('');
+     				refs.ctlIm3.setValue(0);
+     				refs.ctlIQty.setValue(0);
+     			} else if (mtQtyMandatory.includes(refs.ctlTypeofCargo.getValue())){
+     				refs.ctlImt.setValue('');
+     				refs.ctlIm3.setValue(0);
+     				refs.ctlIQty.setValue('');
+     			} else if(m3Mandatory.includes(refs.ctlTypeofCargo.getValue())){
+     				refs.ctlImt.setValue(0);
+     				refs.ctlIm3.setValue('');
+     				refs.ctlIQty.setValue(0);
+     			} else {
+     				refs.ctlImt.setValue(0);
+     				refs.ctlIm3.setValue(0);
+     				refs.ctlIQty.setValue(0);
+     			}
+     		}
+        }
+	},
+	
+	onComboBoxChange:function(field, newValue, oldValue){
+		var me = this;
+        var refs = me.getReferences();
+        var displayFieldName = 'scdNm';
+		var codeFieldName = 'scd';
+		var reqCombo = "";
+		var detailItem = me.getViewModel().get('theMain');
+		var pkgDetailStore = me.lookupReference(me.PACKAGE_DETAIL_GRID_REF_NAME).getStore();
+		var detailView = me.getDetailBizView();
+		var cargoType = detailItem.get("cargoType");
+		var recvData = null;
+		var searchVesselCall = null;
+		var searchType = null;
+		var comboStore = null;
+		
+		var mtMandatory = ['DBN', 'DBE'];
+     	var mtQtyMandatory = ['BBK'];
+     	var m3Mandatory = ['LQE', 'LQN'];
+		
+		// Fixing 0131982: [SN detail] Problem with Category "STORAGE"
+//		if(detailItem && detailItem.get('vslCallId') != CodeConstants.VESSEL_SCHEDULE_STRG){
+//			if(detailItem.get('catgCd') == CodeConstants.MT_CATGTP_S){
+//				MessageUtil.error('warning_msg','strgSelectMsg');
+//				
+//				detailItem.set('opClassCd', CodeConstants.MT_CATGTP_E);
+//				return;
+//			}
+//		}
+		// ---------------------------------------------------------
+		
+		if(refs.ctlDeliveryMode.getValue() == 'D'){
+			if(mtQtyMandatory.includes(refs.ctlTypeofCargo.getValue())){
+				if(refs.refProjectCargo.getValue() == true){
+					var pkgMt = 0;
+					var pkgM3 = 0;
+					
+					pkgDetailStore.each(function (rec) { pkgMt += Number(rec.get('pkgMt')); });
+					pkgDetailStore.each(function (rec) { pkgM3 += Number(rec.get('pkgM3')); });
+			        
+					refs.ctlLorryDmt.setValue((refs.ctlImt.getValue() == null || refs.ctlImt.getValue() == '') ? pkgMt : refs.ctlImt.getValue());
+					refs.ctlLorryDm3.setValue((refs.ctlIm3.getValue() == null || refs.ctlIm3.getValue() == '') ? pkgM3 : refs.ctlIm3.getValue());
+					refs.ctlLorryDQty.setValue(pkgDetailStore.data.length);
+					
+					detailItem.set("imt", 0);
+					detailItem.set("im3", 0);
+					detailItem.set("iqty", 0);
+					
+					detailItem.set("dLrMt", (refs.ctlImt.getValue() == null || refs.ctlImt.getValue() == '') ? pkgMt : refs.ctlImt.getValue());
+					detailItem.set("dLrM3", (refs.ctlIm3.getValue() == null || refs.ctlIm3.getValue() == '') ? pkgM3 : refs.ctlIm3.getValue());
+					detailItem.set("dLrQty", pkgDetailStore.data.length);
+				} else {
+					refs.ctlLorryDmt.setValue('');
+     				refs.ctlLorryDm3.setValue(0);
+     				refs.ctlLorryDQty.setValue('');
+				}
+			} else if(mtMandatory.includes(refs.ctlTypeofCargo.getValue())){
+				refs.ctlLorryDmt.setValue('');
+ 				refs.ctlLorryDm3.setValue(0);
+ 				refs.ctlLorryDQty.setValue(0);
+			} else if(m3Mandatory.includes(refs.ctlTypeofCargo.getValue())){
+				refs.ctlLorryDmt.setValue(0);
+ 				refs.ctlLorryDm3.setValue('');
+ 				refs.ctlLorryDQty.setValue(0);
+			} else {
+ 				refs.ctlLorryDmt.setValue(0);
+ 				refs.ctlLorryDm3.setValue(0);
+ 				refs.ctlLorryDQty.setValue(0);
+ 			}
+			
+			refs.refFsDirect.setDisabled(false);
+//			refs.ctlModeofOperation.setReadOnly(false);
+//			refs.ctlModeofOperation.setDisabled(false);
+			refs.ctlImt.setValue(0);
+			refs.ctlIm3.setValue(0);
+			refs.ctlIQty.setValue(0);
+			refs.refFsInDirect.setDisabled(true);
+			
+//			if(refs.ctlModeofOperation.getValue() == 'LR'){
+//				refs.ctlLorryDirectField.setDisabled(false);
+//				
+//				refs.ctlVslDmt.setValue(0);
+//				refs.ctlVslDm3.setValue(0);
+//				refs.ctlVslDQty.setValue(0);
+//				refs.ctlVesselDirectField.setDisabled(true);
+//			}
+//			if(refs.ctlModeofOperation.getValue() == 'SE'){
+//				refs.ctlVesselDirectField.setDisabled(false);
+//				
+//				refs.ctlLorryDmt.setValue(0);
+//				refs.ctlLorryDm3.setValue(0);
+//				refs.ctlLorryDQty.setValue(0);
+//				refs.ctlLorryDirectField.setDisabled(true);
+//			}
+		}
+		
+		if(refs.ctlDeliveryMode.getValue() == 'I'){
+//			refs.ctlModeofOperation.setValue('LR');
+//			refs.ctlModeofOperation.setReadOnly(true);
+//			refs.ctlModeofOperation.setDisabled(true);
+			
+			if(mtQtyMandatory.includes(refs.ctlTypeofCargo.getValue())){
+				if(refs.refProjectCargo.getValue() == true){
+					var pkgMt = 0;
+					var pkgM3 = 0;
+					
+					pkgDetailStore.each(function (rec) { pkgMt += Number(rec.get('pkgMt')); });
+					pkgDetailStore.each(function (rec) { pkgM3 += Number(rec.get('pkgM3')); });
+					
+					refs.ctlImt.setValue((refs.ctlLorryDmt.getValue() == null || refs.ctlLorryDmt.getValue() == '') ? pkgMt : refs.ctlLorryDmt.getValue());
+					refs.ctlIm3.setValue((refs.ctlLorryDm3.getValue() == null || refs.ctlLorryDm3.getValue() == '') ? pkgM3 : refs.ctlLorryDm3.getValue());
+					refs.ctlIQty.setValue(pkgDetailStore.data.length);
+					
+					detailItem.set("dLrMt", 0);
+					detailItem.set("dLrM3", 0);
+					detailItem.set("dLrQty", 0);
+					
+					detailItem.set("imt", (refs.ctlLorryDmt.getValue() == null || refs.ctlLorryDmt.getValue() == '') ? pkgMt : refs.ctlLorryDmt.getValue());
+					detailItem.set("im3", (refs.ctlLorryDm3.getValue() == null || refs.ctlLorryDm3.getValue() == '') ? pkgM3 : refs.ctlLorryDm3.getValue());
+					detailItem.set("iqty", pkgDetailStore.data.length);
+				} else {
+					refs.ctlImt.setValue('');
+     				refs.ctlIm3.setValue(0);
+     				refs.ctlIQty.setValue('');
+				}	
+			} else if(mtMandatory.includes(refs.ctlTypeofCargo.getValue())) {
+				refs.ctlImt.setValue('');
+				refs.ctlIm3.setValue(0);
+				refs.ctlIQty.setValue(0);
+     		} else if(m3Mandatory.includes(refs.ctlTypeofCargo.getValue())) {
+     			refs.ctlImt.setValue(0);
+     			refs.ctlIm3.setValue('');
+     			refs.ctlIQty.setValue(0);
+     		} else {
+ 				refs.ctlImt.setValue(0);
+ 				refs.ctlIm3.setValue(0);
+ 				refs.ctlIQty.setValue(0);
+ 			}
+			
+			refs.refFsInDirect.setDisabled(false);
+			
+			refs.ctlDmt.setValue(0);
+			refs.ctlDM3.setValue(0);
+			refs.ctlDQty.setValue(0);
+			
+			refs.ctlVslDmt.setValue(0);
+			refs.ctlVslDm3.setValue(0);
+			refs.ctlVslDQty.setValue(0);
+			
+			refs.ctlLorryDmt.setValue(0);
+			refs.ctlLorryDm3.setValue(0);
+			refs.ctlLorryDQty.setValue(0);
+			
+			refs.refFsDirect.setDisabled(true);
+		}
+		
+//		if(refs.ctlNewShipNoteNo.getValue() == ''){			
+//			if(refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_BBK || refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_RCV){
+//				if(refs.ctlGrossWgt.getValue() == 0 || refs.ctlGrossWgt.getValue() == '' || refs.ctlGrossWgt.getValue() == null){					
+//					refs.ctlGrossWgt.setValue('');
+//				}
+//				if(refs.ctlQuantity.getValue() == 0 || refs.ctlQuantity.getValue() == '' || refs.ctlQuantity.getValue() == null){
+//					refs.ctlQuantity.setValue('');
+//				}
+//			}
+//			
+//			if(refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_DBN || refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_LQN){
+//				if(refs.ctlGrossWgt.getValue() == 0 || refs.ctlGrossWgt.getValue() == '' || refs.ctlGrossWgt.getValue() == null){					
+//					refs.ctlGrossWgt.setValue('');
+//				}
+//				if(refs.ctlQuantity.getValue() == 0 || refs.ctlQuantity.getValue() == '' || refs.ctlQuantity.getValue() == null){
+//					refs.ctlQuantity.setValue(0);
+//				}
+//			}
+//		}			
+		
+		if(refs.ctlTypeofCargo.getValue() != CodeConstants.MT_CGTP_BBK){
+			refs.refProjectCargo.setValue('N');
+		}
+		
+		if(me.SCREEN_MODE != CONSTANTS.SCREEN_MODE_CREATE){	
+			if (detailItem && detailItem.get('cgTpCd') == '') {
+				me.resetCmdtByCargoType();
+			}
+		}
+
+		if(cargoType && cargoType != '' && refs.ctlTypeofCargo.getValue() != '' && refs.ctlCommodityGroupCode.getValue() != '') {
+				if (refs.ctlTypeofCargo.getValue() != cargoType ) {
+					MessageUtil.warning('warning_msg','differenceCargoType');
+					refs.ctlTypeofCargo.setValue(cargoType);
+					return;
+				}			
+		}
+		
+		if(detailView !=null) {
+			recvData = detailView.items.get(0).recvData;
+			searchType = recvData.get("searchType");
+			
+		}else if(detailItem !=null){
+			searchType = detailItem.get("searchType");
+		}
+		
+		if(refs.ctlCategory === field) {
+			me.checkCatgType();
+		}
+		
+		if(refs.ctlDeliveryMode === field){
+			comboStore = me.getViewModel().getStore(me.DELIVERY_MODE_STORE);
+			reqCombo = me.COMBO_DELIVERY_MODE;
+		}else if(refs.ctlModeofOperation === field){
+			comboStore = me.getViewModel().getStore(me.OPERATION_TYPE_STORE);
+			reqCombo = me.COMBO_MODE_OPERATION;
+			
+			if(me.SCREEN_MODE != CONSTANTS.SCREEN_MODE_CREATE){			
+				if(me.delvModCheck() != true){
+					refs.ctlModeofOperation.setValue(detailItem.get("tsptTpCd"));
+					return;
+				}
+				
+				me.checkCargoType();
+				
+				if(me.existsPatnerType(me.FORWARDER)){
+					if (refs.ctlModeofOperation.getValue() === me.TRANSPORTER_TYPE_CONVEYOR) {
+						
+					} else {
+						refs.ctlTransporter.setDisabled(false);
+					}
+				}
+				
+				if (me.modeChk === true && searchType != "create") {
+					var recvData = detailView.items.get(0).recvData; //selected data
+					
+					recvData.set("searchType","changDtl");
+					recvData.set("tsptTpCd",refs.ctlModeofOperation.getValue());
+				}
+				
+				if (me.modeChk === true) {
+					var oMode = refs.ctlModeofOperation.getValue();
+					var cargoType = detailItem.get("cgTpCd");
+					
+					if(oMode && oMode !== 'Select'){
+						if (oMode === me.OPERATION_MODE_LR_CV && cargoType != me.BREAK_BULK_CARGO) {
+							refs.ctlMode1.setValue(me.LORRY);
+							refs.ctlMode2.setValue(me.CONVEYOR);
+							detailItem.set('shippingNoteMode1', me.LORRY);
+							detailItem.set('shippingNoteMode2', me.CONVEYOR);
+							detailItem.data.shippingNoteMode2 = refs.ctlMode2.getValue();
+							detailItem.set('shippingNoteMT2', detailItem.get('wgtConveyor'));
+							refs.ctlMt1.setDisabled(false);
+							refs.ctlMt2.setDisabled(false);
+							refs.ctlCategory.setDisabled(true);
+							detailItem.set('catgCd', "");
+						} else if (oMode === me.OPERATION_MODE_LR_WG) {
+							refs.ctlMode1.setValue(me.LORRY);
+							refs.ctlMode2.setValue(me.WAGON);
+							detailItem.set('shippingNoteMode1', me.LORRY);
+							detailItem.set('shippingNoteMode2', me.WAGON);
+							detailItem.data.shippingNoteMode2 = refs.ctlMode2.getValue();
+							detailItem.set('shippingNoteMT2', detailItem.get('wgtWegon'));
+							refs.ctlMt1.setDisabled(false);
+							refs.ctlMt2.setDisabled(false);
+							refs.ctlCategory.setDisabled(false);
+						} else {
+							refs.ctlMode1.setValue(refs.ctlModeofOperation.getSelection().get('scdNm'));
+							refs.ctlMode2.setValue('');
+							refs.ctlMt1.setValue('');
+							refs.ctlMt2.setValue('');
+							detailItem.set('shippingNoteMode1', refs.ctlModeofOperation.getSelection().get('scdNm'));
+							detailItem.set('shippingNoteMode2', "");
+							detailItem.set('shippingNoteMT2', "");
+							refs.ctlMt1.setDisabled(false);
+							refs.ctlMt2.setDisabled(true);
+							refs.ctlMode2.setDisabled(true);
+							refs.ctlCategory.setDisabled(false);
+							refs.ctlCategory.setDisabled(false);
+						}
+						
+						detailItem.set('cgWgt', refs.ctlGrossWgt.getValue());
+						
+					}else{
+						refs.ctlMode1.setValue('');
+						refs.ctlMode2.setValue('');
+						detailItem.set('shippingNoteMode1', '');
+						detailItem.set('shippingNoteMode2', '');
+						refs.ctlMt1.setDisabled(true);
+						refs.ctlMt2.setDisabled(true);
+					}
+				}
+			}
+		}else if(refs.ctlTypeofCargo === field){
+			refs.ctlCommodityGroupCode.params.searchCol1 = refs.ctlTypeofCargo.getValue();
+			
+			comboStore = me.getViewModel().getStore(me.TYPE_CARGO_STORE);
+			reqCombo = me.COMBO_CARGO_TYPE;
+
+			me.checkCargoType();
+			me.setCtlByCargoType(); //Disable/Enable control
+		}else{
+			comboStore = null;
+		}
+
+		if(detailItem != null && comboStore != null){
+			var indx = -1;
+			
+			indx = comboStore.find(codeFieldName, newValue);
+
+			if (indx != -1){
+				if(reqCombo === me.COMBO_DELIVERY_MODE){
+					detailItem.set("delvTpCdNm",comboStore.getAt(indx).get(displayFieldName));
+				}else if(reqCombo === me.COMBO_MODE_OPERATION){
+					detailItem.set("tsptTpCdNm",comboStore.getAt(indx).get(displayFieldName));
+				}else if(reqCombo === me.COMBO_CARTEGORY_TYPE){
+					detailItem.set("catgCdNm",comboStore.getAt(indx).get(displayFieldName));
+				}else if(reqCombo === me.COMBO_CARGO_TYPE){
+					detailItem.set("cgTpCdNm",comboStore.getAt(indx).get(displayFieldName));
+				}
+			}
+		}
+		
+		if(detailView != null) {
+			if(me.SCREEN_MODE == CONSTANTS.SCREEN_MODE_CREATE){
+				refs.refProjectCargo.setDisabled(refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_BBK ? false : true);
+			}
+			
+			if(me.SCREEN_MODE != CONSTANTS.SCREEN_MODE_CREATE){	
+				refs.refProjectCargo.setDisabled(detailItem.get('cgTpCd') == CodeConstants.MT_CGTP_BBK ? false : true);
+				
+				if(detailItem.get('cgTpCd') != CodeConstants.MT_CGTP_BBK){
+					detailItem.set('projectCargo', 'N');
+				}
+				me.onROROTabSetting();
+				me.onPackageDetailTabSetting();
+				me.onWeightChkSetting();
+			}
+					
+		}
+	},
+
+	onDateChange:function( control, newValue, oldValue, eOpts ) {
+		var me = this;
+		var refs = me.getReferences();
+
+		if(control == refs.ctlETAFromDt){
+			me.setDateInDaysByDate("ctlETAToDt", me.MAX_DATE_ALLOW, control.getValue());
+		} else {
+			me.setDateInDaysByDate("ctlETAFromDt", -me.MAX_DATE_ALLOW, control.getValue());
+		}
+	},
+	
+	onFileGridAdd: function(btn, fileField) {
+		var me = this;
+		var refs = me.getReferences();
+		var detailItem = me.getViewModel().get('theShippingNote');				
+		var store = me.getStore(me.FILE_UPLOAD_STORE_NAME);
+    	var input = document.querySelector("input[id='shippingNoteFileUpload-button-fileInputEl']");
+		var keyId;
+		var snStore = me.getStore(me.MAIN_STORE_NAME);
+		
+		if(detailItem.get('mfDocId') === null || detailItem.get('mfDocId') === ""){
+			MessageUtil.warning("warning_msg", "Please input Booking No first");
+			return;
+		}
+		
+		keyId = detailItem.get('vslCallId') + "_" + detailItem.get('mfDocId') + "_" + detailItem.get('shipgNoteNo');
+		
+    	for(var i=0; i<input.files.length; i++){
+    		var record = Ext.create('MOST.model.common.FileUpload');
+    		file = input.files[i];
+    		
+    		record.set('pgmId', FileConstant.SHIPPINGNOTE_SCREEN_PGM_ID);
+    		record.set('catgCd', keyId);
+    		record.set('fileStream', file);
+    		record.set('fileName', file.name);
+    		record.set('fileSize', file.size);
+    		record.set('workingStatus', WorkingStatus.INSERT);
+    		store.insert(0, record);
+    	}
+	},
+	
+	onRemoveForFileUpload: function() {
+		var me = this;
+		var grid = me.lookupReference(me.FILE_GRID_REF_NAME);
+		var store = me.getStore(me.FILE_UPLOAD_STORE_NAME);		
+		var selection = grid.getSelection() == null ? null : grid.getSelection();
+		
+		if(selection == null) return;
+		
+		Ext.each(selection, function (record) {
+			record.set('workingStatus', WorkingStatus.DELETE);
+			store.remove(record);
+		});
+	},
+	
+	onFileDownloadDblClick: function() {
+		var me = this;
+		var detailView = me.getDetailBizView();
+		var detailItem = me.getViewModel().get('theShippingNote');
+		var grid = me.lookupReference(me.FILE_GRID_REF_NAME);
+		var store = me.getStore(me.FILE_DOWNLOAD_STORE_NAME);	
+		
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+		
+		if(selection == null) return;
+		
+		if(detailItem.get('mfDocId') === "" || detailItem.get('shipgNoteNo') === ""){
+			MessageUtil.mandatoryFieldInValid();
+			return null;
+		}
+			
+		var keyId = detailItem.get('vslCallId') +"_"+ detailItem.get('mfDocId')+"_"+ detailItem.get('shipgNoteNo')
+		
+		store.load({
+			params : {
+				'pgmId' : FileConstant.SHIPPINGNOTE_SCREEN_PGM_ID,
+				'catgCd' : keyId,
+				'ufileNm' : selection.get('ufileName')
+			},
+			callback: function(records, operation, success) {
+				if (success) {
+					var content = records[0].data.content.replace(/&lt;/gi,'<').replace(/&gt;/gi,'>');
+		        	Ext.exporter.File.saveBinaryAs(content, records[0].data.fileName);
+				}
+			}
+		})
+	},
+	
+	onSubmit: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var theSN = me.getViewModel().get('theShippingNote');
+		
+		theSN.set('statCd', 'ST');
+		
+		me.onDetailSave();
+	},
+	
+	onApproval: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var theSN = me.getViewModel().get('theShippingNote');
+		
+		theSN.set('statCd', CodeConstants.MT_DOCSTAT_AP);
+		theSN.set('tmnlHoldFlag', 'Y');
+		me.onDetailSave();
+	},
+	
+	//-----START RORO
+	onROROTabSetting: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var theSN = me.getViewModel().get('theMain');
+     	
+     	refs.refROROTab.setDisabled(true);
+     	
+     	if(theSN && theSN.get('catgCd') != "S"){
+     		if(theSN.get('cgTpCd') == 'RCV'){
+    			refs.refROROTab.setDisabled(false);
+//    			refs.ctlDeliveryMode.setValue(me.DELIVERY_MODE_INDIRECT);
+    			refs.ctlDeliveryMode.setDisabled(true);
+    		} else {
+    			refs.ctlDeliveryMode.setDisabled(false);
+    		}
+     	} else {
+     		refs.ctlDeliveryMode.setDisabled(false);
+     	}
+	},
+	
+	onCboROROBrand_change: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var roroModelStore = me.getStore(me.RORO_MODEL_STORE);
+     	
+     	if(!StringUtil.isNullorEmpty(refs.refCboROROBrand.getValue())){
+     		roroModelStore.load({
+    			params : {
+    				brandCd: refs.refCboROROBrand.getValue()
+    			}
+    		});
+     	} else {
+     		roroModelStore.loadData([],false);
+			refs.refCboROROModel.reset();
+     	}
+	},
+	
+	onAddRORO: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var theSN = me.getViewModel().get('theShippingNote');
+     	var theMain = me.getViewModel().get('theMain');
+     	var store = me.getStore(me.UNIT_LIST_STORE);
+     	var record = Ext.create('MOST.model.document.ShippingNote');
+     	var strValidation = "";
+
+     	var qty = 0;
+		var pkgMt = 0;
+		var pkgM3 = 0;
+     	var itemArr = new Array();
+     	
+		var newPkgMt = refs.refROROMt.getValue();
+     	var newPkgM3 = refs.refROROCbm.getValue();
+		if(StringUtil.isNullorEmpty(refs.refROROUnitNo.getValue())){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('unitNo');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('unitNo');
+		}
+		
+		if(StringUtil.isNullorEmpty(refs.refCboROROBrand.getValue())){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('brand');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('brand');
+		}
+		
+		if(StringUtil.isNullorEmpty(refs.refCboROROModel.getValue())){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('model');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('model');
+		}
+		
+		if(StringUtil.isNullorEmpty(theSN.get('vslCallId'))){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('vslcallid');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('vslcallid');
+		}
+		
+		if(StringUtil.isNullorEmpty(theSN.get('mfDocId'))){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('mfDocId');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('mfDocId');
+		}
+		
+		if(!StringUtil.isNullorEmpty(strValidation)){
+			MessageUtil.warning("warning_msg", "mandatoryField_msg", strValidation);
+			return;
+		}
+		if(StringUtil.isNullorEmpty(theMain.get('delvTpCd'))){
+			MessageUtil.warning("warning_msg", "Please select the mode of delivery");
+			return;
+		}
+		
+		for(var i = 0; i < store.data.length; i++){
+			if(store.data.items[i].data.action != 'D'){
+				itemArr.push(store.data.items[i].data);
+				qty += 1;
+				pkgMt += Number(store.data.items[i].data.roroMt);
+				pkgM3 += Number(store.data.items[i].data.cbm);
+			}
+		}
+		
+     	record.set('vslCallId', theSN.get('vslCallId'));
+     	record.set('vslCd', theSN.get('vslCd'));
+     	record.set('callSeq', theSN.get('callSeq'));
+     	record.set('callYear', theSN.get('callYear'));
+     	record.set('mfDocId', theSN.get('mfDocId'));
+     	record.set('shipgNoteNo', theSN.get('theSN'));
+     	record.set('cgTpCd', theSN.get('cgTpCd'));
+     	record.set('catgCd', theSN.get('catgCd'));
+     	record.set('unitNo', refs.refROROUnitNo.getValue());
+     	record.set('roroMt', refs.refROROMt.getValue());
+     	record.set('cbm', refs.refROROCbm.getValue());
+     	record.set('brandCd', refs.refCboROROBrand.getValue());
+     	record.set('brandNm', refs.refCboROROBrand.getValue());
+     	record.set('modelCd', refs.refCboROROModel.getValue());
+     	record.set('modelNm', refs.refCboROROModel.getValue());
+     	record.set('newYn', (refs.refNewCarYn.getValue() == true) ? me.YES : me.NO);
+     	record.set('ixCd', 'X');
+     	record.set('userId', Token.getUserId());
+     	record.set('workingStatus', WorkingStatus.INSERT);
+     	record.set('action', WorkingStatus.INSERT);
+     	
+     	if(theSN.get('pkgM3') == null || theSN.get('pkgM3') == ''){    		
+     		record.set('pkgM3', 0);
+     	}else {
+     		record.set('pkgM3', theSN.get('pkgM3'));
+     	}
+     	
+     	//2.Douplication check
+		if(me.onRORODuplicatedValidation(refs.refROROUnitNo.getValue()) 
+				&& me.onROROMatchedInfoValidation(refs.refCboROROBrand.getValue(), refs.refCboROROModel.getValue())){
+			store.insert(0, record);
+			var theShippingNote = me.getViewModel().get('theShippingNote');
+			if(theMain.get('delvTpCd') != null && theMain.get('delvTpCd') === 'I'){
+				theShippingNote.set('imt', pkgMt + newPkgMt);
+				theShippingNote.set('im3', pkgM3 + newPkgM3);
+				theShippingNote.set('iqty', store.data.length);
+			}else if(theMain.get('delvTpCd') != null && theMain.get('delvTpCd') === 'D'){
+				theShippingNote.set('dLrMt', pkgMt + newPkgMt);
+				theShippingNote.set('dLrM3', pkgM3 + newPkgM3);
+				theShippingNote.set('dLrQty', store.data.length);
+			}
+		}
+		
+		
+		
+	},
+	
+	onRemoveRORO: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var store = me.getStore(me.UNIT_LIST_STORE);
+     	var grid = me.lookupReference('refROROGrid');
+		var selectionArr = grid.getSelection() == null ? null : grid.getSelection();
+		
+		if(selectionArr == null) return;
+		
+		Ext.each(selectionArr, function (record) {
+			if(record.get('workingStatus') == WorkingStatus.INSERT)
+				store.remove(record);
+			else {
+				record.set('workingStatus', WorkingStatus.DELETE);
+				record.set('action', WorkingStatus.DELETE);
+			}
+		});
+	},
+	
+	onClearRORO: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	
+     	refs.refROROUnitNo.setValue();
+     	refs.refROROMt.setValue();
+     	refs.refROROCbm.setValue();
+     	refs.refCboROROBrand.setValue();
+     	refs.refCboROROModel.setValue();
+     	refs.refNewCarYn.setValue(false);
+     	refs.refROROGrid.setSelection(null);
+     	refs.refBtnClearRORO.setDisabled(false);
+     	refs.refBtnAddRORO.setDisabled(false);
+     	refs.refBtnUpdateRORO.setDisabled(true);
+     	refs.refBtnRemoveRORO.setDisabled(true);
+	},
+	
+	onUpdateRORO: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var theSN = me.getViewModel().get('theShippingNote');
+     	var grid = me.lookupReference('refROROGrid');
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+		var currUnitNo = selection.get('unitNo');
+     	var strValidation = "";
+     	
+     	if(selection == null) return;
+     	
+		if(StringUtil.isNullorEmpty(refs.refROROUnitNo.getValue())){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('unitNo');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('unitNo');
+		}
+		
+		if(StringUtil.isNullorEmpty(refs.refCboROROBrand.getValue())){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('brand');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('brand');
+		}
+		
+		if(StringUtil.isNullorEmpty(refs.refCboROROModel.getValue())){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('model');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('model');
+		}
+		
+		if(StringUtil.isNullorEmpty(refs.refROROMt.getValue())){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('mt');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('mt');
+		}
+		
+		if(StringUtil.isNullorEmpty(theSN.get('vslCallId'))){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('vslcallid');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('vslcallid');
+		}
+		
+		if(StringUtil.isNullorEmpty(theSN.get('mfDocId'))){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('mfDocId');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('mfDocId');
+		}
+		
+		if(!StringUtil.isNullorEmpty(strValidation)){
+			MessageUtil.warning("warning_msg", "mandatoryField_msg", strValidation);
+			return;
+		}
+		
+		if(currUnitNo != refs.refROROUnitNo.getValue()){
+			if(me.onRORODuplicatedValidation(refs.refROROUnitNo.getValue()) && me.onROROMatchedInfoValidation(refs.refCboROROBrand.getValue(), refs.refCboROROModel.getValue())){
+				selection.set('unitNo', refs.refROROUnitNo.getValue());
+				selection.set('roroMt', refs.refROROMt.getValue());
+				selection.set('cbm', refs.refROROCbm.getValue());
+				selection.set('brandCd', refs.refCboROROBrand.getValue());
+				selection.set('brandNm', refs.refCboROROBrand.getValue());
+				selection.set('modelCd', refs.refCboROROModel.getValue());
+				selection.set('modelNm', refs.refCboROROModel.getValue());
+				selection.set('newYn', (refs.refNewCarYn.getValue() == true) ? me.YES : me.NO);
+				selection.set('ixCd', 'X');
+				selection.set('userId', Token.getUserId());
+				selection.set('workingStatus', WorkingStatus.UPDATE);
+				selection.set('action', WorkingStatus.UPDATE);
+			}
+		} else {
+			if(me.onROROMatchedInfoValidation(refs.refCboROROBrand.getValue(), refs.refCboROROModel.getValue())){
+				selection.set('unitNo', refs.refROROUnitNo.getValue());
+				selection.set('roroMt', refs.refROROMt.getValue());
+				selection.set('cbm', refs.refROROCbm.getValue());
+				selection.set('brandCd', refs.refCboROROBrand.getValue());
+				selection.set('brandNm', refs.refCboROROBrand.getValue());
+				selection.set('modelCd', refs.refCboROROModel.getValue());
+				selection.set('modelNm', refs.refCboROROModel.getValue());
+				selection.set('newYn', (refs.refNewCarYn.getValue() == true) ? me.YES : me.NO);
+				selection.set('ixCd', 'X');
+				selection.set('userId', Token.getUserId());
+				selection.set('workingStatus', WorkingStatus.UPDATE);
+				selection.set('action', WorkingStatus.UPDATE);
+			}
+		}
+	},
+	
+	onROROGridItemClick:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference('refROROGrid');
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+		
+		if(selection == null) return;
+		
+		refs.refROROUnitNo.setValue(selection.get('unitNo'));
+     	refs.refROROMt.setValue(selection.get('roroMt'));
+     	refs.refROROCbm.setValue(selection.get('cbm'));
+     	refs.refCboROROBrand.setValue(selection.get('brandCd'));
+     	refs.refCboROROModel.setValue(selection.get('modelCd'));
+     	refs.refNewCarYn.setValue(selection.get('newYn') == me.YES? true : false);
+		
+     	if(!refs.refBtnClearRORO.disabled){
+			refs.refBtnAddRORO.setDisabled(true);
+     	    refs.refBtnUpdateRORO.setDisabled(false);
+     	    refs.refBtnRemoveRORO.setDisabled(false);
+		}
+	},
+	
+	onRORODuplicatedValidation: function (unitNo){
+		var me = this;
+		var refs = me.getReferences();
+		var store = me.getStore(me.UNIT_LIST_STORE);
+		
+		if(store.data.length == 0){
+			return true;
+		}
+		
+		for(var j = 0; j < store.data.length; j++){
+			if(unitNo === store.data.items[j].get('unitNo')){
+				MessageUtil.warning('warning_msg', 'duplicatedata_msg');
+				return false;
+			}
+		}
+		
+		return true;
+	},
+	
+	onROROMatchedInfoValidation: function (brand, model){
+		var me = this;
+		var refs = me.getReferences();
+		var store = me.getStore(me.UNIT_LIST_STORE);
+		
+		if(store.data.length == 0){
+			return true;
+		}
+		
+		for(var j = 0; j < store.data.length; j++){
+			if(brand != store.data.items[j].get('brandCd') || model != store.data.items[j].get('modelCd')){
+				MessageUtil.warning('warning_msg', 'msgDM1230016');
+				return false;
+			}
+		}
+		
+		return true;
+	},
+	
+	//added by Brian (upload excel data) - 2021/09/07
+	onGeneralCargoLoadingListUpload:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var title = {type: 'bundle', key: 'generalcargoloadinglist'};
+		var popupAlias = "app-generalcargoloadinglist";
+		
+		me.openViewAliasDetailPopup(null, title, popupAlias);
+	},
+	
+	//added by Brian (upload excel data) - 2021/09/07
+	onROROLoadingListUpload:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var title = {type: 'bundle', key: 'roroloadinglist'};
+		var popupAlias = "app-roroloadinglist";
+		
+		me.openViewAliasDetailPopup(null, title, popupAlias);
+	},
+	
+	onRORODetailExcelUpload: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var theSN = me.getViewModel().get('theShippingNote');
+		var title = {type: 'bundle', key: 'rorodetaillist'};
+		var popupAlias = "app-rorodetailuploadlist";
+		
+		if(theSN.get('brandCd') && theSN.get('modelCd')){
+			me.openViewAliasDetailPopup(null, title, popupAlias);
+		} else {
+			MessageUtil.warning("warning_msg", "selectBrandModel");
+			return;
+		}
+	},
+
+	onPackageDetailExcelUpload: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var title = {type: 'bundle', key: 'packagedetaillist'};
+		var popupAlias = "app-packagedetaillist";
+		
+		me.openViewAliasDetailPopup(null, title, popupAlias);
+	},
+	
+	onChangeLWH: function (ctl) {
+		var me = this;
+		var refs = me.getReferences();
+		var cgLen = 0, cgWth = 0, cgHgt = 0;
+		
+		cgLen = refs.refWidth.getValue();
+		cgWth = refs.refLength.getValue();
+		cgHgt = refs.refHeight.getValue();
+		
+		var m3 = cgLen * cgWth * cgHgt;
+		
+		var store = me.getViewModel().get('theShippingNote');
+
+		if(cgLen * cgWth * cgHgt > 0){
+			refs.refMsrmt.suspendEvents();
+			refs.refMsrmt.setValue(m3);
+			refs.refMsrmt.resumeEvents();
+		}else{  // Fixing 0132070: [SN] System does not refresh data on SN detail screen when creating new SN
+			if(me.SCREEN_MODE === 'update'){
+				refs.refMsrmt.suspendEvents();
+				refs.refMsrmt.setValue(store.data.cgMsrmt); // Fixing Measurement load wrong value
+				refs.refMsrmt.resumeEvents();
+			}else{
+				refs.refMsrmt.suspendEvents();
+				refs.refMsrmt.setValue(0);
+				refs.refMsrmt.resumeEvents();
+			}			
+		}
+		//Fixing 0131956: [SN detail] Freight Ton isn't updated the value as expected		
+		refs.ctlFreightTon.setValue(Math.max(refs.ctlGrossWgt.getValue(),refs.ctlMeasurement.getValue()));
+					
+	},
+	
+	  /**
+	 * =========================================================================================================================
+	 * EVENT HANDLER END
+	 */
+	
+	/**
+	 * GENERAL METHOD START
+	 * =========================================================================================================================
+	 */
+	afterSetCodePopupData:function(xtype, targetControl, returnValue){
+		var me = this;
+		var refs = me.getReferences();
+		
+		var shipNote = me.getViewModel().get('theShippingNote');
+		
+		if(targetControl === 'ctlVslCallId'){ 
+			if(returnValue){
+				refs.ctlScn.setValue(returnValue.item.get('scn'));
+				me.getViewModel().setData({theVslInfo:returnValue.item});
+				me.onSetButtonAuthority();
+				me.onSearch();
+			} else {
+				me.getViewModel().setData({theVslInfo:null});
+			}
+		} else if(targetControl === 'ctlScn'){ 
+			if(returnValue){
+				refs.ctlScn.setValue(returnValue.code);
+
+				if(!StringUtil.isNullorEmpty(returnValue.item.get('vslCallId'))){
+					refs.ctlVslCallId.setValue(returnValue.item.get('vslCallId'));
+					me.getViewModel().setData({theVslInfo:returnValue.item});
+					me.onSetButtonAuthority();
+					me.onSearch();
+				}else {
+					refs.ctlVslCallId.setValue('');
+					me.getViewModel().setData({theVslInfo:null});
+				}
+			} 
+		} else if(targetControl === 'ctlCntryofOrg'){
+			
+			if(returnValue){
+				shipNote.set("cntryOfOrg",returnValue.code);
+				shipNote.set("cntryOfOrgNm",returnValue.codeName);
+			} else {
+				shipNote.set("cntryOfOrg","");
+				shipNote.set("cntryOfOrgNm","");
+			}
+		}else if(targetControl === 'ctlportOfDis'){
+
+			if(returnValue){
+				
+				shipNote.set("portOfDis",returnValue.code);
+				shipNote.set("portOfDisNm",returnValue.codeName);
+			} else {
+				shipNote.set("portOfDis","");
+				shipNote.set("portOfDisNm","");
+			}
+		}else if(targetControl === 'ctlfnlDest'){
+			if(returnValue){
+				
+				shipNote.set("fnlDest",returnValue.code);
+				shipNote.set("fnlDestNm",returnValue.codeName);
+			} else {
+				shipNote.set("fnlDest","");
+				shipNote.set("fnlDestNm","");
+			}
+		}else if(targetControl === 'ctlHatchNo'){
+
+			if(returnValue){
+				shipNote.set("hatchNo",returnValue.code);
+			} else {
+				shipNote.set("hatchNo","");
+			}
+		}else if(targetControl === 'ctlCommodityGroupCode'){
+			
+			me.getViewModel().setData({cargoType:returnValue.item});
+			
+			var cargoType = me.getViewModel().get("cargoType");
+			
+			if(returnValue){
+				cargoType.set('cgTpCd',returnValue.item.get("cmmdTpCd"));				
+				shipNote.set('cgTpCd',returnValue.item.get("cmmdTpCd"));
+				shipNote.set("cmdtGroupCd",returnValue.item.get("cmmdGrpCode"));
+				shipNote.set("cmdtGroupCdNm",returnValue.item.get("cmmdGrpName"));
+			} else {
+				cargoType.set('cgTpCd',"");				
+				shipNote.set('cgTpCd',"");
+				shipNote.set("cmdtGroupCd","");
+				shipNote.set("cmdtGroupCdNm","");
+			}
+		}else if(targetControl === 'ctlCommodityCode'){
+			me.getViewModel().setData({cargoType:returnValue.item});
+			
+			var cargoType = me.getViewModel().get("cargoType");
+			
+			if(returnValue){
+				cargoType.set('cgTpCd',returnValue.item.get("cmmdTpCd"));			
+				shipNote.set('cgTpCd',returnValue.item.get("cmmdTpCd"));
+				shipNote.set("cmdtCd",returnValue.item.get("code"));
+				shipNote.set("cmdtCdNm",returnValue.item.get("codeName"));
+				shipNote.set("cmdtGroupCd",returnValue.item.get("cmmdGrpCode"));
+				shipNote.set("cmdtGroupCdNm",returnValue.item.get("cmmdGrpName"));
+				
+			} else {
+				cargoType.set('cgTpCd',"");		
+				shipNote.set('cgTpCd',"");
+				shipNote.set("cmdtCd","");
+				shipNote.set("cmdtCdNm","");
+				shipNote.set("cmdtGroupCd","");
+				shipNote.set("cmdtGroupCdNm","");
+			}
+		}else if(targetControl === 'ctlTypeofPackage'){
+
+			if(returnValue){
+				shipNote.set("pkgTpCd",returnValue.item.get("code"));
+				shipNote.set("pkgTpCdNm",returnValue.item.get("codeName"));
+			} else {
+				shipNote.set("pkgTpCd","");
+				shipNote.set("pkgTpCdNm","");
+			}
+		}else if(targetControl === 'ctlImdg'){
+
+			if(returnValue){
+				shipNote.set("unno",returnValue.item.get("code"));
+				shipNote.set("imdg",returnValue.item.get("codeName"));
+			} else {
+				shipNote.set("imdg","");
+				shipNote.set("unno","");
+			}
+		}else if(targetControl === 'ctlFAgent'){
+
+			if(returnValue){
+				shipNote.set("fwrd",returnValue.code);
+				shipNote.set("fwrdNm",returnValue.codeName);
+			} else {
+				shipNote.set("fwrd","");
+				shipNote.set("fwrdNm","");
+			}
+		}else if(targetControl === 'ctlTransporter'){
+			var shipNote = me.getViewModel().get("theShippingNote");
+
+			if(returnValue){
+				shipNote.set("tsptComp", returnValue.code);
+				shipNote.set("tsptCompNm", returnValue.codeName);
+			} else {
+				shipNote.set("tsptComp", "");
+				shipNote.set("tsptCompNm", "");
+			}
+		}else if(targetControl === 'ctlShipperCd'){
+			
+			if(returnValue){
+				shipNote.set("shpr",returnValue.item.get("ptnrCode"));
+				shipNote.set("shprNm",returnValue.item.get("ptnrName"));
+				shipNote.set("shprAddr",returnValue.item.get("addr"));
+				shipNote.set("shprAddr2",returnValue.item.get("addr2"));
+				shipNote.set("shprAddr3",returnValue.item.get("addr3"));
+				shipNote.set("shprAddr4",returnValue.item.get("addr4"));
+			} else {
+				shipNote.set("shpr","");
+				shipNote.set("shprNm","");
+				shipNote.set("shprAddr","");
+				shipNote.set("shprAddr2","");
+				shipNote.set("shprAddr3","");
+				shipNote.set("shprAddr4","");
+			}
+		}else if(targetControl === 'ctlConsigneeCd'){
+
+			if(returnValue){
+				shipNote.set("cnsne",returnValue.item.get("ptnrCode"));
+				shipNote.set("cnsneNm",returnValue.item.get("ptnrName"));
+				shipNote.set("cnsneAddr",returnValue.item.get("addr"));
+				shipNote.set("cnsneAddr2",returnValue.item.get("addr2"));
+				shipNote.set("cnsneAddr3",returnValue.item.get("addr3"));
+				shipNote.set("cnsneAddr4",returnValue.item.get("addr4"));
+			} else {
+				shipNote.set("cnsne","");
+				shipNote.set("cnsneNm","");
+				shipNote.set("cnsneAddr","");
+				shipNote.set("cnsneAddr2","");
+				shipNote.set("cnsneAddr3","");
+				shipNote.set("cnsneAddr4","");
+			}
+		}else if(targetControl === 'truckAssignPopup'){
+			var grid = me.lookupReference(me.MAIN_GRID_REF_NAME);
+			var arrItems = grid.getSelection() === null ? null : grid.getSelection();
+
+			arrItems.forEach(function(record, index){
+				record.set("tsptComp",returnValue.code);
+			});
+
+			if(arrItems.length > 0){
+				me.onAssignTransporter();
+			}
+		} else if(targetControl == 'txtSnHsCd'){
+			shipNote.set("hsCode", returnValue.item.get("hsCode"));
+			shipNote.set('hsNm', returnValue.item.get('hsNm'));
+		}
+	},
+	
+	setActionRORO:function(actor, snStatus){
+		var me = this;
+		var refs = me.getReferences();
+		var sn = me.getView().shipNoteInitData;
+		var mod = true;
+
+		refs.refBtnAddRORO.setDisabled(true);
+		refs.refBtnRemoveRORO.setDisabled(true);
+		refs.refBtnClearRORO.setDisabled(true);
+		refs.refBtnUpdateRORO.setDisabled(true);
+
+		if(snStatus === me.STAT_CREATE || snStatus === me.STAT_SA_SUBMIT || snStatus === me.STAT_SA_MODIFY) {
+			mod = true;
+		}else{
+			mod = false;
+		}
+
+		if(mod){
+        	me.onClearRORO();
+        }
+	},
+
+	submitDocument:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailView = me.getDetailBizView();
+		var detailItem = me.getViewModel().get('theShippingNote');
+		var recvData = detailView.items.get(0).recvData;
+
+		if(detailItem.get('authority') === "")
+			detailItem.set("authority",recvData.get("authority"));
+
+		if(detailItem.get('searchType') === "")
+			detailItem.set("searchType",recvData.get("searchType"));
+		
+		if((detailItem.get('scn') == '' || detailItem.get('scn') == null) 
+				&& (refs.ctlScn.getValue() != null && refs.ctlScn.getValue() != '')){
+			detailItem.set('scn', refs.ctlScn.getValue());
+		};
+
+		var saveType = detailItem.get("saveType");
+		var authority = detailItem.get("authority");
+		var searchType = detailItem.get("searchType");
+
+		if(detailItem.get("newMfDocId") == "" || detailItem.get("newMfDocId")  == ""){
+			MessageUtil.info('info_msg','Please input Booking No');
+			return;
+		}
+
+		var cgTp = refs.ctlTypeofCargo.getValue();
+		if (cgTp.includes(CodeConstants.MT_CGTP_LQ)) {
+			if((detailItem.get("cgMsrmt") == "" || detailItem.get("cgMsrmt")  == "0" || detailItem.get("cgMsrmt")  == "0.0")){
+				MessageUtil.info('info_msg','shippingNoteInquiry_DM10101703');
+				return;
+			}
+		}else{
+			//check Gross Weight:
+			if((detailItem.get("cgWgt") == "" || detailItem.get("cgWgt")  == "0" || detailItem.get("cgWgt")  == "0.0")){
+				MessageUtil.info('info_msg','shippingNoteInquiry_DM10101701');
+				return;
+			}
+		}
+
+		if (cgTp === me.BREAK_BULK_CARGO){
+			if((detailItem.get("pkgQty") == "" || detailItem.get("pkgQty")  == "0" || detailItem.get("pkgQty")  == "0.0")){
+				MessageUtil.info('info_msg','shippingNoteInquiry_DM10101702');
+				return;
+			}
+		}
+		
+		if(refs.ctlModeofOperation.getValue() == me.OPERATION_MODE_LR_CV
+			&& ((refs.ctlMt1.getValue() == '0' || refs.ctlMt1.getValue() == '0.0') && (refs.ctlMt1.getValue() == '0' || refs.ctlMt1.getValue() == '0.0')
+			|| (refs.ctlMt2.getValue() == '0' || refs.ctlMt2.getValue() == '0.0') && (refs.ctlMt2.getValue() == '0' || refs.ctlMt2.getValue() == '0.0'))){
+
+				MessageUtil.info('info_msg','shippingNoteInquiry_DM101035');
+				return;
+		}
+
+		if(refs.ctlModeofOperation.getValue() == me.OPERATION_MODE_LR_WG
+			&& ((refs.ctlMt1.getValue() == '0' || refs.ctlMt1.getValue() == '0.0') && (refs.ctlMt1.getValue() == '0' || refs.ctlMt1.getValue() == '0.0')
+					|| (refs.ctlMt2.getValue() == '0' || refs.ctlMt2.getValue() == '0.0') && (refs.ctlMt2.getValue() == '0' || refs.ctlMt2.getValue() == '0.0'))){
+
+				MessageUtil.info('info_msg','shippingNoteInquiry_DM101036');
+				return;
+		}
+		
+		if(refs.ctlLength.getValue() < 0 || refs.ctlWidth.getValue() < 0 || refs.ctlHeight.getValue() < 0){
+			MessageUtil.warning('warning_msg','Length, Width and Height can not be negative, please recheck');
+			return;
+		}
+		
+		//RORO
+		var qty = 0;
+		var mt = 0;
+		var m3 = 0;
+		var unitStore = me.getStore(me.UNIT_LIST_STORE);
+		var unitArr = new Array();
+		
+		for(var i = 0; i < unitStore.data.length; i++){
+			unitArr.push(unitStore.data.items[i].data);
+			qty += 1;
+			mt += Number(unitStore.data.items[i].data.roroMt);
+		}
+		
+		if(detailItem.get('cgTpCd') == CodeConstants.MT_CGTP_RCV){
+			if(detailItem.get('catgCd') == CodeConstants.MT_CATGTP_E)
+				detailItem.set('pkgQty', qty);
+			if(Number(detailItem.get('cgWgt')) != mt 
+					&& detailItem.get('catgCd') == CodeConstants.MT_CATGTP_E){
+				MessageUtil.warning("roro", "msgDM1230049");
+				return;
+			}
+						
+			detailItem.set('unitItems', unitArr);
+		}	
+		
+		var pkgQty = 0;
+		var pkgMt = 0;
+		var pkgM3 = 0;
+		var pkgStore = me.getStore(me.PACKAGE_DETAIL_STORE);		
+		var pkgArr = new Array();
+		var theSN = me.getViewModel().get('theShippingNote');
+		
+		for(var i = 0; i < pkgStore.data.length; i++){
+			if(pkgStore.data.items[i].data.action != 'D'){
+				pkgArr.push(pkgStore.data.items[i].data);
+				pkgQty += 1;
+				pkgMt += Number(pkgStore.data.items[i].data.pkgMt);
+				pkgM3 += Number(pkgStore.data.items[i].data.pkgM3);
+			}
+		}			
+		
+//		if(detailItem.get('cgTpCd') == CodeConstants.MT_CGTP_BBK && refs.refProjectCargo.checked){
+//			if(pkgMt != refs.ctlGrossWgt.getValue()){
+//				MessageUtil.warning("info_msg", "Different MT in detail tab");
+//				return;
+//			}
+//			
+//			if(pkgM3 != refs.ctlMeasurement.getValue()){
+//				MessageUtil.warning("info_msg", "Different M3 in detail tab");
+//				return;
+//			}	
+//		}
+		
+		if(theSN.get('shipgNoteNo') == null || theSN.get('shipgNoteNo') == ''){
+			if(detailItem.get('cgTpCd') == CodeConstants.MT_CGTP_BBK && refs.refProjectCargo.checked){
+				theSN.set('pkgQty', pkgQty);
+				detailItem.set('pkgItems', pkgArr);
+			}	
+		}else {
+			if(detailItem.get('cgTpCd') == CodeConstants.MT_CGTP_BBK && refs.refProjectCargo.checked == false){
+			detailItem.set('pkgItems', pkgArr);
+			}
+			if(detailItem.get('cgTpCd') == CodeConstants.MT_CGTP_BBK && refs.refProjectCargo.checked == true && pkgStore.data.length >0){
+				theSN.set('pkgQty', pkgQty);
+				detailItem.set('pkgItems', pkgArr);
+			}
+		}		
+		
+		me.fileUpload();
+	},
+
+	onChangeVolume:function(field, newValue, opValue){
+		var me = this;
+		var refs = me.getReferences();
+		var tempWtd = parseFloat(refs.ctlGridWidth.getValue());
+		var tempHgh = parseFloat(refs.ctlGridHeight.getValue());
+		var tempLen = parseFloat(refs.ctlGridLength.getValue());
+		var total = tempWtd * tempHgh  * tempLen;
+
+		refs.ctlTotMeasure.setValue(total);
+	},
+	
+	checkCBRNo:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailView = me.getDetailBizView();
+		var recvData = detailView.items.get(0).recvData;
+		var checkCBRStore = me.getViewModel().getStore(me.GET_CBRNO_STORE);
+		var detailItem = me.getViewModel().get('theShippingNote');
+
+		if( detailItem.get("cbrNo").length > 0){
+
+			checkCBRStore.load({
+				params: {
+					vslCallId : detailItem.get("vslCallId"),
+					searchFlag : "CbrNo",
+					searchType : "detail",
+					cbrNo : detailItem.get("cbrNo"),
+					shipgNoteNo : recvData.get("shipgNoteNo")
+				},
+
+				callback:function(records,success){
+					if(success){
+						if(records[0].get("cbrNo") != null && records[0].get("cbrNo").length > 0) {
+							MessageUtil.info('info_msg','shippingNoteInquiry_DM101008');
+							detailItem.set("cbrNo","");
+						}
+					}
+				}
+			});
+		}
+	},
+	
+	delvModCheck:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailItem = me.getViewModel().get('theMain');
+		var ok = true;
+		var deliveryMode = refs.ctlDeliveryMode.getValue();
+		var oMode = refs.ctlModeofOperation.getValue();
+		var cargoType = detailItem.get("cgTpCd");
+
+		if(oMode === "D"){
+			return ok;
+		}
+	// Fixing 0131984: [SN detail] System allow to select 'Conveyor' and 'Pipeline' in case of Break Bulk Cargo
+		if (oMode === me.TRANSPORTER_TYPE_CONVEYOR || oMode === me.OPERATION_MODE_LR_CV || oMode === me.OPERATION_MODE_LP || oMode === me.OPERATION_MODE_LWC
+				|| oMode === me.OPERATION_MODE_LWCP || oMode === me.OPERATION_MODE_LWP || oMode === me.OPERATION_MODE_PL || oMode === me.OPERATION_MODE_WC ||
+				oMode === me.OPERATION_MODE_LWC || oMode === me.OPERATION_MODE_WP){
+			if (cargoType === me.BREAK_BULK_CARGO) {
+				MessageUtil.info('info_msg','shippingNoteInquiry_DM101007');
+				ok = false;
+			}
+		}
+
+		return ok;
+	},
+
+	checkCatgType:function() {
+		var me = this;
+		var refs = me.getReferences();
+		var dispatchType = refs.ctlCategory.getValue();
+		
+		if (MOST.config.Token.getUserType() === CONSTANTS.USER_TYPE_EXTERNAL) {
+			if (dispatchType === "T"||dispatchType === "R") {
+				refs.ctlModeofOperation.setValue(me.TRANSPORTER_TYPE_LORRY);
+				refs.ctlDeliveryMode.setValue("I");
+				refs.ctlModeofOperation.setDisabled(true);
+				refs.ctlDeliveryMode.setDisabled(true);
+				refs.refTrans.setDisabled(true);
+				refs.ctlAssinTrans.setDisabled(true);
+				//refs.ctlAstArrvDt.setDisabled(true);
+			} else if (dispatchType === "E"){
+				refs.ctlModeofOperation.setValue("");
+				refs.ctlDeliveryMode.setValue("");
+				refs.ctlModeofOperation.setDisabled(false);
+				refs.ctlDeliveryMode.setDisabled(false);
+				refs.ctlAssinTrans.setDisabled(false);
+				refs.ctlCBRNo.setDisabled(false);
+				refs.ctlTypeofCargo.setDisabled(false);
+				refs.ctlFAgent.setDisabled(false);
+				refs.ctlFAgentName.setDisabled(false);
+			}
+		}
+	},
+	
+	checkCargoType:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailItem = me.getViewModel().get('theShippingNote');
+		var oMode = refs.ctlModeofOperation.getValue();
+		var cargoType = refs.ctlTypeofCargo.getValue();
+
+		if (cargoType === me.BREAK_BULK_CARGO) {
+			if (oMode === me.TRANSPORTER_TYPE_CONVEYOR || oMode === me.OPERATION_MODE_LR_CV){
+				MessageUtil.info('info_msg','shippingNoteInquiry_DM101007');
+				refs.ctlTypeofCargo.setValue(me.oldValue);
+				refs.ctlModeofOperation.setValue('');
+				me.modeChk = false;
+			}else{
+				me.modeChk = true;
+			}
+		}else{
+			me.modeChk = true;
+		}
+	},
+	
+	resetCmdtByCargoType: function(){//Reset CMDT, CMDT GRP, PKGTP when change CargoType//use it
+		var me = this;
+		var refs = me.getReferences();
+		var shipNote = me.getViewModel().get("theShippingNote");
+		
+		shipNote.set("cmdtGroupCd", "");
+		shipNote.set("cmdtGroupCdNm", "");
+		shipNote.set("cmdtCd", "");
+		shipNote.set("cmdtCdNm", "");
+		shipNote.set("pkgTpCd", "");
+		shipNote.set("pkgTpCdNm", "");
+		shipNote.set('imdg', "");
+		shipNote.set('unno', "");
+	},
+	
+	setCtlByCargoType: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var shipNote = me.getViewModel().get("theShippingNote");
+		var cgTp = shipNote.get('cgTpCd');
+		
+		refs.refSubmissionGoodsDetail.setDisabled(cgTp === CodeConstants.MT_CGTP_RCV);//Disable tab GoodsDetail
+		refs.refROROTab.setDisabled(!(cgTp === CodeConstants.MT_CGTP_RCV));
+	},
+	
+	setDetailGoodsList:function(masterItem){
+		var me = this;
+		var refs = me.getReferences();
+		var goodsGridList = me.getViewModel().getStore(me.GOODS_LIST_GRID_STORE);
+
+		goodsGridList.data.removeAll();
+		
+		for(var i = 0; i<masterItem.goodsDetailItems.length; i++){
+			var goodItem = masterItem.goodsDetailItems[i];
+			goodsGridList.add(goodItem);
+		}
+		
+		goodsGridList.commitChanges();
+	},
+
+	setDetailComboBox:function(){
+		var me = this;
+		var refs = me.getReferences();
+		
+		var deliveryModeCombo = me.getViewModel().getStore(me.DELIVERY_MODE_STORE);
+		var operationTypeCombo = me.getViewModel().getStore(me.OPERATION_TYPE_STORE);
+		var categoryCombo = me.getViewModel().getStore(me.CATEGORY_TYPE_COMBO);
+		var typeCargoCombo = me.getViewModel().getStore(me.TYPE_CARGO_STORE);
+		
+		deliveryModeCombo.load();
+		operationTypeCombo.load();
+		typeCargoCombo.load();
+		
+		me.setHatchNoCombo();
+	},
+	
+	setHatchNoCombo: function(){
+		var me = this;
+		var store = me.getStore(me.HATCH_NO_STORE);
+		
+		store.removeAll();
+
+		for(var i = 0; i < me.MAX_HATCH_NO; i++){
+			store.insert(i+1, [{scdNm: 'H' + (i+1),scd: 'H' + (i+1)}])
+		}
+		
+		store.commitChanges();
+	},
+
+	getSearchCondition : function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var store = me.getStore(me.MAIN_STORE_NAME);
+     	var grid = me.lookupReference(me.MAIN_GRID_REF_NAME);
+     	var pageNo = store.currentPage;
+		var sizePerPage = CommonConstants.PAGE_SIZE;
+		var searchParm = me.getViewModel().get('theSearch');
+		var vslCallId = searchParm.data.vslCallId;
+		var scn = searchParm.data.scn;
+     	var shipgNoteNo = searchParm.data.shipgNoteNo;
+		var shippingNoteItem = me.getView().getShipNoteInitData();
+
+     	if(scn.length > 0
+     			|| (vslCallId.length > 0 && vslCallId !== CodeConstants.VESSEL_SCHEDULE_STRG) 
+     			||  shipgNoteNo.length > 0) {
+     		searchParm.set('arrvDtFm', null);
+     		searchParm.set('arrvDtTo', null);
+ 		}else{
+ 			var dateCondition = me.checkPeriodDate("ctlETAFromDt", "ctlETAToDt", me.MAX_DATE_ALLOW, true);
+ 			if(dateCondition === null){
+ 				return null;
+ 			}
+ 		}
+
+    	var params = {
+    		searchType 		: 'master',
+    		vslCallId 		: searchParm.data.vslCallId,
+    		scn				: scn,
+    		shipgNoteNo 	: searchParm.data.shipgNoteNo,
+    		delvTpCd 		: searchParm.data.delvTpCd,
+    		statCd 			: searchParm.data.statCd,
+    		lotNo			: searchParm.data.lotNo,
+    		mfDocId			: searchParm.data.mfDocId,
+    		vslNm			: searchParm.data.vslNm,
+    		pageNo 			: pageNo,
+    		sizePerPage 	: sizePerPage,
+    		sort			:grid.getSortString()
+		};
+
+    	if(MOST.config.Token.getUserType() === CONSTANTS.USER_TYPE_EXTERNAL){
+    		params['authority'] = shippingNoteItem.get("authority");
+    		params['ptnrCd'] =  MOST.config.Token.getPtnrCode();
+    	}
+    	if(dateCondition != null){
+    		params['arrvDtFm'] = dateCondition.fromDtString;
+    		params['arrvDtTo'] = dateCondition.toDtString;
+    	}
+    	
+    	return params;
+	},
+	
+	//ADP: Check SN has GR or Not.
+	validateChangeSNNo: function(sNNo, successFunc, failFunc){
+		var me = this;
+		var theSN = me.getViewModel().get('theShippingNote');
+		var validationStore = me.getStore(me.VALIDATION_STORE);
+		var params ={
+			shipgNoteNo: sNNo,
+			tyCd: 'checkSNEmptyGR'
+		}
+		
+		validationStore.load({
+			params : params,		
+			callback: function(records, operation, success) {
+				if (success) {
+					if(records != null && records.length > 0 && records[0].get('isValidated') === me.NO){
+						failFunc();
+					}else{
+						me.checkSNTruckAssign(sNNo, successFunc, failFunc);
+					}
+				}
+			}
+		});
+	},
+	
+	//ADP: Check SN has been AssignTruck or not.
+	checkSNTruckAssign: function(sNNo, func1, func2){
+		var me = this;
+		var theSN = me.getViewModel().get('theShippingNote');
+		var validationStore = me.getStore(me.VALIDATION_STORE);
+		var params ={
+			shipgNoteNo: sNNo,
+			tyCd: 'checkSNTruckAssign'
+		}
+		
+		validationStore.load({
+			params : params,		
+			callback: function(records, operation, success) {
+				if (success) {
+					if(records != null && records.length > 0 && records[0].get('isValidated') === me.NO){
+						func2();
+					}else{
+						func1();
+					}
+				}
+			}
+		});
+	},
+	
+	validationForm: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var detailView = me.getDetailBizView();
+		var detailItem = me.getViewModel().get('theShippingNote');
+		var infoForm = detailView.down('form').getForm();
+		
+		if(!detailView){
+			return false;
+		}
+		
+		//Check field:		
+		if(refs.ctlDeliveryMode.getValue() == null || refs.ctlDeliveryMode.getValue() == ''){
+			MessageUtil.error('warning_msg','shippingNoteInquiry_DM101022');
+			return false;
+		}
+
+//		if(refs.ctlModeofOperation.getValue() == null || refs.ctlModeofOperation.getValue() == ''){
+//			MessageUtil.error('warning_msg','shippingNoteInquiry_DM101023');
+//			return false;
+//		}
+
+		if(refs.ctlTypeofCargo.getValue() == null || refs.ctlTypeofCargo.getValue() == ''){
+			MessageUtil.error('warning_msg','shippingNoteInquiry_DM101024');
+			return false;
+		}
+
+		if (StringUtil.isNullorEmpty(refs.ctlportOfDis.getValue())){
+			MessageUtil.error('warning_msg','shippingNoteInquiry_POD_Empty');
+			return false;
+		}
+
+//		if (StringUtil.isNullorEmpty(refs.ctlFAgent.getValue())){
+//			MessageUtil.error('warning_msg','shippingNoteInquiry_F_Agent_Empty');
+//			return false;
+//		}
+		
+		if(refs.ctlCommodityCode.getValue() == null || refs.ctlCommodityCode.getValue() == ''){
+			MessageUtil.error('warning_msg','shippingNoteInquiry_DM101018');
+			return false;
+		}
+
+		if(refs.ctlTypeofPackage.getValue() == null || refs.ctlTypeofPackage.getValue() == ''){
+			MessageUtil.error('warning_msg','shippingNoteInquiry_DM101019');
+			return false;
+		}
+
+		if(refs.ctlShipperCd.getValue() == null || refs.ctlShipperCd.getValue() == ''){
+			MessageUtil.error('warning_msg','shippingNoteInquiry_DM101021');
+			return false;
+		}
+		
+		if(refs.ctlTransporter.getValue() == null || refs.ctlTransporter.getValue() == ''){
+			MessageUtil.error('warning_msg','shippingNoteInquiry_DM101040');
+			return false;
+		}
+				
+		return true;
+	},
+	
+	saveProcess:function(){
+		var me = this;
+		var sendArray = new Array();
+		var uploadItems = new Array();
+		
+		var refs = me.getReferences();
+		var store = me.getStore(me.SHIPPINGNOTE_DETAIL_STORE);
+		var grid = me.lookupReference(me.MAIN_GRID_REF_NAME);
+		var inquiryGridstore = me.getStore(me.MAIN_STORE_NAME);
+		var gridStore = me.getStore(me.GOODS_LIST_GRID_STORE);
+		var fileUploadStore = me.getStore(me.FILE_UPLOAD_STORE_NAME);
+		
+		var detailItem = me.getViewModel().get('theShippingNote');
+		var theSearchDetail = me.getViewModel().get('theSearchDetail');
+		var goodsDetailItems = detailItem.get('goodsDetailItems');
+		
+		var detailView = me.getDetailBizView();
+		var recvData = detailView.items.get(0).recvData;
+		
+		var searchVesselCall = null;
+		var shipgNoteNo = null;
+		var isCreated = detailItem.phantom;
+		var theSearchDetail = me.getViewModel().get("theSearchDetail");
+		var shipgNoteDtlItem = Ext.create('MOST.model.document.ShippingNote');
+		
+	// Fixing issues 0132020: [SN] System doesn't update the status after saving new SN
+		if(detailItem.get('statCd') == null || detailItem.get('statCd') == ""){
+			detailItem.set('statCd', 'ST');
+		}
+	//-------
+		detailItem.set('projectCargo', refs.refProjectCargo.checked ? 'Y' : 'N');
+		detailItem.set('domesticChk', refs.refDomesticChk.checked ? 'Y' : 'N');
+		detailItem.set('wgtChk', refs.refWeightChk.checked ? 'N' : 'Y');
+		detailItem.set('bondedWhYn', refs.refBondedWhYn.checked ? 'Y' : 'N');
+		//detailItem.set('additionalChk', refs.refAdditionalChk.checked ? 'Y' : 'N');
+		detailItem.set("vslCd", theSearchDetail.data.vslCd);
+		detailItem.set("callYear", theSearchDetail.data.callYear);
+		detailItem.set("callSeq", theSearchDetail.data.callSeq);
+		detailItem.set("userId",MOST.config.Token.getUserId());
+		detailItem.set("ptnrCd",theSearchDetail.get('depSaId'));
+		detailItem.set("fwrdSumitBy",me.FWRDSUMITBY);
+		detailItem.set("saSumitBy",me.SASUMITBY);
+		detailItem.set('estArrvDt1',Ext.Date.format(detailItem.data.estArrvDt, MOST.config.Locale.getDefaultDateFormatWithNoSeconds()));
+		
+		shipgNoteDtlItem.set("userId",MOST.config.Token.getUserId());
+		shipgNoteDtlItem.set('divCd', 'W');
+		shipgNoteDtlItem.set('vslCallId', detailItem.get('vslCallId'));
+		shipgNoteDtlItem.set('shipgNoteNo', detailItem.get('shipgNoteNo'));
+		shipgNoteDtlItem.set('cmdtCdDtl', detailItem.get('cmdtCd'));
+		shipgNoteDtlItem.set('pkgTpCdDtl', detailItem.get('pkgTpCd'));
+		shipgNoteDtlItem.set("vslCd", theSearchDetail.data.vslCd);
+		shipgNoteDtlItem.set("callYear", theSearchDetail.data.callYear);
+		shipgNoteDtlItem.set("callSeq", theSearchDetail.data.callSeq);
+
+		if(isCreated){
+			detailItem.set('statCd', isCreated ? 'ST' : CodeConstants.MT_DOCSTAT_AP);
+		}
+		
+		if(refs.ctlMt1.getValue() && refs.ctlMt1.getValue() != '0'){
+			var tsptTpCd = '';
+			var tsptNm = refs.ctlMode1.getValue();
+			var shipgNoteDtlItem1 = shipgNoteDtlItem.clone();
+			
+			switch (tsptNm){
+				case 'Lorry':
+					tsptTpCd = me.TRANSPORTER_TYPE_LORRY;
+					break;
+				case 'Wagon':
+					tsptTpCd = me.TRANSPORTER_TYPE_WAGON;
+					break;
+				case 'Conveyor':
+					tsptTpCd = me.TRANSPORTER_TYPE_CONVEYOR;
+					break;
+			}
+			
+			shipgNoteDtlItem1.set('shippingNoteMode1', refs.ctlMode1.getValue());
+			shipgNoteDtlItem1.set('wgtDtl', refs.ctlMt1.getValue());
+			shipgNoteDtlItem1.set('tsptTpCdDtl', tsptTpCd);
+			shipgNoteDtlItem1.set('workingStatus', isCreated ? WorkingStatus.INSERT : WorkingStatus.UPDATE);
+			
+			sendArray.push(shipgNoteDtlItem1.data);
+		}
+		
+		if(refs.ctlMt2.getValue() && refs.ctlMt2.getValue() != '0'){
+			var tsptTpCd = '';
+			var tsptNm = refs.ctlMode2.getValue();
+			var shipgNoteDtlItem2 = shipgNoteDtlItem.clone();
+			
+			switch(tsptNm){
+				case 'Lorry':
+					tsptTpCd = me.TRANSPORTER_TYPE_LORRY;
+					break;
+				case 'Wagon':
+					tsptTpCd = me.TRANSPORTER_TYPE_WAGON;
+					break;
+				case 'Conveyor':
+					tsptTpCd = me.TRANSPORTER_TYPE_CONVEYOR;
+					break;
+				default:
+			}
+			
+			shipgNoteDtlItem2.set('wgtDtl', refs.ctlMt2.getValue());
+			shipgNoteDtlItem2.set('tsptTpCdDtl', tsptTpCd);
+			shipgNoteDtlItem2.set('userId', MOST.config.Token.getUserId());
+			shipgNoteDtlItem2.set('workingStatus', isCreated ? WorkingStatus.INSERT : WorkingStatus.UPDATE);
+			
+			sendArray.push(shipgNoteDtlItem2.data);
+		}
+
+		searchVesselCall = refs.ctlVslCallId.getValue();
+		shipgNoteNo = refs.ctlNewShipNoteNo.getValue();
+		
+		//Send current data to reinsert all:
+		gridStore.data.items.forEach(function(record, index, array){
+			record.set('shipgNoteNo', detailItem.get('newShipgNoteNo')) //Set new SN NO
+			record.set('userId', MOST.config.Token.getUserId());
+			sendArray.push(record.data);
+		});
+
+		var isDG = false ;
+		
+		if(detailItem.get('dgItems') != null && detailItem.get('dgItems').length >0){
+			dgItem = detailItem.get('dgItems')[0];
+
+			if(dgItem.crudDG == 'C'){
+				isDG = true;
+			}
+		}
+
+		// To perform the save logic only when modified.
+		if(detailItem.dirty || sendArray.length > 0 || isDG){
+			var updateParm = Ext.create('MOST.model.foundation.parm.UpdateBizParm');
+			var isCreated = detailItem.phantom;
+			var proxy = detailItem.getProxy();
+			proxy.url = store.getProxy().url;
+
+			detailItem.set('newVersion', me.generateUuid());
+			detailItem.set("goodsDetailItems", sendArray);
+			detailItem.set("vslCallId", searchVesselCall);
+			detailItem.set("delvTpCd", refs.ctlDeliveryMode.getValue());
+			detailItem.set("tsptTpCd", refs.ctlModeofOperation.getValue());
+			
+			/*// File Upload CREATE, UPDATE RECORD
+			fileUploadStore.getModifiedRecords().forEach(function(record, index, array){
+				record.set('fileStream', null);
+				record.set('userId', MOST.config.Token.getUserId());
+				record.set('workingStatus', WorkingStatus.INSERT);
+				uploadItems.push(record.data);
+			});
+			
+			// File Upload DELETE RECORD
+			fileUploadStore.getRemovedRecords().forEach(function(record, index, array){
+				record.set('workingStatus', WorkingStatus.DELETE);
+				uploadItems.push(record.data);
+			});
+			
+			detailItem.set('uploadItems', uploadItems);*/
+			
+			updateParm.getProxy().url = store.getProxy().url;
+			updateParm.phantom = isCreated;
+			updateParm.set('workingStatus', isCreated ? WorkingStatus.INSERT : WorkingStatus.UPDATE);
+			updateParm.set('userId', MOST.config.Token.getUserId());
+			updateParm.set('item', detailItem.data);
+			updateParm.save({
+				success: function(record) {
+					
+					var isCreated = detailItem.phantom;
+					
+					detailItem.set("version", detailItem.get('newVersion'));
+					detailItem.set("vslCallId", record.get('vslCallId'));
+					detailItem.set("shipgNoteNo", record.get('shipgNoteNo'));
+					detailItem.set("newShipgNoteNo", record.get('shipgNoteNo'));
+
+					if(isCreated){
+						inquiryGridstore.insert(0, detailItem);
+						grid.getSelectionModel().select(detailItem);
+					}else{
+						me.updateRecord(recvData, detailItem);
+					}
+
+					var recvData = me.lookupReference(me.getView().detailViewAlias).items.get(0).recvData
+
+					recvData.dirty = false;
+					
+					detailItem.set('version', record.get('newVersion'));
+					
+					if(isCreated){
+						var updateParm = Ext.create('MOST.model.foundation.parm.UpdateBizParm');
+						var proxy = detailItem.getProxy();
+						proxy.url = store.getProxy().url;
+						
+						// File Upload CREATE, UPDATE RECORD
+						fileUploadStore.getModifiedRecords().forEach(function(modifiedRecord, index, array){
+							modifiedRecord.set('fileStream', null);
+							modifiedRecord.set('userId', MOST.config.Token.getUserId());
+							modifiedRecord.set('workingStatus', WorkingStatus.INSERT);
+							modifiedRecord.set('catgCd', modifiedRecord.get('catgCd') + detailItem.get('shipgNoteNo'));
+							uploadItems.push(modifiedRecord.data);
+						});
+						
+						// File Upload DELETE RECORD
+						fileUploadStore.getRemovedRecords().forEach(function(removedRecord, index, array){
+							removedRecord.set('workingStatus', WorkingStatus.DELETE);
+							uploadItems.push(removedRecord.data);
+						});
+						
+						detailItem.set('uploadItems', uploadItems);
+						
+						updateParm.getProxy().url = store.getProxy().url;
+						updateParm.phantom = !isCreated;
+						updateParm.set('workingStatus', WorkingStatus.UPDATE);
+						updateParm.set('userId', MOST.config.Token.getUserId());
+						updateParm.set('item', detailItem.data);
+						updateParm.save({
+							success: function(record) {
+							}
+						});
+					}
+					
+					detailItem.commit();
+					
+					MessageUtil.confirmation('success_msg', 'savesuccess_msg',null,
+						function(button){
+							if (button === 'ok') {
+								inquiryGridstore.reload();	
+							//Fixing 0132072: [SN detail] Screen didn't auto close after click on [Save] button
+								//me.onDblClick();
+								detailView.close();
+							//------------------------------------------------
+							}
+						}
+					);
+				}
+			});
+		}
+	},
+	
+	onChangePackageType:function(obj, newVal, oldVal){
+		var me = this;
+		var refs = me.getReferences();
+		var detailItem = me.getViewModel().get('theShippingNote');
+		var params;
+		
+		if(refs.ctlCommodityCode.getValue() != null || refs.ctlCommodityCode.getValue() != ''){
+			params = {
+				searchType: 'CMDT',
+				pkgTypeCd: detailItem.get('pkgTpCd')
+			}
+			refs.ctlCommodityCode.setParams(params);
+		}
+	},
+	
+	onChangeCommodityCode:function(obj, newVal, oldVal){
+		var me = this;
+		var refs = me.getReferences();
+		var detailItem = me.getViewModel().get('theShippingNote');
+		var params;
+		
+		if(refs.ctlTypeofCargo.getValue() != null || refs.ctlTypeofCargo.getValue() != ''){
+			params = {
+					searchType: 'CMDT_GRP',
+					searchDivCd: detailItem.get('cmdtCd')
+			}
+			refs.ctlCommodityGroupCode.setParams(params);
+		}
+		
+		if(refs.ctlPackageName.getValue() != null || refs.ctlPackageName.getValue() != ''){
+			params = {
+					searchLcd:'MT',
+                	searchDivCd: 'PKGTP',
+                	searchType: 'COMM',
+					searchCol1: '',
+					pkgTypeCd: detailItem.get('cmdtCd')
+			}
+			
+			refs.ctlTypeofPackage.setParams(params);
+		}
+		
+		if (refs.ctlPackageName.getValue() != '' && refs.ctlCommodityGroupCode.getValue() != '') {
+			refs.ctlCommodityGroupCode.setValue('');
+			refs.ctlCommodityGroupName.setValue('');
+		}
+	},
+	
+	onClearPackage: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var theSN = me.getViewModel().get('theShippingNote');
+     	
+     	theSN.set('pkgNo', '');
+     	theSN.set('pkgDesc', '');
+     	theSN.set('pkgMt', '');
+     	theSN.set('pkgM3', '');
+     	theSN.set('width', '');
+     	theSN.set('height', '');
+     	theSN.set('length', '');
+     	
+     	refs.refshippingNotePkgDetailGrid.setSelection(null);
+     	refs.refBtnClearPackage.setDisabled(false);
+     	refs.refBtnAddPackage.setDisabled(false);
+     	refs.refBtnUpdatePackage.setDisabled(true);
+     	refs.refBtnRemovePackage.setDisabled(true);
+	},
+	
+	onAddPackage: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var theSN = me.getViewModel().get('theShippingNote');
+     	var store = me.getStore(me.PACKAGE_DETAIL_STORE);
+     	var record = Ext.create('MOST.model.document.ShippingNote');
+     	var strValidation = "";
+     	var itemArr = new Array();
+     	var qty = 0;
+		var pkgMt = 0;
+		var pkgM3 = 0;
+		
+		var newPkgMt = refs.refWgt.getValue();
+     	var newPkgM3 = refs.refMsrmt.getValue();
+     	
+     	if(StringUtil.isNullorEmpty(theSN.get('pkgNo'))){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('packageNo');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('packageNo');
+		}
+     	
+     	if(StringUtil.isNullorEmpty(theSN.get('pkgMt'))){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('mt');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('mt');
+		}
+     	/*
+    	if(StringUtil.isNullorEmpty(theSN.get('pkgM3'))){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('m3');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('m3');
+		}
+     	*/
+     	if(StringUtil.isNullorEmpty(theSN.get('vslCallId'))){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('vslcallid');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('vslcallid');
+		}
+		/*
+		if(StringUtil.isNullorEmpty(theSN.get('mfDocId'))){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('mfDocId');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('mfDocId');
+		}
+		*/
+		
+		if(!StringUtil.isNullorEmpty(strValidation)){
+			MessageUtil.warning("warning_msg", "mandatoryField_msg", strValidation);
+			return;
+		}
+
+		//sMantis: 0167415
+		if(theSN.get('pkgMt') == 0) {
+			MessageUtil.warning("warning_msg", ViewUtil.getLabel('shippingNote_packageDetailValidate_mt_zero_msg'));
+			return;
+		}
+     	//eMantis: 0167415
+
+     	for(var i = 0; i < store.data.length; i++){
+			if(store.data.items[i].data.action != 'D'){
+				itemArr.push(store.data.items[i].data);
+				qty += 1;
+				pkgMt += Number(store.data.items[i].data.pkgMt);
+				pkgM3 += Number(store.data.items[i].data.pkgM3);
+			}
+		}
+		/*
+    	if(!StringUtil.isNullorEmpty(pkgMt) || !StringUtil.isNullorEmpty(theSN.get('wgt'))){
+    		if( (pkgMt + Number(newPkgMt)) > Number(theSN.get('cgWgt')) ){
+   			MessageUtil.warning("warning_msg", "msgDifferentTons");
+   			return;
+   		}
+    	}
+     	
+		if(!StringUtil.isNullorEmpty(pkgM3) || !StringUtil.isNullorEmpty(theSN.get('vol'))){
+			if( (pkgM3 + Number(newPkgM3)) > Number(theSN.get('cgMsrmt'))){
+   			MessageUtil.warning("warning_msg", "msgDifferentTons");
+   			return;
+   		}
+		}
+     	*/
+     	record.set('vslCallId', theSN.get('vslCallId'));
+     	record.set('vslCd', theSN.get('vslCd'));
+     	record.set('callSeq', theSN.get('callSeq'));
+     	record.set('callYear', theSN.get('callYear'));
+     	record.set('mfDocId', theSN.get('mfDocId'));
+     	record.set('shipgNoteNo', theSN.get('shipgNoteNo'));
+     	record.set('pkgNo', theSN.get('pkgNo'));
+     	record.set('pkgDesc', theSN.get('pkgDesc'));
+     	record.set('pkgMt', theSN.get('pkgMt'));
+     	record.set('length', theSN.get('length'));
+     	record.set('width', theSN.get('width'));
+     	record.set('height', theSN.get('height'));
+     	record.set('userId', Token.getUserId());
+     	record.set('workingStatus', WorkingStatus.INSERT);
+     	record.set('action', WorkingStatus.INSERT);
+     	record.set('pkgRmk', theSN.get('pkgRmk'));
+     	
+     	if(theSN.get('pkgM3') == null || theSN.get('pkgM3') == ''){    		
+     		record.set('pkgM3', 0);
+     	}else {
+     		record.set('pkgM3', theSN.get('pkgM3'));
+     	}
+     	
+     	//2.Duplication check
+		if(me.onPkgDuplicatedValidation(refs.refPackageNo.getValue())){
+			store.insert(0, record);
+			
+			if(refs.ctlDeliveryMode.getValue() == me.DELIVERY_MODE_DIRECT){
+				theSN.set('dLrMt', pkgMt + newPkgMt);
+				theSN.set('dLrM3', pkgM3 + newPkgM3);
+				theSN.set('dLrQty', store.data.length);
+			} else if (refs.ctlDeliveryMode.getValue() == me.DELIVERY_MODE_INDIRECT){
+				theSN.set('imt', pkgMt + newPkgMt);
+				theSN.set('im3', pkgM3 + newPkgM3);
+				theSN.set('iqty', store.data.length);
+			}
+		}
+	},
+	
+	onUpdatePackage: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var theSN = me.getViewModel().get('theShippingNote');
+     	var grid = me.lookupReference(me.PACKAGE_DETAIL_GRID_REF_NAME);
+     	var store = grid.getStore();
+		var strValidation = "";
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+
+		if(selection == null) return;
+
+		var currPkgNo = selection.get('pkgNo');
+     	if(StringUtil.isNullorEmpty(theSN.get('pkgNo'))){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('packageNo');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('packageNo');
+		}
+     	
+     	if(StringUtil.isNullorEmpty(theSN.get('pkgMt'))){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('mt');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('mt');
+		}
+     	
+     	if(StringUtil.isNullorEmpty(theSN.get('pkgM3'))){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('m3');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('m3');
+     	}
+     	
+		if(StringUtil.isNullorEmpty(theSN.get('vslCallId'))){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('vslcallid');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('vslcallid');
+		}
+		
+		if(StringUtil.isNullorEmpty(theSN.get('mfDocId'))){
+			if(StringUtil.isNullorEmpty(strValidation))
+				strValidation += ViewUtil.getLabel('mfDocId');
+			else
+				strValidation = strValidation + ", " + ViewUtil.getLabel('mfDocId');
+		}
+		
+		if(!StringUtil.isNullorEmpty(strValidation)){
+			MessageUtil.warning("warning_msg", "mandatoryField_msg", strValidation);
+			return;
+		}
+
+		//sMantis: 0167415
+		if(theSN.get('pkgMt') == 0) {
+			MessageUtil.warning("warning_msg", ViewUtil.getLabel('shippingNote_packageDetailValidate_mt_zero_msg'));
+			return;
+		}
+     	//eMantis: 0167415
+		
+		if(currPkgNo != theSN.get('pkgNo')){
+			if(me.onPkgDuplicatedValidation(refs.refPackageNo.getValue())){
+				selection.set('pkgNo', refs.refPackageNo.getValue());
+				selection.set('pkgDesc', refs.refPackageDesc.getValue());
+				selection.set('pkgMt', refs.refWgt.getValue());
+				//selection.set('pkgM3', refs.refMsrmt.getValue());
+				selection.set('length', refs.refLength.getValue());
+				selection.set('width', refs.refWidth.getValue());
+				selection.set('height', refs.refHeight.getValue());
+				selection.set('userId', Token.getUserId());
+				selection.set('workingStatus', WorkingStatus.UPDATE);
+				selection.set('action', WorkingStatus.UPDATE);
+				selection.set('pkgRmk', refs.refPkgRmk.getValue());
+				if(refs.refMsrmt.getValue() == null || refs.refMsrmt.getValue() == ''){    		
+					selection.set('pkgM3', 0);
+		     	}else {
+		     		selection.set('pkgM3', refs.refMsrmt.getValue());
+		     	}
+			}
+		} else {
+			selection.set('pkgNo', refs.refPackageNo.getValue());
+			selection.set('pkgDesc', refs.refPackageDesc.getValue());
+			selection.set('pkgMt', refs.refWgt.getValue());
+			//selection.set('pkgM3', refs.refMsrmt.getValue());
+			selection.set('length', refs.refLength.getValue());
+			selection.set('width', refs.refWidth.getValue());
+			selection.set('height', refs.refHeight.getValue());
+			selection.set('userId', Token.getUserId());
+			selection.set('workingStatus', WorkingStatus.UPDATE);
+			selection.set('action', WorkingStatus.UPDATE);
+			selection.set('pkgRmk', refs.refPkgRmk.getValue());
+			if(refs.refMsrmt.getValue() == null || refs.refMsrmt.getValue() == ''){    		
+				selection.set('pkgM3', 0);
+	     	}else {
+	     		selection.set('pkgM3', refs.refMsrmt.getValue());
+	     	}
+		}
+		
+		var pkgMt = 0;
+		var pkgM3 = 0;
+		
+        store.each(function (rec) { pkgMt += Number(rec.get('pkgMt')); });
+        store.each(function (rec) { pkgM3 += Number(rec.get('pkgM3')); });
+        
+        theSN.set('cgWgt', pkgMt);
+        theSN.set('cgMsrmt', pkgM3);
+        theSN.set('pkgQty', store.data.length);
+        
+		if(refs.ctlDeliveryMode.getValue() == me.DELIVERY_MODE_DIRECT){
+			theSN.set('dLrMt', pkgMt);
+	        theSN.set('dLrM3', pkgM3);
+	        theSN.set('dLrQty', store.data.length);
+		} else if (refs.ctlDeliveryMode.getValue() == me.DELIVERY_MODE_INDIRECT){
+			theSN.set('imt', pkgMt);
+			theSN.set('im3', pkgM3);
+			theSN.set('iqty', store.data.length);
+		}
+	},
+	
+	onRemovePackage: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var store = me.getStore(me.PACKAGE_DETAIL_STORE);
+		var grid = me.lookupReference(me.PACKAGE_DETAIL_GRID_REF_NAME);
+		var selectionArr = grid.getSelection() == null ? null : grid.getSelection();
+		var theSN = me.getViewModel().get('theShippingNote');
+		
+		if(theSN.get('statCd') == 'AP'){
+     		MessageUtil.warning("warning_msg", "sn_hasBeenApproved");
+			return;
+     	}
+		
+		if(selectionArr == null) return;
+		
+		Ext.each(selectionArr, function (record) {
+			if(record.get('workingStatus') == WorkingStatus.INSERT)
+				store.remove(record);
+			else {
+				record.set('workingStatus', WorkingStatus.DELETE);
+				record.set('action', WorkingStatus.DELETE);
+			}
+		});
+		
+		var pkgMt = 0;
+		var pkgM3 = 0;
+		
+        store.each(function (rec) { pkgMt += Number(rec.get('pkgMt')); });
+        store.each(function (rec) { pkgM3 += Number(rec.get('pkgM3')); });
+        
+        theSN.set('cgWgt', pkgMt);
+        theSN.set('cgMsrmt', pkgM3);
+        theSN.set('pkgQty', store.data.length);
+        
+		if(refs.ctlDeliveryMode.getValue() == me.DELIVERY_MODE_DIRECT){
+			theSN.set('dLrMt', pkgMt);
+	        theSN.set('dLrM3', pkgM3);
+	        theSN.set('dLrQty', store.data.length);
+		} else if (refs.ctlDeliveryMode.getValue() == me.DELIVERY_MODE_INDIRECT){
+			theSN.set('imt', pkgMt);
+			theSN.set('im3', pkgM3);
+			theSN.set('iqty', store.data.length);
+		}
+	},
+
+	onPkgGridItemClick:function(){
+		var me = this;
+		var refs = me.getReferences();
+		var grid = me.lookupReference(me.PACKAGE_DETAIL_GRID_REF_NAME);
+		var selection = grid.getSelection() == null ? null : grid.getSelection()[0];
+		var theSN = me.getViewModel().get('theShippingNote');
+		
+		if(selection == null) return;
+		
+		theSN.set('pkgNo', selection.get('pkgNo'));
+		theSN.set('pkgDesc', selection.get('pkgDesc'));
+		theSN.set('pkgMt', selection.get('pkgMt'));
+		theSN.set('pkgM3', selection.get('pkgM3'));
+		theSN.set('length', selection.get('length'));
+		theSN.set('width', selection.get('width'));
+		theSN.set('height', selection.get('height'));
+		theSN.set('pkgRmk', selection.get('pkgRmk'));
+		
+     	if(!refs.refBtnClearRORO.disabled){
+			refs.refBtnAddRORO.setDisabled(true);
+     	    refs.refBtnUpdateRORO.setDisabled(false);
+     	    refs.refBtnRemoveRORO.setDisabled(false);
+		}
+	},
+	
+	onPkgDuplicatedValidation: function (pkgNo){
+		var me = this;
+		var refs = me.getReferences();
+		var store = me.getStore(me.PACKAGE_DETAIL_STORE);
+		
+		if(store.data.length == 0){
+			return true;
+		}
+		
+		for(var j = 0; j < store.data.length; j++){
+			if(pkgNo === store.data.items[j].get('pkgNo')){
+				MessageUtil.warning('warning_msg', 'validate_duplicate_package_no');
+				return false;
+			}
+		}
+		
+		return true;
+	},
+	
+	onPackageDetailTabSetting: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var theSN = me.getViewModel().get('theShippingNote');
+     	var pkgStore = me.getStore(me.PACKAGE_DETAIL_STORE);
+     		
+     	refs.refPackageDetailTab.setDisabled(true);
+     	
+ 		if(refs.refProjectCargo.getValue() == true && theSN.get('cgTpCd') == CodeConstants.MT_CGTP_BBK){
+			refs.refPackageDetailTab.setDisabled(false);
+		} else {
+			refs.refPackageDetailTab.setDisabled(true);
+		}	
+	},
+	
+	onPackageDetailTabSetting1: function(){
+		var me = this;
+     	var refs = me.getReferences();
+     	var theSN = me.getViewModel().get('theMain');
+     	var pkgStore = me.getStore(me.PACKAGE_DETAIL_STORE);
+     		
+     	//refs.refPackageDetailTab.setDisabled(true);   
+     	
+     	//Fixing issue Package detail grid do not refresh after untick project cargo
+     	if(refs.refProjectCargo.getValue() == false){
+     		pkgStore.removeAll();
+     		refs.refPackageNo.setValue('');
+     		refs.refPackageDesc.setValue('');
+     		refs.refWgt.setValue('');
+     		refs.refMsrmt.setValue('');
+     		refs.refPkgRmk.setValue('');
+     		refs.refLength.setValue('');
+     		refs.refWidth.setValue('');
+     		refs.refHeight.setValue('');
+     	}
+     	
+ 		if(refs.refProjectCargo.getValue() == true && refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_BBK){
+			refs.refPackageDetailTab.setDisabled(false);
+		} else {
+			refs.refPackageDetailTab.setDisabled(true);
+		}
+ 		
+ 		if(refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_BBK && 
+ 	     		(theSN.data.workingStatus == 'C' || (refs.refProjectCargo.dirty == true && theSN.data.workingStatus == 'U'))){
+ 	     	refs.ctlGrossWgt.setValue(0);
+ 	     	refs.ctlWgtEach.setValue(0);
+ 	     	refs.ctlMeasurement.setValue(0);
+ 	     	refs.ctlMeasurementEach.setValue(0);
+ 	     	refs.ctlQuantity.setValue(0);
+ 	     }	
+ 		
+ 		if(refs.ctlTypeofCargo.getValue() == CodeConstants.MT_CGTP_BBK){
+ 			if(refs.refProjectCargo.getValue() == true){
+ 				refs.ctlWgtEach.setValue(0);
+ 				refs.ctlMeasurementEach.setValue(0);
+ 				refs.ctlWgtEach.setDisabled(true);
+ 				refs.ctlMeasurementEach.setDisabled(true);
+ 				
+ 				refs.ctlLorryDmt.setReadOnly(true);
+ 				refs.ctlLorryDm3.setReadOnly(true);
+ 				refs.ctlLorryDQty.setReadOnly(true);
+ 				refs.ctlVslDmt.setReadOnly(true);
+ 				refs.ctlVslDm3.setReadOnly(true);
+ 				refs.ctlVslDQty.setReadOnly(true);
+ 				refs.ctlImt.setReadOnly(true);
+ 				refs.ctlIm3.setReadOnly(true);
+ 				refs.ctlIQty.setReadOnly(true);
+ 			}else {
+ 				refs.ctlWgtEach.setValue(0);
+ 				refs.ctlMeasurementEach.setValue(0);
+ 				refs.ctlWgtEach.setDisabled(false);
+ 				refs.ctlMeasurementEach.setDisabled(false);
+ 				
+ 				refs.ctlLorryDmt.setReadOnly(false);
+ 				refs.ctlLorryDm3.setReadOnly(false);
+ 				refs.ctlLorryDQty.setReadOnly(false);
+ 				refs.ctlVslDmt.setReadOnly(false);
+ 				refs.ctlVslDm3.setReadOnly(false);
+ 				refs.ctlVslDQty.setReadOnly(false);
+ 				refs.ctlImt.setReadOnly(false);
+ 				refs.ctlIm3.setReadOnly(false);
+ 				refs.ctlIQty.setReadOnly(false);
+ 				
+ 				refs.ctlImt.setValue(0);
+ 				refs.ctlIm3.setValue(0);
+ 				refs.ctlIQty.setValue(0);
+ 				refs.ctlLorryDmt.setValue(0);
+ 				refs.ctlLorryDm3.setValue(0);
+ 				refs.ctlLorryDQty.setValue(0);
+ 			}	
+ 		}
+	},
+
+	onWeightChkSetting: function(recvData){
+		var me = this;
+		var refs = me.getReferences();
+		var theSN = me.getViewModel().get('theMain');
+		
+		refs.refWeightChk.setDisabled(true);
+		refs.refWeightChk.setValue(false);
+		
+		if((recvData && recvData.get('cgTpCd') == CodeConstants.MT_CGTP_BBK) || theSN && theSN.get('cgTpCd') == CodeConstants.MT_CGTP_BBK
+				|| (recvData && recvData.get('cgTpCd') == CodeConstants.MT_CGTP_DBN) || theSN && theSN.get('cgTpCd') == CodeConstants.MT_CGTP_DBN){
+			refs.refWeightChk.setDisabled(MOST.config.Token.getUserType() == CodeConstants.USER_TYPE_INTERNAL ? false : true);
+		}
+	},
+	
+	onAdditionalChkSetting: function(recvData){
+		var me = this;
+		var refs = me.getReferences();
+		var theSN = me.getViewModel().get('theShippingNote');
+		
+//		if(recvData && recvData.get('delvTpCdNm') == 'DIRECT' || theSN && theSN.get('delvTpCdNm') == 'DIRECT'){
+//			refs.refAdditionalChk.setHidden(true);
+//		} else {
+//			refs.refAdditionalChk.setHidden(false);
+//		}
+	},
+	
+	onExportExcelSamplePackageDetailTab: function() {
+		var me = this;
+		
+		var exportItem = me.getStore('packageSampleUpload');
+		exportItem.load({
+            callback: function(record, operation, success) {
+            	if(success) {
+            		if(record != null){
+            			var content = record[0].get('content').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>');
+    		        	Ext.exporter.File.saveBinaryAs(content, "LAIP_GeneralCargo_PackageDetail.xlsx");
+            		}
+            	}
+            }
+		});			
+	},
+	
+	fileUpload : function(formData){
+		var me = this;
+		var refs = me.getReferences();
+		var detailView = me.getDetailBizView();
+		var store = me.getStore(me.FILE_UPLOAD_STORE_NAME);
+		
+		var formData = new FormData();
+		
+		var xhr = new XMLHttpRequest();
+    	
+		store.getModifiedRecords().forEach(function(record, index, array){
+			formData.append(record.data.fileName, record.data.fileStream);
+    	});
+    	
+    	xhr.addEventListener('loadend', function(){
+    		if(xhr.status === 200){
+    			var rtnData = JSON.parse(xhr.responseText);
+    			
+    			store.getModifiedRecords().forEach(function(record, index, array){
+    	    		record.set('ufileName', rtnData[record.get('fileName')]);
+    	    	});
+    			
+    			me.saveProcess();
+  
+    		}else{
+    			MessageUtil.warning('warning_msg', 'fail_msg');
+    		}
+    		
+    		Ext.MessageBox.hide();
+    	});
+    	
+    	xhr.open('POST',MOST.config.Locale.getRestApiDestUrl() + '/file/manage/fileupload');
+    	xhr.setRequestHeader('Authorization', MOST.config.Token.getTokenType() + ' ' + MOST.config.Token.getAccessToken());
+    	xhr.send(formData);
+    	
+    	var msgBox = Ext.MessageBox.show({
+			msg: 'Uploading your data...',
+			progressText: 'Progressing...',
+			width:300,
+			wait:true,
+			waitConfig: {interval:200}
+		});
+	},
+	
+	editSetting: function(){
+		var me = this;
+		var refs = me.getReferences();
+		
+		refs.ctlDeliveryMode.clearValue();
+		refs.ctlModeofOperation.clearValue();
+		
+		refs.ctlCntryofOrg.items.getAt(0).setReadOnly(true);
+		refs.ctlCntryofOrg.items.getAt(1).setDisabled(true);
+		
+		refs.ctlportOfDis.items.getAt(0).setReadOnly(true);
+		refs.ctlportOfDis.items.getAt(1).setDisabled(true);
+		
+		refs.ctlfnlDest.items.getAt(0).setReadOnly(true);
+		refs.ctlfnlDest.items.getAt(1).setDisabled(true);
+		
+		refs.ctlCommodityGroupCode.items.getAt(0).setReadOnly(true);
+		refs.ctlCommodityGroupCode.items.getAt(1).setDisabled(true);
+		
+		refs.ctlCommodityCode.items.getAt(0).setReadOnly(true);
+		refs.ctlCommodityCode.items.getAt(1).setDisabled(true);
+		
+		refs.ctlTypeofPackage.items.getAt(0).setReadOnly(true);
+		refs.ctlTypeofPackage.items.getAt(1).setDisabled(true);
+		
+		refs.ctlImdg.items.getAt(0).setReadOnly(true);
+		refs.ctlImdg.items.getAt(1).setDisabled(true);
+		
+		refs.ctlFAgent.items.getAt(0).setReadOnly(true);
+		refs.ctlFAgent.items.getAt(1).setDisabled(true);
+		
+		refs.ctlTransporter.items.getAt(0).setReadOnly(true);
+		refs.ctlTransporter.items.getAt(1).setDisabled(true);
+		
+		refs.ctlShipperCd.items.getAt(0).setReadOnly(true);
+		refs.ctlShipperCd.items.getAt(1).setDisabled(true);
+		
+		refs.ctlConsigneeCd.items.getAt(0).setReadOnly(true);
+		refs.ctlConsigneeCd.items.getAt(1).setDisabled(true);
+		
+		refs.refUserRefNo.setReadOnly(true);
+		refs.ctlNewMfDocId.setReadOnly(true);
+		refs.ctlCategory.setReadOnly(true);
+		refs.ctlmafiparent.setReadOnly(true);
+		refs.ctlparentcmdt.setReadOnly(true);
+		refs.ctlMAndN.setReadOnly(true);
+		refs.ctldescrgoods.setReadOnly(true);
+		refs.ctlTypeofCargo.setReadOnly(true);
+		refs.ctlmafiparent.setReadOnly(true);
+		refs.ctlpackagenumber.setReadOnly(true);
+		refs.ctlGrossWgt.setReadOnly(true);
+		refs.ctlWgtEach.setReadOnly(true);
+		refs.ctlMeasurement.setReadOnly(true);
+		refs.ctlMeasurementEach.setReadOnly(true);
+		refs.ctlQuantity.setReadOnly(true);
+		refs.ctlFreightTon.setReadOnly(true);
+		refs.ctlLength.setReadOnly(true);
+		refs.ctlWidth.setReadOnly(true);
+		refs.ctlHeight.setReadOnly(true);
+		refs.refDomesticChk.setReadOnly(true);
+		//refs.ctlAstArrvDt.setReadOnly(true);
+		refs.ctlMt1.setReadOnly(true);
+		refs.ctlMt2.setReadOnly(true);
+		refs.refProjectCargo.setReadOnly(true);
+		refs.refWeightChk.setReadOnly(true);
+		refs.ctlModeofOperation.setReadOnly(true);
+		refs.ctlDeliveryMode.setReadOnly(true);
+		
+		refs.refBtnAddFile.setDisabled(true);
+		refs.refBtnRemoveFile.setDisabled(true);
+		refs.refBtnCreate.setDisabled(true);
+		refs.refBtnDelete.setDisabled(true);
+		refs.refBtnClearRORO.setDisabled(true);
+		refs.refBtnAddRORO.setDisabled(true);
+		refs.refBtnUpdateRORO.setDisabled(true);
+		refs.refBtnRemoveRORO.setDisabled(true);
+		refs.refBtnClearPackage.setDisabled(true);
+		refs.refBtnAddPackage.setDisabled(true);
+		refs.refBtnUpdatePackage.setDisabled(true);
+		refs.refBtnRemovePackage.setDisabled(true);
+	},
+	
+	onExportExcelSample: function() {
+		var me = this;
+		
+		var exportItem = me.getStore('sampleUpload');
+		exportItem.load({
+            callback: function(record, operation, success) {
+            	if(success) {
+            		if(record != null){
+            			var content = record[0].get('content').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>');
+    		        	Ext.exporter.File.saveBinaryAs(content, "LAIP_RORO_LoadingDetailList.xlsx");
+            		}
+            	}
+            }
+		});			
+	},
+	
+	onValidateNegativeLength: function (){
+		var me = this;
+		var refs = me.getReferences();
+		
+		if (refs.refLength.getValue() < 0){
+			MessageUtil.warning('warning_msg', 'Length can not be negative, please recheck');
+			refs.refLength.setValue('');
+			return;
+		}
+	},
+	
+	onValidateNegativeWidth: function (){
+		var me = this;
+		var refs = me.getReferences();
+		
+		if (refs.refWidth.getValue() < 0){
+			MessageUtil.warning('warning_msg', 'Width can not be negative, please recheck');
+			refs.refWidth.setValue('');
+			return;
+		}
+	},
+	
+	onValidateNegativeHeight: function (){
+		var me = this;
+		var refs = me.getReferences();
+		
+		if (refs.refHeight.getValue() < 0){
+			MessageUtil.warning('warning_msg', 'Height can not be negative, please recheck');
+			refs.refHeight.setValue('');
+			return;
+		}
+	},
+	
+	onChangeMtDirectField: function(){
+		var me = this;
+		var refs = me.getReferences();
+		
+		refs.ctlGrossWgt.setValue(Number(refs.ctlImt.getValue()) + Number(refs.ctlDmt.getValue()));
+	},
+	
+	onChangeM3DirectField: function(){
+		var me = this;
+		var refs = me.getReferences();
+		
+		refs.ctlMeasurement.setValue(Number(refs.ctlIm3.getValue()) + Number(refs.ctlDM3.getValue()));
+	},
+	
+	onChangeQtyDirectField: function(){
+		var me = this;
+		var refs = me.getReferences();
+		
+		refs.ctlQuantity.setValue(Number(refs.ctlIQty.getValue()) + Number(refs.ctlDQty.getValue()));
+	},
+	
+	onChangeMtIndirectField: function(){
+		var me = this;
+		var refs = me.getReferences();
+		
+		refs.ctlGrossWgt.setValue(Number(refs.ctlImt.getValue()) + Number(refs.ctlDmt.getValue()));
+	},
+	
+	onChangeM3IndirectField: function(){
+		var me = this;
+		var refs = me.getReferences();
+		
+		refs.ctlMeasurement.setValue(Number(refs.ctlIm3.getValue()) + Number(refs.ctlDM3.getValue()));
+	},
+	
+	onChangeQtyIndirectField: function(){
+		var me = this;
+		var refs = me.getReferences();
+		
+		refs.ctlQuantity.setValue(Number(refs.ctlIQty.getValue()) + Number(refs.ctlDQty.getValue()));
+	},
+	
+	onChangeDQtyVslField: function(){
+		var me = this;
+		var refs = me.getReferences();
+		
+		refs.ctlDQty.setValue(Number(refs.ctlVslDQty.getValue()) + Number(refs.ctlLorryDQty.getValue()));
+	},
+	
+	onChangeDMtVslField: function(){
+		var me = this;
+		var refs = me.getReferences();
+		
+		refs.ctlDmt.setValue(Number(refs.ctlVslDmt.getValue()) + Number(refs.ctlLorryDmt.getValue()));
+	},
+	
+	onChangeDM3VslField: function(){
+		var me = this;
+		var refs = me.getReferences();
+		
+		refs.ctlDM3.setValue(Number(refs.ctlVslDm3.getValue()) + Number(refs.ctlLorryDm3.getValue()));
+	},
+	
+	onChangeDQtyLrField: function(){
+		var me = this;
+		var refs = me.getReferences();
+		
+		refs.ctlDQty.setValue(Number(refs.ctlVslDQty.getValue()) + Number(refs.ctlLorryDQty.getValue()));
+	},
+	
+	onChangeDMtLrField: function(){
+		var me = this;
+		var refs = me.getReferences();
+		
+		refs.ctlDmt.setValue(Number(refs.ctlVslDmt.getValue()) + Number(refs.ctlLorryDmt.getValue()));
+	},
+	
+	onChangeDM3LrField: function(){
+		var me = this;
+		var refs = me.getReferences();
+		
+		refs.ctlDM3.setValue(Number(refs.ctlVslDm3.getValue()) + Number(refs.ctlLorryDm3.getValue()));
+	},
+	
+	onSetButtonAuthority: function() {
+		var me = this;
+		var refs = me.getReferences();
+
+		var theVslInfo = me.getViewModel().get('theVslInfo');
+		if(theVslInfo){
+			if(theVslInfo.get('vslCallId') === CodeConstants.VESSEL_SCHEDULE_STRG) {
+				if(MOST.config.Token.getUserType() === CONSTANTS.USER_TYPE_EXTERNAL){
+					if(me.existsPatnerType(me.FORWARDER)) {
+						refs.refBtnCreate.setDisabled(false);
+						refs.refBtnDelete.setDisabled(false);
+					}
+					else {
+						refs.refBtnCreate.setDisabled(true);
+						refs.refBtnDelete.setDisabled(true);
+					}
+				} else {
+					refs.refBtnCreate.setDisabled(false);
+					refs.refBtnDelete.setDisabled(false);
+				}
+			}
+		}
+		else {
+			if(MOST.config.Token.getUserType() === CONSTANTS.USER_TYPE_EXTERNAL){
+				var patnerInfos = MOST.config.Token.getPatnerInfos();
+				me.authority = patnerInfos[0].ptnrType;
+
+				if(me.existsPatnerType(me.SHIPPING_AGENCY)){
+					me.authority = me.SHIPPING_AGENCY;
+				}
+
+				if(me.existsPatnerType(me.SHIPPING_AGENCY) || (me.existsPatnerType(me.SHIPPING_AGENCY) && me.existsPatnerType(me.FORWARDER))){
+					refs.ctlAssinTrans.setDisabled(true); //btnTspt
+
+					if (me.existsPatnerType(me.SHIPPING_AGENCY) && me.existsPatnerType(me.FORWARDER)) {
+						me.authority = me.BH;
+						refs.ctlAssinTrans.setDisabled(false);
+
+					}else if(me.existsPatnerType(me.SHIPPING_AGENCY)){
+						me.authority = me.SHIPPING_AGENCY;
+					}
+				} else if (me.existsPatnerType(me.FORWARDER)) {
+					refs.ctlAssinTrans.setDisabled(false);
+
+					if(refs.refBtnCreate){
+						refs.refBtnCreate.setDisabled(true);
+					}
+
+					if(refs.refBtnDelete){
+						refs.refBtnDelete.setDisabled(true);
+					}
+					me.authority = me.FORWARDER;
+				} else if (me.existsPatnerType(CONSTANTS.PTNR_TYPE_SHIPPER_CONSIGNEE)) {
+					me.authority = CONSTANTS.PTNR_TYPE_SHIPPER_CONSIGNEE;
+				}
+			}else if(MOST.config.Token.getUserType() === CONSTANTS.USER_TYPE_INTERNAL){
+				SYSTEMADMIN = MOST.config.Token.getIsSystemAdmin();
+
+				if(me.existsPatnerType(CONSTANTS.PTNR_TYPE_CSC_SUPERVISOR)){
+					refs.ctlAssinTrans.setDisabled(true);
+				}else{
+					if(SYSTEMADMIN === me.YES){
+						refs.ctlAssinTrans.setDisabled(false);
+						refs.ctltypeCargo.setDisabled(false);
+					}
+				}
+			}
+		}
+	},
+	
+	openHsCodePopup: function(){
+		var me = this;
+		var refs = me.getReferences();
+		var params = {};
+		
+		me.openCodePopup('popup-hscodepopup', 'txtSnHsCd', params);
+	},
+	/**
+	 * GENERAL METHOD END
+	 * =========================================================================================================================
+	 */
+});

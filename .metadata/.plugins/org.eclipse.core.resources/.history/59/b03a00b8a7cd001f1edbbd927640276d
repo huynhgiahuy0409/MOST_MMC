@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Thu Jun 18 08:43:10 ICT 2015-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="berthLocationConfiguration">
+
+	<resultMap id="getBerthWharfCdList" type="berthLocationConfigurationItem">
+		<result property="berthCd"				column="BERTH_CD"/>
+		<result property="berthNm" 				column="BERTH_NM"/>
+		<result property="berthTp" 				column="BERTH_TP"/>
+		<result property="berthTpNm" 			column="BERTH_TP_NM"/>	
+		<result property="locCd" 				column="LOC_CD"/>	
+		<result property="locNm" 				column="LOC_NM"/>
+		<result property="pstSta" 				column="PST_STA"/>
+		<result property="pstEnd" 				column="PST_END"/>
+		<result property="grpCd" 				column="GRP_CD"/>
+		<result property="area" 				column="AREA"/>
+		<result property="areaAddr" 			column="AREA_ADDR"/>
+		<result property="tmnl" 				column="TMNL"/>
+		<result property="length" 				column="LENGTH"/>
+		<result property="horizontal" 			column="X"/>
+		<result property="vertical" 			column="Y"/>
+		<result property="rotate" 				column="ROTATE"/>
+		<result property="color" 				column="COLOR"/>
+	</resultMap>
+	 
+	<sql id="getBerthWharfList">
+		SELECT /*berthlocationconfiguration.getBerthWharfList*/
+			BERTH_CD							AS BERTH_CD,
+			BERTH_NM							AS BERTH_NM,
+			BERTH_TP							AS BERTH_TP,
+			LOC_CD								AS LOC_CD,
+			PST_STA								AS PST_STA,
+			PST_END								AS PST_END,
+			LENGTH								AS LENGTH,
+			GRP_CD,
+			AREA,
+			AREA_ADDR,
+			TMNL,
+			COLOR								AS COLOR,
+			X									AS HORIZONTAL,
+			Y									AS VERTICAL,
+			ROTATE
+		FROM 
+			TMT_BERTH_LOC
+		<where>
+			<if test="berthCd != null and berthCd != ''">
+				AND UPPER(BERTH_CD) LIKE '%' + UPPER(#{berthCd}) + '%'
+			</if>
+			<if test="berthNm != null and berthNm != ''">
+				AND UPPER(BERTH_NM) LIKE '%' +  UPPER(#{berthNm}) + '%'	
+			</if>
+			<if test="locCd != null and locCd != ''">
+				AND UPPER(LOC_CD) = #{locCd}
+			</if>
+		</where>
+    	<!-- ORDER BY BERTH_CD  -->
+ 	</sql>
+	
+	<select id="selectBerthWharfList"  parameterType="berthLocationConfigurationParm" resultMap="getBerthWharfCdList">
+		<if test="pageNo != 0"> 
+            SELECT /*berthLocationConfiguration.selectBerthWharfList*/
+             	*
+			FROM 
+				(SELECT 
+					ROW_NUMBER() OVER(ORDER BY BERTH_CD) AS ROW_NUM,
+					innerTable.*
+				FROM ( 
+		</if>
+				<include refid="getBerthWharfList"/>
+		<if test="pageNo != 0"> 
+				) AS innerTable 
+			) AS innerTable
+			WHERE 
+				innerTable.ROW_NUM <![CDATA[>]]> (CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) - 1) * CAST(#{sizePerPage} AS INT)  
+		  		AND	innerTable.ROW_NUM <![CDATA[<=]]> CAST((CASE WHEN #{pageNo} = '0' THEN '1' ELSE #{pageNo} END) AS INT) * CAST(#{sizePerPage} AS INT)
+		</if>
+	</select>
+	
+ 	<select id="selectBerthWharfListCount" parameterType="berthLocationConfigurationParm" resultType="java.lang.String" >
+        SELECT /*berthLocationConfiguration.selectBerthWharfListCount*/
+			COUNT(*) 
+        FROM 
+			(<include refid="getBerthWharfList"/>) AS TEMPTB
+	</select>
+	 
+	<insert id="insertItems" parameterType="berthLocationConfigurationItem">
+		INSERT /*berthLocationConfiguration.insertItems*/
+		INTO TMT_BERTH_LOC (
+			BERTH_CD,				
+			BERTH_NM,				
+			BERTH_TP,					
+			LOC_CD,				
+			PST_STA,				
+			PST_END,				
+			LENGTH,
+			GRP_CD,
+			STAFF_CD,				
+			UPDATE_TIME,						
+			TMNL,
+			X,
+			Y,
+			ROTATE,
+			COLOR
+		) VALUES (
+			#{berthCd},	
+			#{berthNm},	
+			#{berthTp},		
+			#{locCd},		
+			(CASE
+				WHEN (#{pstSta} = '' OR #{pstSta} IS NULL) THEN NULL
+				ELSE #{pstSta, jdbcType=NUMERIC}
+			END)	
+			,
+			(CASE
+				WHEN (#{pstEnd} = '' OR #{pstEnd} IS NULL) THEN NULL
+				ELSE #{pstEnd, jdbcType=NUMERIC}
+			END)			
+			,(CASE
+				WHEN (#{length} = '' OR #{length} IS NULL) THEN NULL
+				ELSE #{length, jdbcType=NUMERIC}
+			END), 	
+			#{grpCd, 	jdbcType=VARCHAR},
+			#{insUserId},	
+			SYSDATETIME(),    
+			#{tmnl, 	jdbcType=VARCHAR},
+			#{horizontal},
+			#{vertical},
+			#{rotate},
+			#{color}
+		)
+	</insert>
+
+	<update id="updateItems" parameterType="berthLocationConfigurationItem">
+		UPDATE /*berthLocationConfiguration.updateItems*/
+			TMT_BERTH_LOC 
+		SET 
+			BERTH_NM 							= #{berthNm},	
+			BERTH_TP 							= #{berthTp},	
+			LOC_CD 								= #{locCd},	
+			PST_STA 							= #{pstSta},	
+			PST_END 							= #{pstEnd},	
+			LENGTH 								= #{length},
+			TMNL 								= #{tmnl},
+			STAFF_CD 							= #{updUserId},   
+			UPDATE_TIME 						= SYSDATETIME(),
+			X									= #{horizontal},
+			Y									= #{vertical},
+			ROTATE								= #{rotate},
+			COLOR								= #{color}
+		WHERE 
+			BERTH_CD 							= #{berthCd}
+	</update>
+
+	<delete id="deleteItems" parameterType="berthLocationConfigurationItem">
+		DELETE /*berthLocationConfiguration.deleteItems*/
+		FROM 
+			TMT_BERTH_LOC
+		WHERE 
+			BERTH_CD = #{berthCd}
+	</delete>
+</mapper>

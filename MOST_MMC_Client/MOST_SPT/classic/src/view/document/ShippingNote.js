@@ -1,0 +1,552 @@
+Ext.define('MOST.view.document.ShippingNote',{
+	extend : 'Ext.form.Panel',
+	alias : 'widget.app-shippingnotelist',
+
+	requires : [ 'Ext.grid.plugin.Clipboard',
+			'Ext.grid.filters.Filters',
+			'Ext.grid.selection.SpreadsheetModel',
+			'MOST.view.document.ShippingNoteModel',
+			'MOST.view.document.ShippingNoteController' ],
+
+	detailViewAlias : 'app-shippingnotedetail',
+
+	controller : 'shippingnote',
+
+	viewModel : {
+		type : 'shippingnote'
+	},
+
+	listeners : {
+		afterrender : 'onLoad'
+	},
+
+	config : {
+		shipNoteInitData : null
+	},
+
+	/**
+	 * =========================================================================================================================
+	 * CONSTANT START
+	 */
+	MAIN_GRID_REF_NAME : 'refShippingNoteGrid', // Main Grid Name 
+	MAIN_STORE_NAME : 'shippingNoteGridList', // Main Store Name
+	DELIVERY_MODE_STORE: 'deliveryModeCombo',
+	/**
+	 * CONSTANT END
+	 * =========================================================================================================================
+	 */
+
+	layout : {
+		type : 'vbox',
+		align : 'stretch'
+	},
+
+	initComponent : function() {
+		var me = this;
+		Ext.apply(this, {
+			layout : {
+				type : 'vbox',
+				align : 'stretch'
+			},
+			items : [
+			{
+				xtype : 'fieldset',
+				layout : {
+					type : 'vbox',
+					align : 'stretch'
+				},
+				margin : '5 5 5 0',
+				padding: '10 10 10 10',
+				items : [{
+					xtype : 'container',
+					layout : {
+						type : 'hbox',
+						align : 'stretch'
+					}, 
+					items : [
+					{
+						xtype : 'container',
+						layout : {
+							type : 'hbox',
+							align : 'stretch',
+						},
+						items : [{
+							xtype : 'button',
+							hidden: true,
+							width : 180,
+							margin : '5 5 5 5',
+							reference : 'ctlAssinTrans',
+							text : ViewUtil.getLabel('SNLAssignTrans'),
+							listeners : {
+								click : 'openTransporterCdTypePopup'
+							}
+						}]
+					},
+					{
+						xtype : 'container',
+						layout : {
+							type : 'hbox',
+							align : 'stretch'
+						}, 
+						items : [{
+							xtype : 'combobox',
+							hidden: true,
+							reference : 'ctltypeCargo',
+							fieldLabel : ViewUtil.getLabel('SNLCargoType'),
+							bind : {
+								store : '{typeCargoCombo}'
+							},
+							queryMode : 'local',
+							displayField : 'scdNm',
+							valueField : 'scd',
+							editable : false,
+							labelAlign : 'right'
+
+						}]
+					},{
+						xtype : 'container',
+						layout : {
+							type : 'hbox',
+							align : 'stretch',
+						},
+						items : [{
+							xtype : 'button',
+							width : 150,
+							reference : 'refGeneralCargoLoadingList',
+        					text:  ViewUtil.getLabel('SNLGeneralCargoLoadingList'),
+							listeners : {
+								click : 'onGeneralCargoLoadingListUpload'
+							}
+                        }]
+					},{
+
+						xtype : 'container',
+						layout : {
+							type : 'hbox',
+							align : 'stretch',
+						},
+						items : [{
+							xtype : 'button',
+							width : 150,
+							margin : '0 0 0 5',
+							reference : 'refROROLoadingList',
+        					text:  ViewUtil.getLabel('SNLROROLoadingList'),
+							listeners : {
+								click : 'onROROLoadingListUpload'
+							}
+                        }]
+					
+					}]
+				}]
+			},
+			{
+				xtype : 'container',
+				flex : 1,
+				layout : {
+					type : 'vbox',
+					align : 'stretch'
+				},
+				items : [
+				{
+					xtype : 'tsb-datagrid',
+					reference : me.MAIN_GRID_REF_NAME,
+					flex : 1,
+					margin: '0 5 0 0',
+					plugins : [
+							'gridexporter',
+							'gridfilters',
+							'clipboard' ],
+					bind : {
+						store : '{' + me.MAIN_STORE_NAME + '}'
+					},
+					selModel : {
+						type : 'spreadsheet',
+						cellSelect : false
+					},
+					listeners : {
+						celldblclick : 'onDblClick',
+						pagingSearch : 'onSearch'
+					},
+					columns : {
+						defaults : {
+							style : 'text-align:center',
+							align : 'center'
+						},
+						items : GridUtil.getGridColumns('ShippingNote')
+					}
+				}]
+			},
+			{
+				xtype : 'container',
+				layout : {
+					type : 'hbox',
+					align : 'stretch'
+				},
+				items : [
+				{
+					xtype : 'container',
+					flex : 1,
+					layout : {
+						type : 'hbox',
+						align : 'stretch'
+					}
+				},
+				{
+					xtype : 'container',
+					flex : 1,
+					layout : {
+						type : 'hbox',
+						align : 'stretch'
+					}
+				}]
+			}],
+			dockedItems : [{
+				xtype : 'container',
+				style: { "background-color":"white" },
+				layout : {
+					type : 'hbox',
+					align : 'left'
+				},
+				defaults : {
+					margin : '1 1 1 1'
+				},
+				items : [{
+					xtype: 'tbfill'
+				},
+				{
+					xtype : 'button',
+					itemId : 'inquiryItemId',
+					reference : 'refBtnRetrieve',
+					text : ViewUtil.getLabel('search'),
+					iconCls : 'x-fa fa-search',
+					cls : 'search-button',
+					listeners : {
+						click : 'onSearch'
+					}
+				},
+				{
+					xtype : 'button',
+					itemId : 'createItemId',
+					reference : 'refBtnCreate',
+					text : ViewUtil.getLabel('add'),
+					ui : 'create-button',
+					iconCls : 'x-fa fa-plus',
+					listeners : {
+						click : 'onCreate'
+					}
+				},
+				{
+					xtype : 'button',
+					itemId : 'deleteItemId',
+					reference : 'refBtnDelete',
+					text : ViewUtil.getLabel('remove'),
+					ui : 'delete-button',
+					iconCls : 'x-fa fa-minus',
+					listeners : {
+						click : 'onDelete'
+					}
+				},
+				{
+					xtype : 'button',
+					itemId : 'downloadItemId',
+					reference : 'refBtnDownload',
+					text : ViewUtil.getLabel('export'),
+					cls : 'excel-button',
+					iconCls : 'fa fa-file-excel-o',
+					hidden : true
+				}
+				,{
+					xtype: 'button',
+					itemId: 'exportToExcelButton',
+					text: ViewUtil.getLabel('exportToExcel'),
+					iconCls: 'excel-button-image', 
+					cls: 'excel-button'
+				},
+				{
+					xtype: 'button',
+					itemId: 'exportToPdfButton',
+					text: ViewUtil.getLabel('exportToPdf'),
+					iconCls: 'x-fa fa-file-pdf-o',
+					cls: 'excel-button'
+				},
+				{
+					xtype: 'button',
+					cls: 'column-setting-button',
+					iconCls: 'x-fa fa-columns',
+					text: ViewUtil.getLabel('column'),
+					listeners: {
+						click: 'onColumnSettingPopup',
+						args: [me.MAIN_GRID_REF_NAME]
+					}
+	        	
+				}]
+			},
+			{//Search Condition and VP infor:
+				xtype: 'toolbar',
+				enableOverflow: true,
+				padding : '0 0 0 0',
+				margin: '0 -3 0 0',
+				defaults: {
+					labelAlign: 'right',
+				},
+				items:[
+					{
+						xtype: 'fieldset',
+						autoScroll: true,
+						collapsible: true,
+						flex: 1,
+						padding: '0 10 10 10',
+						layout: {
+							type: 'hbox',
+							align: 'stretch'
+						},
+						items: [
+							{// Left: Search Condition
+								xtype: 'searchfieldset',
+								flex: 1,
+								padding: '0 10 10 10',
+								margin: '0 5 0 0',
+								title: ViewUtil.getLabel('search'),
+								defaults: {
+									labelAlign: 'right',
+									layout: {
+										type: 'vbox',
+										align: 'stretch'
+									},
+									defaults: {
+										labelAlign: 'right',
+										flex: 1,
+										labelWidth: 100
+									}
+								},
+								layout: {
+									type: 'hbox',
+									align: 'stretch'
+								},
+								items: [
+									//Vessel/MF Doc ID/D Mode/ ETA from
+									{
+										xtype: 'container',
+										flex: 1,
+										defaults: {
+											margin: '0 0 5 0',
+											labelWidth: 100,
+											labelAlign: 'right'
+										},
+										items: [
+											{
+												xtype: 'vesselcalllistfield',
+												reference: 'ctlVslCallId',
+												fieldLabel: ViewUtil.getLabel('vslcallid'),
+												bind: {
+													value: '{theSearch.vslCallId}'
+												}
+											},
+											{
+												xtype: 'textfield',
+												fieldLabel: ViewUtil.getLabel('SNLBookingNo'),
+												reference: 'ctlSNBookingNo',
+												bind: {
+													value: '{theSearch.mfDocId}'
+												},
+												listeners: {
+													change: 'onUpperCase'
+												}
+											},
+											{
+												xtype: 'combobox',
+												reference: 'ctlDeliveryMode',
+												fieldLabel: ViewUtil.getLabel('SNLDeliveryMode'),
+												bind: {
+													store: '{' + me.DELIVERY_MODE_STORE + '}',
+													value: '{theSearch.delvTpCd}'
+												},
+												queryMode: 'local',
+												displayField: 'scdNm',
+												valueField: 'scd',
+												editable: false
+											},
+											{
+												xtype: 'datefield',
+												reference: 'ctlETAFromDt',
+												margin: '0 0 0 0',
+												fieldLabel: ViewUtil.getLabel('SNLETA'),
+												format: MOST.config.Locale.getShortDate(),
+												listeners: {
+													blur: 'onDateChange'
+												},
+												bind: {
+													value: '{theSearch.arrvDtFm}'
+												},
+											}
+										]
+									},
+									//Vsl name/SN/ Lot No/ ETA To
+									{
+										xtype: 'container',
+										flex: 1,
+										defaults: {
+											margin: '0 0 5 0',
+											labelWidth: 100,
+											labelAlign: 'right'
+										},
+										items: [
+											{
+												xtype: 'textfield',
+												fieldLabel: ViewUtil.getLabel('vslNm'),
+												reference: 'ctlSNVslNm',
+												bind: {
+													value: '{theSearch.vslNm}'
+												},
+												listeners: {
+													change: 'onUpperCase'
+												}
+											},
+											{
+												xtype: 'textfield',
+												fieldLabel: ViewUtil.getLabel('SNLSNNo'),
+												reference: 'ctlSNNo',
+												bind: {
+													value: '{theSearch.shipgNoteNo}'
+												},
+												listeners: {
+													change: 'onUpperCase'
+												}
+											},
+											{
+												xtype: 'textfield',
+												fieldLabel: ViewUtil.getLabel('lotNo'),
+												reference: 'ctlLotNo',
+												bind: {
+													value: '{theSearch.lotNo}'
+												},
+												listeners: {
+													change: 'onUpperCase'
+												}
+											},
+											{
+												xtype: 'datefield',
+												reference: 'ctlETAToDt',
+												margin: '0 0 0 0',
+												fieldLabel: ViewUtil.getLabel('to'),
+												format: MOST.config.Locale.getShortDate(),
+												listeners: {
+													blur: 'onDateChange'
+												},
+												bind: {
+													value: '{theSearch.arrvDtTo}'
+												}
+											}
+										]
+									}
+								]
+							},
+							{//Right: VesselInfo:
+								xtype: 'fieldset',
+								flex: 1,
+								margin: '0 0 0 5',
+								padding: '0 10 10 10',
+								title: ViewUtil.getLabel('vslInfo'),
+								defaults: {
+									labelAlign: 'right',
+									layout: {
+										type: 'vbox',
+										align: 'stretch'
+									},
+									defaults: {
+										labelAlign: 'right',
+										flex: 1,
+										labelWidth: 100
+									}
+								},
+								layout: {
+									type: 'hbox',
+									align: 'stretch'
+								},
+								items: [
+									{
+										xtype: 'container',
+										flex: 1,
+										defaults: {
+											margin: '0 0 5 0',
+											labelWidth: 100,
+											labelAlign: 'right'
+										},
+										items: [
+											{
+												xtype: 'textfield',
+												fieldLabel: ViewUtil.getLabel('vesselCode'),
+												bind: '{theVslInfo.vslCd}',
+												readOnly: true
+											},
+											{
+												xtype: 'textfield',
+												fieldLabel: ViewUtil.getLabel('vesselName'),
+												bind: '{theVslInfo.vslNm}',
+												readOnly: true
+											},
+											{
+												xtype: 'textfield',
+												fieldLabel: ViewUtil.getLabel('voyage'),
+												bind: '{theVslInfo.voyage}',
+												readOnly: true
+											},
+											{
+												xtype: 'textfield',
+												margin: '0 0 0 0',
+												fieldLabel: ViewUtil.getLabel('berthingLoc'),
+												bind: '{theVslInfo.berthLoc}',
+												readOnly: true
+											},
+										]
+									},
+									{
+										xtype: 'container',
+										flex: 1,
+										defaults: {
+											margin: '0 0 5 0',
+											labelWidth: 100,
+											labelAlign: 'right'
+										},
+										items: [
+											{
+												xtype: 'datefield',
+												fieldLabel: ViewUtil.getLabel('SNLETA'),
+												bind: '{theVslInfo.eta}',
+												readOnly: true,
+												format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds()
+											},
+											{
+												xtype: 'datefield',
+												fieldLabel: ViewUtil.getLabel('etd'),
+												bind: '{theVslInfo.etd}',
+												readOnly: true,
+												format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds()
+											},
+											{
+												xtype: 'datefield',
+												fieldLabel: ViewUtil.getLabel('atb'),
+												bind: '{theVslInfo.atb}',
+												readOnly: true,
+												format: MOST.config.Locale.getDefaultDateFormatWithNoSeconds()
+											},
+											{
+												xtype: 'textfield',
+												margin: '0 0 0 0',
+												fieldLabel: ViewUtil.getLabel('aSA'),
+												bind: '{theVslInfo.arrvSaId}',
+												readOnly: true
+											},
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}]
+		});
+		
+		me.callParent();
+	}
+});

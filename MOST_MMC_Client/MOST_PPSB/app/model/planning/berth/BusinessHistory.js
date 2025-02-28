@@ -1,0 +1,44 @@
+Ext.define('MOST.model.planning.berth.BusinessHistory', {
+	extend: 'MOST.model.foundation.dataitem.DataItem',
+	
+	fields: [{
+		name: 'billTp',
+		type: 'string'
+	}, {
+		name: 'jpvc',
+		type: 'string'
+	}, {
+		name: 'vslNm',
+		type: 'string'
+	}, {
+		name: 'atu',
+		type: 'string'
+	}, {
+		name: 'atc',
+		type: 'string'
+	}, {
+		name: 'atb',
+		type: 'string'
+	}, {
+		name: 'atw',
+		type: 'string'
+	}, {
+		name: 'handlingType',
+		type: 'string'
+	}, {
+		name: 'cargoType',
+		type: 'string'
+	}, {
+		name: 'amount',
+		type: 'string'
+	}, {
+		name: 'status',
+		type: 'string'
+	}, {
+		name: 'balance',
+		type: 'string'
+	}, {
+		name: 'paymentDt',
+		type: 'string'
+	}]
+});

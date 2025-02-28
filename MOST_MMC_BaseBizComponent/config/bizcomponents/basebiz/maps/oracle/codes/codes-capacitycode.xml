@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="capacityCode">
+
+	<resultMap id="CodeMasterList" type="CodeMasterItem">
+        <result property = "mcd"	 			column = "M_CD"/>
+        <result property = "scd"	 			column = "S_CD"/>
+        <result property = "scdNm"		 		column = "S_CD_NM"/>    
+        <result property = "scdLgv"		 		column = "S_CD_LGV"/> 
+        <result property = "scdVal"		 		column = "S_CD_VAL"/>
+        <result property = "scdDesc"		 	column = "S_CD_DESC"/>
+        <result property = "cgTp"		 		column = "CG_TP"/>
+    </resultMap>
+    
+	<select id="selectCapacityCodeList" parameterType="capacityCodeParm" resultType="CapacityCodeItem">
+	 	<if test="pageNo != 0"> 
+             SELECT /*capacityCode.selectCapacityCodeList*/
+             	* FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+				<include refid="getCapacityCode"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+			AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	 
+	<select id="selectCapacityCodeListCount" parameterType="capacityCodeParm" resultType="java.lang.String">
+		SELECT COUNT(*)
+			FROM (<include refid="getCapacityCode"/>)
+	 </select>
+	 
+	<sql id="getCapacityCode" >
+		SELECT 
+			CAPA_CD AS capaCd,
+			CAPA_DESCR AS capaDescr,
+			EQ_TP_CD AS eqTpCd,
+			(SELECT S_CD_NM FROM TMT_CD_MSTD WHERE L_CD = 'MT' AND M_CD = 'EQFCTPCD' AND S_CD = a.EQ_TP_CD) AS eqTpNm,
+			NVL(CAPA, 0) AS capaQty,
+			STAFF_CD AS userId,
+			<!--  TO_CHAR(UPD_DT,'DD/MM/YYYY') AS updateTime,-->
+			UPDATE_TIME AS updTime,
+			VERSION AS version
+		FROM TMT_EQ_CAPA a
+		WHERE 1=1
+		<if test="eqTpCd != null and eqTpCd != ''">
+  			AND EQ_TP_CD = #{eqTpCd}
+		</if>
+		<if test="capaCd != null and capaCd != ''">
+			AND CAPA_CD = #{capaCd}
+		</if>
+	</sql>
+	
+	<select id="getCodeMasterList" parameterType="capacityCodeParm" resultMap="CodeMasterList">
+		SELECT /*capacityCode.getCodeMasterList*/
+			M_CD,
+		 	S_CD, 
+			S_CD_NM,
+			S_CD_DESC
+		FROM TMT_CD_MSTD
+		WHERE 1 = 1 
+    	<if test="lcd != null and lcd != ''">
+      		AND L_CD = #{lcd}
+    	</if>
+    	<if test="mcd != null and mcd != ''">
+			AND M_CD = #{mcd}
+    	</if>
+    	<if test="scdUse != null and scdUse != ''">
+			AND S_CD_USE = #{scdUse}
+    	</if>
+    	AND S_CD NOT IN ('SC1','SC2','SC3','SR1','SR2','SR3')
+        ORDER BY S_CD_NM ASC
+	</select>
+	
+	<insert id="insertCapacityCode" parameterType="CapacityCodeItem">
+	INSERT /*capacityCode.insertCapacityCode*/
+	INTO TMT_EQ_CAPA (
+			CAPA_CD,
+			CAPA_DESCR,
+			EQ_TP_CD,
+			VLD_YN,
+			CAPA,
+			STAFF_CD,
+			UPDATE_TIME,
+			VERSION
+		) VALUES (
+			#{capaCd},
+			#{capaDescr},
+			#{eqTpCd},
+			'Y',
+			#{capaQty},
+			#{userId},
+			systimestamp,
+			#{newVersion}
+		)
+	</insert>		
+			
+	<update id="updateCapacityCode" parameterType="CapacityCodeItem">
+		UPDATE /*capacityCode.updateCapacityCode*/
+		TMT_EQ_CAPA SET
+			CAPA_DESCR = #{capaDescr},
+			EQ_TP_CD = #{eqTpCd},
+			CAPA = #{capaQty},
+			STAFF_CD = #{userId},
+			UPDATE_TIME = systimestamp,
+			VERSION = #{newVersion}
+		WHERE CAPA_CD = #{capaCd}
+		<if test="checkVersionFlag == true">
+			AND VERSION = #{version}
+		</if>
+	</update>
+	
+	<delete id="deleteCapacityCode" parameterType="CapacityCodeItem">
+	DELETE /*capacityCode.deleteCapacityCode*/ 
+	FROM TMT_EQ_CAPA
+	WHERE CAPA_CD = #{capaCd}
+	</delete>
+	
+</mapper>

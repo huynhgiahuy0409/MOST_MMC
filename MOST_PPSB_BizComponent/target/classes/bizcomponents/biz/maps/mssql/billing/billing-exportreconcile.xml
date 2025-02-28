@@ -1,0 +1,455 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="exportReconcile">
+	
+	<!--  ################ Query Statement Define ######################################### -->
+	<select id="selectExportReconcileCount"  parameterType="exportReconcileParm" resultType="java.lang.String">
+		<include refid="getExportReconcile"/>
+		SELECT /*exportReconcile.selectExportReconcileCount*/
+			COUNT(*)
+        FROM
+            getExportReconcile
+	</select>
+	
+	<select id="selectExportReconcile"  parameterType="exportReconcileParm" resultType="exportReconcileItem">
+		<include refid="getExportReconcile"/>
+		<choose>
+			<when test="pageNo != 0"> 
+	        	SELECT /*exportReconcile.selectExportReconcile*/
+	        		*
+	        	FROM (
+	        		SELECT /*exportReconcile.selectExportReconcile*/
+						*,
+						ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) row_num
+	        		FROM 
+	        			getExportReconcile
+				) inner_querry
+				WHERE
+					inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+					AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+			</when>
+				
+			<otherwise> 
+				SELECT /*exportReconcile.selectExportReconcile*/
+					*
+				FROM
+					getExportReconcile
+			</otherwise>
+		</choose>
+	</select>
+	<sql id="getExportReconcile">
+		<!-- EXPORT RECONCILE -->
+		WITH
+		    LOADED AS (
+		    	SELECT /*exportReconcile.getExportReconcile*/
+		    		J.VSL_CALL_ID,
+		            S.SHIPG_NOTE_NO,
+		            S.CG_TP_CD,
+		            S.CATG_CD,
+		            J.DELV_TP_CD,
+		            ISNULL(J.TSPT_TP_CD, 'LR') 							AS TSPT_TP_CD,
+		            S.CMDT_CD,
+		            SUM(J.CG_WGT) 										AS CG_WGT,
+		            SUM(J.CG_VOL) 										AS CG_VOL,
+		            SUM(J.PKG_QTY) 										AS PKG_QTY,
+		            ISNULL(J.REPKG_TYPE_CD, S.PKG_TP_CD) 				AS PKG_TP_CD
+		    	FROM
+		    		TMT_JOB J
+		            	INNER JOIN TMT_GR G
+		            		ON J.VSL_CALL_ID 							= G.VSL_CALL_ID
+		            		AND J.CG_NO 								= G.GR_NO
+		            	INNER JOIN TMT_SHIPG_NOTE S
+		            		ON J.VSL_CALL_ID 							= S.VSL_CALL_ID
+		            		AND G.SHIPG_NOTE_NO 						= S.SHIPG_NOTE_NO
+				WHERE
+					J.JOB_PURP_CD IN ('GV', 'AV', 'BV')
+					AND J.JOB_TP_CD 									= 'LD'
+					AND J.VSL_CALL_ID 									= #{vslCallId}
+				GROUP BY
+					J.VSL_CALL_ID,
+					S.SHIPG_NOTE_NO,
+					S.CG_TP_CD,
+					S.CATG_CD,
+					J.DELV_TP_CD,
+					J.TSPT_TP_CD,
+					S.CMDT_CD,
+					J.REPKG_TYPE_CD,
+					S.PKG_TP_CD
+				),
+				
+	getExportReconcile AS (
+		SELECT /*exportReconcile.getExportReconcile*/
+			LD.VSL_CALL_ID 												AS VSLCALLID,
+			VP.VSL_NM 													AS VSLNM,
+			(CASE
+				WHEN (VS.ATB IS NULL OR VS.ATB = '') THEN ''
+				ELSE FORMAT(VS.ATB, 'dd/MM/yyyy')
+			END)														AS ATB,
+			(CASE
+				WHEN (VS.ATU IS NULL OR VS.ATU = '') THEN ''
+				ELSE FORMAT(VS.ATU, 'dd/MM/yyyy')
+			END) 														AS ATU,
+			SN.CG_WGT 													AS DOCWGT,
+			SN.CG_VOL 													AS DOCMSRMT,
+			SN.PKG_QTY 													AS DOCPKGQTY,
+			ISNULL(BO.BILL_WGT_V, LD.CG_WGT) 							AS WGT,
+			ISNULL(BO.BILL_MSRMT_V, LD.CG_VOL) 							AS MSRMT,
+			ISNULL(BO.BILL_PKG_QTY_V, LD.PKG_QTY) 						AS PKGQTY,
+			ISNULL(BO.BILL_WGT, LD.CG_WGT) 								AS BILLWGT,
+			ISNULL(BO.BILL_MSRMT, LD.CG_VOL) 							AS BILLMSRMT,
+			ISNULL(BO.BILL_PKG_QTY, LD.PKG_QTY) 						AS BILLPKGQTY,
+			ISNULL(BO.DELV_TP_CD, LD.DELV_TP_CD) 						AS DELVTPCD,
+			ISNULL(BO.SEQ, 0) 											AS SEQ,
+			LD.TSPT_TP_CD 												AS TSPTTPCD,
+			LD.TSPT_TP_CD 												AS OLDTSPTTPCD,
+			LD.CATG_CD 													AS CATGCD,
+			SN.FWRD 													AS FWRAGNT,
+			SN.CNSNE 													AS CNSNE,
+			LD.CG_TP_CD 												AS CGTPCD,
+			LD.CMDT_CD 													AS CMDTCD,
+			(SELECT
+				CMDT_DESC
+			FROM
+				TMT_CMDT
+			WHERE
+				CMDT_CD 												= LD.CMDT_CD
+			) 															AS CMDTDESCR,
+			ISNULL(BO.PKG_TP_CD, LD.PKG_TP_CD) 							AS PKGTPCD,
+			SN.SHIPG_NOTE_NO 											AS SNNO,
+			SN.POD  													AS POD,
+			SN.SHPR														AS SHPR
+		FROM
+			LOADED LD
+				INNER JOIN TMT_SHIPG_NOTE SN
+					ON LD.VSL_CALL_ID 									= SN.VSL_CALL_ID
+					AND LD.SHIPG_NOTE_NO 								= SN.SHIPG_NOTE_NO
+				LEFT OUTER JOIN TMT_B_OPE_AMNT BO 
+					ON LD.VSL_CALL_ID 									= BO.VSL_CALL_ID
+					AND LD.SHIPG_NOTE_NO 								= BO.CG_NO
+					AND LD.DELV_TP_CD 									= BO.DELV_TP_CD
+					AND LD.TSPT_TP_CD 									= BO.TSPT_TP_CD
+					AND LD.CMDT_CD 										= BO.CMDT_CD
+					AND LD.PKG_TP_CD 									= BO.PKG_TP_CD
+					AND LD.CATG_CD 										= BO.CATG_CD
+		        LEFT OUTER JOIN TMT_VSL_SCH VS 
+		        	ON SN.VSL_CALL_ID 									= VS.VSL_CALL_ID
+		        LEFT OUTER JOIN TMT_VSL_PART VP
+		            ON SN.VSL_CD 										= VP.VSL_CD
+		WHERE
+			LD.VSL_CALL_ID 												= #{vslCallId}
+		<if test="fromAtb != null and fromAtb != ''">
+			AND VS.ATB  <![CDATA[ >= ]]> CONVERT(DATETIME, #{fromAtb} + ' 00:00:00', 103)
+		</if>
+		<if test="toAtb != null and toAtb != ''">
+			AND	VS.ATB <![CDATA[ <= ]]> CONVERT(DATETIME, #{toAtb} + ' 23:59:59', 103)
+		</if>
+		<if test="status != null and status != ''">
+			AND	R.EX_RECCL_CD 											= #{status}
+		</if>
+	)
+	</sql>
+
+	<select id="selectExportReconcileStatus"  parameterType="exportReconcileParm" resultType="exportReconcileItem">
+		SELECT /*exportReconcile.selectExportReconcileStatus*/
+			VSL_CALL_ID 												AS VSLCALLID,
+			EX_RECCL_CD 												AS STATUS,
+			STAFF_CD 													AS USERID,
+			UPDATE_TIME 												AS UPDATETIME,
+			VERSION 													AS VERSION,
+			(CASE
+				WHEN ((SELECT DISTINCT TOP (1)
+						VSL_CALL_ID
+					FROM
+						TMT_B_IV_DATA
+					WHERE
+						SCR_ID 											= 'OPE'
+					<if test="vslCallId != null and vslCallId != ''">
+						AND	VSL_CALL_ID 								= #{vslCallId}
+					</if>) IS NULL
+				OR
+					(SELECT DISTINCT TOP (1)
+						VSL_CALL_ID
+					FROM
+						TMT_B_IV_DATA
+					WHERE
+						SCR_ID 											= 'OPE'
+					<if test="vslCallId != null and vslCallId != ''">
+						AND	VSL_CALL_ID 								= #{vslCallId}
+					</if>) = '')
+					THEN 'Y'
+				WHEN (
+					SELECT DISTINCT TOP (1)
+						VSL_CALL_ID
+					FROM
+					    TMT_B_IV_DATA
+					WHERE
+					    SCR_ID 											= 'OPE'
+					<if test="vslCallId != null and vslCallId != ''">
+						AND	VSL_CALL_ID 								= #{vslCallId}
+					</if>) IS NOT NULL
+				    THEN 'Y'
+			END) 														AS EDITABLE
+		FROM
+			TMT_B_RECCL
+		WHERE
+			1 = 1
+		<if test="vslCallId != null and vslCallId != ''">
+			AND	VSL_CALL_ID 											= #{vslCallId}
+		</if>
+	</select>
+	
+	<select id="isDataCollected"  parameterType="exportReconcileParm" resultType="exportReconcileItem">
+		SELECT TOP (1) /*exportReconcile.isDataCollected*/
+		    COUNT(1)
+		FROM
+			TMT_INV_SUM
+		WHERE
+			VSL_CALL_ID 												= #{vslCallId}
+	</select>
+	
+	<select id="selectSNList"  parameterType="exportReconcileParm" resultType="exportReconcileItem">
+		SELECT /*exportReconcile.selectSNList*/
+			B.SHIPG_NOTE_NO 											AS SNNO
+		FROM
+			TMT_CG_MST B
+				LEFT OUTER JOIN TMT_GR tempC
+					ON B.VSL_CALL_ID 									= tempC.VSL_CALL_ID
+					AND B.CG_NO 										= tempC.GR_NO,
+			TMT_SHIPG_NOTE A
+		    	RIGHT OUTER JOIN TMT_GR tempC2
+		    		ON A.VSL_CALL_ID 									= tempC2.VSL_CALL_ID
+					AND A.SHIPG_NOTE_NO 								= tempC2.SHIPG_NOTE_NO,
+			TMT_GR C
+    	WHERE
+    		B.OPE_CLASS_CD = 'E'
+			AND B.VSL_CALL_ID = #{vslCallId}
+	  	GROUP BY
+	  		B.SHIPG_NOTE_NO
+	</select>
+	
+	<insert id="insertExportReconcileStatus" parameterType="exportReconcileItem">
+		INSERT /*exportReconcile.insertExportReconcileStatus*/
+		INTO
+			TMT_B_RECCL(
+				VSL_CALL_ID,
+				EX_RECCL_CD,
+				EX_RECCL_DT,
+				STAFF_CD,
+				UPDATE_TIME,
+				VERSION
+			) VALUES (
+				#{vslCallId},
+				#{status},
+				SYSDATETIME(),
+				#{userId},
+				SYSDATETIME(),
+				#{newVersion}
+			)
+	</insert>
+	
+	<insert id="insertExportReconciles" parameterType="exportReconcileItem">
+		INSERT /*exportReconcile.insertExportReconciles*/
+		INTO
+			TMT_B_OPE_AMNT (
+				VSL_CALL_ID,
+				SEQ,
+				CG_NO,
+				UPDATE_TIME,
+				STAFF_CD,
+				PKG_TP_CD,
+				TSPT_TP_CD,
+				CG_TP_CD,
+				CMDT_CD,
+				DELV_TP_CD,
+				CATG_CD,
+				BILL_WGT,
+				BILL_MSRMT,
+				BILL_PKG_QTY,
+				BILL_WGT_V,
+				BILL_MSRMT_V,
+				BILL_PKG_QTY_V,
+				VERSION,
+				RORO_JOB_NO
+			) VALUES (
+				#{vslCallId},
+				(SELECT
+					ISNULL(MAX(SEQ), 0) + 1
+				FROM
+					TMT_B_OPE_AMNT
+				WHERE
+					VSL_CALL_ID = #{vslCallId}
+				),
+				#{snNo},
+				SYSDATETIME(),
+				#{userId},
+				#{pkgTpCd},
+				#{tsptTpCd},
+				#{cgTpCd},
+				#{cmdtCd},
+				#{delvTpCd},
+				#{catgCd},
+				TRY_CONVERT(NUMERIC(15,3), #{billWgt}),
+				TRY_CONVERT(NUMERIC(15,3), #{billMsrmt}),
+				TRY_CONVERT(NUMERIC(15,3), #{billPkgQty}),
+				TRY_CONVERT(NUMERIC(15,3), #{wgt}),
+				TRY_CONVERT(NUMERIC(15,3), #{msrmt}),
+				TRY_CONVERT(NUMERIC(15,3), #{pkgQty}),
+				#{newVersion},
+				#{roroJobNo}
+			)
+	</insert>
+	
+	<!--  ################ Update Statement Define ######################################### -->
+	<update id="updateExportStatus" parameterType="exportReconcileItem">
+		UPDATE /*exportReconcile.updateExportStatus*/
+			TMT_B_RECCL
+		SET
+			EX_RECCL_CD = (
+				CASE (
+					CASE
+						WHEN (
+							SELECT DISTINCT TOP (1)
+								VSL_CALL_ID
+							FROM
+								TMT_B_IV_DATA
+							WHERE
+								VSL_CALL_ID = #{vslCallId}
+								AND SCR_ID = 'OPE'
+								AND STAT_CD NOT IN ('WV','VF','GT','IV','PD')
+						) IS NULL THEN 'N'
+						ELSE 'Y'
+					END)
+					WHEN 'Y' THEN 'Y'
+					WHEN 'N' THEN #{status}
+				END),     <!-- if #{vslCallId} value was existed in TMT_B_IV_DATA, so EX_RECCL_CD = 'Y'-->
+			EX_RECCL_DT 				= SYSDATETIME(),
+            UPDATE_TIME 				= SYSDATETIME(),
+            STAFF_CD 					= #{userId},
+            VERSION 					= #{newVersion}
+        WHERE
+            VSL_CALL_ID 				= #{vslCallId}
+	</update>
+	
+	<update id="updateExportReconciles"  parameterType="exportReconcileItem">
+		UPDATE /*exportReconcile.updateExportReconciles*/
+			TMT_B_OPE_AMNT
+		SET
+			UPDATE_TIME 				= SYSDATETIME(),
+			STAFF_CD 					= #{userId},
+			PKG_TP_CD 					= #{pkgTpCd},
+			TSPT_TP_CD 					= #{tsptTpCd},
+			CG_TP_CD 					= #{cgTpCd},
+			CMDT_CD 					= #{cmdtCd},
+			BILL_WGT 					= #{billWgt},
+			BILL_MSRMT 					= #{billMsrmt},
+			BILL_PKG_QTY 				= #{billPkgQty}
+		WHERE
+			VSL_CALL_ID 				= #{vslCallId}
+			AND CG_NO 					= #{snNo}
+			AND SEQ 					= #{seq}
+			AND DELV_TP_CD 				= #{delvTpCd}
+			AND CATG_CD 				= #{catgCd}
+			AND TSPT_TP_CD 				= #{oldTsptTpCd}
+	</update>
+		
+	<update id="updateExportReconcileForPackageTypeCd"  parameterType="exportReconcileItem">
+		UPDATE /*exportReconcile.updateExportReconcileForPackageTypeCd*/
+			TMT_B_OPE_AMNT
+		SET
+			STAFF_CD 					= #{userId},
+			UPDATE_TIME 				= SYSDATETIME(),
+			PKG_TP_CD 					= #{pkgTpCd},
+			CG_TP_CD 					= #{cgTpCd},
+			CMDT_CD  					= #{cmdtCd}
+		WHERE
+		    VSL_CALL_ID 				= #{vslCallId}
+			AND SHIPG_NOTE_NO 			= #{snNo}
+			AND	CATG_CD 				= #{catgCd}
+			AND	SEQ 					= #{seq}
+	</update>
+	
+	<!-- Added by Joseph for iss 46027, after update Transport tyoe in Reconcile screen, data in Controller will upate Transport type also -->
+	<update id="updateExportReconcileForTsptTpCd"  parameterType="exportReconcileItem">
+		UPDATE /*exportReconcile.updateExportReconcileForTsptTpCd*/
+			TMT_B_OPE_AMNT
+		SET
+			TSPT_TP_CD 					= #{tsptTpCd},
+			STAFF_CD 					= #{userId},
+	   		UPDATE_TIME 				= SYSDATETIME()
+	 	WHERE
+	 		VSL_CALL_ID 				= #{vslCallId}
+			AND CG_NO 					= #{snNo}
+			AND SEQ 					= #{seq}
+			AND DELV_TP_CD 				= #{delvTpCd}
+			AND CATG_CD 				= #{catgCd}
+   		<!-- FIX ISSUE RECONCILE TSPT_TP_CD -->
+  			AND TSPT_TP_CD 				= #{oldTsptTpCd}
+	</update>
+	
+	<update id="updateControllerTmtJob"  parameterType="exportReconcileItem">
+        UPDATE /*exportReconcile.updateControllerTmtJob*/
+        	TMT_JOB
+        SET
+        	TSPT_TP_CD 					= #{tsptTpCd}
+        WHERE
+        	VSL_CALL_ID 				= #{vslCallId}
+        	AND CG_NO IN (
+        		SELECT
+        		    CG_NO
+                FROM
+                    TMT_CG_MST
+                WHERE
+                    VSL_CALL_ID 		= #{vslCallId}
+                	AND SHIPG_NOTE_NO 	= #{snNo}
+            	)
+        	AND DELV_TP_CD 				= #{delvTpCd}
+	</update>
+
+	<update id="updateControllerTmtCgArrvDelv"  parameterType="exportReconcileItem">
+    	UPDATE /*exportReconcile.updateControllerTmtCgArrvDelv*/
+        	TMT_CG_ARRV_DELV
+        SET
+            TSPT_TP_CD 					= #{tsptTpCd}
+        WHERE
+        	VSL_CALL_ID 				= #{vslCallId}
+			AND CG_NO 					= #{snNo}
+			AND TSPT_TP_CD 				= #{oldTsptTpCd}
+	</update>
+	
+	<update id="clearExportReconcile"    parameterType="exportReconcileItem">
+		UPDATE /*exportReconcile.clearExportReconcile*/
+			TMT_B_OPE_AMNT
+		SET
+		<if test='delvTpCd != "D"'>
+			BILL_WGT 					= NULL,
+			BILL_MSRMT 					= NULL,
+			BILL_PKG_QTY 				= NULL
+		</if>
+		<if test='delvTpCd == "D"'>
+			BILL_WGT_V 					= NULL,
+			BILL_MSRMT_V 				= NULL,
+			BILL_PKG_QTY_V 				= NULL
+		</if>
+		WHERE
+			VSL_CALL_ID 				= #{vslCallId}
+			AND SHIPG_NOTE_NO 			= #{snNo}
+			AND CATG_CD 				= #{catgCd}
+	</update>
+	
+	<delete id="deleteExportReconciles"  parameterType="exportReconcileItem">
+		DELETE /*exportReconcile.deleteExportReconciles*/
+		FROM
+			TMT_B_OPE_AMNT
+		WHERE
+		    VSL_CALL_ID 				= #{vslCallId}
+			AND CG_NO 					= #{snNo}
+			AND DELV_TP_CD 				= #{delvTpCd}
+			AND TSPT_TP_CD 				= #{oldTsptTpCd}
+			AND CATG_CD 				= #{catgCd}
+			AND SEQ 					= #{seq}
+			AND CATG_CD 				= #{catgCd}
+	</delete>
+</mapper>

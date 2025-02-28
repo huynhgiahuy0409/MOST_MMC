@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ShipInPort">
+	
+	
+	<select id="selectShipInPortList" parameterType="ShipInPortParm" resultType="shipinportitem">
+		<if test="pageNo != 0"> 
+		SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+		<include refid="getShipInPortList"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>		
+	</select>
+	
+	<select id="selectShipInPortListCount" parameterType="ShipInPortParm" resultType="java.lang.String">
+		SELECT COUNT(*)
+			FROM (<include refid="getShipInPortList"/>)
+	</select>
+	
+	<sql id="getShipInPortList">
+		SELECT 
+			    C.BERTH_LOC AS BERTHLOC,
+			    A.BERTH_NM AS BERTHNM,
+			    A.BERTH_NM AS BERTHNM,
+			    FORMAT(C.ATA, 'dd/MM/yyyy HH:mm') AS ATA,
+			    FORMAT(C.ATB, 'dd/MM/yyyy HH:mm') AS ATB,
+			    FORMAT(C.ATU, 'dd/MM/yyyy HH:mm') AS ATU,
+			    FORMAT(C.ATW, 'dd/MM/yyyy HH:mm') AS ATW,
+			    FORMAT(C.ETA, 'dd/MM/yyyy HH:mm') AS ETA,
+			    FORMAT(C.ETW, 'dd/MM/yyyy HH:mm') AS ETW,
+			    FORMAT(C.ETC, 'dd/MM/yyyy HH:mm') AS ETC,
+			    FORMAT(C.ETD, 'dd/MM/yyyy HH:mm') AS ETD,
+			    FORMAT(C.ETU, 'dd/MM/yyyy HH:mm') AS ETU,
+			    D.VSL_NM AS VSLNM,
+			    D.LOA AS LOA,
+			    D.GRT AS GRT,
+			    C.PLAN_RMK AS REMARK,
+			    C.VSL_CALL_ID AS JPVC,
+			    C.ARRV_SA_ID as SA,
+			    C.DRF_ARRV AS arrvDisplmt,
+			    C.DRF_DEPTR AS deptDisplmt,
+			    FORMAT(C.ATC, 'dd/MM/yyyy HH:mm') AS ATC,
+			    D.DWT AS DWT,
+			    FORMAT(C.PILOT_ONBOARD, 'dd/MM/yyyy HH:mm') AS POB
+			FROM 
+			    TMT_BERTH_LOC A
+			LEFT JOIN 
+			    TMT_VSL_SCH C ON A.BERTH_CD = C.BERTH_LOC
+			LEFT JOIN 
+			    TMT_VSL_PART D ON C.VSL_CD = D.VSL_CD
+			WHERE 
+			    A.LOC_CD = 'BBT' 
+			    AND A.BERTH_CD = C.BERTH_LOC
+
+		<if test="dateFm != null and dateFm != ''">
+		 	AND
+		    	C.ATB <![CDATA[>=]]> CONVERT(DATETIME, #{dateFm} + ' 00:00:00', 120)
+			</if>
+			<if test="dateTo != null and dateTo != ''">
+		 	AND
+		    	C.ATB <![CDATA[<=]]> CONVERT(DATETIME, #{dateTo} + ' 23:59:59', 120)
+			</if>
+			<if test="berthLoc != null and berthLoc != ''">
+		 	AND
+				C.BERTH_LOC = #{berthLoc}
+		</if>	
+		ORDER BY A.BERTH_NM, C.ATB
+	</sql>
+	
+	<select id="selectNextVesselList" parameterType="ShipInPortParm" resultType="ShipInPortItem">
+		SELECT 
+		    A.VSL_CALL_ID AS JPVC,
+		    B.VSL_NM AS VSLNM, 
+		    A.ETA AS ETA
+		FROM 
+		    TMT_VSL_SCH A
+		LEFT JOIN 
+		    TMT_VSL_PART B 
+		    ON A.VSL_CD = B.VSL_CD
+		WHERE 
+		    A.ETA BETWEEN CONVERT(DATETIME, #{dateFm}, 103) AND CONVERT(DATETIME, #{dateTo}, 103)
+		    AND A.VSL_CALL_ID != #{vslCallId}
+		    AND A.BERTH_LOC = #{berthLoc}
+		ORDER BY 
+		    A.ETA;
+
+	</select>
+	
+	<select id="selectTideInformationList" parameterType="ShipInPortParm" resultType="ShipInPortItem">
+		<if test="pageNo != 0"> 
+		SELECT * FROM (SELECT inner.*, rownum row_num FROM ( 
+		</if>
+		<include refid="getTideInformationList"/>
+		<if test="pageNo != 0"> 
+				)inner 
+			)inner 
+			WHERE inner.row_num <![CDATA[>]]> (TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo}))-1)* TO_NUMBER(#{sizePerPage}) 
+		  	AND inner.row_num <![CDATA[<=]]> TO_NUMBER(DECODE(#{pageNo},'0', '1', #{pageNo})) * TO_NUMBER(#{sizePerPage})
+		</if>
+	</select>
+	
+	<select id="selectTideInformationListCount" parameterType="ShipInPortParm" resultType="java.lang.String">
+		SELECT COUNT(*)
+			FROM (<include refid="getTideInformationList"/>)
+	</select>
+	<sql id="getTideInformationList">
+		SELECT 
+		       CONVERT(DATETIME, CHK_YMD, 112) AS CHKYMD, -- Convert CHK_YMD from 'YYYYMMDD' to DATETIME
+		       FORMAT(CONVERT(DATETIME, CHK_YMD, 112), 'dd/MM/yyyy') AS CHKYMDUPD, -- Format as 'DD/MM/YYYY'
+		       SUBSTRING(HHMM, 1, 2) + ':' + SUBSTRING(HHMM, 3, LEN(HHMM) - 2) AS HHMM, -- Add ':' in HHMM
+		       SUBSTRING(HHMM, 1, 2) + ':' + SUBSTRING(HHMM, 3, LEN(HHMM) - 2) AS HHMMUPD, -- Same as HHMM
+		       TIDE AS TIDE, 
+		       STAFF_CD AS USERID, 
+		       UPDATE_TIME AS UPDATETIME, 
+		       VERSION AS VERSION
+		FROM TMT_TIDE
+		WHERE 1 = 1
+
+				<if test="dateFm != null and dateFm != ''">
+			AND
+					CONVERT(DATETIME, CHK_YMD + ' ' + SUBSTRING(HHMM, 1, 2) + ':' + SUBSTRING(HHMM, 3, 2), 120) <![CDATA[ >=]]> CONVERT(DATETIME, #{dateFm}, 103)
+				</if>
+				<if test="dateTo != null and dateTo != ''">
+					<if test="dateTo == '0000'">
+			AND
+						CONVERT(DATETIME, CHK_YMD + ' ' + SUBSTRING(HHMM, 1, 2) + ':' + SUBSTRING(HHMM, 3, 2), 120) <![CDATA[ <=]]> CONVERT(DATETIME, #{dateFm}, 103)
+					</if>
+					<if test="dateTo != '0000'">
+			AND
+						CONVERT(DATETIME, CHK_YMD + ' ' + SUBSTRING(HHMM, 1, 2) + ':' + SUBSTRING(HHMM, 3, 2), 120) <![CDATA[ <=]]> DATEADD(DAY, 1, CONVERT(DATETIME, #{dateTo}, 103))
+					</if>
+				</if>
+	</sql>
+	<select id="selectBerthLoc" parameterType="ShipInPortParm" resultType="ShipInPortItem">
+		SELECT BERTH_CD BERTHLOC, BERTH_NM BERTHNM FROM TMT_BERTH_LOC	
+			WHERE BERTH_TP IN ( SELECT S_CD FROM TMT_CD_MSTD 
+                              WHERE L_CD = 'CM' 
+                                AND M_CD = 'BERTH_TP' 
+                                AND S_CD_USE = 'Y' )
+           	AND FREEZONE_YN = 'Y'	
+			ORDER BY BERTH_NM
+	</select>
+	<select id="isTideInformationExist" parameterType="ShipInPortItem" resultType="java.lang.Integer">
+	SELECT COUNT(1) FROM TMT_TIDE WHERE CHK_YMD = FORMAT(CONVERT(DATETIME, #{chkYmd}, 103), 'yyyyMMdd') AND HHMM = REPLACE(#{hhMm},':','')
+	</select>
+	
+	<insert id="insertTideInformation" parameterType="ShipInPortItem">
+		INSERT INTO TMT_TIDE (CHK_YMD,HHMM,TIDE,STAFF_CD,UPDATE_TIME)
+		VALUES (FORMAT(#{chkYmd},'YYYYMMDD')
+				,REPLACE(#{hhMm},':','')
+				,#{tide}
+				,#{userId}
+				,SYSDATETIME()
+				)
+	</insert>
+	
+	<update id="updateTideInformation" parameterType="ShipInPortItem">
+		UPDATE TMT_TIDE
+		SET CHK_YMD = FORMAT(#{chkYmd},'YYYYMMDD')
+			,HHMM = REPLACE(#{hhMm},':','')
+			,TIDE = #{tide}
+			,STAFF_CD = #{userId}
+			,UPDATE_TIME = SYSDATETIME()
+		WHERE 	CHK_YMD = FORMAT(CONVERT(DATETIME, #{chkYmdUpd}, 103), 'yyyyMMdd')
+				AND HHMM = REPLACE(#{hhMmUpd},':','')
+	</update>
+
+	<delete id="deleteTideInformation" parameterType="ShipInPortItem">
+		DELETE FROM TMT_TIDE 
+		WHERE CHK_YMD = FORMAT(#{chkYmd}, 'yyyyMMdd') AND HHMM = REPLACE(#{hhMm},':','')
+	</delete>
+</mapper>

@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="operationSetting">
+	
+	<!--  ################ Query Statement Define ######################################### -->
+	<select id="selectOperationSetShftDtList"  parameterType="operationSettingParm" resultType="operationSettingItem">
+		SELECT	
+ 	    		V.WORK_YMD  AS SHFTDT,
+				TO_CHAR(TO_DATE(V.WORK_YMD,'YYYYMMDD'), 'DDMMYYYY') AS SHFTDTDSP
+		FROM 	TMT_VSL_OPE_RPT V, TMT_VSL_OPE_RPT_DTL D
+		WHERE 	V.VSL_CALL_ID(+) = D.VSL_CALL_ID
+				AND	  V.WORK_YMD(+) = D.WORK_YMD
+				AND	  V.SHFT_ID(+) = D.SHFT_ID
+				AND	  D.RS_DIV_CD = 'EQ'
+				<if test="vslCallId != null and vslCallId != ''">
+  					AND
+					V.VSL_CALL_ID = #{vslCallId}
+				</if>
+		GROUP BY V.WORK_YMD
+		ORDER BY V.WORK_YMD
+	</select>
+	
+	<select id="selectOperationSetShftList"  parameterType="operationSettingParm" resultType="operationSettingItem">
+		SELECT	
+			   	V.SHFT_ID 	 AS SHFTID,
+				(SELECT S.SHFT_NM FROM TMT_SHFT S 
+				 	WHERE S.SHFT_ID = V.SHFT_ID) SHFTNM					   
+		FROM 	TMT_VSL_OPE_RPT V, TMT_VSL_OPE_RPT_DTL D
+		WHERE 	V.VSL_CALL_ID(+) = D.VSL_CALL_ID
+				AND	  V.WORK_YMD(+) = D.WORK_YMD
+				AND	  V.SHFT_ID(+) = D.SHFT_ID
+				AND   D.RS_DIV_CD = 'EQ'
+				<if test="vslCallId != null and vslCallId != ''">
+  					AND
+					V.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="shftDt != null and shftDt != ''">
+  					AND
+					V.WORK_YMD = #{shftDt}
+				</if>
+		GROUP BY V.SHFT_ID
+		ORDER BY (SELECT S.SHFT_NM FROM TMT_SHFT S 
+                 WHERE S.SHFT_ID = V.SHFT_ID)
+	</select>
+	
+	<select id="selectOpHatchBBKList"  parameterType="operationSettingParm" resultType="operationSettingItem">
+		SELECT	
+			   	F_GET_VOR_EQ_NM(#{vslCallId}, #{shftId},#{shftDt}, D.HATCH_NO, #{cgTpCd}) eqNm,
+				F_GET_VOR_STRV_NM(#{vslCallId}, #{shftId},#{shftDt}, D.HATCH_NO, #{cgTpCd}) stevedoreNm,
+				F_GET_VOR_HATCHDRT_NM(#{vslCallId}, #{shftId}, #{shftDt},D.HATCH_NO, #{cgTpCd}) hatchDrt,
+				D.HATCH_NO HATCHNO,
+				D.EQ_FAC_NO eqFacNo
+		 FROM 	TMT_VSL_OPE_RPT V, TMT_VSL_OPE_RPT_DTL D
+		 WHERE 	V.VSL_CALL_ID = D.VSL_CALL_ID(+)
+				AND	  V.WORK_YMD = D.WORK_YMD(+)
+				AND	  V.SHFT_ID = D.SHFT_ID(+)
+				AND D.HATCH_NO IS NOT NULL
+				AND D.CG_TP_CD = 'BBK'
+				<if test="vslCallId != null and vslCallId != ''">
+					AND V.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="shftId != null and shftId != ''">
+					AND V.SHFT_ID = #{shftId}
+				</if>
+				<if test="shftDt != null and shftDt != ''">
+					AND V.WORK_YMD = #{shftDt}
+				</if>
+				<if test="hatchNo != null and hatchNo != ''">
+					AND D.HATCH_NO = #{hatchNo}
+				</if>
+		GROUP BY D.HATCH_NO, D.EQ_FAC_NO
+	</select>
+	
+	<select id="selectOpHatchDBKList"  parameterType="operationSettingParm" resultType="operationSettingItem">
+		SELECT	
+			   	F_GET_VOR_EQ_NM(#{vslCallId}, #{shftId},#{shftDt}, D.HATCH_NO, #{cgTpCd}) eqNm, <!-- #{hatchNo} -->
+		       	F_GET_VOR_FAC_NM(#{vslCallId}, #{shftId},#{shftDt}, D.HATCH_NO, #{cgTpCd}) facNm,
+			   	D.HATCH_NO HATCHNO,
+			   	D.EQ_FAC_NO eqFacNo
+		 FROM 	TMT_VSL_OPE_RPT V, TMT_VSL_OPE_RPT_DTL D
+		 WHERE 	V.VSL_CALL_ID = D.VSL_CALL_ID(+)
+				AND	  V.WORK_YMD = D.WORK_YMD(+)
+				AND	  V.SHFT_ID = D.SHFT_ID(+)
+				AND D.HATCH_NO IS NOT NULL
+				AND D.CG_TP_CD in ('DBK','DBE', 'DBN')
+				<if test="vslCallId != null and vslCallId != ''">
+					AND V.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="shftId != null and shftId != ''">
+					AND V.SHFT_ID = #{shftId}
+				</if>
+				<if test="shftDt != null and shftDt != ''">
+					AND V.WORK_YMD = #{shftDt}
+				</if>
+				<if test="hatchNo != null and hatchNo != ''">
+					AND D.HATCH_NO = #{hatchNo}
+				</if>
+		GROUP BY D.HATCH_NO, D.EQ_FAC_NO
+	</select>
+	
+	<select id="selectOperationSetHatch" parameterType="operationSettingParm" resultType="operationSettingItem">
+		SELECT	
+				<if test="searchType == 'HTBBK'">				
+				   F_GET_VOR_EQ_NM(#{vslCallId}, #{shftId},#{shftDt}, #{hatchNo}, #{cgTpCd}) eqNm,
+			       F_GET_VOR_STRV_NM(#{vslCallId}, #{shftId},#{shftDt}, #{hatchNo}, #{cgTpCd}) stevedoreNm,
+			       F_GET_VOR_HATCHDRT_NM(#{vslCallId}, #{shftId}, #{shftDt},#{hatchNo}, #{cgTpCd}) hatchDrt,
+				</if>
+				<if test="searchType == 'HTDBK'">
+				   F_GET_VOR_EQ_NM(#{vslCallId}, #{shftId},#{shftDt}, #{hatchNo}, #{cgTpCd}) eqNm,
+			       F_GET_VOR_FAC_NM(#{vslCallId}, #{shftId},#{shftDt}, #{hatchNo}, #{cgTpCd}) facNm,
+				</if>
+				V.VSL_CALL_ID AS VSLCALLID,
+			    V.SHFT_ID 	 AS SHFTID,
+				(SELECT S.SHFT_NM FROM TMT_SHFT S 
+					 WHERE S.SHFT_ID = V.SHFT_ID) SHFTNM
+	   FROM 	TMT_VSL_OPE_RPT V
+	    WHERE 	1=1
+				<if test="vslCallId != null and vslCallId != ''">
+	   				AND V.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="shftId != null and shftId != ''">
+	   				AND V.SHFT_ID = #{shftId}
+				</if>
+				<if test="shftDt != null and shftDt != ''">
+	   				AND V.WORK_YMD = #{shftDt}
+				</if>
+	</select>
+	
+	<select id="selectLocationList" parameterType="operationSettingParm" resultType="operationSettingItem">
+		SELECT DISTINCT 
+				TAB.LOC_TP_CD AS locTpCd,
+				PLAN_LOC_ID as location ,
+				TAB.LOC_ID AS locId,
+				TAB.WH_ID as whId
+		FROM  	TMT_LOC_DEF TAB, TMT_SPC_PLAN SPLAN, TMT_SPC_REQ SREQ 
+		WHERE 	TAB.LOC_ID = SPLAN.LOC_ID
+         		AND SREQ.VSL_CALL_ID = SPLAN.VSL_CALL_ID
+         		AND SREQ.SEQ = SPLAN.REQ_SEQ
+				AND SREQ.VSL_CALL_ID = #{vslCallId}
+				AND SREQ.BL_NO = #{blNo}
+	</select>
+</mapper>

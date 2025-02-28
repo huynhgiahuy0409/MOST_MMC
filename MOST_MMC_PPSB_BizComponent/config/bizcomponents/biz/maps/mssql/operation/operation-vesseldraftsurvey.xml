@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="vesselDraftSurvey"> 
+ 	
+ 	<resultMap id="draftSurveyMap"								type="vslDraftSurveyItem" >
+ 		<result property="vslCallId" 							column="VSL_CALL_ID"/>
+ 		<result property="vslCd" 								column="VSL_CD"/>
+ 		<result property="scn" 									column="SHIP_CALL_NO"/>
+ 		<result property="catgCd" 								column="CATG_CD"/>
+ 		<result property="mfDocId" 								column="MF_DOC_ID"/>
+ 		<result property="blNo" 								column="BL_NO"/>
+ 		<result property="snNo" 								column="SHIPG_NOTE_NO"/>
+ 		<result property="tmnlCd" 								column="TMNL_CD"/>
+ 		<result property="delvTpCd" 							column="DELV_TP_CD"/>
+ 		<result property="cmdtGrpCd" 							column="CMDT_GRP_CD"/>
+ 		<result property="cmdtCd" 								column="CMDT_CD"/>
+ 		<result property="docWgt" 								column="DECLARE_MT"/>
+ 		<result property="weighbridgeWgt" 						column="WEIGHTBRIDGE_WGT"/>
+ 		<result property="operationWgt" 						column="OPERATION_WGT"/>
+ 		<result property="numberOfCalls" 						column="NUMBER_OF_CALL"/>
+ 		<result property="pkgTpCd" 								column="PKG_TP_CD"/>
+ 		<result property="cgTpCd" 								column="CG_TP_CD"/>
+ 		<result property="tsptTpCd" 							column="TSPT_TP_CD"/>
+ 		<result property="tsptTpNm" 							column="TSPT_TP_NM"/>
+ 		<result property="initialReadingWgt" 					column="INITIAL_READING_WGT"/>
+ 		<result property="finalReadingWgt" 						column="FINAL_READING_WGT"/>
+ 		<result property="draftSurveyWgt" 						column="DRAFT_SURVEY_WGT"/>
+ 		<result property="updateDt" 							column="UPDATE_TIME"/>
+ 		<result property="userId" 								column="STAFF_CD"/>
+ 		<result property="surveyorId" 							column="STAFF_CD"/>
+ 		<result property="cgNo" 								column="CG_NO"/>
+ 	</resultMap> 
+	
+	<select id="selectVesselDraftSurveyList" parameterType="vslDraftSurveyParm" resultMap="draftSurveyMap">
+	 	SELECT /* vesselDraftSurvey.selectVesselDraftSurveyList */
+		    VSL_CD,
+		    SHIP_CALL_NO,
+		    NUMBER_OF_CALL,
+		    INITIAL_READING_WGT,
+		    FINAL_READING_WGT,
+		    DRAFT_SURVEY_WGT,
+		    WEIGHTBRIDGE_WGT,
+		    OPERATION_WGT,
+		    RMK,
+		    VERSION,
+		    STAFF_CD,
+		    FORMAT(UPDATE_TIME, 'dd-MM-yyyy HH:MM')				AS UPDATE_TIME,
+		    (
+		    	SELECT
+		    		SUM(DOC_WGT)
+		    	FROM
+		    		TMT_VSL_DRAFT_SURVEY_DTL 	DTL
+		    	WHERE
+		    		DTL.VSL_CD					= VDS.VSL_CD
+		    		AND DTL.SHIP_CALL_NO		= VDS.SHIP_CALL_NO
+		    )													AS DECLARE_MT
+		FROM
+		    TMT_VSL_DRAFT_SURVEY								VDS			
+		WHERE
+			VSL_CD 												= #{vslCd}
+			AND SHIP_CALL_NO									= #{scn}
+	</select>
+	
+	<select id="selectVesselDraftSurveyDetail" parameterType="vslDraftSurveyParm" resultMap="draftSurveyMap">
+	 	SELECT /* vesselDraftSurvey.selectVesselDraftSurveyDetail */
+		    VSL_CD,
+		    SHIP_CALL_NO,
+		    VSL_CALL_ID,
+		    SEQ,
+		    TMNL_CD,
+		    MF_DOC_ID,
+		    BL_NO,
+		    SHIPG_NOTE_NO,
+		    ISNULL(BL_NO, SHIPG_NOTE_NO)						AS CG_NO,
+		    dbo.F_CM_CODE_NM('MT', 'CATGTP', CATG_CD) 			AS CATG_CD,
+		    CMDT_GRP_CD,
+		    CMDT_CD,
+		    PKG_TP_CD,
+		    CG_TP_CD,
+		    TSPT_TP_CD,
+		    dbo.F_CM_CODE_NM('MT', 'TSPTTP', TSPT_TP_CD) 		AS TSPT_TP_NM,
+		    DELV_TP_CD,
+		    DOC_WGT												AS DECLARE_MT,
+		    WEIGHTBRIDGE_WGT,
+		    OPERATION_WGT,
+		    DRAFT_SURVEY_WGT,
+		    VERSION,
+		    STAFF_CD,
+		    UPDATE_TIME
+		FROM
+		    TMT_VSL_DRAFT_SURVEY_DTL							
+		WHERE
+			VSL_CD 												= #{vslCd}
+			AND SHIP_CALL_NO									= #{scn}
+	</select>
+	
+</mapper>

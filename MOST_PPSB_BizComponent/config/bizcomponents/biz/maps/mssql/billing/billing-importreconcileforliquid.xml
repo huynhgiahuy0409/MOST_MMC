@@ -1,0 +1,397 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="importReconcileForLiquid">
+	<resultMap id="manifestMap" 								type="importReconcileForLiquidItem">
+		<result property="vslCallId"        					column="VSL_CALL_ID"/>
+		<result property="mfDocId"        						column="MF_DOC_ID"/>
+		<result property="jobNo"        						column="JOB_NO"/>
+		<result property="blNo"      							column="BL_NO"/> 
+		<result property="cgDescr"        						column="GDS_RMK"/>
+		<result property="pol"        							column="POL"/>
+		<result property="fwrd"        							column="FWRD"/>
+		<result property="fwrdNm"        						column="FWRD_NM"/>
+		<result property="cnsne"        						column="CNSNE"/>
+		<result property="cnsneNm"        						column="CNSNE_NM"/>
+		<result property="docMt"        						column="CG_WGT"/>
+		<result property="docM3"        						column="CG_VOL"/>
+		<result property="docQty"        						column="PKG_QTY"/>
+		<result property="submitDate"        					column="UPDATE_TIME"/>
+	</resultMap>
+	
+	<resultMap id="outturnMap" 									type="importReconcileForLiquidItem">
+		<result property="vslCallId"        					column="VSL_CALL_ID"/>
+		<result property="blNo"      							column="BL_NO"/> 
+		<result property="docMt"        						column="ORG_CG_WGT"/>
+		<result property="docM3"        						column="ORG_CG_VOL"/>
+		<result property="docQty"        						column="ORG_PKG_QTY"/>
+		<result property="actMt"        						column="ACTL_CG_WGT"/>
+		<result property="actM3"        						column="ACTL_CG_VOL"/>
+		<result property="actQty"        						column="ACTL_PKG_QTY"/>
+		<result property="diffMt"        						column="DIFF_CG_WGT"/>
+		<result property="diffM3"        						column="DIFF_CG_VOL"/>
+		<result property="diffQty"        						column="DIFF_PKG_QTY"/>
+		
+	</resultMap>
+	
+	<resultMap id="statusMap" 									type="importReconcileForLiquidItem">
+		<result property="vslCallId"        					column="VSL_CALL_ID"/>
+		<result property="status"        						column="IM_RECCL_CD"/>
+	</resultMap>
+
+	<!--  ################ Query Statement Define ######################################### -->
+		
+	<select id="selectImportReconcileForLiquidListCount"  parameterType="importReconcileForLiquidParm" resultType="java.lang.String">
+		<include refid="getImportReconcile"/>
+		SELECT /*importReconcileForLiquid.selectImportReconcileCount*/
+			COUNT(*)
+		FROM
+		    getImportReconcile
+	</select>
+	
+	<select id="selectImportReconcileForLiquidList"  parameterType="importReconcileForLiquidParm" resultType="importReconcileForLiquidItem">
+		<include refid="getImportReconcile"/>
+		<choose>
+			<when test="pageNo != 0"> 
+	        	SELECT /*importReconcileForLiquid.selectImportReconcileForLiquidList*/
+	        		*
+	        	FROM (
+	        		SELECT
+						*,
+						ROW_NUMBER() OVER(ORDER BY(SELECT NULL)) row_num
+	        		FROM 
+	        			getImportReconcile
+					) inner_querry 
+				WHERE
+					inner_querry.row_num <![CDATA[>]]> (CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END - 1) * CAST(#{sizePerPage} AS INT)
+					AND inner_querry.row_num <![CDATA[<=]]> CASE WHEN #{pageNo} = '0' THEN 1 ELSE CAST(#{pageNo} AS INT) END * CAST(#{sizePerPage} AS INT)
+			</when>
+					
+			<otherwise> 
+				SELECT /*importReconcileForLiquid.selectImportReconcileForLiquidList*/
+					*
+				FROM
+					getImportReconcile
+			</otherwise>
+		</choose>
+		
+		ORDER BY VSLCALLID, OPETP, BLNO
+	</select>
+	
+	<sql id="getImportReconcile">
+		WITH getImportReconcile AS
+		(
+			SELECT 
+				B.VSL_CALL_ID AS VSLCALLID,
+		       	CASE
+		          WHEN MAX (V.ATB) IS NULL THEN ''
+		          ELSE FORMAT (MAX (V.ATB), 'dd/MM/yyyy')
+				END
+				   AS ATB,
+				CASE
+				   WHEN MAX (V.ATU) IS NULL THEN ''
+				   ELSE FORMAT (MAX (V.ATU), 'dd/MM/yyyy')
+				END
+				   AS ATU,
+				MAX (P.VSL_NM) AS VSLNM,
+				B.CG_TP_CD AS CGTPCD,
+				B.CG_TP_CD AS OLDCGTPCD,
+				CASE
+				   WHEN SUM (B.BILL_WGT) IS NULL THEN SUM (B.TON_HDL_AMT)
+				   ELSE SUM (B.BILL_WGT)
+				END
+				   AS BILLWGT,
+				MAX (B.SEQ) AS SEQ,
+				B.OPE_TP AS OLDOPETP,
+				B.OPE_TP AS OPETP,
+				B.TK_OPR AS FWRAGNT,
+				SUM (B.TON_HDL_AMT) AS HANDLEMT,
+				B.SHPR AS SHPR,
+				dbo.F_GET_PARTNER_INFO (B.SHPR, 'ENG_SNM') AS SHPRNM,
+				B.CNSNE AS CNSNE,
+				dbo.F_GET_PARTNER_INFO (B.CNSNE, 'ENG_SNM') AS CNSNENM,
+				B.JOB_TP_CD AS JOBTPCD,
+				(SELECT TOP 1
+				        SLP.BL_NO
+				   FROM TMT_CONFM_SLP_DTL SLP
+				  WHERE     B.VSL_CALL_ID = SLP.VSL_CALL_ID
+				        AND B.CG_TP_CD = SLP.CG_TP_CD
+				        AND B.CMDT_CD = SLP.CMDT_CD
+				        AND (B.SHPR = SLP.SHPR_CNSNE OR B.SHPR IS NULL)
+				        AND B.JOB_TP_CD = SLP.CG_OPT_TP_CD)
+				   AS BLNO,
+				(SELECT	TOP 1 ID.IMDG_DIV
+                 FROM  	TMT_CONFM_SLP_DTL SLP
+						INNER JOIN TMT_DG DG ON SLP.DG_SEQ = DG.SEQ
+ 						INNER JOIN TMT_IMDGDATA ID ON DG.IMDG = ID.CLASS AND DG.UNNO = ID.UNNO AND DG.SUBSTANCE = ID.SUBSTANCE
+                 WHERE  B.VSL_CALL_ID = SLP.VSL_CALL_ID
+                        AND B.CG_TP_CD = SLP.CG_TP_CD
+                       	AND B.CMDT_CD = SLP.CMDT_CD
+                       	AND (B.SHPR = SLP.SHPR_CNSNE OR B.SHPR IS NULL)
+                        AND B.JOB_TP_CD = SLP.CG_OPT_TP_CD) AS DGCLASS,
+				B.CMDT_CD AS CMDTCD,
+				dbo.F_GET_CMDT_DESC (B.CMDT_CD) AS CMDTDESCR,
+				B.CMDT_CD AS OLDCMDTCD,
+				B.PKG_TP_CD AS PKGTPCD,
+				B.PKG_TP_CD AS OLDPKGTPCD
+		  FROM 	TMT_LQDCG_OPE B
+		       	LEFT OUTER JOIN TMT_VSL_SCH V ON B.VSL_CALL_ID = V.VSL_CALL_ID
+		       	LEFT OUTER JOIN TMT_VSL_PART P ON V.VSL_CD = P.VSL_CD
+		       	LEFT OUTER JOIN TMT_B_RECCL O ON B.VSL_CALL_ID = O.VSL_CALL_ID
+		 WHERE 	B.JOB_TP_CD IN ('DS', 'SD', 'TD')
+		 		<if test="vslCallId != null and vslCallId != ''">
+    				AND B.VSL_CALL_ID = #{vslCallId}
+				</if>
+				<if test="fromAtb != null and fromAtb != ''">
+    				AND V.ATB <![CDATA[>=]]> CONVERT(DATETIME, #{fromAtb} + ' 00:00:00', 103)
+				</if>
+				<if test="toAtb != null and toAtb != ''">
+    				AND V.ATB <![CDATA[<=]]> CONVERT(DATETIME, #{toAtb} + ' 23:59:59', 103)
+		        </if>
+		        <if test="status != null and status != ''">
+          			AND O.IM_RECCL_CD = #{status}
+		        </if>
+		 GROUP BY B.VSL_CALL_ID,
+		         B.OPE_TP,
+		         B.TK_OPR,
+		         B.CG_TP_CD,
+		         B.CMDT_CD,
+		         B.SHPR,
+		         B.CNSNE,
+		         B.JOB_TP_CD,
+		         B.PKG_TP_CD
+		 
+		)
+	</sql>
+	
+	<select id="selectImportReconcileStatus"  parameterType="importReconcileForLiquidParm" resultMap="statusMap">
+		SELECT 	/*importReconcileForLiquid.selectImportReconcileStatus*/
+				VSL_CALL_ID,
+			   	IM_RECCL_CD
+		FROM 	TMT_B_RECCL
+		WHERE 	1=1
+				<if test="vslCallId != null and vslCallId != ''">
+					AND	VSL_CALL_ID = #{vslCallId}
+				</if>
+	</select>
+	
+	<select id="selectInwardManifestItems"  parameterType="importReconcileForLiquidParm" resultMap="manifestMap">
+		SELECT 	/*importReconcileForLiquid.selectInwardManifestItems*/
+				A.BL_NO,
+				A.MF_DOC_ID,
+				A.VSL_CALL_ID,
+				A.GDS_RMK,
+				A.POL,
+				A.FWRD,
+				dbo.F_GET_PARTNER_INFO(A.FWRD, 'ENG_SNM') AS FWRD_NM,
+				A.CNSNE,
+				dbo.F_GET_PARTNER_INFO(A.CNSNE, 'ENG_SNM') AS CNSNE_NM,
+				A.JOB_NO,
+				CASE
+				   WHEN (SELECT COUNT (*)
+				           FROM TMT_FZ_OUTTURN_DTL OT
+				          WHERE OT.BL_NO = A.BL_NO AND OT.BL_JOB_NO = A.JOB_NO) > 0
+				   THEN
+				      (SELECT DISTINCT ROUND (OT.ACTL_CG_WGT / 1000, 3)
+				         FROM TMT_FZ_OUTTURN_DTL OT
+				              INNER JOIN TMT_FZ_DOC_MST HDR
+				                 ON OT.DOC_ID = HDR.DOC_ID AND OT.JOB_NO = HDR.JOB_NO
+				        WHERE     OT.BL_NO = A.BL_NO
+				              AND OT.BL_JOB_NO = A.JOB_NO
+				              AND HDR.DOC_STAT_CD = 'AP'
+				              AND HDR.DOC_ID = 'OUTTURN')
+				   ELSE
+				      ROUND (A.CG_WGT / 1000, 3)
+				END
+				   AS CG_WGT,
+				A.CG_VOL,
+				A.PKG_QTY,
+				FORMAT (A.UPDATE_TIME, 'dd/MM/yyyy HH:mm') AS UPDATE_TIME
+		FROM 	TMT_BL A
+      			LEFT OUTER JOIN TMT_FZ_DOC_MST B
+         			ON  A.DOC_ID = B.DOC_ID
+            			AND A.JOB_NO = B.JOB_NO
+            			AND A.VSL_CALL_ID = B.VSL_CALL_ID
+      			LEFT OUTER JOIN TMT_VSL_SCH V ON A.VSL_CALL_ID = V.VSL_CALL_ID
+		WHERE   A.MF_DOC_ID IS NOT NULL
+      			AND B.DOC_STAT_CD = 'AP'
+      			AND B.DOC_ID IN ('K4BL', 'K6BL')
+      			<if test="vslCallId != null and vslCallId != ''">
+    				AND A.VSL_CALL_ID = #{vslCallId}
+				</if>
+	</select>
+	
+	<select id="selectOutturnCertificateItems"  parameterType="importReconcileForLiquidParm" resultMap="outturnMap">
+		SELECT  /*importReconcileForLiquid.selectOutturnCertificateItems*/
+				A.VSL_CALL_ID,
+				C.BL_NO,
+				C.ORG_PKG_QTY,
+				C.ACTL_PKG_QTY,
+				(C.ACTL_PKG_QTY - C.ORG_PKG_QTY) AS DIFF_PKG_QTY,
+				C.ORG_CG_VOL,
+				C.ACTL_CG_VOL,
+				(C.ACTL_CG_VOL - C.ORG_CG_VOL) AS DIFF_CG_VOL,
+				C.ORG_CG_WGT,
+				C.ACTL_CG_WGT,
+				(C.ACTL_CG_WGT - C.ORG_CG_WGT) AS DIFF_CG_WGT
+		FROM 	TMT_FZ_OUTTURN A
+				INNER JOIN TMT_FZ_OUTTURN_DTL C
+				   ON     A.JOB_NO = C.JOB_NO
+				      AND A.DOC_ID = C.DOC_ID
+				      AND A.VSL_CALL_ID = C.VSL_CALL_ID
+				INNER JOIN TMT_FZ_DOC_MST E
+				   ON C.DOC_ID = E.DOC_ID AND C.JOB_NO = E.JOB_NO
+				INNER JOIN TMT_VSL_SCH B ON A.VSL_CALL_ID = B.VSL_CALL_ID
+		WHERE 	A.DOC_ID = 'OUTTURN' 
+				AND E.DOC_STAT_CD = 'AP' 
+				AND E.DOC_ID = 'OUTTURN'
+				<if test="vslCallId != null and vslCallId != ''">
+    				AND A.VSL_CALL_ID = #{vslCallId}
+				</if>
+	</select>
+	
+	<insert id="insertImportReconcileStatus" parameterType="importReconcileForLiquidItem">
+		INSERT /*importReconcileForLiquid.insertImportReconcileStatus*/
+		INTO
+			TMT_B_RECCL(
+				VSL_CALL_ID,
+				IM_RECCL_CD,
+				IM_RECCL_DT,
+				STAFF_CD,
+				UPDATE_TIME,
+				VERSION
+			) VALUES (
+				#{vslCallId},
+				#{status},
+				SYSDATETIME(),
+				#{userId},
+				SYSDATETIME(),
+				#{newVersion}
+			)
+	</insert>
+	
+	<update id="updateImportReconcileStatus" parameterType="importReconcileForLiquidItem">
+		UPDATE /*importReconcileForLiquid.updateImportReconcileStatus*/
+			TMT_B_RECCL
+		SET
+			IM_RECCL_CD = (
+							CASE
+								(CASE
+									WHEN ((
+										SELECT DISTINCT
+											VSL_CALL_ID
+										FROM
+									    	TMT_B_IV_DATA
+										WHERE
+											VSL_CALL_ID 		= #{vslCallId}
+											AND SCR_ID			= 'OPE'
+											AND STAT_CD NOT IN ('WV','GT','VF','IV','PD')
+										) IS NOT NULL
+									    AND (
+										SELECT DISTINCT
+											VSL_CALL_ID
+										FROM
+									    	TMT_B_IV_DATA
+										WHERE
+											VSL_CALL_ID 		= #{vslCallId}
+											AND SCR_ID			= 'OPE'
+											AND STAT_CD NOT IN ('WV','GT','VF','IV','PD')
+										) <![CDATA[<>]]> '') THEN 'Y'
+									ELSE 'N'
+								END)
+			    				WHEN 'Y' THEN 'Y'
+			    				WHEN 'N' THEN #{status}
+			    			END),
+			IM_RECCL_DT 										= SYSDATETIME(),
+			UPDATE_TIME 										= SYSDATETIME(),
+			STAFF_CD 											= #{userId},
+			VERSION 											= #{newVersion}
+		WHERE
+			VSL_CALL_ID 										= #{vslCallId}
+	</update>
+	
+	<update id="updateImportReconcile"  parameterType="importReconcileForLiquidItem">
+		 UPDATE TMT_LQDCG_OPE
+		 SET	BILL_WGT 	= #{billWgt},
+		 		PKG_TP_CD   = #{pkgTpCd},
+			    CG_TP_CD 	= #{cgTpCd},
+		  		CMDT_CD  	= #{cmdtCd},
+		  		OPE_TP 		= #{opeTp},
+		  		UPDATE_TIME = SYSDATETIME(),
+		  		STAFF_CD	= #{userId}	
+		 WHERE
+			    VSL_CALL_ID = #{vslCallId}
+			    AND SEQ 	= #{seq}
+				<if test="oldOpeTp != null and oldOpeTp != ''">
+     				AND OPE_TP 		= #{oldOpeTp}
+                </if>
+                <if test="oldCgTpCd != null and oldCgTpCd != ''">
+     				AND CG_TP_CD 	= #{oldCgTpCd}
+                </if>
+                <if test="jobTpCd != null and jobTpCd != ''">
+     				AND JOB_TP_CD   = #{jobTpCd}
+                </if>
+                <if test="oldCmdtCd != null and oldCmdtCd != ''">
+     				AND CMDT_CD   = #{oldCmdtCd}
+                </if>
+                <if test="oldPkgTpCd != null and oldPkgTpCd != ''">
+     				AND PKG_TP_CD   = #{oldPkgTpCd}
+                </if>
+	</update>
+	
+	<update id="deleteImportReconcile"  parameterType="importReconcileForLiquidItem">
+		 UPDATE TMT_LQDCG_OPE
+		 SET	BILL_WGT 	= NULL,
+		  		UPDATE_TIME = SYSDATETIME(),
+		  		STAFF_CD	= #{userId}	
+		 WHERE
+			    VSL_CALL_ID = #{vslCallId}
+			    AND SEQ 	= #{seq}
+				<if test="oldOpeTp != null and oldOpeTp != ''">
+     				AND OPE_TP 		= #{oldOpeTp}
+                </if>
+                <if test="oldCgTpCd != null and oldCgTpCd != ''">
+     				AND CG_TP_CD 	= #{oldCgTpCd}
+                </if>
+                <if test="jobTpCd != null and jobTpCd != ''">
+     				AND JOB_TP_CD   = #{jobTpCd}
+                </if>
+                <if test="oldCmdtCd != null and oldCmdtCd != ''">
+     				AND CMDT_CD   = #{oldCmdtCd}
+                </if>
+                <if test="oldPkgTpCd != null and oldPkgTpCd != ''">
+     				AND PKG_TP_CD   = #{oldPkgTpCd}
+                </if>
+	</update>
+	
+	<update id="updateImportReconcileInformation"  parameterType="importReconcileForLiquidItem">
+		 UPDATE TMT_LQDCG_OPE
+		 SET	PKG_TP_CD   = #{pkgTpCd},
+			    CG_TP_CD 	= #{cgTpCd},
+		  		CMDT_CD  	= #{cmdtCd},
+		  		OPE_TP 		= #{opeTp},
+		  		UPDATE_TIME = SYSDATETIME(),
+		  		STAFF_CD	= #{userId}	
+		 WHERE
+			    VSL_CALL_ID = #{vslCallId}
+			    AND SEQ 	= #{seq}
+				<if test="oldOpeTp != null and oldOpeTp != ''">
+     				AND OPE_TP 		= #{oldOpeTp}
+                </if>
+                <if test="oldCgTpCd != null and oldCgTpCd != ''">
+     				AND CG_TP_CD 	= #{oldCgTpCd}
+                </if>
+                <if test="jobTpCd != null and jobTpCd != ''">
+     				AND JOB_TP_CD   = #{jobTpCd}
+                </if>
+                <if test="oldCmdtCd != null and oldCmdtCd != ''">
+     				AND CMDT_CD   = #{oldCmdtCd}
+                </if>
+                <if test="oldPkgTpCd != null and oldPkgTpCd != ''">
+     				AND PKG_TP_CD   = #{oldPkgTpCd}
+                </if>
+	</update>
+
+</mapper>

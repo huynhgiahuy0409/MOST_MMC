@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="operationSetting">
+	
+	<!--  ################ Query Statement Define ######################################### -->
+	<select id="selectOperationSetShftDtList"  parameterType="operationSettingParm" resultType="operationSettingItem">
+		SELECT /* operationSetting.selectOperationSetShftDtList */
+ 	    	V.WORK_YMD  										AS SHFTDT,
+			FORMAT(
+				CONVERT(DATE, V.WORK_YMD,112),
+				'ddMMyyyy'
+			) 													AS SHFTDTDSP
+		FROM
+		    TMT_VSL_OPE_RPT										V
+		RIGHT OUTER JOIN 
+			TMT_VSL_OPE_RPT_DTL 								tempD
+				ON V.VSL_CALL_ID 								= tempD.VSL_CALL_ID
+				AND V.WORK_YMD 									= tempD.WORK_YMD
+				AND V.SHFT_ID 									= tempD.SHFT_ID,
+		    TMT_VSL_OPE_RPT_DTL 								D
+		WHERE
+		    D.RS_DIV_CD 										= 'EQ'
+			<if test="vslCallId != null and vslCallId != ''">
+  				AND V.VSL_CALL_ID 								= #{vslCallId}
+			</if>
+		GROUP BY
+		    V.WORK_YMD
+		ORDER BY
+		    V.WORK_YMD
+	</select>
+	
+	<select id="selectOperationSetShftList"  parameterType="operationSettingParm" resultType="operationSettingItem">
+		SELECT /* operationSetting.selectOperationSetShftList */
+			V.SHFT_ID 	 										AS SHFTID,
+			(SELECT
+			    S.SHFT_NM
+			FROM
+				TMT_SHFT S
+			WHERE
+			    S.SHFT_ID 				= V.SHFT_ID
+			) 													AS SHFTNM
+		FROM
+		    TMT_VSL_OPE_RPT 									V
+		RIGHT OUTER JOIN 
+			TMT_VSL_OPE_RPT_DTL 								tempD
+	     		ON V.VSL_CALL_ID								= tempD.VSL_CALL_ID
+				AND V.WORK_YMD 									= tempD.WORK_YMD
+				AND V.SHFT_ID 									= tempD.SHFT_ID,
+		    TMT_VSL_OPE_RPT_DTL 								D
+		WHERE
+		    D.RS_DIV_CD 										= 'EQ'
+		<if test="vslCallId != null and vslCallId != ''">
+  			AND V.VSL_CALL_ID 									= #{vslCallId}
+		</if>
+		<if test="shftDt != null and shftDt != ''">
+  			AND V.WORK_YMD 										= #{shftDt}
+		</if>
+		GROUP BY
+		    V.SHFT_ID
+		ORDER BY
+		    (SELECT
+		        S.SHFT_NM
+		    FROM
+		        TMT_SHFT S
+            WHERE
+                S.SHFT_ID 				= V.SHFT_ID)
+	</select>
+	
+	<select id="selectOpHatchBBKList"  parameterType="operationSettingParm" resultType="operationSettingItem">
+		SELECT /* operationSetting.selectOpHatchBBKList */
+			dbo.F_GET_VOR_EQ_NM	(
+				#{vslCallId},
+				#{shftId},
+				#{shftDt},
+				D.HATCH_NO,
+				#{cgTpCd}
+			) 													AS eqNm,
+			dbo.F_GET_VOR_STRV_NM (
+				#{vslCallId},
+				#{shftId},
+				#{shftDt},
+				D.HATCH_NO,
+				#{cgTpCd}
+			) 													AS stevedoreNm,
+			dbo.F_GET_VOR_HATCHDRT_NM(
+				#{vslCallId},
+				#{shftId},
+				#{shftDt},
+				D.HATCH_NO,
+				#{cgTpCd}
+			) 													AS hatchDrt,
+			D.HATCH_NO 											AS HATCHNO,
+			D.EQ_FAC_NO 										AS eqFacNo
+		FROM
+		    TMT_VSL_OPE_RPT V
+		LEFT OUTER JOIN 
+			TMT_VSL_OPE_RPT_DTL tempD
+	     		ON V.VSL_CALL_ID 								= tempD.VSL_CALL_ID
+	     		AND V.WORK_YMD 									= tempD.WORK_YMD
+				AND V.SHFT_ID 									= tempD.SHFT_ID,
+		    TMT_VSL_OPE_RPT_DTL D
+		WHERE
+			(D.HATCH_NO IS NOT NULL AND D.HATCH_NO <![CDATA[<>]]> '')
+			AND D.CG_TP_CD 										= 'BBK'
+		<if test="vslCallId != null and vslCallId != ''">
+			AND V.VSL_CALL_ID 									= #{vslCallId}
+		</if>
+		<if test="shftId != null and shftId != ''">
+			AND V.SHFT_ID 										= #{shftId}
+		</if>
+		<if test="shftDt != null and shftDt != ''">
+			AND V.WORK_YMD 										= #{shftDt}
+		</if>
+		<if test="hatchNo != null and hatchNo != ''">
+			AND D.HATCH_NO 										= #{hatchNo}
+		</if>
+		GROUP BY
+		    D.HATCH_NO,
+		    D.EQ_FAC_NO
+	</select>
+	
+	<select id="selectOpHatchDBKList"  parameterType="operationSettingParm" resultType="operationSettingItem">
+		SELECT /* operationSetting.selectOpHatchDBKList */
+			dbo.F_GET_VOR_EQ_NM(#{vslCallId},
+								#{shftId},
+								#{shftDt},
+								D.HATCH_NO,
+								#{cgTpCd}) 						AS eqNm, <!-- #{hatchNo} -->
+			dbo.F_GET_VOR_FAC_NM(#{vslCallId},
+								#{shftId},
+								#{shftDt},
+								D.HATCH_NO,
+								#{cgTpCd}) 						AS facNm,
+			D.HATCH_NO 											AS HATCHNO,
+			D.EQ_FAC_NO 										AS eqFacNo
+		FROM
+			TMT_VSL_OPE_RPT 									V
+				LEFT OUTER JOIN TMT_VSL_OPE_RPT_DTL tempD
+		     		ON V.VSL_CALL_ID 							= tempD.VSL_CALL_ID
+					AND V.WORK_YMD 								= tempD.WORK_YMD
+					AND V.SHFT_ID 								= tempD.SHFT_ID,
+			TMT_VSL_OPE_RPT_DTL 								D
+		WHERE
+		    (D.HATCH_NO IS NOT NULL 							AND D.HATCH_NO <![CDATA[<>]]> '')
+			AND D.CG_TP_CD 										IN ('DBK','DBE', 'DBN')
+		<if test="vslCallId != null and vslCallId != ''">
+			AND V.VSL_CALL_ID 									= #{vslCallId}
+		</if>
+		<if test="shftId != null and shftId != ''">
+			AND V.SHFT_ID 										= #{shftId}
+		</if>
+		<if test="shftDt != null and shftDt != ''">
+			AND V.WORK_YMD 										= #{shftDt}
+		</if>
+		<if test="hatchNo != null and hatchNo != ''">
+			AND D.HATCH_NO 										= #{hatchNo}
+		</if>
+		GROUP BY
+		    D.HATCH_NO,
+		    D.EQ_FAC_NO
+	</select>
+	
+	<select id="selectOperationSetHatch" parameterType="operationSettingParm" resultType="operationSettingItem">
+		SELECT /* operationSetting.selectOperationSetHatch */
+		<if test="searchType == 'HTBBK'">
+			dbo.F_GET_VOR_EQ_NM(#{
+				vslCallId},
+				#{shftId},
+				#{shftDt},
+				#{hatchNo},
+				#{cgTpCd}
+			) 													AS eqNm,
+			dbo.F_GET_VOR_STRV_NM(
+				#{vslCallId},
+				#{shftId},
+				#{shftDt},
+				#{hatchNo},
+				#{cgTpCd}
+			) 													AS stevedoreNm,
+			dbo.F_GET_VOR_HATCHDRT_NM(
+				#{vslCallId},
+				#{shftId},
+				#{shftDt},
+				#{hatchNo},
+				#{cgTpCd}
+			) 													AS hatchDrt,
+		</if>
+		<if test="searchType == 'HTDBK'">
+			dbo.F_GET_VOR_EQ_NM(
+				#{vslCallId},
+				#{shftId},
+				#{shftDt},
+				#{hatchNo},
+				#{cgTpCd}
+			) 													AS eqNm,
+			dbo.F_GET_VOR_FAC_NM(
+				#{vslCallId},
+				#{shftId},
+				#{shftDt},
+				#{hatchNo},
+				#{cgTpCd}
+			) 													AS facNm,
+		</if>
+			V.VSL_CALL_ID 										AS VSLCALLID,
+			V.SHFT_ID 	 										AS SHFTID,
+			(SELECT
+				S.SHFT_NM
+			FROM
+				TMT_SHFT S
+			WHERE
+				S.SHFT_ID 										= V.SHFT_ID
+			) 													AS SHFTNM
+		FROM
+	       TMT_VSL_OPE_RPT 										V
+		WHERE
+			1=1
+		<if test="vslCallId != null and vslCallId != ''">
+	   		AND V.VSL_CALL_ID 									= #{vslCallId}
+		</if>
+		<if test="shftId != null and shftId != ''">
+	   		AND V.SHFT_ID 										= #{shftId}
+		</if>
+		<if test="shftDt != null and shftDt != ''">
+			AND V.WORK_YMD 										= #{shftDt}
+		</if>
+	</select>
+	
+	<select id="selectLocationList" parameterType="operationSettingParm" resultType="operationSettingItem">
+		SELECT DISTINCT /* operationSetting.selectLocationList */
+			TAB.LOC_TP_CD 										AS locTpCd,
+			PLAN_LOC_ID 										AS location ,
+			TAB.LOC_ID 											AS locId,
+			TAB.WH_ID 											AS whId
+		FROM
+		    TMT_LOC_DEF 										TAB,
+		    TMT_SPC_PLAN 										SPLAN,
+		    TMT_SPC_REQ 										SREQ
+		WHERE
+		    TAB.LOC_ID 											= SPLAN.LOC_ID
+         	AND SREQ.VSL_CALL_ID 								= SPLAN.VSL_CALL_ID
+         	
+         	AND SREQ.SEQ 										= SPLAN.SEQ	 	
+         	 
+			AND SREQ.VSL_CALL_ID 								= #{vslCallId}
+			AND SREQ.BL_NO 										= #{blNo}
+	</select>
+    
+    <!-- RBT. 2024 Add YT activate operation -->
+    <select id="selectYTList" parameterType="operationSettingParm" resultType="operationSettingItem">
+        SELECT LORRY_NO AS EQNO, 'YT' as eqTpCd
+          FROM TMT_ASSIGN_TRANSPORT
+         WHERE TRUCK_MODE = 'I' AND VSL_CALL_ID = #{vslCallId}
+               AND LORRY_NO IN (SELECT EQ_FAC_NO FROM  TMT_EQ_FAC F WHERE  F.VLD_YN  = 'Y' AND F.EQ_TP_CD = 'YT')
+    </select>
+    <!-- RBT. 2024 Add YT activate operation -->
+    <insert id="insertYTPool" parameterType="operationSettingItem">
+        /*Insert insertYTPool*/
+        
+		DELETE FROM TMT_YT_POOL 
+		WHERE EQ_NO = #{eqNo} AND EQ_TP_CD = 'YT';
+
+		INSERT INTO TMT_YT_POOL (
+		    VSL_CD,
+		    CALL_YEAR,
+		    CALL_SEQ,
+		    VSL_CALL_ID,
+		    EQ_NO,
+		    EQ_TP_CD,
+		    IMEX_CD,
+		    MF_DOC_ID,
+		    ACTIVE_DT,
+		    UPDATE_TIME,
+		    STAFF_CD
+		) VALUES (
+		    #{vslCd},
+		    #{callYear},
+		    #{callSeq},
+		    #{vslCallId},
+		    #{eqNo},
+		    #{eqTpCd},
+		    #{opeClassCd},
+		    #{docNo},
+		    GETDATE(), -- Replaces SYSDATE
+		    GETDATE(), -- Replaces SYSDATE
+		    #{userId}
+		);
+    </insert>
+</mapper>
